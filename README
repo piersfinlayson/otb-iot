@@ -114,6 +114,26 @@ Logging via MQTT is a planned future feature.
 OTB-IOT attempts to recover from serious errors by resetting.  However, ESP8266 softwar reset appears to be quite flakey on some devices (perhaps due to floating pins on many ESP boards).  I'm currently searching for a reliable solution, but may require specific hardware to be reliable.
 
 
+### Included projects
+
+OTB-IOT includes a bunch of other projects including:
+- esp_mqtt https://github.com/tuanpmt/esp_mqtt
+- WiFiManager https://github.com/tzapu/WiFiManager
+- TaskScheduler https://github.com/arkhipenko/TaskScheduler
+- esp8266/Arduino https://github.com/esp8266/Arduino
+- OneWire https://github.com/PaulStoffregen/OneWire.git
+- Arduino-Temperture-Control-Library https://github.com/milesburton/Arduino-Temperature-Control-Library
+
+As can be seen, OTB-IOT is a combination of Arduino based code and code written for the ESP8266 SDK.  Various modifications have been made to all of the included projects to get this work, with a key addition of faking out the ESP8266 SDK scheduler (used by esp_mqtt) and replacing it with Arduino TaskScheduler.
+
+Other changes include:
+- Stability fixes to WiFiManager
+- More compile time memory allocation in esp_mqtt
+- Removing assert on yield in sketch context from esp8266/Arduino (as unexpected work is done in this context due to scheduling task out and TCP work from esp_mqtt).
+
+All changes to the above libraries are made available under the GPLv3 with the existing works retaining their original licenses.
+
+
 ### Other Questions
 
 Please ask me: https://github.com/PiersFinlayson/otb-iot
