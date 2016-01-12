@@ -32,6 +32,8 @@ extern "C" void ICACHE_FLASH_ATTR initialize_temp(int bus, void **oneWire_handle
  
   *oneWire_handle = (void *)oneWire;
   *sensors_handle = (void *)sensors;
+
+  sensors->begin();
 }
 
 extern "C" void ICACHE_FLASH_ATTR request_temps(void *sensors_handle)
