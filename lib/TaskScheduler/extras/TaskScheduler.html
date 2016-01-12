@@ -1,0 +1,3135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="LibreOffice 3.5  (Linux)">
+	<META NAME="CREATED" CONTENT="20150206;16300000">
+	<META NAME="CHANGEDBY" CONTENT="Anatoli Arkhipenko">
+	<META NAME="CHANGED" CONTENT="20151223;16480000">
+	<META NAME="Info 1" CONTENT="">
+	<META NAME="Info 2" CONTENT="">
+	<META NAME="Info 3" CONTENT="">
+	<META NAME="Info 4" CONTENT="">
+	<STYLE TYPE="text/css">
+	<!--
+		@page { margin: 0.79in }
+		P { margin-bottom: 0.08in; direction: ltr; color: #000000; widows: 0; orphans: 0 }
+		P.western { font-family: "Liberation Serif", "MS PMincho", serif; font-size: 12pt; so-language: en-US }
+		P.cjk { font-family: "WenQuanYi Micro Hei", "MS Mincho"; font-size: 12pt; so-language: zh-CN }
+		P.ctl { font-family: "Lohit Hindi", "MS Mincho"; font-size: 12pt; so-language: hi-IN }
+		A:link { color: #0000ff }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="en-US" TEXT="#000000" LINK="#0000ff" BGCOLOR="#ffffff" DIR="LTR">
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT SIZE=4 STYLE="font-size: 15pt"><B>Task
+Scheduler</B></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Cooperative
+multitasking for Arduino microcontrollers</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; border-top: none; border-bottom: 1px solid #000000; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.01in; padding-left: 0in; padding-right: 0in">
+<FONT SIZE=2 STYLE="font-size: 11pt"><B>Version 2.0.0: 2015-12-23</B></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>OVERVIEW</B>:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">A lightweight
+implementation of cooperative multitasking (task scheduling)
+supporting:</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Periodic task
+	execution (with dynamic execution period in milliseconds –
+	frequency of execution)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Number of
+	iterations (limited or infinite number of iterations)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Execution of tasks
+	in predefined sequence</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Dynamic change of
+	task execution parameters (frequency, number of iterations, callback
+	methods)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Power saving via
+	entering IDLE sleep mode when tasks are not scheduled to run</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Support for
+	event-driven task invocation via Status Request object</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Support for task
+	IDs and Control Points for error handling and watchdog timer</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Support for Local
+	Task Storage pointer (allowing use of same callback code for
+	multiple tasks)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Support for
+	layered task prioritization</P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Scheduling overhead:
+between 15 and 18 microseconds per scheduling pass.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>TASK</B>:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">“Task” is a
+container concept that links together:</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Program code
+	performing specific task activities (callback methods)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Execution interval</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Number of
+	execution iterations</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">(Optionally)
+	Execution event (Status Request)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">(Optionally)
+	Pointer to a Local Task Storage area</P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Tasks</B> perform
+certain functions, which could require periodic or one-time
+execution, update of specific variables, or waiting for specific
+events. Tasks also could be controlling specific hardware, or
+triggered by hardware interrupts. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">For execution purposes
+<B>Tasks</B> are linked into execution <B>chains</B>, which are
+processed by the <B>Scheduler</B> in the order they were added
+(linked together).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Starting with
+version 2.0.0 TaskScheduler supports task prioritization. Please
+refer to the specific chapter of this manual for details on layered
+prioritization. </B>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Each task performs its
+function via a callback method. Scheduler calls Task’s callback
+method periodically until task is disabled or runs out of iterations.
+In addition to “regular” callback method, two additional methods
+could be utilized for each task: a callback method invoked every time
+the task is enabled, and a callback method invoked once when the task
+is disabled. Those two special methods allow tasks to properly
+initiate themselves for execution, and clean-up after execution is
+over (E.g., setup pin modes on enable, and always bring pin level to
+LOW at the end). 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Tasks are responsible
+for supporting <B>cooperative</B> <B>multitasking</B> by being “good
+neighbors”, i.e., running their callback methods quickly in a
+non-blocking way, and releasing control back to scheduler as soon as
+possible. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Scheduler</B> is
+executing Tasks' callback methods in the order the tasks were added
+to the chain, from first to last. Scheduler stops and exists after
+processing the chain once in order to allow other statements in the
+main code of <B>loop()</B> method to run.  This is referred to as a
+<B>“scheduling pass”.</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">(Normally, there is no
+need to have any other statements in the <B>loop</B>() method other
+than the Scheduler's <B>execute</B>() method).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>Below is the flowchart of a Task lifecycle:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><IMG SRC="TaskScheduler_html.png" NAME="graphics1" ALIGN=BOTTOM WIDTH=664 HEIGHT=517 BORDER=0></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>TaskScheduler</B>
+library maybe compiled with different compilation controls
+enabled/disabled. This is a way to limit TaskScheduler functionality
+(and size) for specific purpose (sketch). This is achieved by
+defining specific #<B>define</B> parameters <I>before</I>
+TaskScheduler.h header file. Specifically:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">If compiled with
+<FONT FACE="Courier New, monospace">_TASK_SLEEP_ON_IDLE_RUN</FONT>
+enabled, the scheduler will place processor into IDLE sleep mode (for
+approximately 1 ms, as the timer interrupt will wake it up), after
+what is determined to be an “idle” pass. An Idle Pass is a pass
+through the task chain when no Tasks were scheduled to run their
+callback methods. This is done to avoid repetitive idle passes
+through the chain when no tasks need to be executed. If any of the
+tasks in the chain always requires immediate execution (aInterval =
+0), then there will be no IDLE sleep between task's callback method
+execution.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>NOTE: </B>Task
+Scheduler uses <B>millis()</B> to determine if tasks are ready to be
+invoked. Therefore, if you put your device to any “deep” sleep
+mode disabling timer interrupts, the <B>millis()</B> count will be
+suspended, leading to effective suspension of scheduling. Upon wake
+up, active tasks need to be re-enabled, which will effectively reset
+their internal time scheduling variables to the new value of
+<B>millis(). </B>Time spent in deep sleep mode should be considered
+“frozen”, i.e., if a task was scheduled to run in 1 second from
+now, and device was put to sleep for 5 minutes, upon wake up, the
+task will still be scheduled 1 second from the time of wake up.
+Executing <B>enable() </B>method on this tasks will make it run as
+soon as possible. This is a concern only for tasks which are required
+to run in a truly periodical manner (in absolute time terms). 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">In addition to
+time-only (<B>millis</B>() only)  invocation, tasks can be scheduled
+to wait on an event employing StatusRequest objects (more about
+Status Requests later).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Consider a scenario
+when one task (t1) is performing a function which affects execution
+of many tasks (t2, t3). In this case the task t1 will “signal”
+completion of its function via Status Request object. Tasks t2 and t3
+are “waiting” on the same Status Request object. As soon as
+status request completes, t2 and t3 are activated.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Alternative scenario is
+the ne task (t1) and waiting for the completion of a number of tasks
+(t2, t3). When done, t2 and t3 signal completion of their functions,
+t1 is invoked. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Please see the code
+examples at the end of this document, and included with the library
+package for details.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>COMPILE PARAMETERS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">This library could be
+compiled in several configurations.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Parameters (<B>#define</B>s)
+defining what functionality should or should not be included need be
+defined before the library header file in the body of arduino sketch.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">#define
+<B>_TASK_TIMECRITICAL</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">...will compile the
+library with time critical tracking option enabled.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Time critical option
+keeps track when current execution took place relative to when it was
+scheduled, and where next execution time of the task falls. Two
+methods provide this information. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Task::getStartDelay()
+</B>method: return number of milliseconds between current system time
+(millis) and point in time when the task was scheduled to start. A
+value of 0 (zero) indicates that task started right on time per
+schedule. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Task::getOverrun()</B>
+method: If <B>getOverrun </B>returns a negative value, this Task’s
+next execution time point is <I>already</I> in the past, and task is
+behind schedule. This most probably means that either task’s
+callback method's runtime is too long, or the execution interval is
+too short (and therefore schedule is too aggressive).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">A positive value
+indicates that task is on schedule, and callback methods have enough
+time to finish before the next scheduled pass. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">#define
+<B>_TASK_SLEEP_ON_IDLE_RUN</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">...will compile the
+library with the <B>sleep</B> option enabled (AVR boards only).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">When enabled, scheduler
+will put the microcontroller into <B>SLEEP_MODE_IDLE</B> state if
+none of the tasks’ callback methods were activated during execution
+pass. <B>IDLE</B> state is interrupted by timers once every 1 ms.
+Putting microcontroller to IDLE state helps conserve power.  Device
+in SLEEP_MODE_IDLE wakes up to all hardware and timer interrupts, so
+scheduling is kept current.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+#define <B>_TASK_STATUS_REQUEST</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">…will compile
+TaskScheduler with support for StatusRequest object. Status Requests
+are objects allowing tasks to wait on an event, and signal event
+completion to each other. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">#define <B>_TASK_WDT_IDS</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">…will compile
+TaskScheduler with support for Task IDs and Control Points. Each task
+can be (and is by default) assigned an ID, which could be used to
+identify the task in case there is a problem with it. Furthermore
+within the task, Control Points could be defined to further help with
+pinpointing potential problem areas. For instance, the tasks which
+deal with external resources (sensors, serial communications,
+anything hardware dependent) can be blocked (or hung), by failed
+hardware. In this case, a watchdog timer could be employed to trap
+such a failed task, and identify which one (by task id) and where in
+the task (by a control point) the problem is likely located.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>NOTE: </B>by
+default, talk IDs are assigned sequentially (1, 2, 3, …) to the
+tasks as they are being created. Programmer can assign a specific
+task id. <B>Task ids are unsigned integers.</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Control points provide
+a way to identify potential problem points within a task. Control
+points are <B>unsigned integers </B>as well. Please note that there
+is only one control point per task, and it is set to zero when the
+task’s callback method is invoked (this is done to prevent “stray”
+control point from previous task(s) confusing the matters.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Example #7 contains a
+test of task ID and control points functionality.  
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">#define
+<B>_TASK_LTS_POINTER</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">…will compile
+TaskScheduler with support for Local Task Storage pointer (LTS). LTS
+is a generic (void*) pointer which could be set to reference a
+variable or a structure specific to a particular task. A callback
+method can get access to specific variables by getting reference to a
+currently running task from the scheduler, and then casting (void*)
+LTS pointer to the appropriate pointer type. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>NOTE: </B>above
+parameters are<B> DISABLED </B>by default, and need to be explicitly
+enabled by placing appropriate #define statements in front of the
+#include statement for the TaskScheduler header file.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">#define <B>_TASK_PRIORITY</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">…will compile
+TaskScheduler with support for layered task prioritization. Task
+prioritization is achieved by creating several schedulers, and
+organizing them in priority layers. Tasks are assigned to schedulers
+corresponding to their priority. Tasks assigned to the “higher”
+layers are evaluated for invocation more frequently, and are given
+priority in execution in case of the scheduling coincidence. More
+about layered prioritization in the API documentation and
+TaskScheduler examples.  
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>TASK PRIORITY AND
+COOPERATIVE MULTITASKING:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Starting with version
+2.0.0 TaskScheduler supports task prioritization. Priority is
+associated with a <B>Scheduler</B>, not individual <B>Tasks</B>,
+hence the concept of priority layers. Tasks subsequently are assigned
+to schedulers corresponding to their desired priority. The lowest
+priority Scheduler is called “<B>base scheduler</B>” or “<B>base
+layer</B>”. Let’s call higher priority schedulers by their
+priority number, with larger number corresponding to higher priority
+of task execution. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Task prioritization is
+achieved by executing the entire chain of tasks of the higher
+priority scheduler for every single step (task) of the lower priority
+chain. <B>Note</B> that actual callback method invocation depends on
+priority <B>and </B>the timing of task schedule. However, higher
+priority tasks are evaluated more frequently and are given priority
+in case of scheduling collision. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">For most tasks
+TaskScheduler <B>does not need </B>task priority functionality.
+Prioritization requires additional scheduling overhead, and should be
+used only for critical tasks.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">A few points on that:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">1. Plain (non-layered)
+execution chain is simple and efficient. The main idea is to minimize
+scheduling overhead by Scheduler going through the chain. Each
+priority layer adds scheduling overhead to overall task chain
+execution. Let’s review 3 scenarios:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>I.
+Flat chain of 7 tasks:</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+evaluation sequence:</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+1 <FONT FACE="Wingdings"></FONT> 2 <FONT FACE="Wingdings"></FONT>
+3 <FONT FACE="Wingdings"></FONT> 4 <FONT FACE="Wingdings"></FONT>
+5 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+overhead:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">O
+= B * T = 7 * 18 = 126 microseconds,</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Where:</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">O
+– scheduling overhead</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">B
+– number of tasks in the base layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">T
+– scheduling overhead of a single task execution evaluation
+(currently with Arduino Uno running at 16 Mhz is between 15 and 18
+microseconds).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>II.
+Two priority layers of 7 tasks. </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>	</B>Tasks
+1, 2, 3, 4, 5 are base priority and 6, 7 are higher priority:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+evaluation sequence:</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+6 <FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+1 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7 <FONT FACE="Wingdings"></FONT> 2 <FONT FACE="Wingdings"></FONT>
+6 <FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+3 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7 <FONT FACE="Wingdings"></FONT> 4 <FONT FACE="Wingdings"></FONT>
+6 <FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+5</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+overhead:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">O
+= (B + B * P1) * T = (5 + 5 * 2) * 18 = 270 microseconds,</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Where:</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">O
+– scheduling overhead</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">B
+– number of tasks in the base layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">P1
+– number of tasks in the priority 1 layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">T
+– scheduling overhead of a single task execution evaluation
+(currently with Arduino Uno running at 16 Mhz is between 15 and 18
+microseconds).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>III.
+Three priority layers of 7 tasks. </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>	</B>Tasks
+1, 2, 3, are base priority, 4, 5 are priority 1, and 6, 7 are
+priority 2:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+evaluation sequence:</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+6 <FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+4 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7 <FONT FACE="Wingdings"></FONT> 5 <FONT FACE="Wingdings"></FONT>
+1 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7 <FONT FACE="Wingdings"></FONT> 4 <FONT FACE="Wingdings"></FONT>
+6 <FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+5 <FONT FACE="Wingdings"></FONT> 2 <FONT FACE="Wingdings"></FONT>6
+<FONT FACE="Wingdings"></FONT> 7 <FONT FACE="Wingdings"></FONT>
+4 <FONT FACE="Wingdings"></FONT> 6 <FONT FACE="Wingdings"></FONT>
+7 <FONT FACE="Wingdings"></FONT> 5 <FONT FACE="Wingdings"></FONT>
+3 
+</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Scheduling
+overhead:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">O
+= (B + B * P1 + B * P1 * P2) * T = (3 + 3 * 2 + 3 * 2 * 2) * 18 = 378
+microseconds,</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Where:</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">O
+– scheduling overhead</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">B
+– number of tasks in the base layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">P1
+– number of tasks in the priority 1 layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">P2
+– number of tasks in the priority 2 layer</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">T
+– scheduling overhead of a single task execution evaluation
+(currently with Arduino Uno running at 16 Mhz is between 15 and 18
+microseconds).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Scheduling overhead of
+a 3 layer prioritization approach is 3 times higher than that of a
+flat execution chain. <B>Do</B> evaluate if task prioritization is
+really required for your sketch.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">2. TaskScheduler is <B>NOT</B>
+a pre-emptive multi-tasking library. Nor is it a Real-Time OS. There
+is no way to break execution of one task in favor of another.
+Therefore callback methods require careful programming for
+cooperative behavior.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">This has, however,
+significant benefits: you don't need to worry about concurrency
+inside the callback method, since only one callback method runs at a
+time, and could not be interrupted. All resources are yours for that
+period of time, no one can switch the value of variables (except
+interrupt functions of course...), etc. It is a stable and
+predictable environment, and it helps a lot with writing stable code.
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">A number of things
+could be done instead of priorities:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">1. Schedule your
+critical tasks to run more frequently than the other tasks</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">. <BR>(Since you can
+control the interval, you could also change the task to run more or
+less frequently as the situation demands).</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">2. If one particular
+callback routine is critical, create a couple of tasks referring to
+the same callback and &quot;sprinkle&quot; them around the chain:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Scheduler
+ts;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t1(20, TASK_FOREVER, &amp;callback1, &amp;ts);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t2(1000, TASK_FOREVER, &amp;callback2, &amp;ts);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t3(20, TASK_FOREVER, &amp;callback1, &amp;ts);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t4(1000, TASK_FOREVER, &amp;callback4, &amp;ts);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">    <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t3.delay(10);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Note that t1 and t3
+call the same callback method, and are shifted in time by 10 millis.
+So effectively callback1 will be called every 10 millis, but would be
+&quot;sandwiched&quot; between t2 and t4. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">3. Use short efficient
+callback methods written for cooperative multitasking.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">What that means is:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">a)
+<B>DO NOT</B> use Arduino's  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt"><B>delay</B></FONT></FONT><FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">()</FONT></FONT><FONT FACE="Andale Mono, MS Mincho">
+</FONT>function. It is blocking and will hold the entire chain.
+Instead break the callback method into two, switch the callback
+method of the task where delay is necessary and delay the task by
+that number of millis. You get your delay, and other tasks get a
+chance to run:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">instead
+of:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">delay(1000);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+more stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">do
+this:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback1() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback2);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.delay(1000);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback2() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+more stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback1);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">b)
+Same goes to <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt"><B>pulseIn</B></FONT></FONT><FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">()</FONT></FONT>
+function. If you have to use it, set the timeout parameter such that
+it is not a default 1 second. PulseIn functionality could be achieved
+via pin interrupts, and that solution is non-blocking.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">c)
+Do don run long loops (for or do/while) in you callback methods. Make
+the main arduino loop be the loop driver for you:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">instead
+of:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">for(int
+i=0; i&lt;1000; i++) {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+     <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+stuff // one loop action</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">do
+this:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t1(TASK_IMMEDIATE, 1000, &amp;callback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">int
+i = t1.getRunCounter() -1;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+stuff // one loop action</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">or
+this:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t1(TASK_IMMEDIATE, 1000, &amp;callback, true, &amp;t1On);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">int
+i;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">bool
+t1On() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">i
+= 0;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">return
+true;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+stuff // one loop action</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">i++;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<B>REMEMBER: you are already inside the loop - take advantage of it. </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">d)
+Break long running callback methods into several shorter ones, and
+pass control from one to the other via <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt"><B>setCallback</B></FONT></FONT><FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">()
+</FONT></FONT>method:</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t1(TASK_IMMEDIATE, TASK_FAREVER, &amp;callback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do some stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback_step2);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback_step2() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do more stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback_step3);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback_step3() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do last part of the stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.delay(1000);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">This
+will execute all parts of the callback function in three successive
+steps, scheduled immediately, but allowing other tasks in the chain
+to run. Notice that task is scheduled to run immediately, and 1
+second period is achieved by delaying the task for 1000 millis at the
+last step. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Alternatively
+you could schedule the task to run every 1000 millis and use
+<FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">forceNextIteration()</FONT></FONT>
+method in steps 1 and 2 (but not 3!)</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">Task
+t1(1000, TASK_FOREVER, &amp;callback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do some stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback_step2);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.forceNextIteration();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback_step2() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do more stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback_step3);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.forceNextIteration();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">void
+callback_step3() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">...
+do last part of the stuff</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+   <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">t1.setCallback(&amp;callback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt">}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">e)
+Compile the library with <FONT FACE="FreeMono, MS Mincho, monospace"><FONT SIZE=2 STYLE="font-size: 10pt"><B>_TASK_TIMECRITICAL</B></FONT></FONT>
+enabled and check if your tasks are falling behind schedule. If they
+are - you need to optimize your code further (or maybe re-evaluate
+your schedule). If they are not - all is well and you don't need to
+do anything. E.g., I have a spider robot which needs to measure
+distance, control motors, and keep track of the angle via querying
+gyroscope and accelerometer every 10 ms. The idea was to flash
+onboard LED if any of the tasks fall behind. At 10 ms interval for
+the gyro the LED does not flash, which means none of the tasks are
+blocking the others from starting on time. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<FONT SIZE=4><B>API DOCUMENTATION:</B></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<FONT SIZE=4><B>TASKS:</B></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CREATION:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Task();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Default
+constructor. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Takes
+no parameters and creates a task that could be scheduled to run at
+every scheduling pass indefinitely, but does not have a callback
+method defined, so no code execution will actually take place. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">All
+tasks are created <B>disabled</B> by default.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>Task(unsigned long aInterval, long aIterations, void
+(*aCallback)(), Scheduler* aScheduler, bool aEnable, bool
+(*aOnEnable)(), void (*aOnDisable)())</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Constructor
+with parameters. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Creates
+a task that is scheduled to run every &lt;aInterval&gt; milliseconds,
+&lt;aIterations&gt; times, executing &lt;aCallback&gt; method on
+every pass. 
+</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aInterval is in
+	milliseconds (<B>default = 0)</B></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aIteration in
+	number of times, -1 for indefinite execution (<B>default = -1)</B><BR><B>Note:
+	</B>Tasks do not remember the number of iteration set initially.
+	After the iterations are done, internal iteration counter is 0. If
+	you need to perform another set of iterations, you need to set the
+	number of iterations again. <BR><B>Note: </B>Tasks which performed
+	all their iterations remain active. 
+	</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aCallback is a
+	pointer to a void callback method without parameters (<B>default =
+	NULL)</B></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aScheduler –
+	<B>optional</B> reference to existing scheduler. If supplied (not
+	NULL) this task will be appended to the task chain of the current
+	scheduler). (<B>default = NULL)</B></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aEnable –
+	<B>optional</B>. Value of <B>true </B>will create task enabled.
+	(<B>default = false)</B></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aOnEnable is a
+	pointer to a bool callback method without parameters, invoked when
+	task is enabled. If OnEnable method returns <B>true</B>, task is
+	enabled. If <B>OnEnable</B> method return <B>false</B>, task remains
+	disabled (<B>default = NULL)</B></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">aOnDisable is a
+	pointer to a void callback method without parameters, invoked when
+	task is disabled (<B>default = NULL)</B></P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">All
+tasks are created <B>disabled</B> by default (unless <B>aEnable</B> =
+true). You have to explicitly enable the task for execution.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>OnEnable callback method is called immediately when task is
+enabled, which could be well ahead of the scheduled execution time of
+the task. Please bear that in mind – other tasks, hardware, serial
+interface may not even be initialized yet. It is always advisable to
+explicitly enable tasks with OnEnable methods after all
+initialization methods completed (e.g., at the end of <B>setup</B>()
+method) 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Enabled
+task is scheduled for execution as soon as the Scheduler's <B>execute</B>()
+methods gets control. In order to delay first run of the task, use
+<B>enableDelayed</B> or <B>delay</B> method (for enabled tasks)
+method.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>Task(void (*aCallback)(), Scheduler* aScheduler, bool
+(*aOnEnable)(), void (*aOnDisable)())</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for Status Request objects, this constructor
+creates a Task for activation on event (since such tasks must run
+<B>waitFor() </B>method, their <I>interval</I>, <I>iteration</I> and
+<I>enabled</I> status will be set by that method (<I>to 0, 1 and
+false</I> respectively).</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>INFORMATION</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">The
+following 3 “getter” methods return task status
+(enabled/disabled), execution interval in milliseconds, number of
+<I><B>remaining</B></I> iterations. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>bool
+isEnabled() </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>unsigned
+long getInterval()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>long
+getIterations() </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>long getStartDelay()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+library is compiled with <FONT FACE="Courier New, monospace">_TASK_TIMECRITICAL</FONT>
+enabled, you can assess how much later the callback method was
+invoked against when it was scheduled to be invoked. The return value
+of  <B>getStartDelay () </B>method provides this information in
+milliseconds. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>long getOverrun()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+library is compiled with <FONT FACE="Courier New, monospace">_TASK_TIMECRITICAL</FONT>
+enabled, tasks are monitored for “long running” scenario. A “long
+running” task is a task that does not finish processing its
+callback methods quickly, and thus creates a situation for itself and
+other tasks where they don't run on a scheduled interval, but rather
+“catch up” and are behind.  When task scheduler sets the next
+execution target time, it adds Task's execution interval to the
+previously scheduled execution time:</P>
+<P CLASS="western" ALIGN=CENTER STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<B>next execution time = current execution scheduled time + task
+execution interval</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+<B>next execution time</B> happens to be already in the past (<B>next
+execution time</B> &lt; <B>millis()</B>), then task is considered
+<I><B>overrun</B></I>. <B>GetOverrun</B> method returns number of
+milliseconds between next execution time and current time. If the
+<B>value is negative</B>, the task has overrun (cut into the) next
+execution interval by that many milliseconds. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Positive
+value indicate number of milliseconds of slack this task has for
+execution purposes. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>unsigned long
+getRunCounter()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+the number of the current run. “Current run” is the number of
+times a callback method has been invoked since the last time a task
+was enabled. <BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>The <B>runCounter</B> value is incremented <I>before</I> callback
+method is invoked. If a task is checking the <B>runCounter</B> value
+within its callback method, then the first run value is 1. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+task T1 is checking the <B>runCounter</B> value of another task (T2)
+, then value = 0 indicates that T2 has not been invoked yet, and
+value = 1 indicates that T2 has run once. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool
+isFirstIteration()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Indicates
+whether current pass is (or will be) a first iteration of the task. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool
+isLastIteration()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">For
+tasks with a l<I>imited number of iterations only</I>, indicates
+whether current pass is the last iteration. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>CONTROL:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void enable();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Enables
+the task, and schedules it for immediate execution (without delay) at
+this or next scheduling pass depending on when the task was enabled.
+Scheduler will execute the next pass without any delay because there
+is a task which was enabled and requires execution. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>if task being enabled is not assigned to a scheduler and is not
+part of execution chain, then task <B>will not</B> be enabled.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>enable() invokes task’s <B>OnEnable</B> method (if not NULL)
+<B>immediately</B>, which can prepare task for execution. <B>OnEnable</B>
+must return a value of <B>true</B> for task to be enabled. If
+<B>OnEnable</B> returns <B>false</B>, task remains disabled. 
+<B>OnEnable</B> is invoked every time <B>enable</B> is called,
+regardless if task is already enabled or not. Alignment to current
+millis() is performed after <B>OnEnable</B> exits, so any changes to
+the interval inside <B>OnEnable</B> is taken into consideration.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">TaskScheduler
+allows tasks to be added to the a Scheduler and enabled at the time
+of creation. <B>Be very careful</B> with such tasks – the <B>OnEnable
+</B>method will be executed immediately, while certain objects (i.e.,
+other Tasks, libraries) are not yet ready (e.g., <B>Wire.begin()</B>
+was not yet called), or hardware not yet activated (pins not set to
+INPUT or OUTPUT). 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">It
+is very much recommended to to enable all tasks at the end of <B>setup()</B>
+method after all initializations are done. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+you require immediate execution of already enabled task, use
+<B>forceNextIteratoin</B>() method instead of <B>enable</B>(): it
+achieves the result, but does not call <B>OnEnable</B> method. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:</B>
+in the event <B>enable</B>() method is called inside the <B>OnEnable</B>
+callback method (thus basically creating indefinte loop),
+TaskScheduler will only call <B>OnEnable</B> once (thus protecting
+the Task against <B>OnEnable</B> infinite loop). 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>bool enableIfNot();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Enables
+the task only if it was previously disabled. Returns previous enable
+state: <B>true</B> if task was already enabled, and <B>false</B> if
+task was disabled. Since <B>enable() </B>schedules Task for execution
+immediately, this method provides a way to activate tasks and
+schedule them for immediate execution only if they are not active
+already.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void delay();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Schedules
+the task for execution after a delay (aInterval), but does not change
+the enabled/disabled status of the task. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>a delay of 0 (zero) will delay task for current execution
+interval. Use <B>forceNextIteration() </B>method to force execution
+of the task’s callback during immediate next scheduling pass. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void
+forceNextIteration();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Schedules
+the task for execution during immediate next scheduling pass.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">The
+Task must be already <I>enabled</I> prior to this method. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B>Task’s schedule is adjusted to run from this moment in time.
+For instance: if a task was running every 10 seconds: 10, 20, 30, ..,
+calling <B>forceNextIteration </B>at 44th second of task execution
+will make subsequent schedule  look like: 44, 54, 64, 74, ..</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void
+enableDelayed();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Enables
+the task, and schedules it for execution after task's current
+scheduling interval (aInterval). 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void enableDelayed
+(unsigned long aDelay);</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Enables
+the task, and schedules it for execution after a specific delay
+(aDelay, which maybe different from aInterval). 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void restart();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">For
+tasks with limited number of iterations only, <B>restart</B> method
+will re-enable the task, set the number of iterations back to last
+set value, and schedule task for execution as soon as possible.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void restartDelayed
+(unsigned long aDelay);</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Same
+as <B>restart()</B> method, with the only difference being that Task
+is scheduled to run first iteration after a delay = <B>aDelay</B>
+milliseconds.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool disable();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Disables
+the task. Scheduler will not execute this task any longer, even if it
+remains in the chain.  Task <B>can</B> be later re-enabled for
+execution. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Return
+previous enabled state: <B>true</B> if task was enabled prior to
+calling disable, and <B>false</B> otherwise.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+not NULL, task’s <B>OnDisable</B> method is invoked <B>immediately</B>.
+<B>OnDisable</B> is invoked only if task was in enabled state. 
+Calling <B>disable</B> 3 times for instance will invoke <B>OnDisable</B>
+only once.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void set(unsigned
+long aInterval, long aIterations, void (*aCallback)() , bool
+(*aOnEnable)() , void (*aOnDisable)());</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Allows
+dynamic control of task execution parameters in one method call. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note</B><B>:
+</B>OnEnable and OnDisable parameters can be omitted. In that case
+they will be assigned to <B>NULL</B> and respective methods will no
+longer be called. Therefore it is advisable to use either all five
+parameters explicitly, or employ individual “setter” methods
+below instead. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+Next five “setter” methods allow changes of individual task
+execution control parameters. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>void
+setInterval (unsigned long aInterval) </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>void
+setIterations (long aIterations) </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>void
+setCallback (void (*aCallback)()) </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>void
+setOnEnable (bool (*aCallback)()) </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>void
+setOnDisable (void (*aCallback)()) </B>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>NOTE: </B>Next
+execution time calculation takes place <B>after</B> the callback
+method is called, so new interval will be used immediately by the
+scheduler. For the situations when one task is changing the interval
+parameter for the other, <B>setInterval</B> method calls <B>delay
+</B>explicitly to guarantee schedule change, however it <B>does not
+</B>enable the task if task is disabled.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>NOTE: </B>Tasks that
+ran through all their allocated iterations are disabled.
+<B>SetIterations()</B> method <B>DOES NOT</B> enable the task. Either
+<B>enable</B> explicitly, or use <B>restart</B> methods. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Please note that as a
+result execution of the taks is <B>delayed</B> by the provided
+interval. If immediate invocation is required, call
+<B>forceNextIteration</B>() method after setting a new interval. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>STATUS REQUEST
+METHODS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void waitFor(StatusRequest* aStatusRequest, unsigned long
+aInterval = 0, long aIterations = 1)</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void waitForDelayed(StatusRequest* aStatusRequest, unsigned long
+aInterval = 0, long aIterations = 1)</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for Status Requests, these methods make task
+wait for the completion of <B>aStatusRequest</B> event. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">By
+default <B>waitFor() </B>sets tasks interval to <B>0 (zero)</B> for
+immediate execution when event happens, and also sets the number of
+<B>iterations to 1</B>. However, you can specify different interval
+and number of iterations. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">By
+default <B>waitForDelayed() </B>sets tasks interval to a supplied
+value or (if omitted or zero) keeps the current interval, so delayed
+execution will take place when the event happens.  It also sets the
+number of <B>iterations to 1</B> by default if not supplied.  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">When
+Status Request object completes, all tasks waiting on it are executed
+during next scheduling pass. Tasks waiting via <B>waitFor</B>()
+method are executed immediately. Tasks waiting via <B>waitForDelayed</B>()
+method are activated, but executed after current or supplied interval
+delay. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+aStatusRequest</B> should be “activated” by calling <B>setWaiting()
+</B>method before making a task wait on it. Otherwise, the task will
+execute immediately. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">The
+sequence of events to use Status Request object is as follows:</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Create a status
+	request object</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Activate status
+	request object (calling its <B>setWaiting</B>() method)</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Set up tasks to
+	wait of the event completion</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Signal completion
+	of event(s)</P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>StatusRequest*
+getStatusRequest()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+a StatusReqeust object this Task was waiting on. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>TASK ID, CONTROL POINTS METHODS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void setId(unsigned int aID);</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for Task IDs, this method will set the task ID
+explicitly. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Calling
+this method is not necessary as task IDs are assigned automatically
+during task creation: 1, 2, 3, …</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>unsigned int getId();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for Task IDs, this method return current task’s
+ID.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void setControlPoint (unsigned int aPoint);</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for Task IDs, this method will set a control
+point in the task’s code. Control points are similar to “try…catch”
+blocks, with control point ID specifying where in the code the “try”
+part started, and a mechanism like watchdog timer providing the
+“catch” functionality.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>unsigned int getControlPoint()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+If compiled with support for Task IDs, this method will return
+currently set control point for this task.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>LOCAL TASK STORAGE
+METHODS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void setLtsPointer(void *aPtr);</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for LTS, this method will set the task's local
+storage pointer.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void *getLtsPointer();</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+compiled with support for LTS, this method will return reference to
+the task's local storage.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B>the value returned has type (void *), and needs to be re-cast
+into appropriate pointer type. Please refer to example sketches for
+implementation options. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>STATUS REQUEST:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>CREATION:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>StatusRequest()</B><BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Default
+constructor. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Takes
+no parameters. Creates Status Request object, which is assigned a
+status of “completed” on creation. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void
+setWaiting(unsigned int aCount = 1)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Activates
+Status Request object. By default each object is set to wait on one
+event only, however, if <B>aCount</B> is supplied, Status Request can
+wait on multiple events. For instance, <B>setWaiting(3)</B> will wait
+on three signals. An example could be waiting for completion of
+measurements from 3 sensors. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool signal(int
+aStatus)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Signals
+completion of the event to the Status Request object, and passes a
+completion code, which could be interrogated later. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B> passing a <B>negative</B> status code to the status request
+object is considered reporting an error condition, and will complete
+the status request regardless of how many outstanding signals it is
+still waiting for. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note</B>:
+only the latest status code is kept.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool signalComplete
+(int aStatus)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Signals
+completion of <B>ALL</B> events to the Status Request object, and
+passes a completion code, which could be interrogated later. The
+status request completes regardless of how many events it is still
+waiting on. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool pending() </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+<B>true</B> if status request is still waiting for event or events to
+happen.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool completed () </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+<B>true</B> if status has completed.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>int getStatus()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+the status code passed to the status request object by the <B>signal()
+</B>and <B>signalComplete() </B>methods. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Any
+<B>positive</B> number is considered a successful completion status.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">A
+0 (zero) is considered a default successful completion status.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Any
+<B>negative</B> number is considered an error code and unsuccessful
+completion of a request.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-inside: avoid; page-break-after: avoid">
+<FONT SIZE=4><B>TASK SCHEDULER:</B></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-inside: avoid; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-inside: avoid; page-break-after: avoid">
+<B>CREATION:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-inside: avoid; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>Scheduler()</B><BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Default
+constructor. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Takes
+no parameters. Creates task scheduler with default parameters and an
+empty task queue. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void init()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Initializes
+the task queue and scheduler parameters, Executed as part of
+constructor, so don't need to be explicitly called after creation.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B>be default (if compiled with <FONT FACE="Courier New, monospace">_TASK_TIMECRITICAL</FONT>
+enabled) scheduler is allowed to put processor to IDLE sleep mode. If
+this behavior was changed via <B>allowSleep()</B> method, <B>inti()
+</B>will <B>NOT</B> reset allow sleep particular parameter. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR><B>void
+addTask(Task&amp; aTask)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Adds
+task aTask to the execution queue (or chain) of tasks by appending it
+to the end of the chain. If two tasks are scheduled for execution,
+the sequence will match the order in which tasks were appended to the
+chain. However, in reality, due to different timing of task
+execution, the actual order may be different. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B>Currently, changing the execution sequence in a chain dynamically
+is not supported. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+you need to reorder the chain sequence – initialize the scheduler
+and re-add the tasks in a different order. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR><B>void
+deleteTask(Task&amp; aTask)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Deletes
+task aTask from the execution chain. The chain of remaining tasks is
+linked together (i.e</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">if
+original task chain is 1 → 2 → 3 → 4, deleting 3 will result in
+1 → 2 → 4).</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Note:
+</B>it is not required to delete a task from the chain. A disabled
+task will not be executed anyway, but you save a few microseconds per
+scheduling pass by deleting it, since it is not even considered for
+execution. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">An
+example of proper use of this method would be running some sort of
+<B>initialize</B> task in the chain, and then deleting it from the
+chain since it only needs to run once. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void allowSleep(bool
+aState) </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Available
+in API only  if compiled with <FONT FACE="Courier New, monospace">_TASK_TIMECRITICAL</FONT>
+enabled. Controls whether scheduler is allowed (<B>aState =true</B>),
+or not (<B>aState =false</B>) to put processor into IDLE sleep mode
+in case not tasks are scheduled to run.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">The
+<B>default</B> behavior of scheduler upon creation is to allow sleep
+mode. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR><B>void
+enableAll(bool aRecursive= true)</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void disableAll(bool
+aRecursive= true)</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">enables
+and disables (respectively) all tasks in the chain. Convenient if
+your need to enable/disable majority of the tasks (i.e. disable all
+and then enable one). 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+support for layered task priority is enabled, supplying <B>aRecursive</B>
+parameter will enable/disable higher priority tasks as well (<B>true</B>,
+default), or tasks only on this priority layer (<B>false</B>). 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR><B>Task&amp; currentTask()<BR></B><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+reference to the task, currently executing via <B>execute()</B> loop
+<B>OR </B>for OnEnable and OnDisable methods, reference to the task
+being enabled or disabled. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">This
+distinction is important because one task can activate the other, and
+OnEnable should be referring to the task being enabled, not being
+executed. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Could
+be used by callback methods to identify which Task actually invoked
+this callback method.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>void* currentLts()<BR></B><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Returns
+pointer to Local Task Storage of the task, currently executing via
+<B>execute()</B> loop <B>OR </B>for OnEnable and OnDisable methods,
+task being enabled or disabled. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR><B>bool execute()</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Executes
+one scheduling pass, including (in case of the base priority
+scheduler) end-of-pass sleep. This method is typically placed inside
+the <B>loop()</B> method of the sketch. Since <B>execute</B> exits
+after every pass, you can put additional statements after <B>execute</B>
+inside the <B>loop().</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>If
+layered task prioritization is enabled, all higher priority tasks
+will be evaluated and invoked by the base <FONT FACE="Courier New, monospace">execute()</FONT>
+method. There is no need to call <FONT FACE="Courier New, monospace">execute()</FONT>
+of the higher priority schedulers explicitly. </B>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">Generally,
+base priority execute will perform the following steps:</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Call higher
+	priority scheduler’s execute method, if provided.</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Ignore task
+	completely if it is disabled.</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Disable task if it
+	ran out of iterations (calling OnDisable, if necessary).</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Check if task is
+	waiting on a StatusRequest object, and make appropriate scheduling
+	arrangements</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Perform necessary
+	timing calculations</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Invoke task's
+	callback method, if it is time to do so, and one is provided. 
+	</P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in">Put
+	microcontroller to sleep (if requested and supported) if none of the
+	tasks were invoked. 
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>Please
+NOTE:</B> schedule-related calculations are performed prior to task's
+callback method invocation. This allows tasks to manipulate their
+runtime parameters (like execution interval) directly.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>bool isOverrun()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+library is compiled with <FONT FACE="Courier New, monospace">_TASK_TIMECRITICAL</FONT>
+enabled, this method returns <B>true</B> if currently invoked task
+has overrun its scheduled start time when it was invoked. Returns
+<B>false</B> if task has been invoked according to schedule.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>TASK PRIORITY:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>void
+setHighPriorityScheduler(Scheduler* aScheduler);</B><BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+library is compiled with <FONT FACE="Courier New, monospace">_TASK_PRIORITY
+</FONT>enabled, this method associates current scheduler with a
+higher priority scheduler. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+</B>Only one <B>execute() </B>method needs to be explicitly called in
+the main <B>loop(). </B>That is the execute method of <B>base</B>
+priority scheduler. All higher priority schedulers are called by the
+base priority scheduler.</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><B>static Scheduler&amp;
+currentScheduler()</B></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">If
+library is compiled with <FONT FACE="Courier New, monospace">_TASK_PRIORITY
+</FONT>enabled, this method returns reference to a scheduler, which
+invoked current task. 
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><B>NOTE:
+Please refer to examples 11 and 12 for illustration of Task Priority
+functionality</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<B>CONSTANTS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_SECOND	(1000)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+interval of 1 second</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_MINUTE	(60000)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+interval of 1 minute</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_HOUR		(3600000)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+interval of 1 hour</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_FOREVER	(-1)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+number of iterations for infinite number of iterations</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_ONCE		(1)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+single iteration</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<B>TASK_IMMEDIATE	(0)</B></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">Task
+interval for immediate execution</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-before: always; page-break-after: avoid">
+<B>IMPLEMENTATION SCENARIOS AND IDEAS:</B></P>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<B>EVENT DRIVEN PROGRAMMING</B></P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Each of the processes
+of your application becomes a separate and distinct programming area,
+which may or may not interact and control each other. 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Example: 
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">In a plant watering
+system you need to measure soil humidity, control pump and display
+the results</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Each of the areas
+becomes a task:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+<B>tMeasure</B> (TMEASURE_INTERVAL*SECOND, TASK_FOREVER,
+&amp;measureCallback);<BR>Task <B>tWater</B>  
+(TWATER_INTERVAL*SECOND, RETRIES, &amp;waterCallback);<BR>Task
+<B>tDisplay</B> (TDISPLAY_INTERVAL*SECOND, TASK_FOREVER,
+&amp;displayCallback); <BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler
+</FONT></FONT><FONT FACE="Courier New, monospace"><FONT SIZE=2><B>taskManager</B></FONT></FONT><FONT FACE="Courier New, monospace"><FONT SIZE=2>;</FONT></FONT><BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Further, once you turn
+on the pump, you keep it running for TWATER_INTERVAL interval and
+then turn it off. Turning off a pump is also a task which only needs
+to run once for every time the pump is turned on:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+</FONT></FONT><FONT FACE="Courier New, monospace"><FONT SIZE=2><B>tWaterOff</B></FONT></FONT><FONT FACE="Courier New, monospace"><FONT SIZE=2>
+(WATERTIME*SECOND, TASK_ONCE,</FONT></FONT><FONT FACE="Courier New, monospace">
+&amp;waterOffCallback);</FONT><BR><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">Example of the callback
+method:</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+waterOffCallback() {<BR>    motorOff();<BR>   
+tWater.enableDelayed();<BR>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>or</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+waterCallback() {<BR>    if (tWater.getIterations()) {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+If this is not the last iteration = turn the pump on<BR>     
+motorOn();<BR>      tWaterOff.set(parameters.watertime * TASK_SECOND,
+TASK_ONCE, &amp;waterOffCallback);<BR>     
+tWaterOff.enableDelayed();<BR>      return;<BR>    }</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+We could not reach target humidity – something is wrong<BR>   
+motorOff;<BR>    taskManager.disableAll();<BR>    tError.enable();<BR>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Your
+sample <B>setup</B>() and <B>loop</B>() (partially) are as follows. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><B>Note:
+</B>please note that tWater is <B>not</B> activated during setup().
+It is activated by tMeasure callback once the watering conditions are
+met. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT SIZE=2><FONT FACE="Times New Roman, serif">	void
+</FONT><FONT FACE="Courier New, monospace">setup()</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	
+ ...</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT SIZE=2><FONT FACE="Courier New, monospace">tWater.setIterations(parameters.retries);<BR>
+ tWaterOff.setInterval(parameters.watertime * SECOND);<BR><BR><BR> 
+taskManager.init();<BR>  taskManager.addTask(tMeasure);<BR> 
+taskManager.addTask(tDisplay);<BR>  taskManager.addTask(tWater);<BR> 
+taskManager.addTask(tWaterOff);<BR>  <BR>  tMeasure.enable();<BR> 
+tDisplay.enable();<BR><BR>  currentHumidity =
+measureHumidity();<BR>}<BR><BR><BR>void loop ()<BR>{<BR> 
+taskManager.execute();<BR>}</FONT><FONT FACE="Times New Roman, serif"><BR></FONT></FONT><BR>
+</P>
+<OL START=2>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	“<FONT FACE="Times New Roman, serif"><B>NATIVE” SUPPORT FOR
+	FINITE STATE MACHINE</B></FONT></P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Define
+“states” as callback method or methods. Each callback method
+executes activities specific to a “state” and then “transitions”
+to the next state by assigning next callback method to the task. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Transition
+from one state to the next is achieved by setting next callback
+method at the end of preceding one. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><B>Note:
+</B>do not call the next callback method explicitly. Yield to the
+scheduler, and let the scheduler take care of next iteration during
+the next pass. (Thus giving other tasks change to run their callback
+methods). </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Example:
+Blinking LED 2 times a second could be achieved this way</FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler
+ts;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tLedBlinker (500, TASK_FOREVER, &amp;ledOnCallback, &amp;ts, true);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+ ledOnCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	turnLedOn();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	tLedBlinker.setCallback(&amp;ledOffCallback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+ ledOffCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	turnLedOff();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	tLedBlinker.setCallback(&amp;ledOnCallback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>setup()
+{</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>loop
+() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	ts.execute();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT><FONT FACE="Times New Roman, serif"><BR></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Obviously
+the example is simple, but gives the idea of how the tasks could be
+used to go through states.</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>MULTIPLE POSSIBLE CALLBACKS
+	FOR TASK</B></FONT></P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">There
+may be a need to select an option for callback method based on
+certain criteria, or randomly. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">You
+can achieve that by defining an array of callback method pointers and
+selecting one based on the criteria you need. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Example:
+when a robot detects an obstacle, it may go left, right backwards,
+etc. Each of the “directions” or “behaviors” are represented
+by a different callback methods. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Another
+example of using multiple callbacks:</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">You
+may need to “initialize” variables for a particular task.</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">In
+this case, define a tasks with two callbacks:</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+<B>tWork</B> (T_INTERVAL, TASK_FOREVER, &amp;workCallbackInit);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">…</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+ workCallbackInit() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	//
+do your initializationstuff here</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	//
+finally assigne the main callback method </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	tWork.setCallback(&amp;workCallback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+workCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	//
+main callback method</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	…</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">The
+task will initialize during first execution pass and switch to
+“regular” callback execution starting with second pass. There is
+a delay between first and second passes of the task (scheduling
+period, if defined). In order to execute the second pass immediately
+after initialization first pass, change the above code like this:</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+ workCallbackInit() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	//
+do your initializationstuff here</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	//
+finally assigne the main callback method </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	tWork.setCallback(&amp;workCallback);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	tWork.enable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">The
+task will run initialization first, then immediately second pass, and
+then switch to processing at regular intervals starting with a third
+pass. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>INTERRUP-DRIVEN EXECUTION
+	SUPPORT </B></FONT>
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">In
+case of interrupt-driven program flow, tasks could be scheduled to
+run once to request asynchronous execution (request), and then
+re-enabled (restarted) again with a different callback method to
+process the results. </FONT>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><B>Example</B>:
+event driven distance calculation for ultrasonic pulses. EchoPin #6
+triggers pin change interrupts on rising and falling edges to
+determine the length of ultrasonic pulse.</FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#include
+&lt;DirectIO.h&gt;<BR>#include &lt;TaskScheduler.h&gt;<BR>#include
+&lt;PinChangeInt.h&gt;<BR><BR><BR>#define  TRIGGERPIN 5<BR>#define 
+ECHOPIN    6<BR><BR>Output&lt;TRIGGERPIN&gt; 
+pTrigger;<BR>Input&lt;ECHOPIN&gt;      pEcho;<BR><BR>Scheduler
+r;<BR><BR>Task  tMeasure(TASK_SECOND, TASK_FOREVER, &amp;measureCallback,
+&amp;r, true);<BR>Task  tDisplay(TASK_SECOND, TASK_FOREVER,
+&amp;displayCallback, &amp;r, true);<BR>Task  tPing(TASK_IMMEDIATE,
+TASK_ONCE, &amp;pingCalcCallback, &amp;r, false);<BR><BR><BR>volatile
+bool pulseBusy = false;<BR>volatile bool pulseTimeout =
+false;<BR>volatile unsigned long pulseStart = 0;<BR>volatile unsigned
+long pulseStop = 0;<BR>volatile unsigned long pingDistance =
+0;<BR><BR><BR>void pingTrigger(unsigned long aTimeout) {<BR>  if
+(pulseBusy) return;  // do not trigger if in the middle of a pulse<BR>
+ if (pEcho == HIGH) return; // do not trigger if ECHO pin is high<BR>
+ <BR>  pulseBusy = true;<BR>  pulseTimeout = false;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2><BR>
+ pTrigger = LOW;<BR>  delayMicroseconds(4);<BR>  pTrigger = HIGH;<BR><BR>
+ tPing.setInterval (aTimeout);<BR><BR>  delayMicroseconds(10);<BR> 
+pTrigger = LOW; <BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tPing.restartDelayed();
+// timeout countdown starts now<BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+will start the pulse clock on the rising edge of ECHO pin</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>PCintPort::attachInterrupt(ECHOPIN,
+&amp;pingStartClock, RISING); <BR>}<BR><BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Start clock on the <B>rising</B> edge of the ultrasonic pulse<BR>void
+pingStartClock() {<BR>  pulseStart = micros();<BR> 
+PCintPort::detachInterrupt(ECHOPIN); // not sure this is necessary<BR>
+ PCintPort::attachInterrupt(ECHOPIN, &amp;pingStopClock, FALLING); <BR>
+ tPing.restartDelayed();<BR>}<BR><BR>// Stop clock on the <B>falling</B>
+edge of the ultrasonic pulse<BR>void pingStopClock() {<BR>  pulseStop
+= micros();<BR>  PcintPort::detachInterrupt(ECHOPIN);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>pingDistance =
+pulseStop - pulseStart;<BR>  pulseBusy = false;<BR>  tPing.disable();
+// disable timeout<BR>}<BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Stop clock because of the timeout – the wave did not return<BR>void
+pingCalcCallback() {<BR>  if (pulseBusy) {<BR>    pingStopClock();<BR>
+ }<BR>  pulseTimeout = true;<BR>}<BR><BR><BR><BR>// Initial measure
+callback sets the trigger<BR>void measureCallback() {<BR>  if
+(pulseBusy) {  // already measuring, try again<BR>   
+tMeasure.enable();<BR>    return;<BR>  }<BR>  pingTrigger(30); // 30
+milliseconds or max range of ~5.1 meters<BR> 
+tMeasure.setCallback(&amp;measureCallbackWait);<BR>}<BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Wait for the measurement to <BR>void measureCallbackWait() {<BR>  if
+(pulseBusy) return;<BR>  tMeasure.setCallback(&amp;measureCallback); 
+<BR>}<BR><BR><BR>bool state = true;<BR><BR>void displayCallback() {<BR>
+ char d[256];<BR>   <BR>  unsigned long cm = pingDistance * 17 / 100;
+// cm<BR>  <BR>  snprintf(d, 256, &quot;pulseStart =
+%8lu\tpulseStop=%8lu\tdistance, cm=%8lu&quot;, pulseStart, pulseStop,
+cm);<BR>  Serial.println(d);<BR>  <BR>}<BR><BR>void setup() {<BR>  //
+put your setup code here, to run once:<BR>  <BR> 
+Serial.begin(115200);<BR>  <BR><BR>  pTrigger = LOW;<BR>  pEcho =
+LOW;<BR>  <BR>}<BR><BR>void loop() {<BR>  // put your main code here,
+to run repeatedly:<BR>  r.execute();<BR>}<BR></FONT></FONT><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>USING ONENABLE AND ONDISBALE
+	METHODS </B></FONT>
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Consider
+a task to flash onboard LED for 5 seconds with random frequency. Task
+should be repeated every 30 seconds indefinitely. Since frequency is
+random, there are two challenges:</FONT></P>
+<OL START=3>
+	<OL>
+		<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">We
+		need to make sure LED is turned OFF at the last iteration</FONT></P>
+		<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif">We
+		need to calculate random frequency every time</FONT></P>
+	</OL>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif">Below
+is the implementation using TaskScheduler </FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2><BR></FONT></FONT><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#define
+_TASK_SLEEP_ON_IDLE_RUN</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#include
+&lt;TaskScheduler.h&gt;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#define
+ LEDPIN    13</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler
+ts;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tWrapper(30000, TASK_FOREVER, &amp;WrapperCallback, &amp;ts, true);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tBlink(5000, TASK_ONCE, NULL, &amp;ts, false, &amp;BlinkOnEnable,
+&amp;BlinkOnDisable);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tLED(TASK_IMMEDIATE, TASK_FOREVER, NULL, &amp;ts, false, NULL,
+&amp;LEDOff);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+WrapperCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;In
+WrapperCallback&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tBlink.restartDelayed();
+  // LED blinking  is initiated </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+            <FONT FACE="Courier New, monospace"><FONT SIZE=2>//every
+30 seconds for 5 seconds</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Upon being enabled, tBlink will define the parameters</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+and enable LED blinking task, which actually controls</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+the hardware (LED in this example)</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>bool
+BlinkOnEnable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;In
+BlinkOnEnable&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.setInterval(
+500 + random(501) );</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.setCallback(
+&amp;LEDOn);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.enable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>return true;  //
+Task should be enabled</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+tBlink does not really need a callback method</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+since it just waits for 5 seconds for the first </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+and only iteration to occur. Once the iteration</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+takes place, tBlink is disabled by the Scheduler, </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+thus executing its OnDisable method below.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+BlinkOnDisable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;In
+BlinkOnDisable&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.disable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+LEDOn () {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;In
+LEDOn&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>digitalWrite(LEDPIN,
+HIGH);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.setCallback(
+&amp;LEDOff);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+LEDOff () {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;In
+LEDOff&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>digitalWrite(LEDPIN,
+LOW);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tLED.setCallback(
+&amp;LEDOn);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Note that LEDOff method serves as OnDisable method</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+to make sure the LED is turned off when the tBlink</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+task finishes (or disabled ahead of time)</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+setup() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.begin(115200);
+</FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>pinMode(LEDPIN,
+OUTPUT); </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+loop() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>// put your main
+code here, to run repeatedly:</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>ts.execute();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>USING STATUS REQUEST OBJECTS 
+	</B></FONT>
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">This
+test emulates querying 3 sensors once every 10 seconds, each could
+respond with a different delay (ultrasonic sensors for instance) and
+printing a min value of the three when all three have reported their
+values.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">The
+overall timeout of 1 second is setup as well.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">An
+error message needs to be printed if a timeout occurred instead of a
+value.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#define
+_TASK_SLEEP_ON_IDLE_RUN</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#define
+_TASK_STATUS_REQUEST</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#include
+&lt;TaskScheduler.h&gt;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>StatusRequest
+measure;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler
+ts; </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tCycle(10000, TASK_FOREVER, &amp;CycleCallback, &amp;ts, true);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tMeasure(TASK_SECOND, TASK_ONCE, &amp;MeasureCallback, &amp;ts,
+false, &amp;MeasureEnable, &amp;MeasureDisable);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tCalculate(&amp;CalcCallback, &amp;ts);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tSensor1(TASK_IMMEDIATE, TASK_ONCE, &amp;S1Callback, &amp;ts, false,
+&amp;S1Enable);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tSensor2(TASK_IMMEDIATE, TASK_ONCE, &amp;S2Callback, &amp;ts, false,
+&amp;S2Enable);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+tSensor3(TASK_IMMEDIATE, TASK_ONCE, &amp;S3Callback, &amp;ts, false,
+&amp;S3Enable);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>long
+distance, d1, d2, d3;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+CycleCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;CycleCallback:
+Initiating measurement cycle every 10 seconds&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tMeasure.restartDelayed();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>bool
+MeasureEnable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;MeasureEnable:
+Activating sensors&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>distance = 0;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>measure.setWaiting(3);
+// Set the StatusRequest to wait for 3 signals. </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tCalculate.waitFor(&amp;measure);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor1.restart();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor2.restart();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor3.restart();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>return true;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+MeasureCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;MeasureCallback:
+Invoked by calculate task or one second later&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>if
+(measure.pending()) {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>tCalculate.disable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>measure.signalComplete(-1);
+ // signal error</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;MeasureCallback:
+Timeout!&quot;);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>else {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;MeasureCallback:
+Min distance=&quot;);Serial.println(distance);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+MeasureDisable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;MeasureDisable:
+Cleaning up&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor1.disable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor2.disable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor3.disable();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+CalcCallback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;CalcCallback:
+calculating&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>distance = -1;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>if (
+measure.getStatus() &gt;= 0) {  // only calculate if statusrequest
+ended successfully</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>distance = d1 &lt;
+d2 ? d1 : d2;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>distance = d3 &lt;
+distance ? d3 : distance;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+ <FONT FACE="Courier New, monospace"><FONT SIZE=2>tMeasure.forceNextIteration();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>/**
+Simulation code for sensor 1</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> <FONT FACE="Courier New, monospace"><FONT SIZE=2>*
+ ----------------------------</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>*/</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>bool
+S1Enable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S1Enable:
+Triggering sensor1. Delay=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor1.setInterval(
+random(1200) );  // Simulating sensor delay, which could go over 1
+second and cause timeout</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d1 = 0;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(
+tSensor1.getInterval() );</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>return true;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+S1Callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S1Callback:
+Emulating measurement. d1=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d1 = random(501); //
+pick a value from 0 to 500 &quot;centimeters&quot; simulating a
+measurement </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>measure.signal();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(d1); </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>/**
+Simulation code for sensor 2</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> <FONT FACE="Courier New, monospace"><FONT SIZE=2>*
+ ----------------------------</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>*/</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>bool
+S2Enable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S2Enable:
+Triggering sensor2. Delay=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor2.setInterval(
+random(1200) );  // Simulating sensor delay, which could go over 1
+second and cause timeout</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d2 = 0;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(
+tSensor2.getInterval() );</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>return true;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+S2Callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S2Callback:
+Emulating measurement. d2=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d2 = random(501); //
+pick a value from 0 to 500 &quot;centimeters&quot; simulating a
+measurement</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>measure.signal();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(d2); 
+</FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>/**
+Simulation code for sensor 3</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> <FONT FACE="Courier New, monospace"><FONT SIZE=2>*
+ ----------------------------</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>*/</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>bool
+S3Enable() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S3Enable:
+Triggering sensor3. Delay=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>tSensor3.setInterval(
+random(1200) );  // Simulating sensor delay, which could go over 1
+second and cause timeout</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d3 = 0;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(
+tSensor3.getInterval() );</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>return true;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+S3Callback() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.print(&quot;S3Callback:
+Emulating measurement. d3=&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>d3 = random(501); //
+pick a value from 0 to 500 &quot;centimeters&quot; simulating a
+measurement</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>measure.signal();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(d3); </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>/**
+Main Arduino code</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> <FONT FACE="Courier New, monospace"><FONT SIZE=2>*
+ Not much is left here - everything is taken care of by the framework</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>*/</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+setup() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.begin(115200);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Serial.println(&quot;TaskScheduler
+StatusRequest Sensor Emulation Test. Complex Test.&quot;);  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>randomSeed(analogRead(A1)+millis());</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+loop() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>ts.execute();</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>USING LOCAL TASK STORAGE
+	POINTER  </B></FONT>
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Tasks
+can store a pointer to specific variable, structure or array, which
+represents variables specific for a particular task. This may be
+needed if you plan to use same callback method for multiple tasks.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Consider
+a scenario where you have several sensors of the same type. The
+actual process of triggering measurement and collecting information
+is identical. The only difference is the sensor address and a
+variable for storing the results.  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">In
+this case each of the tasks, which performs measurement will utilize
+the same callback methods. The only difference will be the variables
+(specific for each of the sensor). </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Let's
+define a sensor data structure and declare a couple of variables (for
+2 sensors for instance)</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>typedef struct {</FONT></FONT></P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>	unsigned int
+	address;</FONT></FONT></P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>	unsigned
+long	distance;</FONT></FONT></P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>} sensor_data;</FONT></FONT></P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<BR>
+</P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>sensor_data s1, s2; </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Two
+separate tasks are running to collect sensor data.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">(Note
+that both tasks refer to the same callback methods)</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P LANG="" CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler ts;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2><SPAN LANG="">Task
+t1(100, </SPAN>TASK_FOREVER<SPAN LANG="">, &amp;Measure, &amp;ts,
+false, &amp;MeasureOn); </SPAN></FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2><SPAN LANG="">Task
+t2(100, </SPAN>TASK_FOREVER<SPAN LANG="">, &amp;Measure, &amp;ts,
+false, &amp;MeasureOn); </SPAN></FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Assign
+pointers to the respective variables in the <B>setup</B>() method:</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+setup() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 1.48in; margin-bottom: 0in">…</P>
+<P CLASS="western" STYLE="margin-left: 1.48in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>t1.setLtsPointer(&amp;s1);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 1.48in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>t2.setLtsPointer(&amp;s2);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 1.48in; margin-bottom: 0in">…</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Obtain
+reference to specific <B>sensor_data</B> structure inside the common
+callback method:</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+Measure() {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	Task&amp;
+T = ts.currentTask(); </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	Sensor_data&amp;
+V = *((sensor_data*) T.getLtsPointer());</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+For t1, V will be pointing at s1</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+For t2, V will be pointing at s2</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Alternatively use the Scheduler method:</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	Sensor_data&amp;
+V1 = *((sensor_data*) ts.currentLts());</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; text-indent: 0.49in; margin-bottom: 0in">
+…</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>	V.distance
+= &lt;calculate your values here&gt;;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in; page-break-after: avoid">
+	<FONT FACE="Times New Roman, serif"><B>ENABLING TASK PRIORITIZATION 
+	</B></FONT>
+	</P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in; page-break-after: avoid">
+<BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">In
+certain cases you want a task to be invoked before others in case of
+scheduling collision (tasks ready to be invoked at the same time). In
+a flat execution chain scenario tasks are evaluated for execution in
+the order they were added to the chain. Therefore a single task has
+to wait for the rest of the chain to be evaluated to get a chance
+again. </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Consider
+a scenario where a task taking gyroscope measurements has to be
+invoked as close to the actual scheduling time as possible. That is
+when task prioritization comes to help.  </FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">Let’s
+say tasks t4 and t5 are taking measurements from gyroscope and
+accelerometer, and tasks t1, t2 and t3 are doing something less
+important.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><FONT SIZE=2 STYLE="font-size: 11pt">This
+is how such setup is coded:</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#define
+_TASK_PRIORITY</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>#include
+&lt;TaskScheduler.h&gt;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Scheduler
+r, hpr;</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>//
+Tasks</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+t1(1000, TASK_FOREVER, &amp;tCallback, &amp;r);  //base priority</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+t2(2000, TASK_FOREVER, &amp;tCallback, &amp;r);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+t3(3000, TASK_FOREVER, &amp;tCallback, &amp;r);</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+t4(10, TASK_FOREVER, &amp;tCallback, &amp;hpr);  // higher priority</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Task
+t5(100, TASK_FOREVER, &amp;tCallback, &amp;hpr);  //higher priority</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">…</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>void
+setup () {</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in">  
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"> 
+…</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>r.setHighPriorityScheduler(&amp;hpr);
+</FONT></FONT>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"> 
+<FONT FACE="Courier New, monospace"><FONT SIZE=2>r.enableAll(true);
+// this will recursively enable the higher priority tasks as well</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.98in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>}</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<OL START=3>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Times New Roman, serif"><B>FUTHER
+	INFROMATION</B></FONT></P>
+</OL>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Please
+refer to examples, provided with TaskScheduler package for further
+information and implementation options.</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-left: 0.49in; margin-bottom: 0in"><FONT FACE="Courier New, monospace"><FONT SIZE=2>Real
+time examples of TaskScheduler are available here:</FONT></FONT></P>
+<OL>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT COLOR="#0000ff"><U><A HREF="http://www.instructables.com/id/APIS-Automated-Plant-Irrigation-System/"><FONT FACE="Courier New, monospace">http://www.instructables.com/id/APIS-Automated-Plant-Irrigation-System/</FONT></A></U></FONT></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT COLOR="#0000ff"><U><A HREF="http://www.instructables.com/id/Wave-your-hand-to-control-OWI-Robotic-Arm-no-strin/"><FONT FACE="Courier New, monospace">http://www.instructables.com/id/Wave-your-hand-to-control-OWI-Robotic-Arm-no-strin/</FONT></A></U></FONT></P>
+	<LI><P CLASS="western" STYLE="margin-bottom: 0in"><FONT COLOR="#0000ff"><U><A HREF="http://www.instructables.com/id/Arduino-Nano-based-Hexbug-Scarab-Robotic-Spider"><FONT FACE="Courier New, monospace">http://www.instructables.com/id/Arduino-Nano-based-Hexbug-Scarab-Robotic-Spider</FONT></A></U></FONT></P>
+</OL>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<DIV TYPE=FOOTER>
+	<P STYLE="margin-top: 0.35in; margin-bottom: 0in">	<SDFIELD TYPE=PAGE SUBTYPE=RANDOM FORMAT=ARABIC>33</SDFIELD></P>
+</DIV>
+</BODY>
+</HTML>
