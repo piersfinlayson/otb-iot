@@ -18,7 +18,7 @@
 
 ### Introduction
 
-OTB-IOT is a firmware for IOT applications intended to run usually Out of The Box.  This means that after flashing the firmware onto an IOT device the firwmare is usefully usable by human being, without flash, serial or other engineering type access.
+OTB-IOT is a firmware for IOT applications intended to run from Out of The Box.  This means that after flashing the firmware onto an IOT device the firwmare is immediately usefully usable by human being, without flash, serial or other engineering type access.
 
 
 ### Getting started
