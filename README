@@ -1,0 +1,120 @@
+#
+# OTB-IOT - Out of The Box Internet Of Things
+#
+# Copyright (C) 2016 Piers Finlayson
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+### Introduction
+
+OTB-IOT is a firmware for IOT applications intended to run usually Out of The Box.  This means that after flashing the firmware onto an IOT device the firwmare is usefully usable by human being, without flash, serial or other engineering type access.
+
+
+### Getting started
+
+- From the root directory run ./build
+- Then connect your device to a serial port in flash mode and run ./upload
+- A serial monitor will automatically be started
+
+
+### Customization
+
+Fiddle with definitions in src/otb_def.h.  Particularly
+- MQTT_SERVER (set to your own MQTT server, I've tested with mosquitto)
+- LOCATION_1, LOCATION_2, LOCATION3, and LOCATION_4_OPT
+
+
+### Project status
+
+Very much a work in progress, with stability issues, limited function, code in need of tidy-up and a cleaner build process (and better integration with used third party libraries).  Also, right now doesn't store configured wifi values across reboots, so configure wifi credentials using some other means for now (using AT firmware which comes shipped with the boards).
+
+
+### First time setup
+
+For first time usage it can be configured via wifi using the built in web server and its own wifi access point, and will then store off its wifi credentials for future use.  It will only request new wifi credentials if unable to connect to this configured wifi, and then only for a pre-configured amount of time before it reboots to try and connect to the configured wifi.
+
+
+### Supported IOT hardware
+
+Right now OTB-IOT has been devloped to support ESP8266 based boards, and has been tested on ESP-01(1M) and ESP-12(E) boards, with Wemos D1-mini planned as a future option. Other IOT platforms may be supported in future.
+
+
+### Supported sensors
+
+Today the supported sensor types are:
+- DS18B20 temperature sensors (up to a single device)
+
+Future supported sensors are likely to include:
+- DHT22 temperature and humidity sensors
+- Current transformer sensors
+- NEO-6X GPS
+
+
+### Other supported hardware
+
+Future support may also include:
+- Screens (to display status on a locally attached screen)
+- Relays (to control AC equipment)
+- Physical ethernet port (to act as wifi to ethernet bridge)
+
+
+### Communication protocols
+
+Supported communication protocols are:
+- 802.11 b/g/n for physical network access
+- IPv4 transport
+- Serial for debug messages
+- MQTT for
+  - communication about attached sensor values
+  - remote control (reconfiuration, reset, relay control)
+
+
+### MQTT topic structure
+
+(See src/otb_def.h for values of the defines in caps below.)
+
+Supports multiple structures for reporting:
+- /OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/TEMPERATURE
+- /OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/LOCATION_4_OPT/TEMPERATURE
+- /OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/CHIPID/TEMPERATURE
+- /OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/CHIPID/LOCATION_4_OPT/TEMPERATURE
+- /OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/LOCATION_4_OPT/CHIPID/TEMPERATURE
+- Same paths but replace TEMPERATURE with SYSTEM_CMD:
+  - BOOTED_STATUS (once OTB-IOT booted and includes version string and compile date and time)
+- /LWT/OTB_ROOT/LOCATION_1/LOCATION_2/LOCATION_3/OTB_CHIPID/LOCATION_4_OPT offline (MQTT last will and testament, if device becomes disconnected)
+
+For controlling the same variants, but replace TEMPERATURE with SYSTEM_CMD.  Supported commands:
+- RESET_CMD (resets device)
+- REBOOT_CMD (reboots device)
+- UPGRADE_CMD (upgrades device - not supported yet)
+
+
+### Upgrades
+
+OTB-IOT is expected to offer OTA updates, controlled by MQTT shortly.  This may require a minimum of 1MB flash to support OTB-IOT.
+
+
+### Errors
+
+All errors are logged to serial.
+
+Logging via MQTT is a planned future feature.
+
+OTB-IOT attempts to recover from serious errors by resetting.  However, ESP8266 softwar reset appears to be quite flakey on some devices (perhaps due to floating pins on many ESP boards).  I'm currently searching for a reliable solution, but may require specific hardware to be reliable.
+
+
+### Other Questions
+
+Please ask me: https://github.com/PiersFinlayson/otb-iot
+
