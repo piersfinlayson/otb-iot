@@ -33,97 +33,109 @@ void *sensors_handle;
 void (*log_fn)(char *);
 
 char log_s[MAX_LOG_LENGTH];
-bool ds18b20Firsttime = TRUE;
+uint8_t ds18b20Reads = 2;
 uint8_t disconnectedCounter = 0;
+
+DeviceAddressString ds18b20Addresses[MAX_DS18B20S];
+uint8_t ds18b20Count = 0;
 
 //void ICACHE_FLASH_ATTR c_loop(void)
 void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 {
-  float temp_f;
-  int temp_i;
+  float temp_f[MAX_DS18B20S];
+  int temp_i[MAX_DS18B20S];
   char temp_s[8];
   int chars;
-  bool repeat=TRUE;
 
-  //LOG("DS18B20: callback entry");
-  while (repeat)
+  // Read all the sensors.
+  for (int ii = 0; ii < ds18b20Count; ii++)
   {
-    repeat = FALSE;
-    request_temps(sensors_handle);
-    temp_f = get_temp(sensors_handle, 0);
-    temp_i = (int)temp_f;
-    
-    if ((temp_i == 85) && (ds18b20Firsttime))
+    int loop_times = ds18b20Reads;
+    bool loop = TRUE;
+    while (loop && (loop_times > 0))
     {
-      // Try one more time if the first time and got 85 degrees (uninitialized)
-      ds18b20Firsttime = FALSE;
-      repeat = TRUE;
-      delay(1000);
+      loop = FALSE;
+      request_temps(sensors_handle);
+      temp_f[ii] = get_temp(sensors_handle, 0);
+      temp_i[ii] = (int)temp_f[ii];
+    
+      if (temp_i[ii] == 85) 
+      {
+        loop = TRUE;
+        delay(1000);
+      }
+      LOG("DS18B20: sensor: %d temp: %d", ii+1, temp_i[ii]);
+      loop_times--;
     }
-  } 
-  ds18b20Firsttime = FALSE;
-
-
-  LOG("DS18B20: temp: %d", temp_i);
+  }
+  // Only read up to 2 times the first time through this function - we do this
+  // to allow the sensors time to initialize.
+  ds18b20Reads = 1;
 
   if (mqttClient.connState == MQTT_DATA)
   {
+    LOG("DS18B20: Log sensor data");
     // Could send (but may choose not to), so reset disconnectedCounter
     disconnectedCounter = 0;
 
-    // Need to send MQTT message
-    // XXX
-    chars = sprintf(temp_s, "%d", temp_i);
-    
-    if ((temp_i > -127) && (temp_i < 85))
+    for (int ii; ii < ds18b20Count; ii++)
     {
-      // qos = 0, retain = 1
-      sprintf(topic_s,
-	      "/%s/%s/%s/%s/%s",
-	      OTB_ROOT,
-	      LOCATION_1,
-	      LOCATION_2,
-	      LOCATION_3,
-	      TEMPERATURE);
-      MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
-      sprintf(topic_s,
-	      "/%s/%s/%s/%s/%s/%s",
-	      OTB_ROOT,
-	      LOCATION_1,
-	      LOCATION_2,
-	      LOCATION_3,
-	      LOCATION_4_OPT,
-	      TEMPERATURE);
-      MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
-      sprintf(topic_s,
-	      "/%s/%s/%s/%s/%s/%s",
-	      OTB_ROOT,
-	      LOCATION_1,
-	      LOCATION_2,
-	      LOCATION_3,
-	      OTB_CHIPID,
-	      TEMPERATURE);
-      MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
-      sprintf(topic_s,
-	      "/%s/%s/%s/%s/%s/%s/%s",
-	      OTB_ROOT,
-	      LOCATION_1,
-	      LOCATION_2,
-	      LOCATION_3,
-	      OTB_CHIPID,
-	      LOCATION_4_OPT,
-	      TEMPERATURE);
-      MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
-      sprintf(topic_s,
-	      "/%s/%s/%s/%s/%s/%s/%s",
-	      OTB_ROOT,
-	      LOCATION_1,
-	      LOCATION_2,
-	      LOCATION_3,
-	      LOCATION_4_OPT,
-	      OTB_CHIPID,
-	      TEMPERATURE);
-      MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+      chars = sprintf(temp_s, "%d", temp_i[ii]);
+      if ((temp_i[ii] > -127) && (temp_i[ii] < 85))
+      {
+	// qos = 0, retain = 1
+	sprintf(topic_s,
+		"/%s/%s/%s/%s/%s/%s",
+		OTB_ROOT,
+		LOCATION_1,
+		LOCATION_2,
+		LOCATION_3,
+                ds18b20Addresses[ii],
+		TEMPERATURE);
+	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	sprintf(topic_s,
+		"/%s/%s/%s/%s/%s/%s/%s",
+		OTB_ROOT,
+		LOCATION_1,
+		LOCATION_2,
+		LOCATION_3,
+		LOCATION_4_OPT,
+                ds18b20Addresses[ii],
+		TEMPERATURE);
+	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	sprintf(topic_s,
+		"/%s/%s/%s/%s/%s/%s/%s",
+		OTB_ROOT,
+		LOCATION_1,
+		LOCATION_2,
+		LOCATION_3,
+		OTB_CHIPID,
+                ds18b20Addresses[ii],
+		TEMPERATURE);
+	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	sprintf(topic_s,
+		"/%s/%s/%s/%s/%s/%s/%s/%s",
+		OTB_ROOT,
+		LOCATION_1,
+		LOCATION_2,
+		LOCATION_3,
+		OTB_CHIPID,
+		LOCATION_4_OPT,
+                ds18b20Addresses[ii],
+		TEMPERATURE);
+	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	sprintf(topic_s,
+		"/%s/%s/%s/%s/%s/%s/%s/%s",
+		OTB_ROOT,
+		LOCATION_1,
+		LOCATION_2,
+		LOCATION_3,
+		LOCATION_4_OPT,
+		OTB_CHIPID,
+                ds18b20Addresses[ii],
+		TEMPERATURE);
+	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+      }
     }
   }
   else
@@ -148,23 +160,52 @@ void ICACHE_FLASH_ATTR c_setup(void(*log)(char *))
   log_fn = log;
 
   LOG("DS18B20: c_setup entry");
-  oneWire_handle = (void *)0;
-  sensors_handle = (void *)0;
 
   LOG("MQTT: initialize mqtt ...");
   mqtt_init(MQTT_SERVER, 1880, 0, "otb_iot", "user", "pass", 120);
+  // brief pause to allow this to settle down
   delay(1000);
+
+  // Query one wire bus for DS18B20 devices.  We have to do this before we
+  // start up MQTT, as MQTT scheduling screws up with OneWire timing.
+  oneWire_handle = (void *)0;
+  sensors_handle = (void *)0;
 
   LOG("DS18B20: Initialize one wire bus (GPIO pin %d) ...", ONE_WIRE_BUS);
   initialize_temp(ONE_WIRE_BUS, &oneWire_handle, &sensors_handle);
-  LOG("\r\nDS18B20: One Wire bus initialized");
+  delay(1000);
+  LOG("DS18B20: One Wire bus initialized");
+  ds18b20Count = get_device_count(sensors_handle);
+
+  LOG("DS18B20: Device count %u", ds18b20Count);
+  if (ds18b20Count > MAX_DS18B20S)
+  {
+    ds18b20Count = MAX_DS18B20S;
+    LOG("DS18B20: Device count reset to max %u", MAX_DS18B20S);
+  }
+  int jj = 0;
+  for (int ii = 0; (ii < ds18b20Count); ii++)
+  {
+    // Use jj to actually write in array, and only increment if device address
+    // is read successfully.
+    LOG("DS18B20: Read device # %u", ii+1);
+    bool rc;
+    // Note any failures are logged in get_device_address
+    rc = get_device_address(sensors_handle, ii, ds18b20Addresses+jj);
+    if (rc)
+    {
+      jj++;
+    }
+  }
+  // Reset the counter to successfully read addresses
+  ds18b20Count = jj;
+
+  // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
+  // starting ASAP.
   vTask = getTask(2);
   // Interval between being scheduled, and iterations (-1 = forever)
   repeatTask(vTask, REPORT_INTERVAL, -1);
   fake_system_os_post(0, 0, 0, &ds18b20Callback, vTask, 0);
-  //system_os_post(0, 0, 0);
-  //delay(1000);
-
 
   LOG("DS18B20: c_setup exit");
 }

@@ -23,9 +23,11 @@
 //#define DEFAULT_WIFI_TIMEOUT 300 // 5 minutes
 #define COMPILE_DATE compile_date
 #define COMPILE_iTIME compile_time
-#define OTB_FW_VERSION "v0.1a" //max 8 chars
+#define OTB_FW_VERSION "v0.1b" //max 8 chars
 #define OTB_VERSION_ID version_id
 #define MAX_VERSION_ID_LENGTH 12 + 9 + 8 + 8 // date, time, version, root
+#define MAX_DS18B20S 8
+#define MAX_ONEWIRE_ADDRESS_STRING_LENGTH 16 // 7*2 +2
 #define DEFAULT_WIFI_SSID_PREFIX "OTB-IOT"
 #define ONE_WIRE_BUS 2
 #define CHIPID_STR_LENGTH 7
@@ -49,3 +51,4 @@
 #define MAX_TOPIC_LENGTH 128
 #define MAX_MSG_LENGTH 64
 #define OTB_CHIPID chipid
+#define GPIO_RESET 16

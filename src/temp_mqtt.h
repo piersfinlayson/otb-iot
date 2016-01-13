@@ -19,6 +19,12 @@
  * 
  */
 
+typedef uint8_t DeviceAddress[8];
+typedef char DeviceAddressString[MAX_ONEWIRE_ADDRESS_STRING_LENGTH];
+#ifndef TEMP_MQTT_CPP
 void initialize_temp(int bus, void *oneWire_handle, void *sensors_handle);
 void request_temps(void *sensors_handle);
+uint8_t get_device_count(void *sensors_handle);
+bool get_device_address(void *sensors_handle, uint8_t index, DeviceAddressString *addressString);
 float get_temp(void *sensors_handle, int index);
+#endif
