@@ -42,9 +42,7 @@ uint8_t ds18b20Count = 0;
 //void ICACHE_FLASH_ATTR c_loop(void)
 void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 {
-  float temp_f[MAX_DS18B20S];
-  int temp_i[MAX_DS18B20S];
-  char temp_s[8];
+  char temp_s[MAX_DS18B20S][7];
   int chars;
 
   // Read all the sensors.
@@ -56,15 +54,14 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
     {
       loop = FALSE;
       request_temps(sensors_handle);
-      temp_f[ii] = get_temp(sensors_handle, 0);
-      temp_i[ii] = (int)temp_f[ii];
+      get_temp_string(sensors_handle, ii, temp_s[ii]);
     
-      if (temp_i[ii] == 85) 
+      if (!strcmp(temp_s[ii], "85.0")) 
       {
         loop = TRUE;
         delay(1000);
       }
-      LOG("DS18B20: sensor: %d temp: %d", ii+1, temp_i[ii]);
+      LOG("DS18B20: sensor: %d temp: %s", ii+1, temp_s[ii]);
       loop_times--;
     }
   }
@@ -80,8 +77,8 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 
     for (int ii; ii < ds18b20Count; ii++)
     {
-      chars = sprintf(temp_s, "%d", temp_i[ii]);
-      if ((temp_i[ii] > -127) && (temp_i[ii] < 85))
+      chars = strlen(temp_s[ii]);
+      if (strcmp(temp_s[ii], "-127.0") && strcmp(temp_s[ii], "85.0"))
       {
 	// qos = 0, retain = 1
 	sprintf(topic_s,
@@ -92,7 +89,7 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 		LOCATION_3,
                 ds18b20Addresses[ii],
 		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
 	sprintf(topic_s,
 		"/%s/%s/%s/%s/%s/%s/%s",
 		OTB_ROOT,
@@ -102,7 +99,7 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 		LOCATION_4_OPT,
                 ds18b20Addresses[ii],
 		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
 	sprintf(topic_s,
 		"/%s/%s/%s/%s/%s/%s/%s",
 		OTB_ROOT,
@@ -112,7 +109,7 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 		OTB_CHIPID,
                 ds18b20Addresses[ii],
 		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
 	sprintf(topic_s,
 		"/%s/%s/%s/%s/%s/%s/%s/%s",
 		OTB_ROOT,
@@ -123,7 +120,7 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 		LOCATION_4_OPT,
                 ds18b20Addresses[ii],
 		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
 	sprintf(topic_s,
 		"/%s/%s/%s/%s/%s/%s/%s/%s",
 		OTB_ROOT,
@@ -134,7 +131,7 @@ void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
 		OTB_CHIPID,
                 ds18b20Addresses[ii],
 		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s, chars, 0, 1);
+	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
       }
     }
   }

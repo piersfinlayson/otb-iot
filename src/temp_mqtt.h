@@ -27,4 +27,6 @@ void request_temps(void *sensors_handle);
 uint8_t get_device_count(void *sensors_handle);
 bool get_device_address(void *sensors_handle, uint8_t index, DeviceAddressString *addressString);
 float get_temp(void *sensors_handle, int index);
+int16_t get_temp_raw(void *sensors_handle, int index);
+void get_temp_string(void *sensors_handle, int index, char *temp);
 #endif

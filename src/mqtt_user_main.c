@@ -108,13 +108,13 @@ void mqttConnectedCb(uint32_t *args)
 void mqttDisconnectedCb(uint32_t *args)
 {
 	MQTT_Client* client = (MQTT_Client*)args;
-	INFO("MQTT: Disconnected\r\n");
+	INFO("MQTT: Disconnected");
 }
 
 void mqttPublishedCb(uint32_t *args)
 {
 	MQTT_Client* client = (MQTT_Client*)args;
-	INFO("MQTT: Published\r\n");
+	INFO("MQTT: Published");
 }
 
 char topicBuf_s[MAX_TOPIC_LENGTH];
@@ -142,7 +142,7 @@ void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const cha
         os_memcpy(dataBuf, data, data_len);
         dataBuf[data_len] = 0;
 
-        INFO("Receive topic: %s, data: %s \r\n", topicBuf, dataBuf);
+        INFO("Receive topic: %s, data: %s ", topicBuf, dataBuf);
 
   char *topicf;
 #if 0

@@ -104,3 +104,40 @@ extern "C" float ICACHE_FLASH_ATTR get_temp(void *sensors_handle, int index)
   temp = sensors->getTempCByIndex(index);
   return(temp);
 }
+
+extern "C" uint16_t get_temp_raw(void *sensors_handle, int index)
+{
+  DallasTemperature *sensors;
+  uint16_t temp;
+  DeviceAddress deviceAddress;
+  sensors = (DallasTemperature *)sensors_handle;
+  if (!sensors->getAddress(deviceAddress, index))
+  {
+    return DEVICE_DISCONNECTED_C;
+  }
+  return sensors->getTemp(deviceAddress);
+}
+
+extern "C" void get_temp_string(void *sensors_handle, int index, char *temp)
+{
+  uint16_t raw;
+  uint8_t x, y;
+  raw = get_temp_raw(sensors_handle, index);
+  x = raw/128;
+  uint8_t mod;
+  mod = raw%128;
+  y = mod * 10 / 128; 
+  if (((mod*10)%128) > 64)
+  {
+    x++;
+  }
+  if (y >= 10)
+  {
+    y = 0;
+    x++;
+  }
+  sprintf(temp, "%d.%d", x, y);
+
+  return;
+}
+

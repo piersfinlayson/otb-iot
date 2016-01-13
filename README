@@ -53,7 +53,7 @@ Right now OTB-IOT has been devloped to support ESP8266 based boards, and has bee
 ### Supported sensors
 
 Today the supported sensor types are:
-- DS18B20 temperature sensors (up to a single device)
+- DS18B20 temperature sensors (up to a eight devices, up to 2 tested)
 
 Future supported sensors are likely to include:
 - DHT22 temperature and humidity sensors
@@ -132,6 +132,11 @@ Other changes include:
 - Removing assert on yield in sketch context from esp8266/Arduino (as unexpected work is done in this context due to scheduling task out and TCP work from esp_mqtt).
 
 All changes to the above libraries are made available under the GPLv3 with the existing works retaining their original licenses.
+
+
+### Temperatures
+
+Temperatures are reported in C (Celsius), to a precision of .1 of a degree.  This involves reading the raw temperature from the DallasTemperature library and then processing "manually", rather than handling as a float - because the ESP8266 SDK doesn't include float printf/sprintf support today.
 
 
 ### Other Questions

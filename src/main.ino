@@ -48,10 +48,10 @@ char OTB_CHIPID[CHIPID_STR_LENGTH];
 extern "C" void reset()
 {
   // Delay to give any serial logs time to output
-  //delay(500);
-  pinMode(GPIO_RESET, OUTPUT);
-  digitalWrite(GPIO_RESET, LOW);
-  //ESP.reset();
+  delay(500);
+  //pinMode(GPIO_RESET, OUTPUT);
+  //digitalWrite(GPIO_RESET, LOW);
+  ESP.reset();
 }
 
 void setup(void)
@@ -65,6 +65,8 @@ void setup(void)
   LOG("ARDUINO: Arduino setup function");
   sprintf(OTB_CHIPID, "%06x", ESP.getChipId());
 
+  pinMode(GPIO_RESET, OUTPUT);
+  digitalWrite(GPIO_RESET, HIGH);
   LOG("ARDUINO: Set up Wifi");
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.setTimeout(DEFAULT_WIFI_TIMEOUT);
