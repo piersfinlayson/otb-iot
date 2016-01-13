@@ -139,6 +139,11 @@ All changes to the above libraries are made available under the GPLv3 with the e
 Temperatures are reported in C (Celsius), to a precision of .1 of a degree.  This involves reading the raw temperature from the DallasTemperature library and then processing "manually", rather than handling as a float - because the ESP8266 SDK doesn't include float printf/sprintf support today.
 
 
+### Debugging
+
+./build automatially generated disassembly file (./dis) and symbols file (./sym).  However, this isn't created automatically if built using ./upload.  Generous logging is provided via serial.  Major errors will be logged via MQTT in future.
+
+
 ### Other Questions
 
 Please ask me: https://github.com/PiersFinlayson/otb-iot
