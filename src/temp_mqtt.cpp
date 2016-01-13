@@ -129,7 +129,7 @@ extern "C" void get_temp_string(void *sensors_handle, int index, char *temp)
   y = mod * 10 / 128; 
   if (((mod*10)%128) > 64)
   {
-    x++;
+    y++;
   }
   if (y >= 10)
   {
