@@ -67,8 +67,6 @@ extern "C" void reset()
   ESP.reset();
 }
 
-struct station_config wifi_conf;
-
 void setup(void)
 {
   sprintf(compile_date, "%s", __DATE__);
@@ -83,21 +81,33 @@ void setup(void)
   pinMode(GPIO_RESET, OUTPUT);
   digitalWrite(GPIO_RESET, HIGH);
   LOG("ARDUINO: Set up Wifi");
-  // Hack to pre-provision credentials
-  // strcpy((char *)wifi_conf.ssid, "some_ssid");
-  // strcpy((char *)wifi_conf.password, "some_pwd");
-  // wifi_station_set_config(&wifi_conf);
+
+  // Initialize WiFiManager
+  WiFi.mode(WIFI_STA); // First thing we'll do is try and connect as a station
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.setTimeout(DEFAULT_WIFI_TIMEOUT);
   sprintf(ssid, "%s %s", DEFAULT_WIFI_SSID_PREFIX, OTB_CHIPID);
-  boolean success;
-  success = wifiManager.autoConnect(ssid, NULL);
+
+  // Wifi doesn't work at all well if no SSID set - just hangs trying to 
+  // connect.  So let's reset it to something (doesn't matter what) if it's
+  // blank.
+  String current_ssid = wifiManager.getSSID();
+  if (!strcmp(current_ssid.c_str(), ""))
+  {
+    LOG("ARDUINO: Set SSID to %s", DEFAULT_DUMMY_SSID);
+    struct station_config wifi_conf;
+    strcpy((char *)wifi_conf.ssid, DEFAULT_DUMMY_SSID); 
+    strcpy((char *)wifi_conf.password, "");
+    wifi_station_set_config(&wifi_conf);
+  }
+
+  // Actually connect
+  boolean success = wifiManager.autoConnect(ssid, NULL);
   if (!success)
   {
     // This means couldn't connect to any configured wifi, and no other wifi
     // was configured within DEFAULT_WIFI_TIMEOUT, so reset to have another go
     LOG("ARDUNIO: WiFiManager autoConnect failed");
-    delay(500);
     reset();
   }
 

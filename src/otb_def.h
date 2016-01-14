@@ -52,3 +52,4 @@
 #define MAX_MSG_LENGTH 64
 #define OTB_CHIPID chipid
 #define GPIO_RESET 16
+#define DEFAULT_DUMMY_SSID "otb-iot-dummy"

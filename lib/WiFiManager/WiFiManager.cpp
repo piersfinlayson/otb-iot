@@ -33,6 +33,19 @@
  **************************************************************/
 
 #include "WiFiManager.h"
+extern "C" {
+#include "c_types.h"
+#include "ets_sys.h"
+#include "os_type.h"
+#include "osapi.h"
+#include "mem.h"
+#include "user_interface.h"
+#include "smartconfig.h"
+#include "lwip/opt.h"
+#include "lwip/err.h"
+#include "lwip/dns.h"
+}
+
 
 WiFiManager::WiFiManager() {
 }
@@ -146,6 +159,10 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPasswd) {
     
     if(connect) {
       DEBUG_PRINT(F("Resetting to try out new details"));
+      struct station_config wifi_conf;
+      strcpy((char *)wifi_conf.ssid, _ssid.c_str());
+      strcpy((char *)wifi_conf.password, _pass.c_str());
+      wifi_station_set_config(&wifi_conf);
       ESP.reset();
       delay(2000);
       DEBUG_PRINT(F("Connecting to new AP"));
@@ -401,6 +418,8 @@ void WiFiManager::handleWifiSave() {
   //SAVE/connect here
   _ssid = urldecode(server->arg("s").c_str());
   _pass = urldecode(server->arg("p").c_str());
+
+
 
   server->sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   server->sendHeader("Pragma", "no-cache");

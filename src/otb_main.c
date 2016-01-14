@@ -197,12 +197,16 @@ void ICACHE_FLASH_ATTR c_setup(void(*log)(char *))
   // Reset the counter to successfully read addresses
   ds18b20Count = jj;
 
-  // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
-  // starting ASAP.
-  vTask = getTask(2);
-  // Interval between being scheduled, and iterations (-1 = forever)
-  repeatTask(vTask, REPORT_INTERVAL, -1);
-  fake_system_os_post(0, 0, 0, &ds18b20Callback, vTask, 0);
+  if (ds18b20Count > 0)
+  {
+    // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
+    // starting ASAP.
+    // Only do this is we have some DS18B20s attached.
+    vTask = getTask(2);
+    // Interval between being scheduled, and iterations (-1 = forever)
+    repeatTask(vTask, REPORT_INTERVAL, -1);
+    fake_system_os_post(0, 0, 0, &ds18b20Callback, vTask, 0);
+  }
 
   LOG("DS18B20: c_setup exit");
 }
