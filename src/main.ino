@@ -24,6 +24,19 @@
 #include "otbCpp.h"
 #include <WiFiManager.h>
 #include "fake_scheduler.h"
+extern "C" {
+#include "c_types.h"
+#include "ets_sys.h"
+#include "os_type.h"
+#include "osapi.h"
+#include "mem.h"
+#include "user_interface.h"
+#include "smartconfig.h"
+#include "lwip/opt.h"
+#include "lwip/err.h"
+#include "lwip/dns.h"
+}
+
  
 char compile_date[12];
 char compile_time[9];
@@ -54,6 +67,8 @@ extern "C" void reset()
   ESP.reset();
 }
 
+struct station_config wifi_conf;
+
 void setup(void)
 {
   sprintf(compile_date, "%s", __DATE__);
@@ -68,6 +83,10 @@ void setup(void)
   pinMode(GPIO_RESET, OUTPUT);
   digitalWrite(GPIO_RESET, HIGH);
   LOG("ARDUINO: Set up Wifi");
+  // Hack to pre-provision credentials
+  // strcpy((char *)wifi_conf.ssid, "some_ssid");
+  // strcpy((char *)wifi_conf.password, "some_pwd");
+  // wifi_station_set_config(&wifi_conf);
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.setTimeout(DEFAULT_WIFI_TIMEOUT);
   sprintf(ssid, "%s %s", DEFAULT_WIFI_SSID_PREFIX, OTB_CHIPID);

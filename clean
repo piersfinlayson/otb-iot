@@ -17,6 +17,4 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-platformio run
-xtensa-lx106-elf-nm -n .pioenvs/esp01_1m/firmware.elf > sym
-xtensa-lx106-elf-objdump -d .pioenvs/esp01_1m/firmware.elf > dis
+platformio run -t clean
