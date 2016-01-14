@@ -37,7 +37,9 @@ Fiddle with definitions in src/otb_def.h.  Particularly
 
 ### Project status
 
-Very much a work in progress, with stability issues, limited function, code in need of tidy-up and a cleaner build process (and better integration with used third party libraries).  Also, right now doesn't store configured wifi values across reboots, so configure wifi credentials using some other means for now (using AT firmware which comes shipped with the boards).
+Very much a work in progress, with stability issues, limited function, code in need of tidy-up and a cleaner build process (and better integration with used third party libraries). 
+
+Wifi is a bit flaky, and more robust on ESP01 than Wemos D1-mini.  On the Wemos it seems to be using the AP MAC address when connecting as a STA.  This seems a little odd and will require more digging.
 
 
 ### First time setup
