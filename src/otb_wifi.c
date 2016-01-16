@@ -35,6 +35,8 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   struct ip_info ip_inf;
   bool ip_info_rc;
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
+  bool mac_rc;
+  char mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH];
 
   DEBUG("WIFI: otb_wifi_try_sta entry");
   
@@ -61,6 +63,18 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   }
   // Don't bother setting config persistently (wifi_station_set_config)
   wifi_station_set_config_current(&wifi_conf);
+
+  // Get MAC addresses of both interfaces
+  mac_rc = otb_wifi_get_mac_addr(STATION_IF, mac);
+  if (mac_rc)
+  {
+    INFO("WIFI: Station MAC: %s", mac);
+  }
+  mac_rc = otb_wifi_get_mac_addr(SOFTAP_IF, mac);
+  if (mac_rc)
+  {
+    INFO("WIFI:      AP MAC: %s", mac);
+  }
   
   INFO("WIFI: Trying to connect ...", ssid);
   wifi_station_connect();
@@ -87,6 +101,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
       INFO("WIFI: Netmask: %s", addr_s);
       otb_wifi_get_ip_string(ip_inf.gw.addr, addr_s);
       INFO("WIFI: Gateway: %s", addr_s);
+      
     }
     else
     {
@@ -255,3 +270,29 @@ void ICACHE_FLASH_ATTR otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_co
   
   return;
 }
+
+bool ICACHE_FLASH_ATTR otb_wifi_get_mac_addr(uint8_t if_id, char *mac)
+{
+  uint8_t mac_addr[6];
+  bool rc = FALSE;
+  
+  DEBUG("WIFI: otb_wifi_get_mac_address entry");
+  
+  OTB_ASSERT((if_id == STATION_IF) || (if_id == SOFTAP_IF));
+  
+  rc = wifi_get_macaddr(if_id, mac_addr);
+  snprintf(mac,
+           OTB_WIFI_MAC_ADDRESS_STRING_LENGTH,
+           "%x:%x:%x:%x:%x:%x",
+           mac_addr[0],
+           mac_addr[1],
+           mac_addr[2],
+           mac_addr[3],
+           mac_addr[4],
+           mac_addr[5]);
+
+  DEBUG("WIFI: otb_wifi_get_mac_address exit");
+  
+  return (rc);
+}
+ 

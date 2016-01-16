@@ -39,7 +39,7 @@ Fiddle with definitions in src/otb_def.h.  Particularly
 
 Very much a work in progress, with stability issues, limited function, and a cleaner build process (and better integration with used third party libraries) required. 
 
-Wifi seems more solid now since I've rewritten this portion, binning Arduino library WiFiManager and using the ESP APIs directly.  However, on the Wemos it seems to be using the AP MAC address when connecting as a STA.  This seems a little odd and will require more digging.
+Wifi seems more solid now since I've rewritten this portion, binning Arduino library WiFiManager and using the ESP APIs directly.
 
 
 ### First time setup

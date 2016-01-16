@@ -38,4 +38,6 @@ extern bool otb_wifi_get_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf);
 extern void otb_wifi_store_station_connect_error();
 extern void otb_wifi_get_ip_string(uint32_t addr, char *addr_s);
 extern void otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf);
+extern bool otb_wifi_get_mac_addr(uint8_t if_id, char *mac);
+
 
