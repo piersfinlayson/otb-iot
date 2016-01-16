@@ -40,4 +40,18 @@ extern void otb_wifi_get_ip_string(uint32_t addr, char *addr_s);
 extern void otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf);
 extern bool otb_wifi_get_mac_addr(uint8_t if_id, char *mac);
 
-
+#ifdef OTB_WIFI_C
+HttpdBuiltInUrl otb_wifi_ap_urls[] =
+{
+	{"*", cgiRedirectApClientToHostname, OTB_MAIN_DEVICE_ID},
+	{"/", cgiRedirect, "/wifi"},
+	{"/wifi", cgiRedirect, "/wifi/wifi.tpl"},
+	{"/wifi/", cgiRedirect, "/wifi/wifi.tpl"},
+	{"/wifi/wifiscan.cgi", cgiWiFiScan, NULL},
+	{"/wifi/wifi.tpl", cgiEspFsTemplate, tplWlan},
+	{"/wifi/connect.cgi", cgiWiFiConnect, NULL},
+	{"/wifi/connstatus.cgi", cgiWiFiConnStatus, NULL},
+	{"/wifi/setmode.cgi", cgiWiFiSetMode, NULL},
+  {NULL, NULL, NULL}
+};
+#endif

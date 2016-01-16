@@ -70,3 +70,4 @@
 #define OTB_UTIL_MAX_DELAY_MS 0xffffffff / 1000 // max 32 bit int in us
 #define OTB_SCHED_MQTT_TASK 1
 #define OTB_SCHED_OW_TASK 2
+#define OTB_HTTP_SERVER_PORT 80

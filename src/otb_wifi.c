@@ -19,7 +19,10 @@
  * 
  */
 
+#define OTB_WIFI_C
 #include "otb.h"
+
+bool otb_wifi_ap_mode_done;
 
 // ssid, password = strings, timeout = milliseconds
 // Returns one of WIFI_STATUS_CODES
@@ -51,7 +54,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   }
 
   // DON'T log password for security reasons!
-  DEBUG("WIFI: Set SSID to %s", ssid);
+  INFO("WIFI: Set SSID to %s", ssid);
   ETS_UART_INTR_DISABLE();
   strcpy((char *)wifi_conf.ssid, ssid); 
   strcpy((char *)wifi_conf.password, password);
@@ -207,9 +210,82 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_wait_until_connected(uint32_t timeout)
 
 void ICACHE_FLASH_ATTR otb_wifi_try_ap(uint32_t timeout)
 {
+  uint32_t start_time;
+  uint32_t current_time;
+  uint32_t end_time;
+  bool going_to_wrap = FALSE;
+  struct softap_config ap_conf;
+  struct softap_config ap_conf_current;
+
   DEBUG("WIFI: otb_wifi_try_ap entry");
   
-  /// XXX
+  INFO("WIFI: Configure AP with SSID: %s", OTB_MAIN_DEVICE_ID);
+  wifi_softap_get_config(&ap_conf);
+  os_memcpy(&ap_conf_current, &ap_conf, sizeof(ap_conf));
+  DEBUG("WIFI: Stored SSID: %s", ap_conf.ssid);
+  DEBUG("WIFI: Stored ssid_len: %d", ap_conf.ssid_len);
+  DEBUG("WIFI: Stored SSID hidden: %d", ap_conf.ssid_hidden);
+  DEBUG("WIFI: Stored password: %s", ap_conf.password);
+  DEBUG("WIFI: Stored channel: %d", ap_conf.channel);
+  DEBUG("WIFI: Stored authmode: %d", ap_conf.authmode);
+  DEBUG("WIFI: Stored max_connection: %d", ap_conf.max_connection);
+  DEBUG("WIFI: Stored beacon_interval: %d", ap_conf.beacon_interval);
+  strcpy(ap_conf.ssid, OTB_MAIN_DEVICE_ID);
+  ap_conf.ssid_len = strlen(OTB_MAIN_DEVICE_ID); 
+  ap_conf.ssid_hidden = FALSE;
+  ap_conf.password[0] = 0;
+  ap_conf.channel = 1;
+  ap_conf.authmode = AUTH_OPEN;
+  ap_conf.max_connection = 4;
+  ap_conf.beacon_interval = 100;
+  ETS_UART_INTR_DISABLE();
+  wifi_set_opmode_current(SOFTAP_MODE);
+  if (os_memcmp(&ap_conf, &ap_conf_current, sizeof(ap_conf)))
+  {
+    INFO("WIFI: Storing new AP config to flash");
+    wifi_softap_set_config(&ap_conf);
+  }
+  ETS_UART_INTR_ENABLE();
+  INFO("WIFI: Started AP");
+  
+  // Initialize the captive DNS service
+  //stdoutInit();
+  captdnsInit();
+
+  // Kick of the HTTP server - otb_wifi_ap_mode_done will signal when done
+  otb_wifi_ap_mode_done = FALSE;
+  httpdInit(otb_wifi_ap_urls, OTB_HTTP_SERVER_PORT);
+
+  // Wait until either AP mode is done or for the timeout.
+  current_time = system_get_time();
+  start_time = current_time;
+  end_time = current_time + (OTB_WIFI_DEFAULT_AP_TIMEOUT * 1000);
+  if (end_time < current_time)
+  {
+    going_to_wrap = TRUE;
+  }
+  while (!otb_wifi_ap_mode_done)
+  {
+    otb_util_delay_ms(1000);
+    
+    current_time = system_get_time();
+    if (!going_to_wrap)
+    {
+      if (current_time >= end_time)
+      {
+        break;
+      }
+    }
+    else if ((current_time < start_time) && (current_time >= end_time))
+    {
+      break;
+    }
+  }
+  
+  if (!otb_wifi_ap_mode_done)
+  {
+    WARN("WIFI: AP Mode timed out");
+  }
   
   DEBUG("WIFI: otb_wifi_try_ap exit");
 }

@@ -22,8 +22,11 @@
 // #define OTB_DEBUG 1
 #define OTB_ARDUINO 1
 
+#ifdef OTB_ARDUINO
 #include <Arduino.h>
-//#include "user_interface.h"
+#endif
+
+// ESP SDK
 #include "osapi.h"
 #include "c_types.h"
 #include "ets_sys.h"
@@ -32,11 +35,21 @@
 #include "mem.h"
 #include "user_interface.h"
 #include "smartconfig.h"
+
+// MQTT
 #include "espconn.h"
 #include "mqtt_msg.h"
 #include "mqtt_user_config.h"
 #include "mqtt.h"
 #include "queue.h"
+
+// HTTPD
+#include "httpd.h"
+#include "httpdespfs.h"
+#include "cgiwifi.h"
+#include "captdns.h"
+
+// OTB
 #include "otb_def.h"
 #include "otb_globals.h"
 #include "otb_macros.h"
@@ -47,6 +60,7 @@
 #include "otb_ow.h"
 #include "otb_mqtt.h"
 #include "otb_sched.h"
+
 
 // Arduino C++ functions exposed as C functions
 extern void reset(void);

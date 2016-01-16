@@ -37,7 +37,7 @@ void ICACHE_FLASH_ATTR c_setup(void)
   strcpy(wifi_conf.password, "some_password");
   wifi_conf.bssid_set = FALSE;
   strcpy(wifi_conf.bssid, "");
-  wifi_set_stored_conf(&wifi_conf);
+  otb_wifi_set_stored_conf(&wifi_conf);
   delay(20000);
 #endif  
   

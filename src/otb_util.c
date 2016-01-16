@@ -51,10 +51,9 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
   // containing microseconds will wrap every 71 minutes, so there's a decent chance of
   // this happening
   uint32_t wait_length = value;
-  uint32_t last_time;
+  uint32_t start_time;
   uint32_t current_time;
   uint32_t end_time;
-  uint32_t working;
   bool going_to_wrap = FALSE;
     
   DEBUG("UTIL: wait for %d ms" value);

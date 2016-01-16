@@ -76,7 +76,7 @@ void setup(void)
   INFO("OTB: Arduino setup function");
   sprintf(OTB_MAIN_CHIPID, "%06x", ESP.getChipId());
   INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
-  sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT:%s", OTB_MAIN_CHIPID);
+  sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
   
   // Call C setup routine
   c_setup();
