@@ -242,6 +242,7 @@ void ICACHE_FLASH_ATTR otb_wifi_try_ap(uint32_t timeout)
   wifi_set_opmode_current(SOFTAP_MODE);
   if (os_memcmp(&ap_conf, &ap_conf_current, sizeof(ap_conf)))
   {
+    // We can't store this until in SoftAP mode
     INFO("WIFI: Storing new AP config to flash");
     wifi_softap_set_config(&ap_conf);
   }
