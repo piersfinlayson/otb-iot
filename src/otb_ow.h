@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,17 +15,18 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-typedef uint8_t DeviceAddress[8];
-typedef char DeviceAddressString[MAX_ONEWIRE_ADDRESS_STRING_LENGTH];
-#ifndef TEMP_MQTT_CPP
-void initialize_temp(int bus, void *oneWire_handle, void *sensors_handle);
-void request_temps(void *sensors_handle);
-uint8_t get_device_count(void *sensors_handle);
-bool get_device_address(void *sensors_handle, uint8_t index, DeviceAddressString *addressString);
-float get_temp(void *sensors_handle, int index);
-int16_t get_temp_raw(void *sensors_handle, int index);
-void get_temp_string(void *sensors_handle, int index, char *temp);
+extern void otb_ow_initialize(uint8_t bus);
+extern void otb_ow_ds18b20_callback(os_event_t event);
+
+#ifdef OTB_OW_C
+// OW Specific module globals
+void *otb_ow_onewire_handle;
+void *otb_ow_sensors_handle;
+uint8_t otb_ow_ds18b20_reads = 2;
+uint8_t otb_ow_mqtt_disconnected_counter = 0;
+OTB_TEMP_DEVICE_ADDRESS_STRING otb_ow_ds18b20_addresses[OTB_OW_MAX_DS18B20S];
+uint8_t otb_ow_ds18b20_count = 0;
+char otb_ow_last_temp_s[OTB_OW_MAX_DS18B20S][OTB_OW_MAX_TEMP_LEN];
 #endif

@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,40 +15,57 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-#define DEFAULT_WIFI_TIMEOUT 60 // 1 minute
-//#define DEFAULT_WIFI_TIMEOUT 300 // 5 minutes
-#define COMPILE_DATE compile_date
-#define COMPILE_iTIME compile_time
-#define OTB_FW_VERSION "v0.1b" //max 8 chars
-#define OTB_VERSION_ID version_id
-#define MAX_VERSION_ID_LENGTH 12 + 9 + 8 + 8 // date, time, version, root
-#define MAX_DS18B20S 8
-#define MAX_ONEWIRE_ADDRESS_STRING_LENGTH 16 // 7*2 +2
-#define DEFAULT_WIFI_SSID_PREFIX "OTB-IOT"
-#define ONE_WIRE_BUS 2
-#define CHIPID_STR_LENGTH 7
-#define REPORT_INTERVAL 60000 // 1 minute
-#define DISCONNECTED_REBOOT_INTERVAL 180000 // 3 minutes
-#define MQTT_QUEUE_BUFFER_SIZE 2048
-#define OTB_ROOT "otb_iot" // max 7 chars
-#define LOCATION_1 "home"
-#define LOCATION_2 "office"
-#define LOCATION_3 "rad"
-#define TEMPERATURE "temp"
-#define LOCATION_4_OPT "rad"
-#define SYSTEM_CMD "system"
-#define RESET_CMD "reset"
-#define REBOOT_CMD "reboot"
-#define UPGRADE_CMD "upgrade"
-#define BOOTED_STATUS "booted"
-#define OFFLINE "offline"
-#define MQTT_SERVER "192.168.0.162" // DNS hostnames fine
-#define MAX_LOG_LENGTH 1024
-#define MAX_TOPIC_LENGTH 128
-#define MAX_MSG_LENGTH 64
-#define OTB_CHIPID chipid
-#define GPIO_RESET 16
-#define DEFAULT_DUMMY_SSID "otb-iot-dummy"
+// Configurable stuff
+#define OTB_MAIN_FW_VERSION "v0.1c" //max 8 chars
+#define OTB_MAIN_MAX_VERSION_LENGTH 12 + 9 + 8 + 8 + 1// date, time, version, root
+#define OTB_MAIN_GPIO_RESET 16
+#define OTB_MAIN_MAX_LOG_LENGTH 1024
+#define OTB_WIFI_DEFAULT_STA_TIMEOUT 30000 // 30 seconds
+#define OTB_WIFI_DEFAULT_AP_TIMEOUT 300000 // 5 minutes
+#define OTB_WIFI_DEFAULT_SSID_PREFIX "OTB-IOT"
+#define OTB_WIFI_DEFAULT_DUMMY_SSID "otb-iot-dummy"
+#define OTB_OW_MAX_DS18B20S 8
+#define OTB_OW_DEFAULT_GPIO 2
+#define OTB_OW_MAX_TEMP_LEN 7 
+#define OTB_OW_REPORT_INTERVAL 60000 // 1 minute
+#define OTB_MQTT_HEARTBEAT_INTERVAL 60000 // 1 minute
+#define OTB_MQTT_DISCONNECTED_REBOOT_INTERVAL 180000 // 3 minutes
+#define OTB_MQTT_QUEUE_BUFFER_SIZE 2048
+#define OTB_MQTT_MAX_TOPIC_LENGTH 128
+#define OTB_MQTT_MAX_MSG_LENGTH 64
+#define OTB_MAIN_OTB_IOT "otb_iot" // max 8 chars
+#define OTB_MQTT_KEEPALIVE 120 // seconds
+#define OTB_MQTT_ROOT OTB_MAIN_OTB_IOT // max 8 chars
+#define OTB_MQTT_SERVER "192.168.0.162" // DNS hostnames are fine
+#define OTB_MQTT_PORT 1880
+#define OTB_MQTT_ALL "all"
+#define OTB_MQTT_LOCATION_1 "home"
+#define OTB_MQTT_LOCATION_2 "office"
+#define OTB_MQTT_LOCATION_3 "rad"
+#define OTB_MQTT_TEMPERATURE "temp"
+#define OTB_MQTT_LOCATION_4_OPT "rad"
+#define OTB_MQTT_CMD_SYSTEM "system"
+#define OTB_MQTT_CMD_RESET "reset"
+#define OTB_MQTT_CMD_REBOOT "reboot"
+#define OTB_MQTT_CMD_UPGRADE "upgrade"
+#define OTB_MQTT_PUB_STATUS "status"
+#define OTB_MQTT_STATUS_BOOTED "booted"
+#define OTB_MQTT_STATUS_VERSION "version"
+#define OTB_MQTT_STATUS_CHIPID "chipid"
+#define OTB_MQTT_STATUS_OFFLINE "offline"
+
+// Fixed stuff
+#define OTB_MAIN_COMPILE_DATE otb_compile_date
+#define OTB_MAIN_COMPILE_TIME otb_compile_time
+#define OTB_MAIN_VERSION_ID otb_version_id
+#define OTB_MAIN_CHIPID_STR_LENGTH 7
+#define OTB_MAIN_CHIPID otb_chipid
+#define OTB_WIFI_MAX_IPV4_STRING_LEN 16 // 3+1+3+1+3+1+3+1
+#define OTB_OW_MAX_ADDRESS_STRING_LENGTH 16 // 7*2 +2
+#define OTB_ESP_MAX_DELAY_MS 65 // os_delay_us can delay max 65535 us
+#define OTB_UTIL_DELAY_WAIT_MS 30 
+#define OTB_UTIL_MAX_DELAY_MS 0xffffffff / 1000 // max 32 bit int in us
+#define OTB_SCHED_MQTT_TASK 1
+#define OTB_SCHED_OW_TASK 2

@@ -19,8 +19,16 @@
  * 
  */
 
+#include <Arduino.h>
+#define FALSE 0
+#define TRUE  1
+#define BOOL boolean
+#include <inttypes.h>
+
 extern "C"
 {
+  #include "otb.h"
+#if 0
   #include "otb_fns.h"
   #include "otb_def.h"
   #define MAX_LOG_LENGTH 1024
@@ -32,4 +40,5 @@ extern "C"
   extern char compile_time[9];
   extern char version_id[MAX_VERSION_ID_LENGTH];
   #define LOG(format, args...) sprintf(log_s, format, ##args);  log_otb(log_s)
+#endif
 }

@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,37 +15,12 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-// #define OTB_DEBUG 1
-#define OTB_ARDUINO 1
-
-#include <Arduino.h>
-//#include "user_interface.h"
-#include "osapi.h"
-#include "c_types.h"
-#include "ets_sys.h"
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
-#include "user_interface.h"
-#include "smartconfig.h"
-#include "espconn.h"
-#include "mqtt_msg.h"
-#include "mqtt_user_config.h"
-#include "mqtt.h"
-#include "queue.h"
-#include "otb_def.h"
-#include "otb_globals.h"
-#include "otb_macros.h"
-#include "otb_main.h"
-#include "otb_wifi.h"
-#include "otb_util.h"
-#include "otb_temp.h"
-#include "otb_ow.h"
-#include "otb_mqtt.h"
-#include "otb_sched.h"
-
-// Arduino C++ functions exposed as C functions
-extern void reset(void);
+extern void otb_util_assert(bool value, char *value_s);
+extern void otb_util_delay_ms(uint32_t value);
+extern void otb_util_check_defs(void);
+extern void otb_util_log(char *log_string,
+                         uint16_t max_log_string_len,
+                         char *format,
+                         ...);

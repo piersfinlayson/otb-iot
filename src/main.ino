@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,116 +15,85 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include "otbCpp.h"
-#include <WiFiManager.h>
-#include "fake_scheduler.h"
-extern "C" {
-#include "c_types.h"
-#include "ets_sys.h"
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
-#include "user_interface.h"
-#include "smartconfig.h"
-#include "lwip/opt.h"
-#include "lwip/err.h"
-#include "lwip/dns.h"
-}
-
+#include "otb_cpp.h"
  
-char compile_date[12];
-char compile_time[9];
-char version_id[MAX_VERSION_ID_LENGTH];
-
-// WiFiManager object to hande wifi
-WiFiManager wifiManager;
+char otb_compile_date[12];
+char otb_compile_time[9];
+char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 
 // Logging function, needs to be extern "C" as accessed from C as well as CPP
-extern "C" void log_otb(char *text)
+extern "C" void otb_main_log_fn(char *text)
 {
   Serial.println(text);
   //delay(500);
 }
 
-// Must extern "C" scheduler, as accessed from C code as well as CPP
-extern "C" Scheduler scheduler;
 void configModeCallback();
 char ssid[32];
-char OTB_CHIPID[CHIPID_STR_LENGTH];
+char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
+char OTB_MAIN_DEVICE_ID[20];
 
-extern "C" void reset()
+extern "C" void otb_reset()
 {
+  DEBUG("OTB: otb_reset entry");
+
   // Delay to give any serial logs time to output
   delay(500);
-  //pinMode(GPIO_RESET, OUTPUT);
-  //digitalWrite(GPIO_RESET, LOW);
-  ESP.reset();
+
+  // Reset by pulling reset GPIO (connected to reset) low
+  digitalWrite(OTB_MAIN_GPIO_RESET, LOW);
+  // ESP.reset();
+
+  DEBUG("OTB: otb_reset exit");
+ 
+  return;
 }
 
 void setup(void)
 {
-  sprintf(compile_date, "%s", __DATE__);
-  sprintf(compile_time, "%s", __TIME__);
-  sprintf(version_id, "%s/%s/%s/%s", OTB_ROOT, OTB_FW_VERSION, compile_date, compile_time);
   // Set up serial port for logging
   Serial.begin(115200);
-  LOG("\nARDUNIO: %s", version_id);
-  LOG("ARDUINO: Arduino setup function");
-  sprintf(OTB_CHIPID, "%06x", ESP.getChipId());
 
-  pinMode(GPIO_RESET, OUTPUT);
-  digitalWrite(GPIO_RESET, HIGH);
-  LOG("ARDUINO: Set up Wifi");
+  DEBUG("OTB: setup entry");
 
-  // Initialize WiFiManager
-  WiFi.mode(WIFI_STA); // First thing we'll do is try and connect as a station
-  wifiManager.setAPCallback(configModeCallback);
-  wifiManager.setTimeout(DEFAULT_WIFI_TIMEOUT);
-  sprintf(ssid, "%s %s", DEFAULT_WIFI_SSID_PREFIX, OTB_CHIPID);
+  // Set up the reset CPIO to be high
+  pinMode(OTB_MAIN_GPIO_RESET, OUTPUT);
+  digitalWrite(OTB_MAIN_GPIO_RESET, HIGH);
 
-  // Wifi doesn't work at all well if no SSID set - just hangs trying to 
-  // connect.  So let's reset it to something (doesn't matter what) if it's
-  // blank.
-  String current_ssid = wifiManager.getSSID();
-  if (!strcmp(current_ssid.c_str(), ""))
-  {
-    LOG("ARDUINO: Set SSID to %s", DEFAULT_DUMMY_SSID);
-    struct station_config wifi_conf;
-    strcpy((char *)wifi_conf.ssid, DEFAULT_DUMMY_SSID); 
-    strcpy((char *)wifi_conf.password, "");
-    wifi_station_set_config(&wifi_conf);
-  }
-
-  // Actually connect
-  boolean success = wifiManager.autoConnect(ssid, NULL);
-  if (!success)
-  {
-    // This means couldn't connect to any configured wifi, and no other wifi
-    // was configured within DEFAULT_WIFI_TIMEOUT, so reset to have another go
-    LOG("ARDUNIO: WiFiManager autoConnect failed");
-    reset();
-  }
-
+  // Set up and log some useful info
+  sprintf(otb_compile_date, "%s", __DATE__);
+  sprintf(otb_compile_time, "%s", __TIME__);
+  snprintf(otb_version_id,
+           OTB_MAIN_MAX_VERSION_LENGTH,
+           "%s/%s/%s/%s",
+           OTB_MAIN_OTB_IOT,
+           OTB_MAIN_FW_VERSION,
+           otb_compile_date, 
+           otb_compile_time);
+  INFO("OTB: %s", otb_version_id);
+  INFO("OTB: Arduino setup function");
+  sprintf(OTB_MAIN_CHIPID, "%06x", ESP.getChipId());
+  INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
+  sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT:%s", OTB_MAIN_CHIPID);
+  
   // Call C setup routine
-  c_setup(log_otb);
+  c_setup();
+  
+  DEBUG("OTB: setup exit");
+  
+  reset;
 }
  
 void loop(void)
 {
-  //LOG("ARDUINO: Arduino loop function\n");
+  // DEBUG("OTB: loop entry");
 
-  // Call C loop routine
-  scheduler.execute();
+  // Call the scheduler
+  otb_sched_execute();
+
+  // DEBUG("OTB: loop exit");
+  
+  return;
 }
-
-void configModeCallback()
-{
-  // Nothing to do - let auto config program kick in
-  LOG("ARDUINO: In configModeCallback");
-}
-

@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,197 +15,69 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-#include <Arduino.h>
-#include <osapi.h>
 #include "otb.h"
-#include "temp_mqtt.h"
-#include "mqtt.h"
 
-extern void *getTask(int);
-extern void *getSr(int);
+char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 
-void *oneWire_handle;
-void *sensors_handle;
-void (*log_fn)(char *);
-
-char log_s[MAX_LOG_LENGTH];
-uint8_t ds18b20Reads = 2;
-uint8_t disconnectedCounter = 0;
-
-DeviceAddressString ds18b20Addresses[MAX_DS18B20S];
-uint8_t ds18b20Count = 0;
-
-//void ICACHE_FLASH_ATTR c_loop(void)
-void ICACHE_FLASH_ATTR ds18b20Callback(os_event_t event)
+void ICACHE_FLASH_ATTR c_setup(void)
 {
-  char temp_s[MAX_DS18B20S][7];
-  int chars;
+  OTB_WIFI_STATION_CONFIG wifi_conf;
+  bool rc;
+  uint8_t wifi_status = OTB_WIFI_STATUS_NOT_CONNECTED;
 
-  // Read all the sensors.
-  for (int ii = 0; ii < ds18b20Count; ii++)
+  DEBUG("OTB: c_setup entry");
+  
+  otb_util_check_defs();
+  
+#if 0
+  // Some code to burn an SSID/password into the flash
+  strcpy(wifi_conf.ssid, "some_ssid");
+  strcpy(wifi_conf.password, "some_password");
+  wifi_conf.bssid_set = FALSE;
+  strcpy(wifi_conf.bssid, "");
+  wifi_set_stored_conf(&wifi_conf);
+  delay(20000);
+#endif  
+  
+  INFO("OTB: Set up wifi");
+  rc = otb_wifi_get_stored_conf(&wifi_conf);
+  if (rc)
   {
-    int loop_times = ds18b20Reads;
-    bool loop = TRUE;
-    while (loop && (loop_times > 0))
-    {
-      loop = FALSE;
-      request_temps(sensors_handle);
-      get_temp_string(sensors_handle, ii, temp_s[ii]);
-    
-      if (!strcmp(temp_s[ii], "85.0")) 
-      {
-        loop = TRUE;
-        delay(1000);
-      }
-      LOG("DS18B20: sensor: %d temp: %s", ii+1, temp_s[ii]);
-      loop_times--;
-    }
+    // No point in trying to connect in station mode if we've no stored config - skip
+    // straight to AP mode
+    wifi_status = otb_wifi_try_sta(wifi_conf.ssid,
+                                   wifi_conf.password,
+                                   wifi_conf.bssid_set,
+                                   wifi_conf.bssid,
+                                   OTB_WIFI_DEFAULT_STA_TIMEOUT);
   }
-  // Only read up to 2 times the first time through this function - we do this
-  // to allow the sensors time to initialize.
-  ds18b20Reads = 1;
-
-  if (mqttClient.connState == MQTT_DATA)
+  
+  if (wifi_status != OTB_WIFI_STATUS_CONNECTED)
   {
-    LOG("DS18B20: Log sensor data");
-    // Could send (but may choose not to), so reset disconnectedCounter
-    disconnectedCounter = 0;
-
-    for (int ii; ii < ds18b20Count; ii++)
-    {
-      chars = strlen(temp_s[ii]);
-      if (strcmp(temp_s[ii], "-127.0") && strcmp(temp_s[ii], "85.0"))
-      {
-	// qos = 0, retain = 1
-	sprintf(topic_s,
-		"/%s/%s/%s/%s/%s/%s",
-		OTB_ROOT,
-		LOCATION_1,
-		LOCATION_2,
-		LOCATION_3,
-                ds18b20Addresses[ii],
-		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
-	sprintf(topic_s,
-		"/%s/%s/%s/%s/%s/%s/%s",
-		OTB_ROOT,
-		LOCATION_1,
-		LOCATION_2,
-		LOCATION_3,
-		LOCATION_4_OPT,
-                ds18b20Addresses[ii],
-		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
-	sprintf(topic_s,
-		"/%s/%s/%s/%s/%s/%s/%s",
-		OTB_ROOT,
-		LOCATION_1,
-		LOCATION_2,
-		LOCATION_3,
-		OTB_CHIPID,
-                ds18b20Addresses[ii],
-		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
-	sprintf(topic_s,
-		"/%s/%s/%s/%s/%s/%s/%s/%s",
-		OTB_ROOT,
-		LOCATION_1,
-		LOCATION_2,
-		LOCATION_3,
-		OTB_CHIPID,
-		LOCATION_4_OPT,
-                ds18b20Addresses[ii],
-		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
-	sprintf(topic_s,
-		"/%s/%s/%s/%s/%s/%s/%s/%s",
-		OTB_ROOT,
-		LOCATION_1,
-		LOCATION_2,
-		LOCATION_3,
-		LOCATION_4_OPT,
-		OTB_CHIPID,
-                ds18b20Addresses[ii],
-		TEMPERATURE);
-	MQTT_Publish(&mqttClient, topic_s, temp_s[ii], chars, 0, 1);
-      }
-    }
+    // Try AP mode instead.  We _always_ reboot after this, cos either it worked in which
+    // case we reboot to try the new credentials, or it didn't in which case we'll give
+    // station mode another try when we boot up again.
+    otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
+    otb_reset();
+    delay(1000);
+    OTB_ASSERT(FALSE);
   }
-  else
-  {
-    LOG("DS18B20: MQTT not connected, so not sending");
-    disconnectedCounter += 1;
-  }
-
-  if ((disconnectedCounter*REPORT_INTERVAL) >= DISCONNECTED_REBOOT_INTERVAL)
-  {
-    LOG("DS18B20: MQTT disconnected %d ms so resetting", disconnectedCounter*REPORT_INTERVAL);
-    reset();
-  }
-
-  //LOG("DS18B20: callback exit");
-}
-
-
-void ICACHE_FLASH_ATTR c_setup(void(*log)(char *))
-{
-  void *vTask;
-  log_fn = log;
-
-  LOG("DS18B20: c_setup entry");
-
-  LOG("MQTT: initialize mqtt ...");
-  mqtt_init(MQTT_SERVER, 1880, 0, "otb_iot", "user", "pass", 120);
+  
+  INFO("OTB: Set up MQTT stack");
+  otb_mqtt_initialize(OTB_MQTT_SERVER,
+                      OTB_MQTT_PORT,
+                      0,
+                      OTB_MAIN_DEVICE_ID,
+                      "user",
+                      "pass",
+                      OTB_MQTT_KEEPALIVE);
   // brief pause to allow this to settle down
   delay(1000);
 
-  // Query one wire bus for DS18B20 devices.  We have to do this before we
-  // start up MQTT, as MQTT scheduling screws up with OneWire timing.
-  oneWire_handle = (void *)0;
-  sensors_handle = (void *)0;
+  // Initialize the one wire bus
+  otb_ow_initialize(OTB_OW_DEFAULT_GPIO);
 
-  LOG("DS18B20: Initialize one wire bus (GPIO pin %d) ...", ONE_WIRE_BUS);
-  initialize_temp(ONE_WIRE_BUS, &oneWire_handle, &sensors_handle);
-  delay(1000);
-  LOG("DS18B20: One Wire bus initialized");
-  ds18b20Count = get_device_count(sensors_handle);
-
-  LOG("DS18B20: Device count %u", ds18b20Count);
-  if (ds18b20Count > MAX_DS18B20S)
-  {
-    ds18b20Count = MAX_DS18B20S;
-    LOG("DS18B20: Device count reset to max %u", MAX_DS18B20S);
-  }
-  int jj = 0;
-  for (int ii = 0; (ii < ds18b20Count); ii++)
-  {
-    // Use jj to actually write in array, and only increment if device address
-    // is read successfully.
-    LOG("DS18B20: Read device # %u", ii+1);
-    bool rc;
-    // Note any failures are logged in get_device_address
-    rc = get_device_address(sensors_handle, ii, ds18b20Addresses+jj);
-    if (rc)
-    {
-      jj++;
-    }
-  }
-  // Reset the counter to successfully read addresses
-  ds18b20Count = jj;
-
-  if (ds18b20Count > 0)
-  {
-    // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
-    // starting ASAP.
-    // Only do this is we have some DS18B20s attached.
-    vTask = getTask(2);
-    // Interval between being scheduled, and iterations (-1 = forever)
-    repeatTask(vTask, REPORT_INTERVAL, -1);
-    fake_system_os_post(0, 0, 0, &ds18b20Callback, vTask, 0);
-  }
-
-  LOG("DS18B20: c_setup exit");
+  DEBUG("OTB: c_setup exit");
 }

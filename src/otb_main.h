@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,11 +15,6 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
-
-#include "osapi.h"
-// Functions
-void c_setup(void(*log)(char *));
-//void c_loop(void);
-//void ds18b20Callback(os_event_t event);
+ 
+ extern void c_setup(void);

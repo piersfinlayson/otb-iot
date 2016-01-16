@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,37 +15,27 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-// #define OTB_DEBUG 1
-#define OTB_ARDUINO 1
+#define LOG(FORMAT, ...)                                                         \
+    snprintf(otb_log_s, OTB_MAIN_MAX_LOG_LENGTH, (char *)FORMAT, ##__VA_ARGS__); \
+    otb_main_log_fn(otb_log_s)    
 
-#include <Arduino.h>
-//#include "user_interface.h"
-#include "osapi.h"
-#include "c_types.h"
-#include "ets_sys.h"
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
-#include "user_interface.h"
-#include "smartconfig.h"
-#include "espconn.h"
-#include "mqtt_msg.h"
-#include "mqtt_user_config.h"
-#include "mqtt.h"
-#include "queue.h"
-#include "otb_def.h"
-#include "otb_globals.h"
-#include "otb_macros.h"
-#include "otb_main.h"
-#include "otb_wifi.h"
-#include "otb_util.h"
-#include "otb_temp.h"
-#include "otb_ow.h"
-#include "otb_mqtt.h"
-#include "otb_sched.h"
+#if 0
+#define LOG(FORMAT, ...)  otb_util_log(otb_log_s,               \
+                                       OTB_MAIN_MAX_LOG_LENGTH, \
+                                       (char *)FORMAT,          \
+                                       ##__VA_ARGS__)
+#endif
+#define INFO LOG
+#define WARN LOG
+#define ERROR LOG
 
-// Arduino C++ functions exposed as C functions
-extern void reset(void);
+#ifdef OTB_DEBUG
+  #define DEBUG LOG
+#else
+  #define DEBUG(...)
+#endif
+
+// #X passes a stringified version of X, which is used for logging purposes
+#define OTB_ASSERT(X) otb_util_assert(X, (char *)#X)

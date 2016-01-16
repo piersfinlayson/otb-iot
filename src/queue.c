@@ -48,20 +48,15 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-#include "queue.h"
 
-//#include "user_interface.h"
-#include "osapi.h"
-#include "os_type.h"
-#include "mem.h"
-#include "proto.h"
-#include "otb_def.h"
-uint8_t queue_buf[MQTT_QUEUE_BUFFER_SIZE];
+#include "otb.h"
+
+uint8_t queue_buf[OTB_MQTT_QUEUE_BUFFER_SIZE];
 void ICACHE_FLASH_ATTR QUEUE_Init(QUEUE *queue)
 {
-        os_memset((void *)&queue_buf, 0, sizeof(uint8_t)*MQTT_QUEUE_BUFFER_SIZE);
+        os_memset((void *)&queue_buf, 0, sizeof(uint8_t)*OTB_MQTT_QUEUE_BUFFER_SIZE);
 	queue->buf = (uint8_t*)&queue_buf;
-	RINGBUF_Init(&queue->rb, queue->buf, MQTT_QUEUE_BUFFER_SIZE);
+	RINGBUF_Init(&queue->rb, queue->buf, OTB_MQTT_QUEUE_BUFFER_SIZE);
 }
 int32_t ICACHE_FLASH_ATTR QUEUE_Puts(QUEUE *queue, uint8_t* buffer, uint16_t len)
 {

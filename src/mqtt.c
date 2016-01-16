@@ -50,20 +50,7 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <Arduino.h>
-//#include "user_interface.h"
-#include "osapi.h"
-#include <lwip/ip.h>
-#include "espconn.h"
-#include "os_type.h"
-#include "mem.h"
-#include "mqtt_msg.h"
-#include "mqtt_user_config.h"
-#include "mqtt.h"
-#include "queue.h"
 #include "otb.h"
-#include "fake_scheduler_c.h"
-
 
 #define MQTT_TASK_PRIO        		0
 #define MQTT_TASK_QUEUE_SIZE    	1
@@ -73,6 +60,7 @@
 #define QUEUE_BUFFER_SIZE		 	2048
 #endif
 
+os_task_t moduleCallback = 0;
 
 unsigned char *default_certificate;
 unsigned int default_certificate_len = 0;
