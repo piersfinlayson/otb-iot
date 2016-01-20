@@ -140,7 +140,8 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
 {
   // DEBUG("UTIL: otb_util_log_snprintf entry");
 
-  snprintf(log_string, max_log_string_len, format, args);
+  // Need to call vsnprintf not snprintf, as passing va_list
+  vsnprintf(log_string, max_log_string_len, format, args);
 
   return;
 
