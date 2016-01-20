@@ -33,6 +33,7 @@ void ICACHE_FLASH_ATTR c_setup(void)
   
 #if 0
   // Some code to burn an SSID/password into the flash
+  wifi_set_opmode_current(STATION_MODE);
   strcpy(wifi_conf.ssid, "some_ssid");
   strcpy(wifi_conf.password, "some_password");
   wifi_conf.bssid_set = FALSE;
