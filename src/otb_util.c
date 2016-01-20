@@ -132,20 +132,6 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
   
   return;
 }
-void verror(const char *fmt, va_list argp)
-{
-	fprintf(stderr, "error: ");
-	vfprintf(stderr, fmt, argp);
-	fprintf(stderr, "\n");
-}
-
-void error(const char *fmt, ...)
-{
-	va_list argp;
-	va_start(argp, fmt);
-	verror(fmt, argp);
-	va_end(argp);
-}
 
 void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              uint16_t max_log_string_len,
@@ -155,6 +141,8 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   // DEBUG("UTIL: otb_util_log_snprintf entry");
 
   snprintf(log_string, max_log_string_len, format, args);
+
+  return;
 
   // DEBUG("UTIL: otb_util_log_snprintf exit");
 }
