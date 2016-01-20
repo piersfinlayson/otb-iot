@@ -28,17 +28,4 @@
 extern "C"
 {
   #include "otb.h"
-#if 0
-  #include "otb_fns.h"
-  #include "otb_def.h"
-  #define MAX_LOG_LENGTH 1024
-  extern char log_s[MAX_LOG_LENGTH];
-  extern void log_otb(char *text);
-  extern char chipid[CHIPID_STR_LENGTH];
-  extern char topic_s[MAX_TOPIC_LENGTH];
-  extern char compile_date[12];
-  extern char compile_time[9];
-  extern char version_id[MAX_VERSION_ID_LENGTH];
-  #define LOG(format, args...) sprintf(log_s, format, ##args);  log_otb(log_s)
-#endif
 }

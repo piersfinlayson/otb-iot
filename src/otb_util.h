@@ -20,7 +20,13 @@
 extern void otb_util_assert(bool value, char *value_s);
 extern void otb_util_delay_ms(uint32_t value);
 extern void otb_util_check_defs(void);
-extern void otb_util_log(char *log_string,
+void otb_util_log_snprintf(char *log_string,
+                           uint16_t max_log_string_len,
+                           char *format,
+                           va_list args);
+extern void otb_util_log(bool error,
+                         char *log_string,
                          uint16_t max_log_string_len,
                          char *format,
                          ...);
+void otb_util_log_error_via_mqtt(char *);

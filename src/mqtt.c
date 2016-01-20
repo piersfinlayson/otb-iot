@@ -74,15 +74,15 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 {
 	struct espconn *pConn = (struct espconn *)arg;
 	MQTT_Client* client = (MQTT_Client *)pConn->reverse;
-	LOG("mqtt_dns_found: enter");
+	DEBUG("mqtt_dns_found: enter");
 
 
 #if 0
-        LOG("About to log IP address ...");
+        DEBUG("About to log IP address ...");
 	delay(2000);
-	LOG("&ip_addr address %p", &ipaddr);
+	DEBUG("&ip_addr address %p", &ipaddr);
 	delay(2000);
-	LOG("ip_addr address %p", ipaddr);
+	DEBUG("ip_addr address %p", ipaddr);
 	delay(2000);
 #endif
 
@@ -101,7 +101,7 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 	if(client->ip.addr == 0 && ipaddr->addr != 0)
 	{
 
-		LOG("let's connect");
+		DEBUG("let's connect");
 		os_memcpy(client->pCon->proto.tcp->remote_ip, &ipaddr->addr, 4);
 		if(client->security){
 			//espconn_secure_connect(client->pCon);
@@ -115,9 +115,9 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 		INFO("TCP: connecting...");
 	}
 
-	LOG("os post");
+	DEBUG("os post");
 	system_os_post(MQTT_TASK_PRIO, 0, (os_param_t)client);
-	LOG("dns found exit");
+	DEBUG("dns found exit");
 }
 
 
@@ -585,7 +585,7 @@ MQTT_InitClient(MQTT_Client *mqttClient, uint8_t* client_id, uint8_t* client_use
 void ICACHE_FLASH_ATTR
 MQTT_InitLWT(MQTT_Client *mqttClient, uint8_t* will_topic, uint8_t* will_msg, uint8_t will_qos, uint8_t will_retain)
 {
-	LOG("MQTT_InitLWT");
+        DEBUG("MQTT_InitLWT");
 	uint32_t temp;
 	temp = os_strlen(will_topic);
 	mqttClient->connect_info.will_topic = (uint8_t*)os_zalloc(temp + 1);
@@ -662,27 +662,27 @@ MQTT_Disconnect(MQTT_Client *mqttClient)
 void ICACHE_FLASH_ATTR
 MQTT_OnConnected(MQTT_Client *mqttClient, MqttCallback connectedCb)
 {
-	LOG("MQTT_OnConnected");
+        DEBUG("MQTT_OnConnected");
 	mqttClient->connectedCb = connectedCb;
 }
 
 void ICACHE_FLASH_ATTR
 MQTT_OnDisconnected(MQTT_Client *mqttClient, MqttCallback disconnectedCb)
 {
-	LOG("MQTT_OnDisconnected");
+	DEBUG("MQTT_OnDisconnected");
 	mqttClient->disconnectedCb = disconnectedCb;
 }
 
 void ICACHE_FLASH_ATTR
 MQTT_OnData(MQTT_Client *mqttClient, MqttDataCallback dataCb)
 {
-	LOG("MQTT_OnData");
+	DEBUG("MQTT_OnData");
 	mqttClient->dataCb = dataCb;
 }
 
 void ICACHE_FLASH_ATTR
 MQTT_OnPublished(MQTT_Client *mqttClient, MqttCallback publishedCb)
 {
-	LOG("MQTT_OnPublished");
+	DEBUG("MQTT_OnPublished");
 	mqttClient->publishedCb = publishedCb;
 }

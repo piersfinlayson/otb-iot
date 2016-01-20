@@ -17,22 +17,29 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define LOG(FORMAT, ...)                                                         \
-    snprintf(otb_log_s, OTB_MAIN_MAX_LOG_LENGTH, (char *)FORMAT, ##__VA_ARGS__); \
-    otb_main_log_fn(otb_log_s)    
-
 #if 0
-#define LOG(FORMAT, ...)  otb_util_log(otb_log_s,               \
-                                       OTB_MAIN_MAX_LOG_LENGTH, \
-                                       (char *)FORMAT,          \
-                                       ##__VA_ARGS__)
+// Old inefficient inline (space wise) version
+#define LOG(ERROR, FORMAT, ...)                                                \
+  snprintf(otb_log_s, OTB_MAIN_MAX_LOG_LENGTH, (char *)FORMAT, ##__VA_ARGS__); \
+  otb_main_log_fn(otb_log_s);                                                  \
+  if (ERROR && (otb_mqtt_client.connState == MQTT_DATA))                       \
+  {                                                                            \
+    otb_util_log_error_via_mqtt(otb_log_s);                                    \
+  }
+#else
+#define LOG(ERROR, FORMAT, ...)  otb_util_log(ERROR,                   \
+                                              otb_log_s,               \
+                                              OTB_MAIN_MAX_LOG_LENGTH, \
+                                              (char *)FORMAT,          \
+                                              ##__VA_ARGS__)
 #endif
-#define INFO LOG
-#define WARN LOG
-#define ERROR LOG
+
+#define INFO(...)  LOG(FALSE, __VA_ARGS__);
+#define WARN(...)  LOG(FALSE, __VA_ARGS__);
+#define ERROR(...)  LOG(TRUE, __VA_ARGS__);
 
 #ifdef OTB_DEBUG
-  #define DEBUG LOG
+  #define DEBUG(...)  LOG(FALSE, __VA_ARGS__);
 #else
   #define DEBUG(...)
 #endif

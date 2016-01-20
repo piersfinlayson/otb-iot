@@ -132,18 +132,79 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
   
   return;
 }
+void verror(const char *fmt, va_list argp)
+{
+	fprintf(stderr, "error: ");
+	vfprintf(stderr, fmt, argp);
+	fprintf(stderr, "\n");
+}
 
-void ICACHE_FLASH_ATTR otb_util_log(char *log_string,
+void error(const char *fmt, ...)
+{
+	va_list argp;
+	va_start(argp, fmt);
+	verror(fmt, argp);
+	va_end(argp);
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
+                                             uint16_t max_log_string_len,
+                                             char *format,
+                                             va_list args)
+{
+  // DEBUG("UTIL: otb_util_log_snprintf entry");
+
+  snprintf(log_string, max_log_string_len, format, args);
+
+  // DEBUG("UTIL: otb_util_log_snprintf exit");
+}
+
+void ICACHE_FLASH_ATTR otb_util_log(bool error,
+                                    char *log_string,
                                     uint16_t max_log_string_len,
                                     char *format,
                                     ...)
 {
   va_list args;
+
+  // DEBUG("UTIL: otb_util_log entry");
   
+  // Bit of messing around to deal with var args, but basically snprintf log
+  // into log buffer and then log it
   va_start(args, format);
-  snprintf(log_string, max_log_string_len, format, args);
+  otb_util_log_snprintf(log_string, max_log_string_len, format, args);
   va_end(args);
   otb_main_log_fn(otb_log_s);
+
+  // Log if MQTT if an error and we're connected
+  if (error && (otb_mqtt_client.connState == MQTT_DATA))                       \
+  {                                                                            \
+    otb_util_log_error_via_mqtt(otb_log_s);                                    \
+  }
+
+  // DEBUG("UTIL: otb_util_log exit");
   
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
+{
+  // DEBUG("UTIL: otb_util_log_error_via_mqtt entry");
+
+  snprintf(otb_mqtt_topic_s,
+           OTB_MQTT_MAX_TOPIC_LENGTH,
+           "/%s/%s/%s/%s/%s/%s",
+           OTB_MQTT_ROOT,
+           OTB_MQTT_LOCATION_1,
+           OTB_MQTT_LOCATION_2,
+           OTB_MQTT_LOCATION_3,
+           OTB_MAIN_CHIPID,
+           OTB_MQTT_PUB_LOG);
+
+  // QOS=1 so gets through at least once, retain=1 so last log retained
+  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 1);
+
+  // DEBUG("UTIL: otb_util_log_error_via_mqtt exit");
+
   return;
 }

@@ -52,6 +52,7 @@
 #define OTB_MQTT_CMD_REBOOT "reboot"
 #define OTB_MQTT_CMD_UPGRADE "upgrade"
 #define OTB_MQTT_PUB_STATUS "status"
+#define OTB_MQTT_PUB_LOG "log"
 #define OTB_MQTT_STATUS_BOOTED "booted"
 #define OTB_MQTT_STATUS_VERSION "version"
 #define OTB_MQTT_STATUS_CHIPID "chipid"
