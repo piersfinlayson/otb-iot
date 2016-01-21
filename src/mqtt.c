@@ -193,11 +193,11 @@ READPACKET:
 
 			  case MQTT_MSG_TYPE_SUBACK:
 				if(client->mqtt_state.pending_msg_type == MQTT_MSG_TYPE_SUBSCRIBE && client->mqtt_state.pending_msg_id == msg_id)
-				  INFO("MQTT: Subscribe successful");
+				  DEBUG("MQTT: Subscribe successful");
 				break;
 			  case MQTT_MSG_TYPE_UNSUBACK:
 				if(client->mqtt_state.pending_msg_type == MQTT_MSG_TYPE_UNSUBSCRIBE && client->mqtt_state.pending_msg_id == msg_id)
-				  WARN("MQTT: UnSubscribe successful");
+				  DEBUG("MQTT: UnSubscribe successful");
 				break;
 			  case MQTT_MSG_TYPE_PUBLISH:
 				if(msg_qos == 1)
