@@ -72,7 +72,8 @@ void setup(void)
            OTB_MAIN_FW_VERSION,
            otb_compile_date, 
            otb_compile_time);
-  INFO("OTB: %s", otb_version_id);
+  // First log needs a line break!
+  INFO("\nOTB: %s", otb_version_id);
   INFO("OTB: Arduino setup function");
   sprintf(OTB_MAIN_CHIPID, "%06x", ESP.getChipId());
   INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
