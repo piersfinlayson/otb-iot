@@ -17,4 +17,4 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-platformio run -t upload && platformio serialports monitor -b 115200
+platformio run -t uploadlazy && platformio serialports monitor -b 115200
