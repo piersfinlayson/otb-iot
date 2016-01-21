@@ -184,7 +184,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_wait_until_connected(uint32_t timeout)
     }
 
     // Wait a second
-    otb_util_delay_ms(1000);
+    delay(1000);
     current_time = system_get_time();
     if (start_time < end_time)
     {
@@ -267,7 +267,7 @@ void ICACHE_FLASH_ATTR otb_wifi_try_ap(uint32_t timeout)
   }
   while (!otb_wifi_ap_mode_done)
   {
-    otb_util_delay_ms(1000);
+    delay(1000);
     
     current_time = system_get_time();
     if (!going_to_wrap)

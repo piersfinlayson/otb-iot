@@ -34,7 +34,7 @@ extern "C" void ICACHE_FLASH_ATTR otb_temp_initialize_temp(int bus,
   oneWire = new OneWire(bus);
   sensors = new DallasTemperature(oneWire);
   // Allow some time for sensors to power on 
-  otb_util_delay_ms(1000);
+  delay(1000);
   sensors->begin();
  
   *oneWire_handle = (void *)oneWire;

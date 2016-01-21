@@ -31,7 +31,7 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
     otb_reset();
-    delay(1000);
+    otb_util_delay_ms(1000);
   }
 
   DEBUG("UTIL: otb_util_assert exit");
@@ -41,21 +41,21 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
 
 void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
 {
-  DEBUG("UTIL: otb_util_delay_ms entry");
-  
-#ifdef OTB_ARDUINO
-  delay(value);
-#else
+  // Can't just use Ardunio delay, cos may not be in the right context.
   // os_delay_us takes a uint16_t so can only delay up to 65535 microseconds
   // the code below needs to be checked that it will work OK across wrapping (a uint32_t
   // containing microseconds will wrap every 71 minutes, so there's a decent chance of
   // this happening
+  // XXX Should test context to see whether do delay (if in sketch) or call
+  // ESP function otherwise
   uint32_t wait_length = value;
   uint32_t start_time;
   uint32_t current_time;
   uint32_t end_time;
   bool going_to_wrap = FALSE;
     
+  DEBUG("UTIL: otb_util_delay_ms entry");
+  
   DEBUG("UTIL: wait for %d ms" value);
 
   OTB_ASSERT(value <= OTB_UTIL_MAX_DELAY_MS);
@@ -101,7 +101,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
       {
         DEBUG("UTIL: Done");
         break;
-      ]
+      }
       else if (current_time < end_time)
       {
         value = (end_time - current_time) / 1000;
@@ -112,7 +112,6 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
       }
     }
   }
-#endif  
   
   DEBUG("UTIL: otb_util_delay_ms exit");
   

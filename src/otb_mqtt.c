@@ -281,8 +281,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   os_memcpy(otb_mqtt_msg_s, msg, msg_len);
   otb_mqtt_msg_s[msg_len] = 0;
 
-  INFO("MQTT: Received publish topic: %s", otb_mqtt_topic_s);
-  INFO("MQTT:                message: %s ", otb_mqtt_msg_s);
+  DEBUG("MQTT: Received publish topic: %s", otb_mqtt_topic_s);
+  DEBUG("MQTT:                message: %s ", otb_mqtt_msg_s);
 
   // Don't bother parsing topic - we know what we subscribed to (system)
 

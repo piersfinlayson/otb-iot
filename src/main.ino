@@ -39,8 +39,11 @@ extern "C" void otb_reset()
 {
   DEBUG("OTB: otb_reset entry");
 
-  // Delay to give any serial logs time to output
-  delay(500);
+  // Log resetting and include \n so this log isn't overwritten
+  INFO("OTB: Resetting ...");
+  // Delay to give any serial logs time to output.  Can't use arduino delay as
+  // may be in wrong context
+  otb_util_delay_ms(1000);
 
   // Reset by pulling reset GPIO (connected to reset) low
   digitalWrite(OTB_MAIN_GPIO_RESET, LOW);
@@ -84,7 +87,7 @@ void setup(void)
   
   DEBUG("OTB: setup exit");
   
-  reset;
+  return;
 }
  
 void loop(void)

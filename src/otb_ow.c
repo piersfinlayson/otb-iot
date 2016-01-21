@@ -35,7 +35,7 @@ void ICACHE_FLASH_ATTR otb_ow_initialize(uint8_t bus)
   otb_ow_sensors_handle = (void *)0;
 
   otb_temp_initialize_temp(bus, &otb_ow_onewire_handle, &otb_ow_sensors_handle);
-  otb_util_delay_ms(1000);
+  delay(1000);
   INFO("OW: One Wire bus initialized");
 
   otb_ow_ds18b20_count = otb_temp_get_device_count(otb_ow_sensors_handle);

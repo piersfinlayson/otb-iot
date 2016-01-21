@@ -63,4 +63,4 @@
 
 
 // Arduino C++ functions exposed as C functions
-extern void reset(void);
+extern void otb_reset(void);
