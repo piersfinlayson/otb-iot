@@ -154,7 +154,7 @@ void ICACHE_FLASH_ATTR otb_ow_ds18b20_callback(os_event_t event)
                                                     OTB_MQTT_DISCONNECTED_REBOOT_INTERVAL)
   {
     ERROR("OW: MQTT disconnected %d ms so resetting", 
-        otb_ow_mqtt_disconnected_counter * OTB_OW_REPORT_INTERVAL);
+    otb_ow_mqtt_disconnected_counter * OTB_OW_REPORT_INTERVAL);
     otb_reset();
   }
 

@@ -167,7 +167,7 @@ READPACKET:
 		case MQTT_CONNECT_SENDING:
 			if(msg_type == MQTT_MSG_TYPE_CONNACK){
 				if(client->mqtt_state.pending_msg_type != MQTT_MSG_TYPE_CONNECT){
-					INFO("MQTT: Invalid packet");
+					WARN("MQTT: Invalid packet");
 					if(client->security){
 						//espconn_secure_disconnect(client->pCon);
 					}
@@ -215,7 +215,7 @@ READPACKET:
 				break;
 			  case MQTT_MSG_TYPE_PUBACK:
 				if(client->mqtt_state.pending_msg_type == MQTT_MSG_TYPE_PUBLISH && client->mqtt_state.pending_msg_id == msg_id){
-				  INFO("MQTT: received MQTT_MSG_TYPE_PUBACK, finish QoS1 publish");
+				  DEBUG("MQTT: received MQTT_MSG_TYPE_PUBACK, finish QoS1 publish");
 				}
 
 				break;
@@ -233,7 +233,7 @@ READPACKET:
 				break;
 			  case MQTT_MSG_TYPE_PUBCOMP:
 				if(client->mqtt_state.pending_msg_type == MQTT_MSG_TYPE_PUBLISH && client->mqtt_state.pending_msg_id == msg_id){
-				  INFO("MQTT: receive MQTT_MSG_TYPE_PUBCOMP, finish QoS2 publish");
+				  DEBUG("MQTT: receive MQTT_MSG_TYPE_PUBCOMP, finish QoS2 publish");
 				}
 				break;
 			  case MQTT_MSG_TYPE_PINGREQ:
@@ -260,7 +260,7 @@ READPACKET:
 				  len -= client->mqtt_state.message_length;
 				  pdata += client->mqtt_state.message_length;
 
-				  INFO("Get another published message");
+				  DEBUG("Get another published message");
 				  goto READPACKET;
 			  }
 
@@ -268,7 +268,7 @@ READPACKET:
 			break;
 		}
 	} else {
-		INFO("ERROR: Message too long");
+		WARN("ERROR: Message too long");
 	}
 	system_os_post(MQTT_TASK_PRIO, 0, (os_param_t)client);
 }
