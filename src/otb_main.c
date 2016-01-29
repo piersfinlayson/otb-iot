@@ -39,7 +39,8 @@ void ICACHE_FLASH_ATTR c_setup(void)
   wifi_conf.bssid_set = FALSE;
   strcpy(wifi_conf.bssid, "");
   otb_wifi_set_stored_conf(&wifi_conf);
-  delay(20000);
+  INFO("Pausing for 20s ...");
+  otb_util_delay_ms(20000);
 #endif  
   
   INFO("OTB: Set up wifi");
@@ -62,7 +63,6 @@ void ICACHE_FLASH_ATTR c_setup(void)
     // station mode another try when we boot up again.
     otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
     otb_reset();
-    delay(1000);
     OTB_ASSERT(FALSE);
   }
   
@@ -74,11 +74,9 @@ void ICACHE_FLASH_ATTR c_setup(void)
                       "user",
                       "pass",
                       OTB_MQTT_KEEPALIVE);
-  // brief pause to allow this to settle down
-  delay(1000);
 
-  // Initialize the one wire bus
-  otb_ow_initialize(OTB_OW_DEFAULT_GPIO);
+  INFO("OTB: Set up One Wire bus");
+  otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
 
   DEBUG("OTB: c_setup exit");
 }

@@ -56,7 +56,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
     
   DEBUG("UTIL: otb_util_delay_ms entry");
   
-  DEBUG("UTIL: wait for %d ms" value);
+  DEBUG("UTIL: wait for %d ms", value);
 
   OTB_ASSERT(value <= OTB_UTIL_MAX_DELAY_MS);
   

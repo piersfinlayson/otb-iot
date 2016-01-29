@@ -49,6 +49,10 @@
 #include "cgiwifi.h"
 #include "captdns.h"
 
+// DS18B20
+#include "gpio.h"
+#include "pin_map.h"
+
 // OTB
 #include "otb_def.h"
 #include "otb_globals.h"
@@ -56,11 +60,9 @@
 #include "otb_main.h"
 #include "otb_wifi.h"
 #include "otb_util.h"
-#include "otb_temp.h"
-#include "otb_ow.h"
 #include "otb_mqtt.h"
 #include "otb_sched.h"
-
+#include "otb_ds18b20.h"
 
 // Arduino C++ functions exposed as C functions
 extern void otb_reset(void);
