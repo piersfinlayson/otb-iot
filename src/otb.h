@@ -61,7 +61,7 @@
 #include "otb_wifi.h"
 #include "otb_util.h"
 #include "otb_mqtt.h"
-#include "otb_sched.h"
+//#include "otb_sched.h"
 #include "otb_ds18b20.h"
 
 // Arduino C++ functions exposed as C functions

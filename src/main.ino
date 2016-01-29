@@ -95,7 +95,7 @@ void loop(void)
   // DEBUG("OTB: loop entry");
 
   // Call the scheduler
-  otb_sched_execute();
+  //otb_sched_execute();
 
   // DEBUG("OTB: loop exit");
   

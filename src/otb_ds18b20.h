@@ -42,15 +42,15 @@ typedef struct otbDs18b20DeviceAddress
 
 #ifdef OTB_DS18B20_C
 // Globals
-uint8_t otb_ds18b20_reads = 2;
 uint8_t otb_ds18b20_mqtt_disconnected_counter = 0;
 struct otbDs18b20DeviceAddress otb_ds18b20_addresses[OTB_DS18B20_MAX_DS18B20S];
 uint8_t otb_ds18b20_count = 0;
 char otb_ds18b20_last_temp_s[OTB_DS18B20_MAX_DS18B20S][OTB_DS18B20_MAX_TEMP_LEN];
+static volatile os_timer_t otb_ds18b20_timer;
 #endif
 
 extern void otb_ds18b20_initialize(uint8_t bus);
-extern void otb_ds18b20_callback(os_event_t event);
+extern void otb_ds18b20_callback(void *arg);
 extern bool otb_ds18b20_get_devices(void);
 extern bool otb_ds18b20_request_temp(char *addr, char *temp_s);
 void otb_ds18b20_init(int gpio);

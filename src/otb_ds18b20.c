@@ -61,6 +61,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   
   if (otb_ds18b20_count > 0)
   {
+#if 0
     // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
     // starting ASAP.
     // Only do this is we have some DS18B20s attached.
@@ -68,6 +69,10 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
     // Interval between being scheduled, and iterations (-1 = forever)
     otb_sched_repeat_task(vTask, OTB_DS18B20_REPORT_INTERVAL, -1);
     otb_sched_system_os_post(0, 0, 0, &otb_ds18b20_callback, vTask, 0);
+#endif
+    os_timer_disarm(&otb_ds18b20_timer);
+    os_timer_setfn(&otb_ds18b20_timer, (os_timer_func_t *)otb_ds18b20_callback, NULL);
+    os_timer_arm(&otb_ds18b20_timer, OTB_DS18B20_REPORT_INTERVAL, 1);
   }
   
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
@@ -126,41 +131,25 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_ds18b20_callback(os_event_t event)
+void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
 {
   int chars;
-  int loop_times;
   bool rc;
-  bool loop = TRUE;
   
   DEBUG("DS18B20: otb_ds18b20_callback entry");
 
   // Read all the sensors.
   for (int ii = 0; ii < otb_ds18b20_count; ii++)
   {
-    loop_times = otb_ds18b20_reads;
-    while (loop && (loop_times > 0))
+    rc = otb_ds18b20_request_temp(otb_ds18b20_addresses[ii].addr,
+                                  otb_ds18b20_last_temp_s[ii]);
+    if (!rc)
     {
-      loop = FALSE;
-      rc = otb_ds18b20_request_temp(otb_ds18b20_addresses[ii].addr,
-                                    otb_ds18b20_last_temp_s[ii]);
-      if (!rc)
-      {
-        os_strcpy(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP);
-      }
-    
-      if (!strcmp(otb_ds18b20_last_temp_s[ii], "85.00")) 
-      {
-        loop = TRUE;
-        //delay(1000);
-      }
-      INFO("DS18B20: sensor: %d temp: %s", ii+1, otb_ds18b20_last_temp_s[ii]);
-      loop_times--;
+      os_strcpy(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP);
     }
+    
+    INFO("DS18B20: Device: %s temp: %s", otb_ds18b20_addresses[ii].friendly, otb_ds18b20_last_temp_s[ii]);
   }
-  // Only read up to 2 times the first time through this function - we do this
-  // to allow the sensors time to initialize.
-  otb_ds18b20_reads = 1;
 
   if (otb_mqtt_client.connState == MQTT_DATA)
   {
@@ -241,7 +230,8 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
     tVal = (tVal ^ 0xffff) + 1;				// 2's complement
     tSign[0] = '-';
     tSign[1] = 0;
-  } else
+  } 
+  else
   {
     tSign[0] = 0;
   }
