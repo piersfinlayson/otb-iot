@@ -80,6 +80,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
       DEBUG("UTIL: Wait for %d ms", OTB_UTIL_DELAY_WAIT_MS);
       os_delay_us(OTB_UTIL_DELAY_WAIT_MS*1000);
     }
+    system_soft_wdt_feed();
     
     current_time = system_get_time();
     

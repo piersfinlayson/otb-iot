@@ -139,6 +139,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   DEBUG("DS18B20: otb_ds18b20_callback entry");
 
   // Read all the sensors.
+  otb_ds18b20_prepare_to_read();
   for (int ii = 0; ii < otb_ds18b20_count; ii++)
   {
     rc = otb_ds18b20_request_temp(otb_ds18b20_addresses[ii].addr,
@@ -154,12 +155,12 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   if (otb_mqtt_client.connState == MQTT_DATA)
   {
     DEBUG("DS18B20: Log sensor data");
+
     // Could send (but may choose not to), so reset disconnectedCounter
     otb_ds18b20_mqtt_disconnected_counter = 0;
 
     for (int ii; ii < otb_ds18b20_count; ii++)
     {
-      chars = strlen(otb_ds18b20_last_temp_s[ii]);
       if (strcmp(otb_ds18b20_last_temp_s[ii], "-127.00") &&
           strcmp(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP) &&
           strcmp(otb_ds18b20_last_temp_s[ii], "85.00"))
@@ -178,10 +179,11 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                  OTB_MQTT_LOCATION_3,
                  OTB_MAIN_CHIPID,
                  OTB_MQTT_LOCATION_4_OPT,
-                 otb_ds18b20_addresses[ii],
+                 otb_ds18b20_addresses[ii].friendly,
                  OTB_MQTT_TEMPERATURE);
         DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
         DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[ii]);
+        chars = strlen(otb_ds18b20_last_temp_s[ii]);
         MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[ii], chars, 0, 1);
       }
     }
@@ -205,6 +207,21 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_ds18b20_prepare_to_read(void)
+{
+  DEBUG("DS18B20: otb_ds18b20_prepare_to_read entry");
+
+  reset();
+  write( DS1820_SKIP_ROM, 1 );
+  write( DS1820_CONVERT_T, 1 );
+  //os_delay_us( 750*1000 );
+  otb_util_delay_ms(750);
+
+  DEBUG("DS18B20: otb_ds18b20_prepare_to_read exit");
+
+  return;
+}
+
 bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
 {
   int ii;
@@ -214,7 +231,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   char tSign[2];
   
   DEBUG("DS18B20: otb_ds18b20_request_temp entry");
-  
+
   reset();
   select(addr);
   write( DS1820_READ_SCRATCHPAD, 0 );

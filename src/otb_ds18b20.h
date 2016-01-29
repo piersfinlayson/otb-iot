@@ -52,6 +52,7 @@ static volatile os_timer_t otb_ds18b20_timer;
 extern void otb_ds18b20_initialize(uint8_t bus);
 extern void otb_ds18b20_callback(void *arg);
 extern bool otb_ds18b20_get_devices(void);
+extern void otb_ds18b20_prepare_to_read(void);
 extern bool otb_ds18b20_request_temp(char *addr, char *temp_s);
 void otb_ds18b20_init(int gpio);
 static int ds_search( uint8_t *addr );
