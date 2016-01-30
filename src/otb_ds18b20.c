@@ -149,7 +149,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     addr->timer_int = OTB_DS18B20_REPORT_INTERVAL;
     os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + addr->index));
     os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + addr->index), (os_timer_func_t *)otb_ds18b20_callback, arg);
-    os_timer_arm((os_timer_t*)(otb_ds18b20_timer + addr->index), OTB_DS18B20_REPORT_INTERVAL, 0);
+    // Set repeat to 1!
+    os_timer_arm((os_timer_t*)(otb_ds18b20_timer + addr->index), OTB_DS18B20_REPORT_INTERVAL, 1);
   }
 
   // Read all this sensor.
