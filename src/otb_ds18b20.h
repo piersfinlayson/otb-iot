@@ -33,6 +33,12 @@
 
 typedef struct otbDs18b20DeviceAddress
 {
+  // Index in array
+  uint8_t index;
+
+  // Timer interval
+  uint32_t timer_int;
+
   // Actual one wire address
   char addr[OTB_DS18B20_DEVICE_ADDRESS_LENGTH];
   
@@ -46,7 +52,7 @@ uint8_t otb_ds18b20_mqtt_disconnected_counter = 0;
 struct otbDs18b20DeviceAddress otb_ds18b20_addresses[OTB_DS18B20_MAX_DS18B20S];
 uint8_t otb_ds18b20_count = 0;
 char otb_ds18b20_last_temp_s[OTB_DS18B20_MAX_DS18B20S][OTB_DS18B20_MAX_TEMP_LEN];
-static volatile os_timer_t otb_ds18b20_timer;
+static volatile os_timer_t otb_ds18b20_timer[OTB_DS18B20_MAX_DS18B20S];
 #endif
 
 extern void otb_ds18b20_initialize(uint8_t bus);

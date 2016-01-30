@@ -40,6 +40,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 {
   bool rc;
   void *vTask;
+  int ii;
+  uint32_t timer_int;
 
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
 
@@ -58,21 +60,15 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
          OTB_DS18B20_MAX_DS18B20S,
          OTB_DS18B20_MAX_DS18B20S);
   }
-  
-  if (otb_ds18b20_count > 0)
+
+  for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
-#if 0
-    // Schedule task to read DS18B20 values every REPORT_INTERVAL, forever,
-    // starting ASAP.
-    // Only do this is we have some DS18B20s attached.
-    vTask = otb_sched_get_task(OTB_SCHED_OW_TASK);
-    // Interval between being scheduled, and iterations (-1 = forever)
-    otb_sched_repeat_task(vTask, OTB_DS18B20_REPORT_INTERVAL, -1);
-    otb_sched_system_os_post(0, 0, 0, &otb_ds18b20_callback, vTask, 0);
-#endif
-    os_timer_disarm(&otb_ds18b20_timer);
-    os_timer_setfn(&otb_ds18b20_timer, (os_timer_func_t *)otb_ds18b20_callback, NULL);
-    os_timer_arm(&otb_ds18b20_timer, OTB_DS18B20_REPORT_INTERVAL, 1);
+    // Stagger timer for each temperature sensor
+    timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
+    otb_ds18b20_addresses[ii].timer_int = timer_int;
+    os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
+    os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
+    os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 0);
   }
   
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
@@ -117,6 +113,8 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
 				     otb_ds18b20_addresses[otb_ds18b20_count].friendly,
 				     crc);
 			}
+      otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
+      otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
       otb_ds18b20_count++;
       DEBUG("DS18B20: Successfully read device address %s",
             otb_ds18b20_addresses[otb_ds18b20_count].friendly);
@@ -135,22 +133,35 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
 {
   int chars;
   bool rc;
+  otbDs18b20DeviceAddress *addr;
   
   DEBUG("DS18B20: otb_ds18b20_callback entry");
 
-  // Read all the sensors.
-  otb_ds18b20_prepare_to_read();
-  for (int ii = 0; ii < otb_ds18b20_count; ii++)
+  addr = (otbDs18b20DeviceAddress *)arg;
+  DEBUG("DS18B20:    Device: %s", addr->friendly);
+  DEBUG("DS18B20: timer_int: %d", addr->timer_int);
+  DEBUG("DS18B20:     index: %d", addr->index);
+
+  if (addr->timer_int != OTB_DS18B20_REPORT_INTERVAL)
   {
-    rc = otb_ds18b20_request_temp(otb_ds18b20_addresses[ii].addr,
-                                  otb_ds18b20_last_temp_s[ii]);
-    if (!rc)
-    {
-      os_strcpy(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP);
-    }
-    
-    INFO("DS18B20: Device: %s temp: %s", otb_ds18b20_addresses[ii].friendly, otb_ds18b20_last_temp_s[ii]);
+    // This must be the first time we were scheduled - we stagger first schedule.
+    // So now reschedule on the right timer.
+    addr->timer_int = OTB_DS18B20_REPORT_INTERVAL;
+    os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + addr->index));
+    os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + addr->index), (os_timer_func_t *)otb_ds18b20_callback, arg);
+    os_timer_arm((os_timer_t*)(otb_ds18b20_timer + addr->index), OTB_DS18B20_REPORT_INTERVAL, 0);
   }
+
+  // Read all this sensor.
+  otb_ds18b20_prepare_to_read();
+  rc = otb_ds18b20_request_temp(addr->addr,
+                                otb_ds18b20_last_temp_s[addr->index]);
+  if (!rc)
+  {
+    os_strcpy(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP);
+  }
+    
+  INFO("DS18B20: Device: %s temp: %s", addr->friendly, otb_ds18b20_last_temp_s[addr->index]);
 
   if (otb_mqtt_client.connState == MQTT_DATA)
   {
@@ -159,33 +170,30 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     // Could send (but may choose not to), so reset disconnectedCounter
     otb_ds18b20_mqtt_disconnected_counter = 0;
 
-    for (int ii; ii < otb_ds18b20_count; ii++)
+    if (strcmp(otb_ds18b20_last_temp_s[addr->index], "-127.00") &&
+        strcmp(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP) &&
+        strcmp(otb_ds18b20_last_temp_s[addr->index], "85.00"))
     {
-      if (strcmp(otb_ds18b20_last_temp_s[ii], "-127.00") &&
-          strcmp(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP) &&
-          strcmp(otb_ds18b20_last_temp_s[ii], "85.00"))
-      {
-        // Decided on reporting using a single format to reduce require MQTT buffer
-        // size.
-        // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
-        // publish)
-        // XXX Should replace with otb_mqtt_publish call
-        snprintf(otb_mqtt_topic_s,
-                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                 "/%s/%s/%s/%s/%s/%s/%s/%s",
-                 OTB_MQTT_ROOT,
-                 OTB_MQTT_LOCATION_1,
-                 OTB_MQTT_LOCATION_2,
-                 OTB_MQTT_LOCATION_3,
-                 OTB_MAIN_CHIPID,
-                 OTB_MQTT_LOCATION_4_OPT,
-                 otb_ds18b20_addresses[ii].friendly,
-                 OTB_MQTT_TEMPERATURE);
-        DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
-        DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[ii]);
-        chars = strlen(otb_ds18b20_last_temp_s[ii]);
-        MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[ii], chars, 0, 1);
-      }
+      // Decided on reporting using a single format to reduce require MQTT buffer
+      // size.
+      // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
+      // publish)
+      // XXX Should replace with otb_mqtt_publish call
+      snprintf(otb_mqtt_topic_s,
+               OTB_MQTT_MAX_TOPIC_LENGTH,
+               "/%s/%s/%s/%s/%s/%s/%s/%s",
+               OTB_MQTT_ROOT,
+               OTB_MQTT_LOCATION_1,
+               OTB_MQTT_LOCATION_2,
+               OTB_MQTT_LOCATION_3,
+               OTB_MAIN_CHIPID,
+               OTB_MQTT_LOCATION_4_OPT,
+               addr->friendly,
+               OTB_MQTT_TEMPERATURE);
+      DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
+      DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[addr->index]);
+      chars = strlen(otb_ds18b20_last_temp_s[addr->index]);
+      MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[addr->index], chars, 0, 1);
     }
   }
   else
