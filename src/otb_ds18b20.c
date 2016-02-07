@@ -63,8 +63,9 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
-    // Stagger timer for each temperature sensor
-    timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
+    // Stagger timer for each temperature sensor.  Start at 1000ms to give
+    // MQTT stack time to start.
+    timer_int = (OTB_DS18B20_REPORT_INTERVAL * ii / otb_ds18b20_count) + 1000;
     otb_ds18b20_addresses[ii].timer_int = timer_int;
     os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
     os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
