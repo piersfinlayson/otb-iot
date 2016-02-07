@@ -1,6 +1,6 @@
 // Combined include file for esp8266
 
-#include <ctype.h>
+//#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,5 +14,5 @@
 #include <osapi.h>
 #include <upgrade.h>
 #include <user_interface.h>
-
+#include <esp_systemapi.h>
 

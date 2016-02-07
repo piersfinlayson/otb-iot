@@ -23,9 +23,11 @@ OTB-IOT is a firmware for IOT applications intended to run "Out of The Box".  Th
 
 ### Getting started
 
-- From the root directory run ./build
-- Then connect your device to a serial port in flash mode and run ./upload
-- A serial monitor will automatically be started
+- Make sure you export SDK_BASE e.g.:
+  export SDK_BASE=/opt/esp-open/sdk
+- make
+- make flash (to flash your board)
+- make connect (to connect to serial)
 
 
 ### Customization
@@ -39,7 +41,7 @@ Fiddle with definitions in src/otb_def.h.  Particularly
 
 Very much a work in progress, with stability issues, limited function, and a cleaner build process (and better integration with used third party libraries) required. 
 
-Wifi seems more solid now since I've rewritten this portion, binning Arduino library WiFiManager and using the ESP APIs directly.
+Wifi seems more solid now since I've rewritten this portion, binning Arduino library WiFiManager and using the ESP APIs directly.  I've now moved away from Arduino entirely, using ESP Open SDK.
 
 
 ### First time setup
@@ -119,17 +121,14 @@ OTB-IOT attempts to recover from serious errors by resetting.  However, ESP8266 
 
 OTB-IOT includes a bunch of other projects including:
 - esp_mqtt https://github.com/tuanpmt/esp_mqtt
-- TaskScheduler https://github.com/arkhipenko/TaskScheduler
-- esp8266/Arduino https://github.com/esp8266/Arduino
-- OneWire https://github.com/PaulStoffregen/OneWire.git
-- Arduino-Temperture-Control-Library https://github.com/milesburton/Arduino-Temperature-Control-Library
+- esp-httpd https://github.com/bjpirt/esphttpd
+- esp8266-frankenstein https://github.com/nekromant/esp8266-frankenstein
 
-As can be seen, OTB-IOT is a combination of Arduino based code and code written for the ESP8266 SDK.  Various modifications have been made to all of the included projects to get this work, with a key addition of faking out the ESP8266 SDK scheduler (used by esp_mqtt) and replacing it with Arduino TaskScheduler.
+Originally, OTB-IOT was based on ESP Arduino, but this was a bit flakey, so has been rewritten to use the ESP Open SDK directly.  esp8266-frankenstein is included for the DS18B20 library.
 
-Other changes include:
+Othe changes include:
 - More compile time memory allocation in esp_mqtt
-- Removing assert on yield in sketch context from esp8266/Arduino (as unexpected work is done in this context due to scheduling task out and TCP work from esp_mqtt).
-- Removing Arduino WiFiManager.
+- Making the DS18B20 code from esp-frankenstein a bit more library friendly
 
 All changes to the above libraries are made available under the GPLv3 with the existing works retaining their original licenses.
 
@@ -141,7 +140,7 @@ Temperatures are reported in C (Celsius), to a precision of .1 of a degree.  Thi
 
 ### Debugging
 
-./build automatially generated disassembly file (./dis) and symbols file (./sym).  However, this isn't created automatically if built using ./upload.  Generous logging is provided via serial.  Major errors will be logged via MQTT in future.
+make will generate disasembly and symbols files in bin automatically.  Copious logging at various levels via serial is included.  Major errors are logged via MQTT (if connected).
 
 
 ### Other Questions

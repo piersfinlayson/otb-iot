@@ -96,16 +96,16 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
       os_memcpy(otb_ds18b20_addresses[otb_ds18b20_count].addr,
                 ds18b20, 
                 OTB_DS18B20_DEVICE_ADDRESS_LENGTH);
-      snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
-               OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
-               "%02x-%02x%02x%02x%02x%02x%02x",
-               ds18b20[0],
-               ds18b20[6],
-               ds18b20[5],
-               ds18b20[4],
-               ds18b20[3],
-               ds18b20[2],
-               ds18b20[1]);
+      os_snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
+                  OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
+                  "%02x-%02x%02x%02x%02x%02x%02x",
+                  ds18b20[0],
+                  ds18b20[6],
+                  ds18b20[5],
+                  ds18b20[4],
+                  ds18b20[3],
+                  ds18b20[2],
+                  ds18b20[1]);
       crc = crc8(ds18b20, 7);
 			if(crc != ds18b20[7])
 			{
@@ -180,17 +180,17 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
       // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
       // publish)
       // XXX Should replace with otb_mqtt_publish call
-      snprintf(otb_mqtt_topic_s,
-               OTB_MQTT_MAX_TOPIC_LENGTH,
-               "/%s/%s/%s/%s/%s/%s/%s/%s",
-               OTB_MQTT_ROOT,
-               OTB_MQTT_LOCATION_1,
-               OTB_MQTT_LOCATION_2,
-               OTB_MQTT_LOCATION_3,
-               OTB_MAIN_CHIPID,
-               OTB_MQTT_LOCATION_4_OPT,
-               addr->friendly,
-               OTB_MQTT_TEMPERATURE);
+      os_snprintf(otb_mqtt_topic_s,
+                  OTB_MQTT_MAX_TOPIC_LENGTH,
+                  "/%s/%s/%s/%s/%s/%s/%s/%s",
+                  OTB_MQTT_ROOT,
+                  OTB_MQTT_LOCATION_1,
+                  OTB_MQTT_LOCATION_2,
+                  OTB_MQTT_LOCATION_3,
+                  OTB_MAIN_CHIPID,
+                  OTB_MQTT_LOCATION_4_OPT,
+                  addr->friendly,
+                  OTB_MQTT_TEMPERATURE);
       DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
       DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[addr->index]);
       chars = strlen(otb_ds18b20_last_temp_s[addr->index]);
@@ -273,12 +273,12 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
     tVal >>= 4;
   }
   
-  snprintf(temp_s,
-           OTB_DS18B20_MAX_TEMP_LEN,
-           "%s%d.%02d",
-           tSign, 
-           tVal, 
-           tFract);
+  os_snprintf(temp_s,
+              OTB_DS18B20_MAX_TEMP_LEN,
+              "%s%d.%02d",
+              tSign, 
+              tVal,
+              tFract);
 
   rc = TRUE;
 
@@ -307,7 +307,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_init(int gpio)
 
 }
 
-static void reset_search()
+static void ICACHE_FLASH_ATTR reset_search()
 {
 	// reset the search state
 	LastDiscrepancy = 0;
@@ -325,7 +325,7 @@ static void reset_search()
 //
 // Returns 1 if a device asserted a presence pulse, 0 otherwise.
 //
-static uint8_t reset(void)
+static uint8_t ICACHE_FLASH_ATTR reset(void)
 {
 	//	IO_REG_TYPE mask = bitmask;
 	//	volatile IO_REG_TYPE *reg IO_REG_ASM = baseReg;
@@ -362,7 +362,7 @@ static uint8_t reset(void)
 }
 
 /* pass array of 8 bytes in */
-static int ds_search( uint8_t *newAddr )
+static int ICACHE_FLASH_ATTR  ds_search( uint8_t *newAddr )
 {
 	uint8_t id_bit_number;
 	uint8_t last_zero, rom_byte_number;
@@ -488,7 +488,7 @@ static int ds_search( uint8_t *newAddr )
 // go tri-state at the end of the write to avoid heating in a short or
 // other mishap.
 //
-static void write( uint8_t v, int power ) {
+static void ICACHE_FLASH_ATTR  write( uint8_t v, int power ) {
 	uint8_t bitMask;
 
 	for (bitMask = 0x01; bitMask; bitMask <<= 1) {
@@ -508,7 +508,7 @@ static void write( uint8_t v, int power ) {
 // Write a bit. Port and bit is used to cut lookup time and provide
 // more certain timing.
 //
-static inline void write_bit( int v )
+static inline void ICACHE_FLASH_ATTR  write_bit( int v )
 {
 	// IO_REG_TYPE mask=bitmask;
 	//	volatile IO_REG_TYPE *reg IO_REG_ASM = baseReg;
@@ -539,7 +539,7 @@ static inline void write_bit( int v )
 // Read a bit. Port and bit is used to cut lookup time and provide
 // more certain timing.
 //
-static inline int read_bit(void)
+static inline int ICACHE_FLASH_ATTR read_bit(void)
 {
 	//IO_REG_TYPE mask=bitmask;
 	//volatile IO_REG_TYPE *reg IO_REG_ASM = baseReg;
@@ -564,7 +564,7 @@ static inline int read_bit(void)
 //
 // Do a ROM select
 //
-static void select(const uint8_t *rom)
+static void ICACHE_FLASH_ATTR select(const uint8_t *rom)
 {
 	uint8_t i;
 
@@ -576,7 +576,7 @@ static void select(const uint8_t *rom)
 //
 // Read a byte
 //
-static uint8_t read() {
+static uint8_t ICACHE_FLASH_ATTR read() {
 	uint8_t bitMask;
 	uint8_t r = 0;
 
@@ -590,7 +590,7 @@ static uint8_t read() {
 // Compute a Dallas Semiconductor 8 bit CRC directly.
 // this is much slower, but much smaller, than the lookup table.
 //
-static uint8_t crc8(const uint8_t *addr, uint8_t len)
+static uint8_t ICACHE_FLASH_ATTR crc8(const uint8_t *addr, uint8_t len)
 {
 	uint8_t crc = 0;
 	

@@ -38,41 +38,41 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
 
   if (extra_message[0] == 0)
   {
-    chars = snprintf(otb_mqtt_msg_s, OTB_MQTT_MAX_MSG_LENGTH, "%s", message);
+    chars = os_snprintf(otb_mqtt_msg_s, OTB_MQTT_MAX_MSG_LENGTH, "%s", message);
   }
   else
   {
-    chars = snprintf(otb_mqtt_msg_s,
-                     OTB_MQTT_MAX_MSG_LENGTH,
-                     "%s/%s",
-                     message,
-                     extra_message);
+    chars = os_snprintf(otb_mqtt_msg_s,
+                        OTB_MQTT_MAX_MSG_LENGTH,
+                        "%s/%s",
+                        message,
+                        extra_message);
   }
   
   if (extra_subtopic[0] == 0)
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MAIN_CHIPID,
-             subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MAIN_CHIPID,
+                subtopic);
   }
   else
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MAIN_CHIPID,
-             subtopic,
-             extra_subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MAIN_CHIPID,
+                subtopic,
+                extra_subtopic);
   }
   
   DEBUG("MQTT: Publish topic: %s", otb_mqtt_topic_s);
@@ -95,28 +95,28 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
 
   if (extra_subtopic[0] == 0)
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MAIN_CHIPID,
-             subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MAIN_CHIPID,
+                subtopic);
   }
   else
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MAIN_CHIPID,
-             subtopic,
-             extra_subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MAIN_CHIPID,
+                subtopic,
+                extra_subtopic);
   }
   
   DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
@@ -126,28 +126,28 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   // Also subscribe to system commands for ALL devices at this location
   if (extra_subtopic[0] == 0)
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MQTT_ALL,
-             subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MQTT_ALL,
+                subtopic);
   }
   else
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_LOCATION_1,
-             OTB_MQTT_LOCATION_2,
-             OTB_MQTT_LOCATION_3,
-             OTB_MQTT_ALL,
-             subtopic,
-             extra_subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_LOCATION_1,
+                OTB_MQTT_LOCATION_2,
+                OTB_MQTT_LOCATION_3,
+                OTB_MQTT_ALL,
+                subtopic,
+                extra_subtopic);
   }
   
   DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
@@ -157,22 +157,22 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   // Also subscribe to system commands for ALL devices at this location
   if (extra_subtopic[0] == 0)
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_ALL,
-             subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_ALL,
+                subtopic);
   }
   else
   {
-    snprintf(otb_mqtt_topic_s,
-             OTB_MQTT_MAX_TOPIC_LENGTH,
-             "/%s/%s/%s/%s",
-             OTB_MQTT_ROOT,
-             OTB_MQTT_ALL,
-             subtopic,
-             extra_subtopic);
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_ALL,
+                subtopic,
+                extra_subtopic);
   }
   
   DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
@@ -325,14 +325,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 	MQTT_InitClient(mqtt_client, device_id, mqtt_username, mqtt_password, keepalive, TRUE);
 	
   // Set up LWT (last will and testament)
-  sprintf(otb_mqtt_topic_s,
-          "/lwt/%s/%s/%s/%s/%s/%s",
-          OTB_MQTT_ROOT,
-          OTB_MQTT_LOCATION_1,
-          OTB_MQTT_LOCATION_2,
-          OTB_MQTT_LOCATION_3,
-          OTB_MAIN_CHIPID,
-          OTB_MQTT_PUB_STATUS);
+  os_snprintf(otb_mqtt_topic_s,
+              OTB_MQTT_MAX_TOPIC_LENGTH,
+              "/lwt/%s/%s/%s/%s/%s/%s",
+              OTB_MQTT_ROOT,
+              OTB_MQTT_LOCATION_1,
+              OTB_MQTT_LOCATION_2,
+              OTB_MQTT_LOCATION_3,
+              OTB_MAIN_CHIPID,
+              OTB_MQTT_PUB_STATUS);
 	MQTT_InitLWT(mqtt_client, otb_mqtt_topic_s, "offline", 0, 0);
 	
 	// Set up callbacks

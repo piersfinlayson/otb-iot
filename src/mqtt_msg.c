@@ -50,7 +50,9 @@
 *
 */
 
+#ifdef OTB_ARDUINO
 #include <Arduino.h>
+#endif
 #include <string.h>
 #include "otb.h"
 #include "mqtt_msg.h"
