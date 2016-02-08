@@ -9,7 +9,7 @@
  * Software Foundation, either version 3 of the License, or (at your option)
  * any later version. 
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
+ * This program is distributed in the hope that it will be useful, but WITfHOUT
  * ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for 
  * more details.
@@ -204,7 +204,8 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_process_test(uint8_t rc)
       rc = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
     }    
   }
-  else if (rc == OTB_WIFI_STATUS_CONNECTING)
+  else if ((rc == OTB_WIFI_STATUS_CONNECTING) ||
+           (rc == OTB_WIFI_STATUS_PERMANENTLY_FAILED))
   {
     // Reschedule this in another second
     os_timer_disarm((os_timer_t *)&otb_wifi_timer);
@@ -215,6 +216,10 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_process_test(uint8_t rc)
   {
     rc = OTB_WIFI_STATUS_TRYING_AP;
     otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
+  }
+  else
+  {
+    OTB_ASSERT(FALSE);
   }
   
   otb_wifi_status = rc;   
@@ -233,7 +238,8 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
   OTB_ASSERT((otb_wifi_status == OTB_WIFI_STATUS_CONNECTING) ||
              (otb_wifi_status == OTB_WIFI_STATUS_TRYING_AP));
 
-  if (otb_wifi_status == OTB_WIFI_STATUS_CONNECTING)
+  if ((otb_wifi_status == OTB_WIFI_STATUS_CONNECTING) ||
+      (otb_wifi_status == OTB_WIFI_STATUS_PERMANENTLY_FAILED))
   {
     rc = otb_wifi_test_connected(&otb_wifi_timeout); 
     DEBUG("WIFI:test_connected result %d", rc);
@@ -313,9 +319,9 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_test_connected(otb_util_timeout *timeout)
     case STATION_WRONG_PASSWORD:
     case STATION_NO_AP_FOUND:
     case STATION_CONNECT_FAIL:
-      // Permanent failure - we aren't going to magically recover from these.  We
-      // will store off the error and then force a reboot.
-      WARN("WIFI: permanent connect failure %d", wifi_status);
+      // Permanent failure - store error, but keep going as could still connect
+      // - timeout will catch and move us onwards.s
+      WARN("WIFI: Permanent connect failure %d", wifi_status);
       otb_wifi_store_station_connect_error();
       final_status = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
       break;
@@ -333,7 +339,8 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_test_connected(otb_util_timeout *timeout)
       break;
   }
 
-  if (otb_util_timer_finished(timeout))
+  if ((final_status != OTB_WIFI_STATUS_CONNECTED) &&
+      (otb_util_timer_finished(timeout)))
   {
     final_status = OTB_WIFI_STATUS_TIMED_OUT;
   }

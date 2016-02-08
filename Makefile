@@ -21,17 +21,56 @@ XTENSA_DIR = $(SDK_BASE)/xtensa-lx106-elf/bin
 OBJDUMP = $(XTENSA_DIR)/xtensa-lx106-elf-objdump
 NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
+LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
+ESPTOOL2 ?= /usr/bin/esptool2
 
 # Compile options
-CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH
-HTTPD_CFLAGS = -D_STDINT_H -D__ets__ -Ilib/httpd
+CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__
+HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 
+# esptool2 options
+E2_OPTS = -quiet -bin -boot0
+SPI_SIZE = 1M
+
+ifeq ($(SPI_SIZE), 256K)
+        E2_OPTS += -256
+else ifeq ($(SPI_SIZE), 512K)
+        E2_OPTS += -512
+else ifeq ($(SPI_SIZE), 1M)
+        E2_OPTS += -1024
+else ifeq ($(SPI_SIZE), 2M)
+        E2_OPTS += -2048
+else ifeq ($(SPI_SIZE), 4M)
+        E2_OPTS += -4096
+endif
+ifeq ($(SPI_MODE), qio)
+        E2_OPTS += -qio
+else ifeq ($(SPI_MODE), dio)
+        E2_OPTS += -dio
+else ifeq ($(SPI_MODE), qout)
+        E2_OPTS += -qout
+else ifeq ($(SPI_MODE), dout)
+        E2_OPTS += -dout
+endif
+ifeq ($(SPI_SPEED), 20)
+        E2_OPTS += -20
+else ifeq ($(SPI_SPEED), 26)
+        E2_OPTS += -26.7
+else ifeq ($(SPI_SPEED), 40)
+        E2_OPTS += -40
+else ifeq ($(SPI_SPEED), 80)
+        E2_OPTS += -80
+endif
+
 # Link options
+LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain -llwip -Wl,--end-group
-LDFLAGS = -Teagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/sdk/lib -L$(SDK_BASE)/esp_iot_sdk_v1.4.0/lib -u call_user_start 
+LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/sdk/lib -L$(SDK_BASE)/esp_iot_sdk_v1.4.0/lib -u call_user_start 
+RBOOT_LDFLAGS = -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
+LD_SCRIPT = $(LD_DIR)/eagle.app.v6.ld
 
 # Source and object directories
 OTB_SRC_DIR = src
@@ -76,21 +115,19 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 
-app_image-0x00000.bin: bin/app_image
+all: bin/app_image.bin bin/rboot.bin
+
+bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
 	$(OBJDUMP) -d $^ > bin/disassembly
-	esptool.py elf2image $^
+	$(ESPTOOL2) -bin -boot2 -1024 $^ $@ .text .data .rodata 
 
-#bin/app_image: otb_objects httpd_objects rboot_objects mqtt_objects
-bin/app_image: otb_objects httpd_objects mqtt_objects
-	#$(CC) $(LDFLAGS) $(LDLIBS) -o bin/app_image $(otbObjects) $(httpdObjects) $(rbootObjects) $(mqttObjects)
-	$(CC) $(LDFLAGS) $(LDLIBS) -o bin/app_image $(otbObjects) $(httpdObjects) $(mqttObjects)
+bin/app_image.elf: otb_objects httpd_objects mqtt_objects
+	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects)
 
 otb_objects: $(otbObjects)
 
 httpd_objects: $(httpdObjects)
-
-rboot_objects: $(rbootObjects)
 
 mqtt_objects: $(mqttObjects)
 
@@ -100,18 +137,33 @@ $(OTB_OBJ_DIR)/%.o: $(OTB_SRC_DIR)/%.c
 $(HTTPD_OBJ_DIR)/%.o: $(HTTPD_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(HTTPD_CFLAGS) $^ -o $@ 
 
-$(RBOOT_OBJ_DIR)/%.o: $(RBOOT_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $^ -o $@ 
-
 $(MQTT_OBJ_DIR)/%.o: $(MQTT_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(MQTT_CFLAGS) $^ -o $@ 
 
-flash: app_image-0x00000.bin
-	esptool.py write_flash 0x0 bin/app_image-0x00000.bin 0x40000 bin/app_image-0x40000.bin
+$(RBOOT_OBJ_DIR)/rboot-stage2a.o: $(RBOOT_SRC_DIR)/rboot-stage2a.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h
+	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -c $< -o $@
+
+bin/rboot-stage2a.elf: $(RBOOT_OBJ_DIR)/rboot-stage2a.o
+	$(LD) -T$(LD_DIR)/rboot-stage2a.ld $(RBOOT_LDFLAGS) -Wl,--start-group $^ -Wl,--end-group -o $@
+
+$(RBOOT_OBJ_DIR)/rboot-hex2a.h: bin/rboot-stage2a.elf
+	$(ESPTOOL2) -quiet -header $< $@ .text
+
+$(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h $(RBOOT_OBJ_DIR)/rboot-hex2a.h
+	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -I$(RBOOT_OBJ_DIR) -c $< -o $@
+
+bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o
+	$(LD) -T$(LD_SCRIPT) $(RBOOT_LDFLAGS) -Wl,--start-group $^ -Wl,--end-group -o $@
+
+bin/rboot.bin: bin/rboot.elf
+	$(ESPTOOL2) $(E2_OPTS) $< $@ .text .rodata
+
+flash: bin/app_image.bin bin/rboot.bin
+	esptool.py write_flash 0x0 bin/rboot.bin 0x2000 bin/app_image.bin
 
 connect:
 	platformio serialports monitor -b 115200
 
 clean: 
-	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(MQTT_OBJ_DIR)/*.o
+	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o
 
