@@ -17,4 +17,4 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-platformio serialports monitor -b 115200
+platformio serialports monitor -b 74880

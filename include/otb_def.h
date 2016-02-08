@@ -18,6 +18,7 @@
  */
 
 // Configurable stuff
+#define OTB_MAIN_BAUD_RATE 74880
 #define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
 #define OTB_MAIN_FW_VERSION "v0.1c" //max 8 chars

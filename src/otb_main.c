@@ -63,7 +63,7 @@ void ICACHE_FLASH_ATTR user_init(void)
 {
   
   // Set up serial logging
-  uart_div_modify(0, UART_CLK_FREQ / 115200);
+  uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
 
   DEBUG("OTB: user_init entry");
   
