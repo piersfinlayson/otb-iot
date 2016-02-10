@@ -27,7 +27,8 @@ OBJCOPY = $(XTENSA_DIR)/xtensa-lx106-elf-objcopy
 NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
-ESPTOOL2 ?= /usr/bin/esptool2
+ESPTOOL2 = /usr/bin/esptool2
+ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot
@@ -35,6 +36,9 @@ HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
+
+# esptool.py options
+ESPBAUD = 460800
 
 # esptool2 options
 E2_OPTS = -quiet -bin -boot0
@@ -176,13 +180,13 @@ bin/rboot.bin: bin/rboot.elf
 	$(ESPTOOL2) $(E2_OPTS) $< $@ .text .rodata
 
 flash_rboot: bin/rboot.bin
-	esptool.py write_flash -fs 32m 0x0 bin/rboot.bin
+	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
-	esptool.py write_flash 0x2000 bin/app_image.bin
+	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash 0x2000 bin/app_image.bin
 
 flash_app2: bin/app_image.bin
-	esptool.py write_flash 0x202000 bin/app_image.bin
+	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash 0x202000 bin/app_image.bin
 
 flash: flash_rboot flash_app
 
