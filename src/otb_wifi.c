@@ -391,6 +391,9 @@ void ICACHE_FLASH_ATTR otb_wifi_try_ap(uint32_t timeout)
   //stdoutInit();
   captdnsInit();
 
+  // Start up the file system to serve files
+  espFsInit((void*)(webpages_espfs_start));
+  
   // Kick of the HTTP server - otb_wifi_ap_mode_done will signal when done
   otb_wifi_ap_mode_done = FALSE;
   httpdInit(otb_wifi_ap_urls, OTB_HTTP_SERVER_PORT);

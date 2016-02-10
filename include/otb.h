@@ -60,6 +60,8 @@
 #include "httpdespfs.h"
 #include "cgiwifi.h"
 #include "captdns.h"
+#include "webpages-espfs.h"
+#include "espfs.h"
 
 // DS18B20
 #include "gpio.h"
