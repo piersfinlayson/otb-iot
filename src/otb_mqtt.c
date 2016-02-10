@@ -298,9 +298,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     // Call upgrage function with pointer to end of update and one char for the colon!
     otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
   }
-  else if (!memcmp(otb_mqtt_msg_s, "boot_slot", 9))
+  else if (!memcmp(otb_mqtt_msg_s, "set_boot_slot", 13))
   {
+    INFO("MQTT: system command %s", otb_mqtt_msg_s);
     otb_rboot_update_slot(otb_mqtt_msg_s);
+  }
+  else if (!memcmp(otb_mqtt_msg_s, "get_boot_slot", 13))
+  {
+    INFO("MQTT: system command %s", otb_mqtt_msg_s);
+    otb_rboot_get_slot(TRUE);
   }
   else
   {

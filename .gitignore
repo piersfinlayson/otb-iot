@@ -2,6 +2,6 @@
 *.bin
 *.elf
 *.swp
-bin/symbols
-bin/disassembly
+bin/*
 obj/rboot/rboot-hex2a.h
+obj/*

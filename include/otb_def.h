@@ -60,6 +60,7 @@
 #define OTB_MQTT_STATUS_BOOTED "booted"
 #define OTB_MQTT_STATUS_VERSION "version"
 #define OTB_MQTT_STATUS_CHIPID "chipid"
+#define OTB_MQTT_STATUS_SLOT "boot_slot"
 #define OTB_MQTT_STATUS_OFFLINE "offline"
 
 // Fixed stuff

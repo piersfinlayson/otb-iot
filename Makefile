@@ -27,6 +27,7 @@ OBJCOPY = $(XTENSA_DIR)/xtensa-lx106-elf-objcopy
 NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
+AR = $(XTENSA_DIR)/xtensa-lx106-elf-ar
 ESPTOOL2 = /usr/bin/esptool2
 ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
@@ -38,7 +39,9 @@ MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 
 # esptool.py options
-ESPBAUD = 460800
+ESPBAUD = 115200
+ESPPORT = /dev/ttyUSB1
+ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
 # esptool2 options
 E2_OPTS = -quiet -bin -boot0
@@ -135,8 +138,8 @@ bin/app_image.bin: bin/app_image.elf
 	$(OBJDUMP) -d $^ > bin/disassembly
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
-bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects
-	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects)
+bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) obj/html/libwebpages-espfs.a
 
 # Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
 # can replace with our own version (from rboot-bigflash.c)
@@ -179,14 +182,23 @@ bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o
 bin/rboot.bin: bin/rboot.elf
 	$(ESPTOOL2) $(E2_OPTS) $< $@ .text .rodata
 
+webpages.espfs:
+	cd html; find . | ../tools/mkespfsimage > ../obj/html/webpages.espfs; cd ..
+
+obj/html/libwebpages-espfs.a: webpages.espfs
+	$(OBJCOPY) -I binary -O elf32-xtensa-le -B xtensa --rename-section .data=.irom0.literal \
+                obj/html/webpages.espfs obj/html/webpages.espfs.o.tmp
+	$(LD) -nostdlib -Wl,-r obj/html/webpages.espfs.o.tmp -o obj/html/webpages.espfs.o -Wl,-T ld/webpages.espfs.ld
+	$(AR) cru $@ obj/html/webpages.espfs.o
+
 flash_rboot: bin/rboot.bin
-	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash -fs 32m 0x0 bin/rboot.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
-	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash 0x2000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x2000 bin/app_image.bin
 
 flash_app2: bin/app_image.bin
-	$(ESPTOOL_PY) --baud $(ESPBAUD) write_flash 0x202000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
 
 flash: flash_rboot flash_app
 
@@ -194,5 +206,5 @@ connect:
 	platformio serialports monitor -b 115200
 
 clean: 
-	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o
+	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*
 

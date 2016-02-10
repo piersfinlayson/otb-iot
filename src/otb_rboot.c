@@ -123,7 +123,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg)
 
   DEBUG("RBOOT: otb_rboot_update_slot entry");
   
-  slot = atoi(msg + 10);
+  slot = atoi(msg + 14);
   rc = rboot_set_current_rom(slot);
   if (rc)
   {
@@ -139,4 +139,27 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg)
   return(rc);
 }
 
+uint8_t ICACHE_FLASH_ATTR otb_rboot_get_slot(bool publish)
+{
+  uint8_t slot;
+  char slot_s[4];
 
+  DEBUG("RBOOT: otb_rboot_get_slot entry");
+
+  slot = rboot_get_current_rom();  
+  if (publish)
+  {
+    os_snprintf(slot_s, 4, "%d", slot);
+    otb_mqtt_publish(&otb_mqtt_client,
+                     OTB_MQTT_PUB_STATUS,
+                     OTB_MQTT_STATUS_SLOT,
+                     slot_s,
+                     "",
+                     2,
+                     0);
+  }
+  
+  DEBUG("RBOOT: otb_rboot_get_slot exit");  
+  
+  return(slot);
+}

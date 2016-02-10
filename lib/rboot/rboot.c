@@ -327,7 +327,7 @@ uint32 NOINLINE find_image() {
 		SPIWrite(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	}
 	
-	ets_printf("rBoot: Booting rom %d at 0x%08x.\r\n", romToBoot, runAddr);
+	ets_printf("rBoot: Booting rom %d at 0x%08x\r\n", romToBoot, runAddr);
 	// copy the loader to top of iram
 	ets_memcpy((void*)_text_addr, _text_data, _text_len);
 	// return address to load from

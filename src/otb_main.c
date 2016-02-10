@@ -92,6 +92,7 @@ void ICACHE_FLASH_ATTR user_init(void)
               otb_compile_time);
   // First log needs a line break!
   INFO("\nOTB: %s", otb_version_id);
+  INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
   os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
   os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
