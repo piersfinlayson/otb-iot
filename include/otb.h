@@ -19,6 +19,9 @@
  * 
  */
 
+#ifndef OTB_H_INCLUDED
+#define OTB_H_INCLUDED
+
 // #define OTB_DEBUG 1
 // #define OTB_ARDUINO 1
 
@@ -62,6 +65,9 @@
 #include "gpio.h"
 #include "pin_map.h"
 
+// RBOOT
+#include "rboot_ota.h"
+
 // OTB
 #include "otb_def.h"
 #include "otb_globals.h"
@@ -70,8 +76,9 @@
 #include "otb_main.h"
 #include "otb_wifi.h"
 #include "otb_mqtt.h"
-//#include "otb_sched.h"
 #include "otb_ds18b20.h"
+#include "otb_rboot.h"
 
 // Arduino C++ functions exposed as C functions
 extern void otb_reset(void);
+#endif

@@ -54,7 +54,7 @@
 #define OTB_MQTT_CMD_SYSTEM "system"
 #define OTB_MQTT_CMD_RESET "reset"
 #define OTB_MQTT_CMD_REBOOT "reboot"
-#define OTB_MQTT_CMD_UPGRADE "upgrade"
+#define OTB_MQTT_CMD_UPDATE "update"
 #define OTB_MQTT_PUB_STATUS "status"
 #define OTB_MQTT_PUB_LOG "log"
 #define OTB_MQTT_STATUS_BOOTED "booted"

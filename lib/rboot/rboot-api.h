@@ -71,7 +71,7 @@ bool ICACHE_FLASH_ATTR rboot_set_current_rom(uint8 rom);
  *          must be passed back on each write. The contents of the structure should not
  *          be modified by the calling code.
 */
-rboot_write_status ICACHE_FLASH_ATTR rboot_write_init(uint32 start_addr);
+rboot_write_status * ICACHE_FLASH_ATTR rboot_write_init(uint32 start_addr);
 
 /**	@brief  Write data to flash memory
  *	@param  status Pointer to rboot_write_status structure defining the write status

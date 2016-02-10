@@ -16,18 +16,23 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# SDK versions, etc
+# SDK_BASE = /opt/esp-open-sdk
+ESP_SDK = esp_iot_sdk_v1.4.0
+
 # Build tools
 XTENSA_DIR = $(SDK_BASE)/xtensa-lx106-elf/bin
 OBJDUMP = $(XTENSA_DIR)/xtensa-lx106-elf-objdump
+OBJCOPY = $(XTENSA_DIR)/xtensa-lx106-elf-objcopy
 NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 ESPTOOL2 ?= /usr/bin/esptool2
 
 # Compile options
-CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__
+CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot
 HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd
-RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode
+RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 
@@ -67,8 +72,8 @@ endif
 
 # Link options
 LD_DIR = ld
-LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain -llwip -Wl,--end-group
-LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/sdk/lib -L$(SDK_BASE)/esp_iot_sdk_v1.4.0/lib -u call_user_start 
+LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -Wl,--end-group
+LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/sdk/lib -L$(SDK_BASE)/$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
 RBOOT_LDFLAGS = -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 LD_SCRIPT = $(LD_DIR)/eagle.app.v6.ld
 
@@ -88,6 +93,10 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
+             $(OTB_OBJ_DIR)/otb_rboot.o \
+             $(RBOOT_OBJ_DIR)/rboot_ota.o \
+             $(RBOOT_OBJ_DIR)/rboot-api.o \
+             $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
              $(OTB_OBJ_DIR)/pin_map.o 
 
 mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
@@ -120,10 +129,15 @@ all: bin/app_image.bin bin/rboot.bin
 bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
 	$(OBJDUMP) -d $^ > bin/disassembly
-	$(ESPTOOL2) -bin -boot2 -1024 $^ $@ .text .data .rodata 
+	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
-bin/app_image.elf: otb_objects httpd_objects mqtt_objects
+bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects
 	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects)
+
+# Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
+# can replace with our own version (from rboot-bigflash.c)
+libmain2:
+	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
 otb_objects: $(otbObjects)
 
@@ -140,6 +154,9 @@ $(HTTPD_OBJ_DIR)/%.o: $(HTTPD_SRC_DIR)/%.c
 $(MQTT_OBJ_DIR)/%.o: $(MQTT_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(MQTT_CFLAGS) $^ -o $@ 
 
+$(RBOOT_OBJ_DIR)/%.o: $(RBOOT_SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $(OTB_CFLAGS) $^ -o $@
+
 $(RBOOT_OBJ_DIR)/rboot-stage2a.o: $(RBOOT_SRC_DIR)/rboot-stage2a.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h
 	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -c $< -o $@
 
@@ -149,7 +166,7 @@ bin/rboot-stage2a.elf: $(RBOOT_OBJ_DIR)/rboot-stage2a.o
 $(RBOOT_OBJ_DIR)/rboot-hex2a.h: bin/rboot-stage2a.elf
 	$(ESPTOOL2) -quiet -header $< $@ .text
 
-$(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h $(RBOOT_OBJ_DIR)/rboot-hex2a.h
+$(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h $(RBOOT_OBJ_DIR)/rboot-hex2a.h 
 	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -I$(RBOOT_OBJ_DIR) -c $< -o $@
 
 bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o
@@ -158,8 +175,16 @@ bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o
 bin/rboot.bin: bin/rboot.elf
 	$(ESPTOOL2) $(E2_OPTS) $< $@ .text .rodata
 
-flash: bin/app_image.bin bin/rboot.bin
-	esptool.py write_flash 0x0 bin/rboot.bin 0x2000 bin/app_image.bin
+flash_rboot: bin/rboot.bin
+	esptool.py write_flash -fs 32m 0x0 bin/rboot.bin
+
+flash_app: bin/app_image.bin
+	esptool.py write_flash 0x2000 bin/app_image.bin
+
+flash_app2: bin/app_image.bin
+	esptool.py write_flash 0x202000 bin/app_image.bin
+
+flash: flash_rboot flash_app
 
 connect:
 	platformio serialports monitor -b 115200

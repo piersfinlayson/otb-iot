@@ -292,10 +292,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     INFO("MQTT: system command Reset/Reboot");
     otb_reset();
   }
-  else if (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPGRADE))
+  else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
   {
     INFO("MQTT: system command upgrade");
-    // XXX To be implemented
+    // Call upgrage function with pointer to end of update and one char for the colon!
+    otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
+  }
+  else if (!memcmp(otb_mqtt_msg_s, "boot_slot", 9))
+  {
+    otb_rboot_update_slot(otb_mqtt_msg_s);
   }
   else
   {

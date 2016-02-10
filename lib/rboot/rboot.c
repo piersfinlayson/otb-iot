@@ -179,13 +179,13 @@ uint32 NOINLINE find_image() {
 	// delay to slow boot (help see messages when debugging)
 	//ets_delay_us(2000000);
 	
-	ets_printf("\r\nrBoot v1.2.1 - richardaburton@gmail.com\r\n");
+	ets_printf("\r\nrBoot: v1.2.1 - richardaburton@gmail.com\r\n");
 	
 	// read rom header
 	SPIRead(0, header, sizeof(rom_header));
 	
 	// print and get flash size
-	ets_printf("Flash Size:   ");
+	ets_printf("rBoot: Flash Size:   ");
 	flag = header->flags2 >> 4;
 	if (flag == 0) {
 		ets_printf("4 Mbit\r\n");
@@ -217,7 +217,7 @@ uint32 NOINLINE find_image() {
 	}
 	
 	// print spi mode
-	ets_printf("Flash Mode:   ");
+	ets_printf("rBoot: Flash Mode:   ");
 	if (header->flags1 == 0) {
 		ets_printf("QIO\r\n");
 	} else if (header->flags1 == 1) {
@@ -231,7 +231,7 @@ uint32 NOINLINE find_image() {
 	}
 	
 	// print spi speed
-	ets_printf("Flash Speed:  ");
+	ets_printf("rBoot: Flash Speed:  ");
 	flag = header->flags2 & 0x0f;
 	if (flag == 0) ets_printf("40 MHz\r\n");
 	else if (flag == 1) ets_printf("26.7 MHz\r\n");
@@ -241,16 +241,16 @@ uint32 NOINLINE find_image() {
 	
 	// print enabled options
 #ifdef BOOT_BIG_FLASH
-	ets_printf("rBoot Option: Big flash\r\n");
+	ets_printf("rBoot: Option: Big flash\r\n");
 #endif
 #ifdef BOOT_CONFIG_CHKSUM
-	ets_printf("rBoot Option: Config chksum\r\n");
+	ets_printf("rBoot: Option: Config chksum\r\n");
 #endif
 #ifdef BOOT_IROM_CHKSUM
-	ets_printf("rBoot Option: irom chksum\r\n");
+	ets_printf("rBoot: Option: irom chksum\r\n");
 #endif
 	
-	ets_printf("\r\n");
+	//ets_printf("\r\n");
 	
 	// read boot config
 	SPIRead(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
@@ -278,7 +278,7 @@ uint32 NOINLINE find_image() {
 	
 	// if gpio mode enabled check status of the gpio
 	if ((romconf->mode & MODE_GPIO_ROM) && (get_gpio16() == 0)) {
-		ets_printf("Booting GPIO-selected.\r\n");
+		ets_printf("rBoot: Booting GPIO-selected.\r\n");
 		romToBoot = romconf->gpio_rom;
 		gpio_boot = TRUE;
 		updateConfig = TRUE;
@@ -327,7 +327,7 @@ uint32 NOINLINE find_image() {
 		SPIWrite(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	}
 	
-	ets_printf("Booting rom %d.\r\n", romToBoot);
+	ets_printf("rBoot: Booting rom %d at 0x%08x.\r\n", romToBoot, runAddr);
 	// copy the loader to top of iram
 	ets_memcpy((void*)_text_addr, _text_data, _text_len);
 	// return address to load from

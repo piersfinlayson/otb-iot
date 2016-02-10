@@ -27,6 +27,8 @@ rboot_config ICACHE_FLASH_ATTR rboot_get_config() {
 	return conf;
 }
 
+void * pvPortMalloc(size_t);
+void vPortFree(void *);
 // write the rboot config
 // preserves the contents of the rest of the sector,
 // so the rest of the sector can be used to store user data
@@ -77,15 +79,17 @@ bool ICACHE_FLASH_ATTR rboot_set_current_rom(uint8 rom) {
 	return rboot_set_config(&conf);
 }
 
+rboot_write_status status;
 // create the write status struct, based on supplied start address
-rboot_write_status ICACHE_FLASH_ATTR rboot_write_init(uint32 start_addr) {
-	rboot_write_status status = {0};
+rboot_write_status * ICACHE_FLASH_ATTR rboot_write_init(uint32 start_addr) {
+	memset((void *)&status, 0, sizeof(status));
+	//rboot_write_status status = {0};
 	status.start_addr = start_addr;
 	status.start_sector = start_addr / SECTOR_SIZE;
 	//status.max_sector_count = 200;
 	//os_printf("init addr: 0x%08x\r\n", start_addr);
 	
-	return status;
+	return &status;
 }
 
 // function to do the actual writing to flash
