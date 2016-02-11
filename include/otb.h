@@ -80,6 +80,7 @@
 #include "otb_mqtt.h"
 #include "otb_ds18b20.h"
 #include "otb_rboot.h"
+#include "otb_gpio.h"
 
 // Arduino C++ functions exposed as C functions
 extern void otb_reset(void);

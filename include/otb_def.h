@@ -52,9 +52,12 @@
 #define OTB_MQTT_TEMPERATURE "temp"
 #define OTB_MQTT_LOCATION_4_OPT "rad"
 #define OTB_MQTT_CMD_SYSTEM "system"
+#define OTB_MQTT_CMD_GPIO "gpio"
 #define OTB_MQTT_CMD_RESET "reset"
 #define OTB_MQTT_CMD_REBOOT "reboot"
 #define OTB_MQTT_CMD_UPDATE "update"
+#define OTB_MQTT_CMD_GPIO_GET "get"
+#define OTB_MQTT_CMD_GPIO_SET "set"
 #define OTB_MQTT_PUB_STATUS "status"
 #define OTB_MQTT_PUB_LOG "log"
 #define OTB_MQTT_STATUS_BOOTED "booted"
@@ -64,6 +67,7 @@
 #define OTB_MQTT_STATUS_OFFLINE "offline"
 
 // Fixed stuff
+#define OTB_GPIO_ESP_GPIO_PINS 17
 #define OTB_MAIN_COMPILE_DATE otb_compile_date
 #define OTB_MAIN_COMPILE_TIME otb_compile_time
 #define OTB_MAIN_VERSION_ID otb_version_id

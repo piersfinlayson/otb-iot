@@ -226,6 +226,12 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
                      "",
                      1);
 
+  // Now subscribe for gpio topic, qos = 2 to ensure we get at only 1 of every command
+  otb_mqtt_subscribe(mqtt_client,
+                     OTB_MQTT_CMD_GPIO,
+                     "",
+                     2);
+
   DEBUG("MQTT: otb_mqtt_on_connected exit");
 
   return;
@@ -260,6 +266,12 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
                                                    uint32_t msg_len)
 {
   MQTT_Client* mqtt_client = (MQTT_Client*)client;
+  char *sub_topic = NULL;
+  char *next_sub_topic = NULL;
+  char *sub_msg = NULL;
+  int no1;
+  int no2;
+  bool rc;
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
@@ -283,34 +295,106 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 
   DEBUG("MQTT: Received publish topic: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:                message: %s ", otb_mqtt_msg_s);
-
-  // Don't bother parsing topic - we know what we subscribed to (system)
-
-  if ((!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_RESET)) ||
-      (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_REBOOT)))
+ 
+  // Find topic
+  next_sub_topic = os_strstr(otb_mqtt_topic_s, "/");
+  while (next_sub_topic != NULL)
   {
-    INFO("MQTT: system command Reset/Reboot");
-    otb_reset();
+    sub_topic = next_sub_topic;
+    next_sub_topic++;
+    next_sub_topic = os_strstr(next_sub_topic, "/");
   }
-  else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
+  
+  if (sub_topic != NULL)
   {
-    INFO("MQTT: system command upgrade");
-    // Call upgrage function with pointer to end of update and one char for the colon!
-    otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
-  }
-  else if (!memcmp(otb_mqtt_msg_s, "set_boot_slot", 13))
-  {
-    INFO("MQTT: system command %s", otb_mqtt_msg_s);
-    otb_rboot_update_slot(otb_mqtt_msg_s);
-  }
-  else if (!memcmp(otb_mqtt_msg_s, "get_boot_slot", 13))
-  {
-    INFO("MQTT: system command %s", otb_mqtt_msg_s);
-    otb_rboot_get_slot(TRUE);
+    // This ++ should be safe - as its a string worse case scenario is this takes us to a
+    // null terminator
+    sub_topic++;
+  
+    if (!strcmp(sub_topic, OTB_MQTT_CMD_SYSTEM))
+    {
+      INFO("MQTT: System topic received");
+      if ((!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_RESET)) ||
+          (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_REBOOT)))
+      {
+        INFO("MQTT: system command Reset/Reboot");
+        otb_reset();
+      }
+      else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
+      {
+        INFO("MQTT: system command upgrade");
+        // Call upgrage function with pointer to end of update and one char for the colon!
+        otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
+      }
+      else if (!memcmp(otb_mqtt_msg_s, "set_boot_slot", 13))
+      {
+        INFO("MQTT: system command %s", otb_mqtt_msg_s);
+        otb_rboot_update_slot(otb_mqtt_msg_s);
+      }
+      else if (!memcmp(otb_mqtt_msg_s, "get_boot_slot", 13))
+      {
+        INFO("MQTT: system command %s", otb_mqtt_msg_s);
+        otb_rboot_get_slot(TRUE);
+      }
+      else
+      {
+        INFO("ERROR: Unknown system command: %s", otb_mqtt_msg_s);
+      }
+    }
+    else if (!strcmp(sub_topic, OTB_MQTT_CMD_GPIO))
+    {
+      INFO("MQTT: GPIO topic received");
+      if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_GET, strlen(OTB_MQTT_CMD_GPIO_GET)))
+      {
+        INFO("MQTT: Get msg received");
+        sub_msg = os_strstr(otb_mqtt_msg_s, ":");
+        if (sub_msg)
+        {
+          sub_msg++;
+          no1 = atoi(sub_msg);
+          otb_gpio_get(no1);
+        }
+        else
+        {
+          ERROR("MQTT: Missing pin number");
+        }
+      }
+      else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_SET, strlen(OTB_MQTT_CMD_GPIO_SET)))
+      {
+        INFO("MQTT: Set msg received");
+        rc = FALSE;
+        sub_msg = os_strstr(otb_mqtt_msg_s, ":");
+        if (sub_msg)
+        {
+          sub_msg++;
+          no1 = atoi(sub_msg);
+          sub_msg = os_strstr(sub_msg, ":");
+          if (sub_msg)
+          {
+            sub_msg++;
+            no2 = atoi(sub_msg);
+            otb_gpio_set(no1, no2); 
+            rc = TRUE;
+          }
+        }
+        if (!rc)
+        {
+          ERROR("MQTT: Missing pin number or value");
+        }
+      }
+      else
+      {
+        INFO("MQTT: Unknown GPIO command: %s", otb_mqtt_msg_s);
+      }
+    }
+    else
+    {
+      ERROR("MQTT: Unknown sub-topic: %s", sub_topic);
+    }
   }
   else
   {
-    INFO("MQTT: Unknown system command: %s", otb_mqtt_msg_s);
+    ERROR("MQTT: Unknown topic: %s", topic);
   }
   
   DEBUG("MQTT: otb_mqtt_on_receive_publish exit");

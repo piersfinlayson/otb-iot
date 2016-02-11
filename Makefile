@@ -39,8 +39,8 @@ MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 
 # esptool.py options
-ESPBAUD = 115200
-ESPPORT = /dev/ttyUSB1
+ESPBAUD = 460800
+ESPPORT = /dev/ttyUSB0
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
 # esptool2 options
@@ -101,6 +101,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
+             $(OTB_OBJ_DIR)/otb_gpio.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
