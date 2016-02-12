@@ -296,6 +296,8 @@ int ICACHE_FLASH_ATTR tplWlan(HttpdConnData *connData, char *token, void **arg) 
 		os_strcpy(buff, (char*)stconf.ssid);
 	} else if (os_strcmp(token, "WiFiPasswd")==0) {
 		os_strcpy(buff, (char*)stconf.password);
+	}
+#if 0
 	} else if (os_strcmp(token, "WiFiapwarn")==0) {
 		x=wifi_get_opmode();
 		if (x==2) {
@@ -304,6 +306,7 @@ int ICACHE_FLASH_ATTR tplWlan(HttpdConnData *connData, char *token, void **arg) 
 			os_strcpy(buff, "Click <a href=\"setmode.cgi?mode=2\">here</a> to go to standalone AP mode.");
 		}
 	}
+#endif
 	httpdSend(connData, buff, -1);
 	return HTTPD_CGI_DONE;
 }

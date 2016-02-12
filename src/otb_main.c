@@ -61,6 +61,7 @@ void ICACHE_FLASH_ATTR otb_reset(void)
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
+  char *ws;
   
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
@@ -81,7 +82,21 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   // Set up and log some useful info
   os_sprintf(otb_compile_date, "%s", __DATE__);
+  // Get rid of whitespace from date
+  ws = os_strstr(otb_compile_date, " ");
+  while (ws)
+  {
+    *ws = '_';
+    ws = os_strstr(ws, " ");
+  }
   os_sprintf(otb_compile_time, "%s", __TIME__);
+  // Get rid of whitespace from time
+  ws = os_strstr(otb_compile_time, " ");
+  while (ws)
+  {
+    *ws = '_';
+    ws = os_strstr(ws, " ");
+  }
   os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
               "%s/%s/%s/%s",
