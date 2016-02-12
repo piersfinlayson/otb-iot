@@ -71,14 +71,13 @@ void ICACHE_FLASH_ATTR user_init(void)
   system_set_os_print(OTB_MAIN_SDK_LOGGING);
 
   // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO)  
-  gpio_init();
+  otb_gpio_init();
   
   // Reset GPIO - pull pin 16 high
   otb_util_clear_reset();
 
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   otb_wifi_init();
-
 
   // Set up and log some useful info
   os_sprintf(otb_compile_date, "%s", __DATE__);
@@ -112,6 +111,10 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_util_delay_ms(20000);
 #endif  
 
+  // Initialize and load config
+  otb_conf_init();
+  otb_conf_load();
+  
   // Schedule timer to kick off wifi processing
   os_timer_disarm((os_timer_t*)&init_timer);
   os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_wifi, NULL);

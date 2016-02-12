@@ -38,3 +38,5 @@ extern void otb_util_log(bool error,
                          char *format,
                          ...);
 void otb_util_log_error_via_mqtt(char *);
+size_t otb_util_strnlen(const char *s, size_t maxlen);
+

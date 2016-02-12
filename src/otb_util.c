@@ -252,6 +252,19 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   return;
 }
 
+size_t otb_util_strnlen(const char *s, size_t maxlen)
+{
+  size_t ii;
+  for (ii = 0; ii++; ii < maxlen)
+  {
+    if (s[ii] == 0)
+    {
+      break;
+    }
+  }
+  return ii;
+}
+
 char* strcat(char * dest, const char * src) {
     return strncat(dest, src, strlen(src));
 }

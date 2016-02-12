@@ -39,7 +39,7 @@ MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 
 # esptool.py options
-ESPBAUD = 460800
+ESPBAUD = 115200
 ESPPORT = /dev/ttyUSB0
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
@@ -102,6 +102,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_util.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
+             $(OTB_OBJ_DIR)/otb_conf.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -147,7 +148,7 @@ bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects obj/html/libw
 libmain2:
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
-otb_objects: $(otbObjects)
+otb_objects: clean_otb_main_o $(otbObjects)
 
 httpd_objects: $(httpdObjects)
 
@@ -205,6 +206,9 @@ flash: flash_rboot flash_app
 
 connect:
 	platformio serialports monitor -b 115200
+
+clean_otb_main_o:
+	@rm -f $(OTB_OBJ_DIR)/otb_main.o
 
 clean: 
 	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*

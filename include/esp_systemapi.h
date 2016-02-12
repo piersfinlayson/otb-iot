@@ -55,6 +55,8 @@ extern char *ets_strcpy(char *dest, const char *src);
 //extern char *ets_strdup(const char *str); // :(
 const char * ets_strrchr(const char *str, int character);
 extern size_t ets_strlen(const char *s);
+extern size_t ets_strnlen(const char *s, size_t maxlen);
+#define os_strnlen(A, B) otb_util_strnlen(A, B)
 extern int ets_strncmp(const char *s1, const char *s2, int len);
 extern char *ets_strncpy(char *dest, const char *src, size_t n);
 extern char *ets_strstr(const char *haystack, const char *needle);

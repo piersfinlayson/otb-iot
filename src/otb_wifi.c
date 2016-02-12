@@ -377,7 +377,8 @@ void ICACHE_FLASH_ATTR otb_wifi_try_ap(uint32_t timeout)
   ap_conf.max_connection = 4;
   ap_conf.beacon_interval = 100;
   ETS_UART_INTR_DISABLE();
-  wifi_set_opmode_current(SOFTAP_MODE);
+  // We need to be in stations _and_ AP mode, as station mode is required to scan
+  wifi_set_opmode_current(STATIONAP_MODE);
   if (os_memcmp(&ap_conf, &ap_conf_current, sizeof(ap_conf)))
   {
     // We can't store this until in SoftAP mode
