@@ -17,17 +17,13 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define OTB_MAIN_C
+#define OTB_RECOVERY_C
 #include "otb.h"
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 char otb_compile_date[12];
 char otb_compile_time[9];
 char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-void configModeCallback();
-char ssid[32];
-char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-char OTB_MAIN_DEVICE_ID[20];
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
@@ -48,7 +44,7 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_util_clear_reset();
 
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
-  otb_wifi_init();
+  //otb_wifi_init();
 
   // Set up and log some useful info
   os_sprintf(otb_compile_date, "%s", __DATE__);
@@ -75,35 +71,27 @@ void ICACHE_FLASH_ATTR user_init(void)
               otb_compile_date, 
               otb_compile_time);
   // First log needs a line break!
-  INFO("\nOTB: %s", otb_version_id);
+  INFO("\nOTB: %s %s", otb_version_id, "!!!RECOVERY!!!");
   INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
   os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
   os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
+  INFO("");
+  INFO("OTB: ---------------------");
+  INFO("OTB: !!! Recovery Mode !!!");
+  INFO("OTB: ---------------------");
+  INFO("");
   
-  otb_util_check_defs();
+  //otb_util_check_defs();
   
-#if 0
-  OTB_WIFI_STATION_CONFIG wifi_conf;
-  // Some code to burn an SSID/password into the flash
-  wifi_set_opmode_current(STATION_MODE);
-  strcpy(wifi_conf.ssid, "some_ssid");
-  strcpy(wifi_conf.password, "some_password");
-  wifi_conf.bssid_set = FALSE;
-  strcpy(wifi_conf.bssid, "");
-  otb_wifi_set_stored_conf(&wifi_conf);
-  INFO("Pausing for 20s ...");
-  otb_util_delay_ms(20000);
-#endif  
-
   // Initialize and load config
-  otb_conf_init();
-  otb_conf_load();
+  // otb_conf_init();
+  // otb_conf_load();
   
   // Schedule timer to kick off wifi processing
-  os_timer_disarm((os_timer_t*)&init_timer);
-  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_wifi, NULL);
-  os_timer_arm((os_timer_t*)&init_timer, 500, 0);
+  // os_timer_disarm((os_timer_t*)&init_timer);
+  // os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_wifi, NULL);
+  // os_timer_arm((os_timer_t*)&init_timer, 500, 0);
 
   DEBUG("OTB: user_init exit");
 

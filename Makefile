@@ -108,6 +108,19 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
              $(OTB_OBJ_DIR)/pin_map.o 
 
+otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
+             $(OTB_OBJ_DIR)/otb_mqtt.o \
+             $(OTB_OBJ_DIR)/otb_wifi.o \
+             $(OTB_OBJ_DIR)/otb_recovery.o \
+             $(OTB_OBJ_DIR)/otb_util.o \
+             $(OTB_OBJ_DIR)/otb_rboot.o \
+             $(OTB_OBJ_DIR)/otb_gpio.o \
+             $(OTB_OBJ_DIR)/otb_conf.o \
+             $(RBOOT_OBJ_DIR)/rboot_ota.o \
+             $(RBOOT_OBJ_DIR)/rboot-api.o \
+             $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
+             $(OTB_OBJ_DIR)/pin_map.o 
+
 mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
               $(MQTT_OBJ_DIR)/proto.o \
               $(MQTT_OBJ_DIR)/ringbuf.o \
@@ -133,7 +146,7 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 
-all: bin/app_image.bin bin/rboot.bin
+all: bin/app_image.bin bin/rboot.bin bin/recovery_image.bin
 
 bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
@@ -143,12 +156,20 @@ bin/app_image.bin: bin/app_image.elf
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) obj/html/libwebpages-espfs.a
 
+bin/recovery_image.bin: bin/recovery_image.elf
+	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
+
+bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) obj/html/libwebpages-espfs.a
+
 # Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
 # can replace with our own version (from rboot-bigflash.c)
 libmain2:
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
 otb_objects: clean_otb_main_o $(otbObjects)
+
+otb_recovery_objects: clean_otb_recovery_o $(otbRecoveryObjects)
 
 httpd_objects: $(httpdObjects)
 
@@ -193,7 +214,7 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(LD) -nostdlib -Wl,-r obj/html/webpages.espfs.o.tmp -o obj/html/webpages.espfs.o -Wl,-T ld/webpages.espfs.ld
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
-flash_rboot: bin/rboot.bin
+flash_boot: bin/rboot.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
@@ -202,13 +223,21 @@ flash_app: bin/app_image.bin
 flash_app2: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
 
-flash: flash_rboot flash_app
+flash_recovery: bin/recovery_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/recovery_image.bin
+
+flash: flash_boot flash_app
+
+flash_initial: flash_boot flash_app flash_recovery
 
 connect:
 	platformio serialports monitor -b 115200
 
 clean_otb_main_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_main.o
+
+clean_otb_recovery_o:
+	@rm -f $(OTB_OBJ_DIR)/otb_recover.o
 
 clean: 
 	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*

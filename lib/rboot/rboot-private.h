@@ -26,6 +26,8 @@ typedef unsigned char uint8;
 // buffer size, must be at least 0x10 (size of rom_header_new structure)
 #define BUFFER_SIZE 0x100
 
+static void reset(void);
+
 // esp8266 built in rom functions
 extern uint32 SPIRead(uint32 addr, void *outptr, uint32 len);
 extern uint32 SPIEraseSector(int);
@@ -34,6 +36,7 @@ extern void ets_printf(char*, ...);
 extern void ets_delay_us(int);
 extern void ets_memset(void*, uint8, uint32);
 extern void ets_memcpy(void*, const void*, uint32);
+extern void system_restart(void);
 
 // functions we'll call by address
 typedef void stage2a(uint32);

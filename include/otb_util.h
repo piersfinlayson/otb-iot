@@ -23,7 +23,9 @@ typedef struct otb_util_timeout
   uint32_t end_time;
 } otb_util_timeout;
 
+extern void otb_util_log_fn(char *text);
 extern void otb_util_assert(bool value, char *value_s);
+void otb_reset(void);
 void otb_util_clear_reset(void);
 extern bool otb_util_timer_finished(otb_util_timeout *timeout);
 extern void otb_util_delay_ms(uint32_t value);
@@ -39,4 +41,7 @@ extern void otb_util_log(bool error,
                          ...);
 void otb_util_log_error_via_mqtt(char *);
 size_t otb_util_strnlen(const char *s, size_t maxlen);
+void otb_init_wifi(void *arg);
+void otb_init_mqtt(void *arg);
+void otb_init_ds18b20(void *arg);
 

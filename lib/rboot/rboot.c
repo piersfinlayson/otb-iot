@@ -146,6 +146,24 @@ static uint32 get_gpio16() {
 	return x;
 }
 
+static void reset(void)
+{
+  WRITE_PERI_REG(PAD_XPD_DCDC_CONF,
+    (READ_PERI_REG(PAD_XPD_DCDC_CONF) & 0xffffffbc) | (uint32)0x1);      // mux configuration for XPD_DCDC to output rtc_gpio0
+
+  WRITE_PERI_REG(RTC_GPIO_CONF,
+    (READ_PERI_REG(RTC_GPIO_CONF) & (uint32)0xfffffffe) | (uint32)0x0);  //mux configuration for out enable
+
+  WRITE_PERI_REG(RTC_GPIO_ENABLE,
+    (READ_PERI_REG(RTC_GPIO_ENABLE) & (uint32)0xfffffffe) | (uint32)0x1);        //out enable
+
+//  WRITE_PERI_REG(RTC_GPIO_OUT,
+//    (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
+
+	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
+	return;
+}
+
 #ifdef BOOT_CONFIG_CHKSUM
 // calculate checksum for block of data
 // from start up to (but excluding) end
@@ -172,20 +190,31 @@ uint32 NOINLINE find_image() {
 	uint8 gpio_boot = FALSE;
 	uint8 updateConfig = FALSE;
 	uint8 buffer[SECTOR_SIZE];
+	uint8 roms_tried;
+	uint8 ii;
 
 	rboot_config *romconf = (rboot_config*)buffer;
 	rom_header *header = (rom_header*)buffer;
 	
 	// delay to slow boot (help see messages when debugging)
-	//ets_delay_us(2000000);
+	ets_delay_us(2000000);
 	
-	ets_printf("\r\nrBoot: v1.2.1 - richardaburton@gmail.com\r\n");
+	ets_printf("\r\nBOOT: OTA-BOOT v0.1\r\n");
+	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
+	if (BOOT_CONFIG_SECTOR * SECTOR_SIZE != OTB_BOOT_BOOT_CONFIG_LOCATION)
+	{
+		ets_printf("BOOT: !!! Inconsistent build !!!");
+		ets_printf("BOOT: !!! Inconsistent build !!!");
+		ets_printf("BOOT: !!! Inconsistent build !!!");
+		ets_printf("BOOT: !!! Inconsistent build !!!");
+		ets_printf("BOOT: !!! Inconsistent build !!!");
+	}
 	
 	// read rom header
 	SPIRead(0, header, sizeof(rom_header));
 	
 	// print and get flash size
-	ets_printf("rBoot: Flash Size:   ");
+	ets_printf("BOOT: Flash Size:   ");
 	flag = header->flags2 >> 4;
 	if (flag == 0) {
 		ets_printf("4 Mbit\r\n");
@@ -217,7 +246,7 @@ uint32 NOINLINE find_image() {
 	}
 	
 	// print spi mode
-	ets_printf("rBoot: Flash Mode:   ");
+	ets_printf("BOOT: Flash Mode:   ");
 	if (header->flags1 == 0) {
 		ets_printf("QIO\r\n");
 	} else if (header->flags1 == 1) {
@@ -231,7 +260,7 @@ uint32 NOINLINE find_image() {
 	}
 	
 	// print spi speed
-	ets_printf("rBoot: Flash Speed:  ");
+	ets_printf("BOOT: Flash Speed:  ");
 	flag = header->flags2 & 0x0f;
 	if (flag == 0) ets_printf("40 MHz\r\n");
 	else if (flag == 1) ets_printf("26.7 MHz\r\n");
@@ -241,16 +270,14 @@ uint32 NOINLINE find_image() {
 	
 	// print enabled options
 #ifdef BOOT_BIG_FLASH
-	ets_printf("rBoot: Option: Big flash\r\n");
+	ets_printf("BOOT: Option: Big (>1MB) flash\r\n");
 #endif
 #ifdef BOOT_CONFIG_CHKSUM
-	ets_printf("rBoot: Option: Config chksum\r\n");
+	ets_printf("BOOT: Option: Config checksum\r\n");
 #endif
 #ifdef BOOT_IROM_CHKSUM
-	ets_printf("rBoot: Option: irom chksum\r\n");
+	ets_printf("BOOT: Option: IROM checksum\r\n");
 #endif
-	
-	//ets_printf("\r\n");
 	
 	// read boot config
 	SPIRead(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
@@ -261,13 +288,18 @@ uint32 NOINLINE find_image() {
 #endif
 		) {
 		// create a default config for a standard 2 rom setup
-		ets_printf("Writing default boot config.\r\n");
+		ets_printf("BOOT: No valid boot config found\r\n");
+		ets_printf("BOOT: Writing default boot config\r\n");
 		ets_memset(romconf, 0x00, sizeof(rboot_config));
 		romconf->magic = BOOT_CONFIG_MAGIC;
 		romconf->version = BOOT_CONFIG_VERSION;
-		romconf->count = 2;
-		romconf->roms[0] = SECTOR_SIZE * (BOOT_CONFIG_SECTOR + 1);
-		romconf->roms[1] = (flashsize / 2) + (SECTOR_SIZE * (BOOT_CONFIG_SECTOR + 1));
+		romconf->count = 3;
+		romconf->roms[0] = OTB_BOOT_ROM_0_LOCATION;
+		romconf->roms[1] = OTB_BOOT_ROM_1_LOCATION;
+		romconf->roms[2] = OTB_BOOT_ROM_2_LOCATION;
+		romconf->gpio_rom = 2;
+		//romconf->roms[0] = SECTOR_SIZE * (BOOT_CONFIG_SECTOR + 1);
+		//romconf->roms[1] = (flashsize / 2) + (SECTOR_SIZE * (BOOT_CONFIG_SECTOR + 1));
 #ifdef BOOT_CONFIG_CHKSUM
 		romconf->chksum = calc_chksum((uint8*)romconf, (uint8*)&romconf->chksum);
 #endif
@@ -278,39 +310,72 @@ uint32 NOINLINE find_image() {
 	
 	// if gpio mode enabled check status of the gpio
 	if ((romconf->mode & MODE_GPIO_ROM) && (get_gpio16() == 0)) {
-		ets_printf("rBoot: Booting GPIO-selected.\r\n");
+		ets_printf("BOOT: Booting GPIO-selected.\r\n");
 		romToBoot = romconf->gpio_rom;
 		gpio_boot = TRUE;
 		updateConfig = TRUE;
 	} else if (romconf->current_rom >= romconf->count) {
 		// if invalid rom selected try rom 0
-		ets_printf("Invalid rom selected, defaulting.\r\n");
+		ets_printf("BOOT: Invalid rom selected, defaulting.\r\n");
 		romToBoot = 0;
 		romconf->current_rom = 0;
 		updateConfig = TRUE;
 	} else {
 		// try rom selected in the config
 		romToBoot = romconf->current_rom;
+		if (romconf->current_rom == 2)
+		{
+			romToBoot = 0;
+		}
 	}
 	
 	// try to find a good rom
+	roms_tried = 0;
 	do {
+		roms_tried += 1 << romToBoot;
 		runAddr = check_image(romconf->roms[romToBoot]);
 		if (runAddr == 0) {
-			ets_printf("Rom %d is bad.\r\n", romToBoot);
+			ets_printf("BOOT: ROM %d is bad.\r\n", romToBoot);
 			if (gpio_boot) {
 				// don't switch to backup for gpio-selected rom
-				ets_printf("GPIO boot failed.\r\n");
+				ets_printf("BOOT: GPIO boot failed.\r\n");
 				return 0;
 			} else {
 				// for normal mode try each previous rom
 				// until we find a good one or run out
+				// Try ROM 2 last.
 				updateConfig = TRUE;
-				romToBoot--;
-				if (romToBoot < 0) romToBoot = romconf->count - 1;
-				if (romToBoot == romconf->current_rom) {
+				if (roms_tried == 1)
+				{
+					romToBoot = 1;
+					ets_printf("BOOT: Try ROM 1\r\n");
+				}
+				else if (roms_tried == 2)
+				{
+					romToBoot = 0;
+					ets_printf("BOOT: Try ROM 0\r\n");
+				}
+				else if (roms_tried == 3)
+				{
+					// Last chance saloon ... try fallback
+					// rom
+					romToBoot = 2;
+					ets_printf("BOOT: Try fallback ROM\r\n");
+				}
+				else
+				//  if (romToBoot == romconf->current_rom) {
+				{
 					// tried them all and all are bad!
-					ets_printf("No good rom available.\r\n");
+					ets_printf("BOOT: No good ROM available.\r\n");
+					updateConfig = FALSE;
+					ets_printf("BOOT: Rebooting in 5s ");
+					for (ii=0; ii < 5; ii++)
+					{
+						ets_printf(".");
+						if (ii==4) ets_printf("\r\n");
+						ets_delay_us(1000000);
+					}
+					reset();
 					return 0;
 				}
 			}
@@ -319,6 +384,7 @@ uint32 NOINLINE find_image() {
 	
 	// re-write config, if required
 	if (updateConfig) {
+		// Never write to config to boot from fallback ROM
 		romconf->current_rom = romToBoot;
 #ifdef BOOT_CONFIG_CHKSUM
 		romconf->chksum = calc_chksum((uint8*)romconf, (uint8*)&romconf->chksum);
@@ -327,7 +393,7 @@ uint32 NOINLINE find_image() {
 		SPIWrite(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	}
 	
-	ets_printf("rBoot: Booting rom %d at 0x%08x\r\n", romToBoot, runAddr);
+	ets_printf("BOOT: Booting rom %d at 0x%08x\r\n", romToBoot, runAddr);
 	// copy the loader to top of iram
 	ets_memcpy((void*)_text_addr, _text_data, _text_len);
 	// return address to load from

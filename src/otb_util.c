@@ -22,6 +22,15 @@
 #include <limits.h>
 #include <errno.h>
 
+void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
+{
+  if (!OTB_MAIN_DISABLE_OTB_LOGGING)
+  {
+    ets_printf(text);
+    ets_printf("\n");
+  }
+}
+
 void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
 {
   DEBUG("UTIL: otb_util_assert entry");
@@ -38,6 +47,27 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
 
   DEBUG("UTIL: otb_util_assert exit");
   
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_reset(void)
+{
+  DEBUG("OTB: otb_reset entry");
+
+  // Log resetting and include \n so this log isn't overwritten
+  INFO("OTB: Resetting ...");
+
+  // Delay to give any serial logs time to output.  Can't use arduino delay as
+  // may be in wrong context
+  otb_util_delay_ms(1000);
+
+  // Reset by pulling reset GPIO (connected to reset) low
+  // XXX Only works for GPIO 16
+  WRITE_PERI_REG(RTC_GPIO_OUT,
+                   (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
+
+  DEBUG("OTB: otb_reset exit");
+ 
   return;
 }
 
@@ -217,7 +247,7 @@ void ICACHE_FLASH_ATTR otb_util_log(bool error,
   va_start(args, format);
   otb_util_log_snprintf(log_string, max_log_string_len, format, args);
   va_end(args);
-  otb_main_log_fn(otb_log_s);
+  otb_util_log_fn(otb_log_s);
 
   // Log if MQTT if an error and we're connected
   if (error && (otb_mqtt_client.connState == MQTT_DATA))                       \
@@ -248,6 +278,80 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 1);
 
   // DEBUG("UTIL: otb_util_log_error_via_mqtt exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_init_wifi(void *arg)
+{
+  bool rc;
+  OTB_WIFI_STATION_CONFIG wifi_conf;
+  uint8_t wifi_status = OTB_WIFI_STATUS_NOT_CONNECTED;
+
+  DEBUG("OTB: otb_init_wifi entry");
+  
+  INFO("OTB: Set up wifi");
+  rc = otb_wifi_get_stored_conf(&wifi_conf);
+  if (rc)
+  {
+    // No point in trying to connect in station mode if we've no stored config - skip
+    // straight to AP mode
+    wifi_status = otb_wifi_try_sta(wifi_conf.ssid,
+                                   wifi_conf.password,
+                                   wifi_conf.bssid_set,
+                                   wifi_conf.bssid,
+                                   OTB_WIFI_DEFAULT_STA_TIMEOUT);
+  }
+  
+  if ((wifi_status != OTB_WIFI_STATUS_CONNECTED) &&
+      (wifi_status != OTB_WIFI_STATUS_CONNECTING))
+  {
+    // Try AP mode instead.  We _always_ reboot after this, cos either it worked in which
+    // case we reboot to try the new credentials, or it didn't in which case we'll give
+    // station mode another try when we boot up again.
+    otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
+    //otb_reset();
+    //OTB_ASSERT(FALSE);
+  }
+  
+  DEBUG("OTB: otb_init_wifi entry");
+ 
+  return; 
+}
+
+void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
+{
+  DEBUG("OTB: otb_init_mqtt entry");
+  
+  INFO("OTB: Set up MQTT stack");
+  otb_mqtt_initialize(OTB_MQTT_SERVER,
+                      OTB_MQTT_PORT,
+                      0,
+                      OTB_MAIN_DEVICE_ID,
+                      "user",
+                      "pass",
+                      OTB_MQTT_KEEPALIVE);
+
+  // Now set up DS18B20 init
+  os_timer_disarm((os_timer_t*)&init_timer);
+  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ds18b20, NULL);
+  os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
+
+  DEBUG("OTB: otb_init_mqtt entry");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
+{
+  DEBUG("OTB: otb_init_ds18b20 entry");
+
+  INFO("OTB: Set up One Wire bus");
+  otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
+
+  os_timer_disarm((os_timer_t*)&init_timer);
+
+  DEBUG("OTB: otb_init_mqtt exit");
 
   return;
 }

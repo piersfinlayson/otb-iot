@@ -21,7 +21,7 @@
 // Old inefficient inline (space wise) version
 #define LOG(ERROR, FORMAT, ...)                                                \
   snprintf(otb_log_s, OTB_MAIN_MAX_LOG_LENGTH, (char *)FORMAT, ##__VA_ARGS__); \
-  otb_main_log_fn(otb_log_s);                                                  \
+  otb_util_log_fn(otb_log_s);                                                  \
   if (ERROR && (otb_mqtt_client.connState == MQTT_DATA))                       \
   {                                                                            \
     otb_util_log_error_via_mqtt(otb_log_s);                                    \

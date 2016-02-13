@@ -17,8 +17,6 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-extern void otb_main_log_fn(char *);
-
 extern char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 extern char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 extern MQTT_Client otb_mqtt_client;

@@ -50,7 +50,7 @@ void IRAM_ATTR Cache_Read_Enable_New() {
 		rBoot_mmap_2 = addr / 2;
 		rBoot_mmap_1 = addr % 2;
 		
-		ets_printf("rBoot: mmap %d,%d,1\r\n", rBoot_mmap_1, rBoot_mmap_2);
+		ets_printf("BOOT: mmap %d,%d,1\r\n", rBoot_mmap_1, rBoot_mmap_2);
 	}
 	
 	Cache_Read_Enable(rBoot_mmap_1, rBoot_mmap_2, 1);

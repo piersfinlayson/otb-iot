@@ -27,10 +27,5 @@ char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 char OTB_MAIN_DEVICE_ID[20];
 volatile os_timer_t init_timer;
  
-void otb_main_log_fn(char *text);
-void otb_reset(void);
 extern void user_init(void);
-void otb_init_wifi(void *arg);
-void otb_init_mqtt(void *arg);
-void otb_init_ds18b20(void *arg);
 
