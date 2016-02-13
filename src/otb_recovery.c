@@ -20,14 +20,8 @@
 #define OTB_RECOVERY_C
 #include "otb.h"
 
-char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-char otb_compile_date[12];
-char otb_compile_time[9];
-char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-
 void ICACHE_FLASH_ATTR user_init(void)
 {
-  char *ws;
   
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
@@ -46,42 +40,9 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   //otb_wifi_init();
 
-  // Set up and log some useful info
-  os_sprintf(otb_compile_date, "%s", __DATE__);
-  // Get rid of whitespace from date
-  ws = os_strstr(otb_compile_date, " ");
-  while (ws)
-  {
-    *ws = '_';
-    ws = os_strstr(ws, " ");
-  }
-  os_sprintf(otb_compile_time, "%s", __TIME__);
-  // Get rid of whitespace from time
-  ws = os_strstr(otb_compile_time, " ");
-  while (ws)
-  {
-    *ws = '_';
-    ws = os_strstr(ws, " ");
-  }
-  os_snprintf(otb_version_id,
-              OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s/%s/%s/%s",
-              OTB_MAIN_OTB_IOT,
-              OTB_MAIN_FW_VERSION,
-              otb_compile_date, 
-              otb_compile_time);
-  // First log needs a line break!
-  INFO("\nOTB: %s %s", otb_version_id, "!!!RECOVERY!!!");
-  INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
-  INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
-  os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
-  INFO("");
-  INFO("OTB: ---------------------");
-  INFO("OTB: !!! Recovery Mode !!!");
-  INFO("OTB: ---------------------");
-  INFO("");
-  
+  // Log some useful info
+  otb_util_log_useful_info(FALSE);
+
   //otb_util_check_defs();
   
   // Initialize and load config

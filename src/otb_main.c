@@ -20,27 +20,15 @@
 #define OTB_MAIN_C
 #include "otb.h"
 
-char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-char otb_compile_date[12];
-char otb_compile_time[9];
-char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 void configModeCallback();
 char ssid[32];
-char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-char OTB_MAIN_DEVICE_ID[20];
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
-  char *ws;
-  
-  // Set up serial logging
-  uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
+  otb_util_init_logging();
 
   DEBUG("OTB: user_init entry");
   
-  // Configure ESP SDK logging (only)
-  system_set_os_print(OTB_MAIN_SDK_LOGGING);
-
   // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO)  
   otb_gpio_init();
   
@@ -50,37 +38,10 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   otb_wifi_init();
 
-  // Set up and log some useful info
-  os_sprintf(otb_compile_date, "%s", __DATE__);
-  // Get rid of whitespace from date
-  ws = os_strstr(otb_compile_date, " ");
-  while (ws)
-  {
-    *ws = '_';
-    ws = os_strstr(ws, " ");
-  }
-  os_sprintf(otb_compile_time, "%s", __TIME__);
-  // Get rid of whitespace from time
-  ws = os_strstr(otb_compile_time, " ");
-  while (ws)
-  {
-    *ws = '_';
-    ws = os_strstr(ws, " ");
-  }
-  os_snprintf(otb_version_id,
-              OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s/%s/%s/%s",
-              OTB_MAIN_OTB_IOT,
-              OTB_MAIN_FW_VERSION,
-              otb_compile_date, 
-              otb_compile_time);
-  // First log needs a line break!
-  INFO("\nOTB: %s", otb_version_id);
-  INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
-  INFO("OTB: ESP device %s", OTB_MAIN_CHIPID);
-  os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
-  
+  // Log some useful info
+  otb_util_log_useful_info(FALSE);
+
+  // Do some sanity checking
   otb_util_check_defs();
   
 #if 0

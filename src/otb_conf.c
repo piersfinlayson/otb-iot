@@ -198,7 +198,7 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
     if (!rc)
     {
       ERROR("CONF: Failed to save new config - rebooting!");
-      otb_reset();
+      otb_error_reset();
     }
   }
 

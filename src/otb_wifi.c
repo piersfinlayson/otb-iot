@@ -64,7 +64,6 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       INFO("WIFI: Event - station connected");
       WARN("WIFI: DHCP timed out so rebooting ...");
       otb_reset();
-      OTB_ASSERT(FALSE);
     break;
       
     case EVENT_SOFTAPMODE_STACONNECTED:
@@ -119,7 +118,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   }
 
   // DON'T log password for security reasons!
-  INFO("WIFI: Set SSID to %s", ssid);
+  INFO("WIFI: Set SSID to: %s", ssid);
   ETS_UART_INTR_DISABLE();
   strcpy((char *)wifi_conf.ssid, ssid); 
   strcpy((char *)wifi_conf.password, password);
@@ -270,8 +269,6 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_test_ap(otb_util_timeout *timeout)
     INFO("WIFI: AP mode has completed ... rebooting");
     otb_wifi_status = OTB_WIFI_STATUS_AP_DONE;
     otb_reset();
-    otb_util_delay_ms(1000);
-    OTB_ASSERT(FALSE);
   }
   else
   {
@@ -280,8 +277,6 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_test_ap(otb_util_timeout *timeout)
       INFO("WIFI: AP mode has timed out ... rebooting");
       otb_wifi_status = OTB_WIFI_STATUS_AP_TIMED_OUT;
       otb_reset();
-      otb_util_delay_ms(1000);
-      OTB_ASSERT(FALSE);
     }
   }
   

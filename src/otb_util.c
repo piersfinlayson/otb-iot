@@ -22,6 +22,222 @@
 #include <limits.h>
 #include <errno.h>
 
+char otb_compile_date[12];
+char otb_compile_time[9];
+char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
+char OTB_MAIN_DEVICE_ID[20];
+
+char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
+char otb_util_log_buf[OTB_UTIL_LOG_BUFFER_LEN];
+otb_util_log_buffer otb_util_log_buffer_struct;
+
+void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
+{
+  char *ws;
+  
+  // DEBUG("UTIL: otb_util_convert_ws_to_ entry");
+  
+  ws = os_strstr(text, " ");
+  while (ws)
+  {
+    *ws = '_';
+    ws = os_strstr(ws, " ");
+  }
+
+  // DEBUG("UTIL: otb_util_convert_ws_to_ exit");
+
+  return;  
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
+{
+  char recovery_str[16];
+
+  if (recovery)
+  {
+    os_strncpy(recovery_str, "/!!!RECOVERY!!!", 16);
+  }
+  else
+  {
+    recovery_str[0] = 0;
+  }
+
+  // Set up and log some useful info
+  os_sprintf(otb_compile_date, "%s", __DATE__);
+  otb_util_convert_ws_to_(otb_compile_date);
+  os_sprintf(otb_compile_time, "%s", __TIME__);
+  otb_util_convert_ws_to_(otb_compile_time);
+  os_snprintf(otb_version_id,
+              OTB_MAIN_MAX_VERSION_LENGTH,
+              "%s/%s/%s/%s",
+              OTB_MAIN_OTB_IOT,
+              OTB_MAIN_FW_VERSION,
+              otb_compile_date, 
+              otb_compile_time);
+  // First log needs a line break!
+  INFO("\nOTB: %s%s", otb_version_id, recovery_str);
+  INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
+  os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
+  INFO("OTB: ESP device: %s", OTB_MAIN_CHIPID);
+  os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
+  INFO("OTB: Free heap size: %d", system_get_free_heap_size());
+  
+  if (recovery)
+  {
+    INFO("");
+    INFO("OTB: ---------------------");
+    INFO("OTB: !!! Recovery Mode !!!");
+    INFO("OTB: ---------------------");
+    INFO("");
+  }
+  return;
+}  
+
+void ICACHE_FLASH_ATTR otb_util_init_logging(void)
+{
+  // Set up serial logging
+  uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
+
+  // Configure ESP SDK logging (only)
+  system_set_os_print(OTB_MAIN_SDK_LOGGING);
+
+  // Initialize our log buffer
+  os_memset(otb_util_log_buf, 0, OTB_UTIL_LOG_BUFFER_LEN);
+  otb_util_log_buffer_struct.buffer = otb_util_log_buf;
+  otb_util_log_buffer_struct.current = otb_util_log_buf;
+  otb_util_log_buffer_struct.len = OTB_UTIL_LOG_BUFFER_LEN;
+
+  // Sanity check uint16 in otb_util_log_buffer is enough
+  OTB_ASSERT(OTB_UTIL_LOG_BUFFER_LEN <= 2^16);
+  
+  // Check log location is on a sector boundary
+  OTB_ASSERT(OTB_BOOT_LOG_LOCATION % 0x1000 == 0);
+  
+  // Check log buffer will fit in a sector
+  OTB_ASSERT(OTB_UTIL_LOG_BUFFER_LEN <= 0x1000);
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_store(void)
+{
+  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
+  char scratch[4];
+  uint8_t mod4;
+  int16_t write_len;
+  uint16_t rem_len;
+  
+  // This is fiddly cos:
+  // - Need to write multiple of 4 bytes
+  // - We are writing a circular buffer
+  // Fixed the first of these by making sure each log is 4 byte aligned, so don't need
+  // to worry here (still does, but buffer will always 4 byte align).
+  
+  // write_len must be signed as may go negative
+  // (as may need to write up 3 bytes too many)
+  write_len = OTB_UTIL_LOG_BUFFER_LEN;
+  
+  // Going to ignore spi_rc - not much we can do if these commands fail
+
+  // Erase the sector
+  spi_rc = spi_flash_erase_sector(OTB_BOOT_LOG_LOCATION / 0x1000);
+  ets_printf("log flash erased\r\n");
+
+  ets_printf("buffer 0x%08x\r\n", otb_util_log_buffer_struct.buffer);
+  ets_printf("current 0x%08x\r\n", otb_util_log_buffer_struct.current);
+
+  // Write from current position to whatever is closest to the end but a total length of
+  // a multiple of 4 bytes
+  rem_len = otb_util_log_buffer_struct.len -
+            (int16_t)(otb_util_log_buffer_struct.current -
+                      otb_util_log_buffer_struct.buffer);
+  mod4 = rem_len % 4;
+  rem_len -= mod4;
+  ets_printf("mod4 %d\r\n", mod4);
+  ets_printf("rem_len %d\r\n", rem_len);
+    
+  spi_rc = spi_flash_write(OTB_BOOT_LOG_LOCATION,
+                           (uint32*)otb_util_log_buffer_struct.current,
+                           (uint32)rem_len);
+  write_len -= rem_len;
+
+  // Now create 4 bytes from what was left over, and the first few bytes of the buffer
+  if (write_len > 0)
+  {
+    os_memcpy(scratch, otb_util_log_buffer_struct.current + rem_len, mod4);
+    os_memcpy(scratch+rem_len, otb_util_log_buffer_struct.buffer, (4-mod4));
+    spi_rc = spi_flash_write(OTB_BOOT_LOG_LOCATION + rem_len,
+                             (uint32*)scratch,
+                             4);
+    write_len -= 4;
+  }
+  
+  if (write_len > 0)
+  {
+    // Ensure multiple of 4 bytes
+    write_len = ((write_len/4) + 1) * 4;
+    
+    // XXX NULL out the extra bytes
+    spi_rc = spi_flash_write(OTB_BOOT_LOG_LOCATION + rem_len + 4,
+                             (uint32*)(otb_util_log_buffer_struct.buffer + (4-mod4)),
+                             write_len);
+  }
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_save(char *text)
+{
+  uint16_t text_len;
+  uint16_t overflow_len;
+  int16_t rem_len;
+  uint8_t mod4;
+  
+  // Get string length plus the NULL terminating bytes, as we'll log this too.
+  text_len = os_strlen(text) + 1;
+
+  rem_len = otb_util_log_buffer_struct.len -
+            (uint16_t)(otb_util_log_buffer_struct.current -
+                       otb_util_log_buffer_struct.buffer);
+           
+  if (rem_len < text_len)
+  {
+    overflow_len = text_len - rem_len;
+    os_memcpy(otb_util_log_buffer_struct.current, text, rem_len);
+    os_memcpy(otb_util_log_buffer_struct.buffer, text+rem_len, overflow_len);
+    otb_util_log_buffer_struct.current = otb_util_log_buffer_struct.buffer + overflow_len;
+    rem_len = otb_util_log_buffer_struct.len - overflow_len;
+  }
+  else if (rem_len >= text_len)
+  {
+    os_memcpy(otb_util_log_buffer_struct.current, text, text_len);
+    otb_util_log_buffer_struct.current += text_len;
+    rem_len = rem_len = text_len;
+  }
+
+  // 4 byte align each log  
+  mod4 = text_len % 4;
+  while (mod4 > 0)
+  {
+    if (rem_len > 0)
+    {
+      *otb_util_log_buffer_struct.current = 0;
+      otb_util_log_buffer_struct.current++;
+    }
+    else
+    {
+      otb_util_log_buffer_struct.current = otb_util_log_buffer_struct.buffer;
+      *otb_util_log_buffer_struct.current = 0;
+      rem_len = otb_util_log_buffer_struct.len;
+    }
+    rem_len--;
+    mod4--;
+  }
+  
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
 {
   if (!OTB_MAIN_DISABLE_OTB_LOGGING)
@@ -29,6 +245,10 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
     ets_printf(text);
     ets_printf("\n");
   }
+  
+  otb_util_log_save(text);
+  
+  return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
@@ -41,11 +261,23 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
     ERROR(value_s);
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
-    otb_reset();
+    otb_error_reset();
     otb_util_delay_ms(1000);
   }
 
   DEBUG("UTIL: otb_util_assert exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_error_reset(void)
+{
+  DEBUG("OTB: otb_error_reset entry");
+  
+  otb_util_log_store();
+  otb_reset();
+  
+  DEBUG("OTB: otb_error_reset exit");
   
   return;
 }
@@ -310,8 +542,7 @@ void ICACHE_FLASH_ATTR otb_init_wifi(void *arg)
     // case we reboot to try the new credentials, or it didn't in which case we'll give
     // station mode another try when we boot up again.
     otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
-    //otb_reset();
-    //OTB_ASSERT(FALSE);
+    otb_reset();
   }
   
   DEBUG("OTB: otb_init_wifi entry");

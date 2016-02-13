@@ -167,9 +167,9 @@ bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects
 libmain2:
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
-otb_objects: clean_otb_main_o $(otbObjects)
+otb_objects: clean_otb_util_o $(otbObjects)
 
-otb_recovery_objects: clean_otb_recovery_o $(otbRecoveryObjects)
+otb_recovery_objects: clean_otb_util_o $(otbRecoveryObjects)
 
 httpd_objects: $(httpdObjects)
 
@@ -233,11 +233,8 @@ flash_initial: flash_boot flash_app flash_recovery
 connect:
 	platformio serialports monitor -b 115200
 
-clean_otb_main_o:
-	@rm -f $(OTB_OBJ_DIR)/otb_main.o
-
-clean_otb_recovery_o:
-	@rm -f $(OTB_OBJ_DIR)/otb_recover.o
+clean_otb_util_o:
+	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
 clean: 
 	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*
