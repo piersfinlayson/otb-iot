@@ -63,9 +63,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
-    // Stagger timer for each temperature sensor.  Start at 1000ms to give
-    // MQTT stack time to start.
-    timer_int = (OTB_DS18B20_REPORT_INTERVAL * ii / otb_ds18b20_count) + 1000;
+    // Stagger timer for each temperature sensor
+    timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
     otb_ds18b20_addresses[ii].timer_int = timer_int;
     os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
     os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
@@ -130,6 +129,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
   return(rc);
 }
 
+char ALIGN4 otb_ds18b20_callback_error_string[] = "DS18B20: MQTT disconnected timeout";
 void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
 {
   int chars;
@@ -209,7 +209,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   {
     ERROR("DS18B20: MQTT disconnected %d ms so resetting", 
     otb_ds18b20_mqtt_disconnected_counter * OTB_DS18B20_REPORT_INTERVAL);
-    otb_reset();
+    otb_reset(otb_ds18b20_callback_error_string);
   }
 
   DEBUG("DS18B20: otb_ds18b20_callback exit");

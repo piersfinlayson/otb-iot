@@ -18,7 +18,8 @@
  */
 
 #define OTB_UTIL_LOG_BUFFER_LEN  512
- 
+#define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
+
 typedef struct otb_util_log_buffer
 {
   // Pointer to buffer (which is otb_util_log_buf)
@@ -46,9 +47,26 @@ extern void otb_util_log_store(void);
 extern void otb_util_log_save(char *text);
 extern void otb_util_log_fn(char *text);
 extern void otb_util_assert(bool value, char *value_s);
-extern void otb_error_reset(void);
-extern void otb_reset(void);
+extern void otb_reset_error(char *text);
+extern void otb_reset(char *text);
+void otb_reset_internal(char *text, bool error);
+bool otb_util_reset_store_reason(char *text);
 extern void otb_util_clear_reset(void);
+bool otb_util_flash_read(uint32 location,
+                         uint32 *dest,
+                         uint32 len);
+bool otb_util_flash_write_string(uint32 location,
+                                 uint32 *source,
+                                 uint32 len);
+bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len);
+void otb_util_get_heap_size(void);
+void otb_util_timer_cancel(os_timer_t *timer);
+bool otb_util_timer_is_set(os_timer_t *timer);
+void otb_util_timer_set(os_timer_t *timer,
+                        os_timer_func_t *timerfunc,
+                        void *arg,
+                        uint32_t timeout,
+                        bool repeat);
 extern bool otb_util_timer_finished(otb_util_timeout *timeout);
 extern void otb_util_delay_ms(uint32_t value);
 extern void otb_util_check_defs(void);
@@ -63,7 +81,6 @@ extern void otb_util_log(bool error,
                          ...);
 extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
-extern void otb_init_wifi(void *arg);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
 

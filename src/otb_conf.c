@@ -165,44 +165,30 @@ void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
   return;
 }
 
+char ALIGN4 otb_conf_load_error_string[] = "CONF: Failed to save new config";
 bool ICACHE_FLASH_ATTR otb_conf_load(void)
 {
+  bool rc;
+
   DEBUG("CONF: otb_conf_load entry");
-  bool rc = TRUE;
-  uint8 tries = 0;
-  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
 
-  // Load the configuration - try twice
-  OTB_ASSERT((sizeof(otb_conf_struct) % 4) == 0);
-  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
+  rc = otb_util_flash_read(OTB_CONF_LOCATION, (uint32 *)otb_conf, sizeof(otb_conf_struct));
+  if (rc)
   {
-    spi_rc = spi_flash_read(OTB_CONF_LOCATION,
-                            (uint32 *)otb_conf,
-                            sizeof(otb_conf_struct));
-  }                        
-  if (tries == 2)
-  {
-    ERROR("CONF: Failed to read config at 0x%08x, error %d", OTB_CONF_LOCATION, spi_rc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-
-  // Check it's OK
-  rc = otb_conf_verify(otb_conf);
-  if (!rc)
-  {
-    // Something serious was wrong with the config we loaded, so recreate.  The precise
-    // error has already been logged by otb_conf_verify
-    otb_conf_init_config(otb_conf); 
-    rc = otb_conf_save(otb_conf);
+    // Check it's OK
+    rc = otb_conf_verify(otb_conf);
     if (!rc)
     {
-      ERROR("CONF: Failed to save new config - rebooting!");
-      otb_error_reset();
+      // Something serious was wrong with the config we loaded, so recreate.  The precise
+      // error has already been logged by otb_conf_verify
+      otb_conf_init_config(otb_conf); 
+      rc = otb_conf_save(otb_conf);
+      if (!rc)
+      {
+        otb_reset_error(otb_conf_load_error_string);
+      }
     }
   }
-
-EXIT_LABEL:
 
   DEBUG("CONF: otb_conf_load exit");
 
@@ -216,21 +202,10 @@ bool ICACHE_FLASH_ATTR otb_conf_save(otb_conf_struct *conf)
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
 
   DEBUG("CONF: otb_conf_save entry");
-  INFO("CONF: Save config");
 
-  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
-  {
-    spi_rc = spi_flash_write(OTB_CONF_LOCATION, (uint32 *)conf, sizeof(otb_conf_struct));
-  }
-
-  if (tries == 2)
-  {
-    ERROR("CONF: Failed to read config at 0x%08x, error %d", OTB_CONF_LOCATION, spi_rc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-
-EXIT_LABEL:
+  rc = otb_util_flash_write((uint32)OTB_CONF_LOCATION,
+                            (uint32 *)conf,
+                            sizeof(otb_conf_struct));
 
   DEBUG("CONF: otb_conf_save exit");
 

@@ -96,13 +96,17 @@ static HttpdConnData ICACHE_FLASH_ATTR *httpdFindConnData(void *arg) {
 
 
 //Retires a connection for re-use
-static void ICACHE_FLASH_ATTR httpdRetireConn(HttpdConnData *conn) {
-	if (conn->post->buff!=NULL) os_free(conn->post->buff);
-	conn->post->buff=NULL;
+void ICACHE_FLASH_ATTR httpdRetireConn(HttpdConnData *conn) {
 	conn->cgi=NULL;
-	conn->conn=NULL;
-	conn->remote_port=0;
-	os_memset(conn->remote_ip, 0, 4);
+	if (!conn->reserved)
+	{
+		if (conn->post->buff!=NULL) os_free(conn->post->buff);
+		conn->post->buff=NULL;
+		conn->cgi=NULL;
+		conn->conn=NULL;
+		conn->remote_port=0;
+		os_memset(conn->remote_ip, 0, 4);
+	}
 }
 
 //Stupid li'l helper function that returns the value of a hex char.
@@ -574,6 +578,7 @@ static void ICACHE_FLASH_ATTR httpdConnectCb(void *arg) {
 	connData[i].hostName=NULL;
 	connData[i].remote_port=conn->proto.tcp->remote_port;
 	os_memcpy(connData[i].remote_ip, conn->proto.tcp->remote_ip, 4);
+	connData[i].reserved = FALSE;
 
 	espconn_regist_recvcb(conn, httpdRecvCb);
 	espconn_regist_reconcb(conn, httpdReconCb);

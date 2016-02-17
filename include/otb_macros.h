@@ -49,3 +49,7 @@
 
 #define os_vsnprintf(A, B, ...)  ets_vsnprintf(A, B, __VA_ARGS__)
 #define os_snprintf ets_snprintf
+
+// Macro to align stuff to 4 byte boundary.  Useful for reading and writing
+// to flash
+#define ALIGN4 __attribute__((aligned(4)))

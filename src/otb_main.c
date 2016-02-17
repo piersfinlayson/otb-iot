@@ -61,11 +61,8 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_init();
   otb_conf_load();
   
-  // Schedule timer to kick off wifi processing
-  os_timer_disarm((os_timer_t*)&init_timer);
-  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_wifi, NULL);
-  os_timer_arm((os_timer_t*)&init_timer, 500, 0);
-
+  system_init_done_cb((init_done_cb_t)otb_wifi_kick_off);
+  
   DEBUG("OTB: user_init exit");
 
   return;

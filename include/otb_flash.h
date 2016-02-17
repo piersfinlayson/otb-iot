@@ -30,7 +30,9 @@
 #define OTB_BOOT_BOOT_LOCATION            0x0  // length 0x1000  = 4KB
 #define OTB_BOOT_BOOT_CONFIG_LOCATION  0x1000  // length 0x1000  = 4KB
 #define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
-#define OTB_BOOT_LOG_LOCATION        0x100000  // length 0x1000  = 4KB
+#define OTB_BOOT_LOG_LOCATION        0x100000  // length 0x0400  = 1KB
+#define OTB_BOOT_LAST_REBOOT_REASON  0x100400  // length 0x0200  = 0.5KB
+#define OTB_BOOT_LAST_REBOOT_LEN        0x200
 #define OTB_BOOT_RESERVED2           0x101000  // length 0x1000  = 4KB
 #define OTB_BOOT_RESERVED3           0x102000  // length 0xFE000 = 896KB
 #define OTB_BOOT_RESERVED4           0x200000  // length 0x1000  = 4KB

@@ -78,9 +78,15 @@ typedef struct otb_conf_struct
   // Wifi SSID. Max is 32, but we want to null terminate.
 #define OTB_CONF_WIFI_SSID_MAX_LEN  33
   char ssid[OTB_CONF_WIFI_SSID_MAX_LEN]; 
+
+  // Whether to keep AP active when station is connected.  By default this is
+  // 0 (false).  Can be changed via wifi or mqtt, the latter either
+  // temporarily or permanently.  AP will always activate when station
+  // disconnects
+  char keep_ap_active;
   
   // Must be set to zero 
-  char pad1[3]; 
+  char pad1[2]; 
   
   // Wifi password.  Max is 63, but we're going to store as a string
 #define OTB_CONF_WIFI_PASSWORD_MAX_LEN  64

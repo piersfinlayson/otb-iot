@@ -25,8 +25,7 @@
 #define OTB_MAIN_MAX_VERSION_LENGTH 12 + 9 + 8 + 8 + 1// date, time, version, root
 #define OTB_MAIN_GPIO_RESET 16
 #define OTB_MAIN_MAX_LOG_LENGTH 1024
-#define OTB_WIFI_DEFAULT_STA_TIMEOUT 30000 // 30 seconds
-#define OTB_WIFI_DEFAULT_AP_TIMEOUT 300000 // 5 minutes
+#define OTB_WIFI_DEFAULT_DISCONNECTED_TIMEOUT 300000 // 5 minutes
 #define OTB_WIFI_DEFAULT_SSID_PREFIX "OTB-IOT"
 #define OTB_WIFI_DEFAULT_DUMMY_SSID "otb-iot-dummy"
 #define OTB_WIFI_MAC_ADDRESS_STRING_LENGTH 18 // 6 * 2 + 5 + 1
@@ -43,8 +42,8 @@
 #define OTB_MAIN_OTB_IOT "otb_iot" // max 8 chars
 #define OTB_MQTT_KEEPALIVE 120 // seconds
 #define OTB_MQTT_ROOT OTB_MAIN_OTB_IOT // max 8 chars
-#define OTB_MQTT_SERVER "192.168.0.162" // DNS hostnames are fine
-#define OTB_MQTT_PORT 1880
+#define OTB_MQTT_SERVER "192.168.0.231" // DNS hostnames are fine
+#define OTB_MQTT_PORT 1883
 #define OTB_MQTT_ALL "all"
 #define OTB_MQTT_LOCATION_1 "home"
 #define OTB_MQTT_LOCATION_2 "office"
@@ -56,6 +55,7 @@
 #define OTB_MQTT_CMD_RESET "reset"
 #define OTB_MQTT_CMD_REBOOT "reboot"
 #define OTB_MQTT_CMD_UPDATE "update"
+#define OTB_MQTT_CMD_HEAP "heap"
 #define OTB_MQTT_CMD_GPIO_GET "get"
 #define OTB_MQTT_CMD_GPIO_SET "set"
 #define OTB_MQTT_PUB_STATUS "status"
@@ -64,7 +64,8 @@
 #define OTB_MQTT_STATUS_VERSION "version"
 #define OTB_MQTT_STATUS_CHIPID "chipid"
 #define OTB_MQTT_STATUS_SLOT "boot_slot"
-#define OTB_MQTT_STATUS_OFFLINE "offline"
+#define OTB_MQTT_STATUS_HEAP "offline"
+#define OTB_MQTT_STATUS_OFFLINE "heap"
 
 // Fixed stuff
 #define OTB_GPIO_ESP_GPIO_PINS 17

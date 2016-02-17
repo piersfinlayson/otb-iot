@@ -29,8 +29,13 @@ char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 char OTB_MAIN_DEVICE_ID[20];
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-char otb_util_log_buf[OTB_UTIL_LOG_BUFFER_LEN];
+
+// Force log buffer to be 4 byte aligned
+uint32 otb_util_log_buf_int32[OTB_UTIL_LOG_BUFFER_LEN/4];
+char *otb_util_log_buf;
 otb_util_log_buffer otb_util_log_buffer_struct;
+
+bool otb_util_asserting;
 
 void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
 {
@@ -81,7 +86,7 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   INFO("OTB: ESP device: %s", OTB_MAIN_CHIPID);
   os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
-  INFO("OTB: Free heap size: %d", system_get_free_heap_size());
+  INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
   
   if (recovery)
   {
@@ -92,17 +97,20 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
     INFO("");
   }
   return;
-}  
+}
 
 void ICACHE_FLASH_ATTR otb_util_init_logging(void)
 {
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
-
+  
+  otb_util_asserting = FALSE;
+  
   // Configure ESP SDK logging (only)
   system_set_os_print(OTB_MAIN_SDK_LOGGING);
 
   // Initialize our log buffer
+  otb_util_log_buf = (char *)otb_util_log_buf_int32;
   os_memset(otb_util_log_buf, 0, OTB_UTIL_LOG_BUFFER_LEN);
   otb_util_log_buffer_struct.buffer = otb_util_log_buf;
   otb_util_log_buffer_struct.current = otb_util_log_buf;
@@ -116,6 +124,8 @@ void ICACHE_FLASH_ATTR otb_util_init_logging(void)
   
   // Check log buffer will fit in a sector
   OTB_ASSERT(OTB_UTIL_LOG_BUFFER_LEN <= 0x1000);
+  
+  OTB_ASSERT((uint32)otb_util_log_buf % 4 == 0);
   
   return;
 }
@@ -213,11 +223,15 @@ void ICACHE_FLASH_ATTR otb_util_log_save(char *text)
   {
     os_memcpy(otb_util_log_buffer_struct.current, text, text_len);
     otb_util_log_buffer_struct.current += text_len;
-    rem_len = rem_len = text_len;
+    rem_len = rem_len - text_len;
   }
 
   // 4 byte align each log  
-  mod4 = text_len % 4;
+  mod4 = ((int32)otb_util_log_buffer_struct.current) % 4;
+  if (mod4 != 0)
+  { 
+    mod4 = 4 - mod4;
+  }
   while (mod4 > 0)
   {
     if (rem_len > 0)
@@ -251,17 +265,19 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
   return;
 }
 
+char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
 void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
 {
   DEBUG("UTIL: otb_util_assert entry");
 
-  if(!value)
+  if(!value && !otb_util_asserting)
   {
+    otb_util_asserting = TRUE;
     ERROR("------------- ASSERTION FAILED -------------");
     ERROR(value_s);
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
-    otb_error_reset();
+    otb_reset_error(otb_util_assert_error_string);
     otb_util_delay_ms(1000);
   }
 
@@ -270,25 +286,52 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_error_reset(void)
+void ICACHE_FLASH_ATTR otb_reset_error(char *text)
 {
-  DEBUG("OTB: otb_error_reset entry");
+  DEBUG("OTB: otb_reset_error entry");
   
-  otb_util_log_store();
-  otb_reset();
+  otb_reset_internal(text, TRUE);
   
-  DEBUG("OTB: otb_error_reset exit");
+  DEBUG("OTB: otb_reset_error exit");
   
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_reset(void)
+void ICACHE_FLASH_ATTR otb_reset(char *text)
 {
   DEBUG("OTB: otb_reset entry");
+  
+  otb_reset_internal(text, FALSE);
+  
+  DEBUG("OTB: otb_reset exit");
+  
+  return;
+}
 
-  // Log resetting and include \n so this log isn't overwritten
-  INFO("OTB: Resetting ...");
-
+void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
+{
+  DEBUG("OTB: otb_reset_internal entry");
+  
+  otb_util_reset_store_reason(text);
+  
+  if (error)
+  {
+    ERROR(OTB_UTIL_REBOOT_TEXT);
+    if (text != NULL)
+    {
+      ERROR(text);
+    }
+    //otb_util_log_store();
+  }
+  else
+  {
+    INFO(OTB_UTIL_REBOOT_TEXT);
+    if (text != NULL)
+    {
+      INFO(text);
+    }    
+  }
+  
   // Delay to give any serial logs time to output.  Can't use arduino delay as
   // may be in wrong context
   otb_util_delay_ms(1000);
@@ -298,9 +341,56 @@ void ICACHE_FLASH_ATTR otb_reset(void)
   WRITE_PERI_REG(RTC_GPIO_OUT,
                    (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
 
-  DEBUG("OTB: otb_reset exit");
- 
+  DEBUG("OTB: otb_reset_internal exit");
+
   return;
+}
+
+bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
+{
+  bool rc = TRUE;
+  uint8 tries = 0;
+  uint16 len;
+  uint8 mod4;
+  char ALIGN4 stored[OTB_BOOT_LAST_REBOOT_LEN];
+
+  DEBUG("UTIL: otb_util_reset_store_reason entry");
+  
+  // First read the current stored string - as only want to write if it differs (so we 
+  // don't write the flash too many times
+  
+  rc = otb_util_flash_read((uint32)OTB_BOOT_LAST_REBOOT_REASON,
+                           (uint32 *)stored,
+                           OTB_BOOT_LAST_REBOOT_LEN);
+  if (rc)
+  {
+    if (os_strncmp(text, stored, OTB_BOOT_LAST_REBOOT_LEN))
+    {
+      len = os_strlen(text);
+      rc = otb_util_flash_write_string((uint32)OTB_BOOT_LAST_REBOOT_REASON,
+                                       (uint32 *)text,
+                                       (uint32)len);
+      if (!rc)
+      {
+        DEBUG("UTIL: Failed to actually store reset reason in flash");
+      }
+    }
+    else
+    {
+      DEBUG("UTIL: New reset reason same as old one");
+    }
+  }
+  
+  if (!rc)
+  {
+    ERROR("UTIL: Failed to store reset reason");
+  }
+ 
+EXIT_LABEL:
+
+  DEBUG("UTIL: otb_util_reset_store_reason exit");
+
+  return rc;
 }
 
 void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
@@ -322,6 +412,168 @@ void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
 
   DEBUG("UTIL: otb_util_clear_reset exit");
 
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_util_flash_read(uint32 location,
+                                           uint32 *dest,
+                                           uint32 len)
+{
+  bool rc = TRUE;
+  uint8 tries;
+  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
+
+  DEBUG("UTIL: otb_util_flash_read_string entry");
+  
+  // Check everything is 4 byte aligned
+  OTB_ASSERT((uint32)location % 4 == 0);
+  OTB_ASSERT((uint32)dest % 4 == 0);
+  OTB_ASSERT((uint32)len % 4 == 0);
+  
+  tries = 0;
+  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
+  {
+    spi_rc = spi_flash_read(location, dest, len);
+  }
+
+  if (tries == 2)
+  {
+    ERROR("UTIL: Failed to read at 0x%08x, error %d", location, spi_rc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+EXIT_LABEL:  
+  
+  DEBUG("UTIL: otb_util_flash_read_string exit");
+  
+  return rc;
+}                                                  
+
+bool ICACHE_FLASH_ATTR otb_util_flash_write_string(uint32 location,
+                                                   uint32 *source,
+                                                   uint32 len)
+{
+  bool rc;
+  uint32 newlen;
+  uint8 mod4;
+  
+  DEBUG("UTIL: otb_util_flash_write_string entry");
+  
+  // 4 byte align the string - this should be safeish - we're not writing past the end
+  // of the passed in string, but we are ready past it so may log some rubbish
+  mod4 = len % 4;
+  newlen = len + (4-mod4);
+
+  rc = otb_util_flash_write(location, source, newlen);
+  
+  DEBUG("UTIL: otb_util_flash_write_string exit");
+  
+  return(rc);
+}
+
+bool ICACHE_FLASH_ATTR otb_util_flash_write(uint32 location, uint32 *source, uint32 len)
+{
+  bool rc = TRUE;
+  uint8 tries;
+  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
+  
+  DEBUG("UTIL: otb_util_flash_write entry");
+  
+  // Check everything is 4 byte aligned
+  OTB_ASSERT((uint32)location % 4 == 0);
+  OTB_ASSERT((uint32)source % 4 == 0);
+  OTB_ASSERT((uint32)len % 4 == 0);
+
+  tries = 0;
+  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
+  {
+    spi_rc = spi_flash_write(location, source, len);
+  }
+
+  if (tries == 2)
+  {
+    ERROR("UTIL: Failed to write at 0x%08x, error %d", location, spi_rc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+EXIT_LABEL:  
+
+  DEBUG("UTIL: otb_util_flash_write exit");
+  
+  return rc;
+}
+ 
+void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
+{
+  uint32 size;
+  char size_s[8];
+
+  DEBUG("UTIL: otb_util_get_heap_size entry");
+  
+  size = system_get_free_heap_size();  
+  os_snprintf(size_s, 8, "%d", size);
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_PUB_STATUS,
+                   OTB_MQTT_STATUS_HEAP,
+                   size_s,
+                   "",
+                   2,
+                   0);
+  
+  
+  DEBUG("UTIL: otb_util_get_heap_size exit");
+
+  return;
+}  
+
+void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)
+{
+
+  DEBUG("UTIL: otb_util_timer_cancel entry");
+  
+  // Set the timer function to NULL so we can test whether this is set
+  os_timer_disarm(timer);
+  os_timer_setfn(timer, (os_timer_func_t *)NULL, NULL);
+  
+  DEBUG("UTIL: otb_util_timer_cancel exit");
+  
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_util_timer_is_set(os_timer_t *timer)
+{
+  bool rc = TRUE;
+  
+  DEBUG("UTIL: otb_util_timer_is_set entry");
+  
+  if (timer->timer_func == NULL)
+  {
+    DEBUG("UTIL: timer isn't set");
+    rc = FALSE;
+  }
+  
+  DEBUG("UTIL: otb_util_timer_is_set exit");
+
+  return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_util_timer_set(os_timer_t *timer,
+                                          os_timer_func_t *timerfunc,
+                                          void *arg,
+                                          uint32_t timeout,
+                                          bool repeat)
+{
+
+  DEBUG("UTIL: otb_util_timer_set entry");
+
+  otb_util_timer_cancel(timer);
+  os_timer_setfn(timer, timerfunc, arg);
+  os_timer_arm(timer, timeout, repeat);
+  
+  DEBUG("UTIL: otb_util_timer_set exit");
+  
   return;
 }
 
@@ -512,42 +764,6 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   // DEBUG("UTIL: otb_util_log_error_via_mqtt exit");
 
   return;
-}
-
-void ICACHE_FLASH_ATTR otb_init_wifi(void *arg)
-{
-  bool rc;
-  OTB_WIFI_STATION_CONFIG wifi_conf;
-  uint8_t wifi_status = OTB_WIFI_STATUS_NOT_CONNECTED;
-
-  DEBUG("OTB: otb_init_wifi entry");
-  
-  INFO("OTB: Set up wifi");
-  rc = otb_wifi_get_stored_conf(&wifi_conf);
-  if (rc)
-  {
-    // No point in trying to connect in station mode if we've no stored config - skip
-    // straight to AP mode
-    wifi_status = otb_wifi_try_sta(wifi_conf.ssid,
-                                   wifi_conf.password,
-                                   wifi_conf.bssid_set,
-                                   wifi_conf.bssid,
-                                   OTB_WIFI_DEFAULT_STA_TIMEOUT);
-  }
-  
-  if ((wifi_status != OTB_WIFI_STATUS_CONNECTED) &&
-      (wifi_status != OTB_WIFI_STATUS_CONNECTING))
-  {
-    // Try AP mode instead.  We _always_ reboot after this, cos either it worked in which
-    // case we reboot to try the new credentials, or it didn't in which case we'll give
-    // station mode another try when we boot up again.
-    otb_wifi_try_ap(OTB_WIFI_DEFAULT_AP_TIMEOUT);
-    otb_reset();
-  }
-  
-  DEBUG("OTB: otb_init_wifi entry");
- 
-  return; 
 }
 
 void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)

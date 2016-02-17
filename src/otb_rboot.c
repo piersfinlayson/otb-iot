@@ -25,6 +25,7 @@ static char otb_update_request[512];
 static const uint8 ota_ip[4] = {192, 168, 0, 162};
 #define HTTP_HEADER "Connection: keep-alive\r\nCache-Control: no-cache\r\nUser-Agent: rBoot-Sample/1.0\r\nAccept: */*\r\n\r\n"
 
+char ALIGN4 otb_rboot_update_callback_error_string[] = "RBOOT: Update successful";
 void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
 {
   bool rc;
@@ -42,18 +43,22 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
     if (rc)
     {
       INFO("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
+      otb_reset(otb_rboot_update_callback_error_string);
     }
     else
     {
       ERROR("RBOOT: Failed to set slot to %d", otb_rboot_ota.rom_slot);
+      goto EXIT_LABEL;
     }
-    otb_reset();
   }
   else
   {
     // Log this as an error so gets sent over MQTT
     ERROR("RBOOT: Update failed");
+    goto EXIT_LABEL;
   }
+  
+EXIT_LABEL:
   
   DEBUG("RBOOT: otb_rboot_update_callback exit");
   

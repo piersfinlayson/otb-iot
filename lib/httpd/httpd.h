@@ -35,6 +35,7 @@ struct HttpdConnData {
 	int remote_port;
 	uint8 remote_ip[4];
 	uint8 slot;
+	bool reserved;
 };
 
 //A struct describing the POST data sent inside the http connection.  This is used by the CGI functions
@@ -69,5 +70,6 @@ void ICACHE_FLASH_ATTR httpdEndHeaders(HttpdConnData *conn);
 int ICACHE_FLASH_ATTR httpdGetHeader(HttpdConnData *conn, char *header, char *ret, int retLen);
 int ICACHE_FLASH_ATTR httpdSend(HttpdConnData *conn, const char *data, int len);
 void ICACHE_FLASH_ATTR httpdFlushSendBuffer(HttpdConnData *conn);
+void ICACHE_FLASH_ATTR httpdRetireConn(HttpdConnData *conn); 
 
 #endif

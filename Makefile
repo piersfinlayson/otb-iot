@@ -103,6 +103,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
+             $(OTB_OBJ_DIR)/otb_httpd.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -116,6 +117,7 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
+             $(OTB_OBJ_DIR)/otb_httpd.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
