@@ -534,7 +534,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
   // Set up LWT (last will and testament)
   os_snprintf(otb_mqtt_topic_s,
               OTB_MQTT_MAX_TOPIC_LENGTH,
-              "/lwt/%s/%s/%s/%s/%s/%s",
+              "/%s/%s/%s/%s/%s/%s",
               OTB_MQTT_ROOT,
               OTB_MQTT_LOCATION_1,
               OTB_MQTT_LOCATION_2,
