@@ -352,6 +352,7 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
   uint8 tries = 0;
   uint16 len;
   uint8 mod4;
+  uint8 spi_rc;
   char ALIGN4 stored[OTB_BOOT_LAST_REBOOT_LEN];
 
   DEBUG("UTIL: otb_util_reset_store_reason entry");
@@ -367,6 +368,7 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
     if (os_strncmp(text, stored, OTB_BOOT_LAST_REBOOT_LEN))
     {
       len = os_strlen(text);
+      spi_rc = spi_flash_erase_sector(OTB_BOOT_LAST_REBOOT_REASON / 0x1000);
       rc = otb_util_flash_write_string((uint32)OTB_BOOT_LAST_REBOOT_REASON,
                                        (uint32 *)text,
                                        (uint32)len);
@@ -489,6 +491,7 @@ bool ICACHE_FLASH_ATTR otb_util_flash_write(uint32 location, uint32 *source, uin
   while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
   {
     spi_rc = spi_flash_write(location, source, len);
+    tries++;
   }
 
   if (tries == 2)

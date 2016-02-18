@@ -81,15 +81,20 @@ extern void otb_wifi_timerfunc(void *arg);
 void otb_wifi_ap_mode_done_fn(void);
 void otb_wifi_ap_done_timerfunc(void *arg);
 bool otb_wifi_set_station_config(char *ssid, char *password);
+bool otb_wifi_ap_quick_start(void);
 extern bool otb_wifi_try_ap();
-extern bool otb_wifi_get_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf);
+bool otb_wifi_ap_stop(void);
 extern void otb_wifi_store_station_connect_error();
 extern void otb_wifi_get_ip_string(uint32_t addr, char *addr_s);
-extern bool otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf);
 extern bool otb_wifi_get_mac_addr(uint8_t if_id, char *mac);
 bool otb_wifi_station_scan(otb_wifi_ap_otb_callback callback, void *arg);
 void otb_wifi_ap_free_list(void);
 void otb_wifi_station_scan_callback(void *arg, STATUS status);
+bool otb_wifi_ap_enable(void);
+bool otb_wifi_ap_disable(void);
+void otb_wifi_ap_keep_alive(void);
+int8 otb_wifi_get_rssi(void);
+void otb_wifi_mqtt_do_rssi(char *msg);
 
 #ifdef OTB_WIFI_C
 
@@ -98,4 +103,6 @@ static volatile os_timer_t otb_wifi_timeout_timer;
 bool otb_wifi_ap_mode_done;
 static uint8_t otb_wifi_status;
 struct otb_wifi_ap_list otb_wifi_ap_list_struct;
+bool otb_wifi_ap_running;
+bool otb_wifi_ap_enabled;
 #endif

@@ -82,11 +82,18 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       modified = TRUE;
     }
   
-    if (os_memcmp(conf->pad1, pad, 3))
+    if (os_memcmp(conf->pad1, pad, sizeof(*(conf->pad1))))
     {
       WARN("CONF: Pad 1 wasn't 0");
       os_memset(conf->pad1, 0, 3); 
       modified = TRUE;
+    }
+    
+    if ((conf->ds18b20s < 0) || (conf->ds18b20s > OTB_DS18B20_MAX_DS18B20S))
+    {
+      WARN("CONF: Invalid number of DS18B20s");
+      conf->ds18b20s = 0;
+      os_memset(conf->ds18b20, 0, OTB_DS18B20_MAX_DS18B20S * sizeof(otb_conf_ds18b20));
     }
   
     for (ii = 0; ii < OTB_DS18B20_MAX_DS18B20S; ii++)
@@ -177,17 +184,28 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
   {
     // Check it's OK
     rc = otb_conf_verify(otb_conf);
+  }
+  
+  if (!rc)
+  {
+    // Something serious was wrong with the config we loaded, so recreate.  The precise
+    // error has already been logged by otb_conf_verify
+    otb_conf_init_config(otb_conf); 
+    rc = otb_conf_save(otb_conf);
     if (!rc)
     {
-      // Something serious was wrong with the config we loaded, so recreate.  The precise
-      // error has already been logged by otb_conf_verify
-      otb_conf_init_config(otb_conf); 
-      rc = otb_conf_save(otb_conf);
-      if (!rc)
-      {
-        otb_reset_error(otb_conf_load_error_string);
-      }
+      otb_reset_error(otb_conf_load_error_string);
+      rc = TRUE;
     }
+  }
+  
+  // Log loaded config
+  otb_conf_log(otb_conf);
+  
+  // Now process the config
+  if (otb_conf->keep_ap_active)
+  {
+    otb_wifi_ap_keep_alive();
   }
 
   DEBUG("CONF: otb_conf_load exit");
@@ -195,14 +213,38 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
   return(rc);
 }
 
+void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
+{
+  int ii;
+
+  DEBUG("CONF: otb_conf_log entry");
+  
+  INFO("CONF: version:  %d", conf->version);
+  INFO("CONF: ssid:     %s", conf->ssid);
+  INFO("CONF: password: ********");
+  INFO("CONF: keep_ap_active: %d", conf->keep_ap_active);
+  INFO("CONF: location1: %s", conf->loc.loc1);
+  INFO("CONF: location2: %s", conf->loc.loc2);
+  INFO("CONF: location3: %s", conf->loc.loc3);
+  INFO("CONF: DS18B20s:  %d", conf->ds18b20s);
+  for (ii = 0; ii < conf->ds18b20s; ii++)
+  {
+    INFO("CONF: DS18B20 #%d address:  ", ii, conf->ds18b20[ii].id);
+    INFO("CONF: DS18B20 #%d location: ", ii, conf->ds18b20[ii].loc);
+  }
+  
+  DEBUG("CONF: otb_conf_log exit");
+  
+  return;
+}
+
 bool ICACHE_FLASH_ATTR otb_conf_save(otb_conf_struct *conf)
 {
-  bool rc = TRUE;
-  uint8 tries = 0;
-  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
+  bool rc;
 
   DEBUG("CONF: otb_conf_save entry");
 
+  spi_flash_erase_sector(OTB_CONF_LOCATION/0x1000);
   rc = otb_util_flash_write((uint32)OTB_CONF_LOCATION,
                             (uint32 *)conf,
                             sizeof(otb_conf_struct));
@@ -262,3 +304,142 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf)
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password)
+{
+  bool rc = TRUE;
+  otb_conf_struct *conf = &otb_conf_private;
+  bool changed = FALSE;
+
+  DEBUG("CONF: otb_conf_store_sta_conf entry");
+  
+  if (os_strncmp(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN) ||
+      os_strncmp(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN))
+  {
+    INFO("CONF: Updating config: ssid, password");
+    os_strncpy(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN);
+    os_strncpy(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN);
+    rc = otb_conf_update(conf);
+    if (!rc)
+    {
+      ERROR("CONF: Failed to update config");
+    }
+  }
+  
+  DEBUG("CONF: otb_conf_store_sta_conf exit");
+  
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_conf_store_ap_enabled(bool enabled)
+{
+  bool rc = TRUE;
+  otb_conf_struct *conf = &otb_conf_private;
+  
+  DEBUG("CONF: otb_conf_store_ap_enabled entry");
+  
+  if (conf->keep_ap_active != enabled)
+  {
+    INFO("CONF: Updating config: keep_ap_active");
+    conf->keep_ap_active = enabled;
+    rc = otb_conf_update(conf);
+    if (!rc)
+    {
+      ERROR("CONF: Failed to update config");
+    }
+  }
+  
+  DEBUG("CONF: otb_conf_store_ap_enabled exit");
+  
+  return(rc);
+}
+
+bool ICACHE_FLASH_ATTR otb_conf_update(otb_conf_struct *conf)
+{
+  bool rc;
+  
+  DEBUG("CONF: otb_conf_update entry");
+
+  conf->checksum = otb_conf_calc_checksum(conf);
+  rc = otb_conf_save(conf);
+
+  DEBUG("CONF: otb_conf_update exit");
+
+  return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_conf_update_loc(char *loc)
+{
+  int len;
+  char *loc_text;
+  int loc_num;
+  bool rc = FALSE;
+  otb_conf_struct *conf;
+
+  DEBUG("CONF: otb_conf_update entry");
+  
+  conf = &otb_conf_private;
+  
+  loc_num = atoi(loc+3);
+  if ((loc_num < 0) || (loc_num > 3))
+  {
+    WARN("CONF: Invalid location %d", loc_num);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+  loc_text = os_strstr(loc, ":");
+  if (loc_text == NULL)
+  {
+    WARN("CONF: Invalid location string %s", loc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+  // len = 1 means only a colon
+  len = os_strlen(loc_text);
+  if ((len < 1) || (len > (OTB_CONF_LOCATION_MAX_LEN)))
+  {
+    WARN("CONF: Invalid location string %s", loc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+  // Go past the colon, which may be null terminator - which is OK
+  loc_text++;
+  switch (loc_num)
+  {
+    case 1:
+      os_strncpy(conf->loc.loc1, loc_text, OTB_CONF_LOCATION_MAX_LEN);
+      break;
+    
+    case 2:
+      os_strncpy(conf->loc.loc2, loc_text, OTB_CONF_LOCATION_MAX_LEN);
+      break;
+    
+    case 3:
+      os_strncpy(conf->loc.loc3, loc_text, OTB_CONF_LOCATION_MAX_LEN);
+      break;
+    
+    default:
+      // Only get here if sloppy coding as checked loc_num above!
+      OTB_ASSERT(FALSE);
+      break;
+  }
+  
+  rc = otb_conf_update(conf);
+  if (!rc)
+  {
+    ERROR("CONF: Failed to update config");
+  }
+  
+EXIT_LABEL:
+
+  if (!rc)
+  {
+    otb_mqtt_report_error("loc","");
+  }
+  
+  DEBUG("CONF: otb_conf_update exit");
+ 
+  return; 
+}

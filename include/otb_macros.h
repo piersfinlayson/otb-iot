@@ -53,3 +53,7 @@
 // Macro to align stuff to 4 byte boundary.  Useful for reading and writing
 // to flash
 #define ALIGN4 __attribute__((aligned(4)))
+
+#define OTB_MQTT_LOCATION_1  otb_conf->loc.loc1
+#define OTB_MQTT_LOCATION_2  otb_conf->loc.loc2
+#define OTB_MQTT_LOCATION_3  otb_conf->loc.loc3

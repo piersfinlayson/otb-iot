@@ -24,6 +24,12 @@ extern void otb_mqtt_publish(MQTT_Client *mqtt_client,
                              char *extra_message,
                              uint8_t qos,
                              bool retain);
+void otb_mqtt_handle_loc(char **loc1,
+                         char **loc1_,
+                         char **loc2,
+                         char **loc2_,
+                         char **loc3,
+                         char **loc3_);
 extern void otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                                char *subtopic,
                                char *extra_subtopic,
@@ -43,3 +49,5 @@ extern void otb_mqtt_initialize(char *host,
                                 char *mqtt_username,
                                 char *mqtt_password,
                                 uint16_t keepalive);
+void otb_mqtt_report_error(char *cmd, char *error);
+void otb_mqtt_report_status(char *cmd, char *status);

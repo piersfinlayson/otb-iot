@@ -40,6 +40,7 @@ void ICACHE_FLASH_ATTR otb_wifi_init(void)
   os_memset(&otb_wifi_ap_list_struct, 0, sizeof(otb_wifi_ap_list_struct));
 
   otb_wifi_ap_mode_done = FALSE;
+  otb_wifi_ap_running = FALSE;
 
   DEBUG("WIFI: otb_wifi_init exit");
 
@@ -53,8 +54,9 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
   switch (event->event)
   {
     case EVENT_STAMODE_CONNECTED:
+      // Not really connected til gets IP!
       DEBUG("WIFI: Event - station connected");
-      otb_wifi_status == OTB_WIFI_STATUS_CONNECTING;
+      otb_wifi_status = OTB_WIFI_STATUS_CONNECTING;
       break;
       
     case EVENT_STAMODE_DISCONNECTED:
@@ -63,7 +65,7 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
         // Only log if interesting - when disconnected keeps doing this!
         INFO("WIFI: Event - station disconnected");
       }
-      otb_wifi_status == OTB_WIFI_STATUS_CONNECTING;
+      otb_wifi_status = OTB_WIFI_STATUS_CONNECTING;
       break;
       
     case EVENT_STAMODE_AUTHMODE_CHANGE:
@@ -88,7 +90,6 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
     case EVENT_SOFTAPMODE_STADISCONNECTED: 
       // Assume SDK will be retrying
       INFO("WIFI: Event - AP mode - station disconnected");
-      otb_wifi_status == OTB_WIFI_STATUS_CONNECTING;
       break;
       
     case EVENT_SOFTAPMODE_PROBEREQRECVED:
@@ -100,19 +101,32 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       break;
   }
   
-  if (((otb_wifi_status == OTB_WIFI_STATUS_CONNECTING) ||
-       (otb_wifi_status == OTB_WIFI_STATUS_PERMANENTLY_FAILED)) &&
-      !otb_wifi_timeout_is_set())
+  if ((otb_wifi_status == OTB_WIFI_STATUS_CONNECTING) ||
+       (otb_wifi_status == OTB_WIFI_STATUS_PERMANENTLY_FAILED))
   {
-    DEBUG("WIFI: Disconnected - start timeout");
-    otb_wifi_timeout_set_timer();
+    DEBUG("WIFI: Disconnected - start AP");
+    if (!otb_wifi_ap_running)
+    {
+      otb_wifi_ap_quick_start();
+    }
+    if (!otb_wifi_timeout_is_set)
+    {
+      otb_wifi_timeout_set_timer();
+    } 
+    if (!otb_util_timer_is_set((os_timer_t *)&otb_wifi_timer))
+    {
+      // Start up the wifi timer.  This fires every second until the station is connected.
+      // This is different from the wifi timeout timer which only runs while station is
+      // disconnected
+      otb_util_timer_set((os_timer_t*)&otb_wifi_timer, 
+                         (os_timer_func_t *)otb_wifi_timerfunc,
+                         NULL,
+                         1000,
+                         1);
+    }
   }
-  else if ((otb_wifi_status == OTB_WIFI_STATUS_CONNECTED) &&
-           otb_wifi_timeout_is_set())
-  {
-    DEBUG("WIFI: Connected - stop timeout");
-    otb_wifi_timeout_cancel_timer();
-  }
+  
+  // Don't need to worry about connected - timer will catch this
     
   DEBUG("WIFI: otb_wifi_event_handler exit");
 
@@ -195,20 +209,8 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   DEBUG("WIFI: otb_wifi_try_sta entry");
 
   // First of all check we're disconnected!
-  wifi_station_connect();
+  wifi_station_disconnect();
   
-  // Put wifi into station mode.
-  if(wifi_get_opmode() != STATION_MODE)
-  {
-    // No need to store this persistently (wifi_set_opmode instead)
-    DEBUG("WIFI: Set STA mode");
-    ETS_UART_INTR_DISABLE();
-    wifi_set_opmode_current(STATION_MODE);
-    ETS_UART_INTR_ENABLE();
-  }
-
-  // DON'T log password for security reasons!
-  INFO("WIFI: Set SSID to: %s", ssid);
   ETS_UART_INTR_DISABLE();
   strcpy((char *)wifi_conf.ssid, ssid); 
   strcpy((char *)wifi_conf.password, password);
@@ -252,15 +254,18 @@ EXIT:
   return(rc);
 }
 
-char ALIGN4 otb_wifi_kick_off_error_string[] = "WIFI: Failed to start station or AP";
+char ALIGN4 otb_wifi_kick_off_error_string[] = "WIFI: Failed to start AP";
 void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
 {
   bool rc;
   bool rc1;
   bool rc2;
+#if 0  
   OTB_WIFI_STATION_CONFIG wifi_conf;
+#endif   
   DEBUG("WIFI: otb_wifi_kick_off entry");
-  
+
+#if 0  
   rc = otb_wifi_get_stored_conf(&wifi_conf);
   if (!rc)
   {
@@ -268,14 +273,15 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
     wifi_conf.ssid[0] = 0;
     wifi_conf.password[0] = 0;
   }
+#endif
 
-  rc1 = otb_wifi_try_sta(wifi_conf.ssid,
-                         wifi_conf.password,
+  rc1 = otb_wifi_try_sta(otb_conf->ssid,
+                         otb_conf->password,
                          FALSE,
                          NULL);
   rc2 = otb_wifi_try_ap();
   
-  if (!rc || !rc)
+  if (!rc2)
   {
     otb_reset(otb_wifi_kick_off_error_string);
   }
@@ -328,6 +334,8 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
       
       // Disable wifi timer now connect (so this function doesn't get called again)
       otb_util_timer_cancel((os_timer_t*)&otb_wifi_timer);
+      otb_wifi_timeout_cancel_timer();
+      otb_wifi_ap_stop();
     }
     else
     {
@@ -337,6 +345,10 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
       otb_wifi_status = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
       wifi_station_disconnect();
       wifi_station_connect();
+      if (!otb_wifi_ap_running)
+      {
+        otb_wifi_ap_quick_start();
+      }
       if (!otb_wifi_timeout_is_set())
       {
         otb_wifi_timeout_set_timer();
@@ -390,10 +402,14 @@ void ICACHE_FLASH_ATTR otb_wifi_ap_done_timerfunc(void *arg)
 bool ICACHE_FLASH_ATTR otb_wifi_set_station_config(char *ssid, char *password)
 {
   bool rc;
+#if 0  
   OTB_WIFI_STATION_CONFIG wifi_conf;
+#endif
   
   DEBUG("WIFI: otb_wifi_set_station_config entry");
   
+  rc = otb_conf_store_sta_conf(ssid, password);
+#if 0  
   rc = otb_wifi_get_stored_conf(&wifi_conf);
   if (rc)
   {
@@ -402,13 +418,32 @@ bool ICACHE_FLASH_ATTR otb_wifi_set_station_config(char *ssid, char *password)
     strncpy((char *)wifi_conf.password, password, 64);
     rc = otb_wifi_set_stored_conf(&wifi_conf);
   }
+#endif
     
   DEBUG("WIFI: otb_wifi_set_station_config exit");
   
   return(rc);
 }
 
-bool ICACHE_FLASH_ATTR otb_wifi_try_ap()
+// Only use this one after first time
+bool ICACHE_FLASH_ATTR otb_wifi_ap_quick_start(void)
+{
+  bool rc;
+
+  DEBUG("WIFI: otb_wifi_ap_quick_start entry");
+
+  rc = wifi_set_opmode_current(STATIONAP_MODE);
+
+  otb_wifi_ap_running = TRUE;
+
+  INFO("WIFI: Started AP");
+
+  DEBUG("WIFI: otb_wifi_ap_quick_start exit");
+  
+  return(rc);
+}
+
+bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
 {
   struct softap_config ap_conf;
   struct softap_config ap_conf_current;
@@ -437,6 +472,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap()
   ap_conf.beacon_interval = 100;
   ETS_UART_INTR_DISABLE();
   // We need to be in stations _and_ AP mode, as station mode is required to scan
+  // Should test rc
   wifi_set_opmode_current(STATIONAP_MODE);
   if (os_memcmp(&ap_conf, &ap_conf_current, sizeof(ap_conf)))
   {
@@ -447,16 +483,42 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap()
   ETS_UART_INTR_ENABLE();
   INFO("WIFI: Started AP");
   
-  // Not testing return code - if this fails, user can try again when tey connect
+  // Not testing return code - if this fails, user can try again when they connect
   // otb_wifi_station_scan(NULL, NULL);
 
   otb_httpd_start();
   
+  otb_wifi_timeout_set_timer();
+  otb_wifi_ap_running = TRUE;
+
   DEBUG("WIFI: otb_wifi_try_ap exit");
 
   return(rc);
 }
 
+bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
+{
+  bool rc;
+
+  DEBUG("WIFI: otb_wifi_ap_stop entry");
+  
+  otb_wifi_ap_running = FALSE;
+
+  otb_wifi_timeout_cancel_timer();
+  
+  if (!otb_wifi_ap_enabled)
+  {
+    rc = wifi_set_opmode_current(STATION_MODE);
+    INFO("WIFI: Stopped AP");
+  }
+  
+
+  DEBUG("WIFI: otb_wifi_ap_stop exit");
+  
+  return(rc);
+}
+
+#if 0
 // wifi_conf = address to store struct in
 bool ICACHE_FLASH_ATTR otb_wifi_get_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf)
 {
@@ -470,6 +532,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_get_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_co
   
   return rc;
 }
+#endif
 
 void ICACHE_FLASH_ATTR otb_wifi_store_station_connect_error()
 {
@@ -499,6 +562,7 @@ void ICACHE_FLASH_ATTR otb_wifi_get_ip_string(uint32_t addr, char *addr_s)
   return;
 }
 
+#if 0
 bool ICACHE_FLASH_ATTR otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf)
 {
   bool rc;
@@ -513,6 +577,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_co
   
   return(rc);
 }
+#endif
 
 bool ICACHE_FLASH_ATTR otb_wifi_get_mac_addr(uint8_t if_id, char *mac)
 {
@@ -603,6 +668,8 @@ void otb_wifi_station_scan_callback(void *arg, STATUS status)
   
   DEBUG("WIFI: otb_wifi_station_scan_ballback entry");
 
+  INFO("WIFI: Station scan completed");
+
   otb_wifi_ap_list_struct.ap_count = 0;
 
   if (status != OK)
@@ -660,5 +727,94 @@ EXIT_LABEL:
   
   DEBUG("WIFI: otb_wifi_station_scan_ballback exit");
 
+  return;
+}
+
+// Used to enable AP while station is connected
+bool ICACHE_FLASH_ATTR otb_wifi_ap_enable(void)
+{
+  bool rc;
+  
+  DEBUG("WIFI: otb_wifi_ap_enable entry");
+  
+  otb_wifi_ap_enabled = TRUE;
+  
+  rc = otb_conf_store_ap_enabled(TRUE);
+  
+  otb_wifi_ap_quick_start();
+  
+  DEBUG("WIFI: otb_wifi_ap_enable exit");
+  
+  return(rc);
+}
+
+// Used to disable AP while station is connected
+bool ICACHE_FLASH_ATTR otb_wifi_ap_disable(void)
+{
+  bool rc;
+  
+  DEBUG("WIFI: otb_wifi_ap_disable entry");
+  
+  otb_wifi_ap_enabled = FALSE;
+  
+  rc = otb_conf_store_ap_enabled(FALSE);
+  
+  if (otb_wifi_status == OTB_WIFI_STATUS_CONNECTED)  
+  {
+    otb_wifi_ap_stop();
+  }
+  
+  DEBUG("WIFI: otb_wifi_ap_disable exit");
+  
+  return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_wifi_ap_keep_alive(void)
+{
+
+  DEBUG("WIFI: otb_wifi_ap_keep_alive entry");
+  
+  otb_wifi_ap_enabled = TRUE;  
+  DEBUG("WIFI: otb_wifi_ap_keep_alive exit");
+  
+  return;
+}
+
+int8 ICACHE_FLASH_ATTR otb_wifi_get_rssi(void)
+{
+  int8 rc;
+
+  DEBUG("WIFI: otb_wifi_get_rssi entry");
+  
+  // Strictly we shouldn't call until we're sure we're connected, but currently only do
+  // this on receipt of MQTT message, which means we're connected!
+  rc = wifi_station_get_rssi();
+  
+  DEBUG("WIFI: otb_wifi_get_rssi exit");
+
+  return rc;
+}
+
+void ICACHE_FLASH_ATTR otb_wifi_mqtt_do_rssi(char *msg)
+{
+  int8 rssi;
+  char strength[8];
+  
+  DEBUG("WIFI: otb_wifi_mqtt_do_rssi entry");
+
+  rssi = otb_wifi_get_rssi();
+  // 31 is error code according to the SDK
+  if (rssi != 31)
+  {
+    os_snprintf(strength, 8, "%d", rssi);
+    otb_mqtt_report_status(OTB_MQTT_CMD_WIFI_STRENGTH, strength);
+  }
+  else
+  {
+    otb_mqtt_report_error(OTB_MQTT_CMD_WIFI_STRENGTH, "");
+  }
+
+  DEBUG("WIFI: otb_wifi_mqtt_do_rssi exit");
+  
   return;
 }

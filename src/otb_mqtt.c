@@ -32,10 +32,13 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                                         uint8_t qos,
                                         bool retain)
 {
+  char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
   int chars;
 
   DEBUG("MQTT: otb_mqtt_publish entry");
 
+  otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
+  
   if (extra_message[0] == 0)
   {
     chars = os_snprintf(otb_mqtt_msg_s, OTB_MQTT_MAX_MSG_LENGTH, "%s", message);
@@ -53,11 +56,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MAIN_CHIPID,
                 subtopic);
   }
@@ -65,22 +71,68 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MAIN_CHIPID,
                 subtopic,
                 extra_subtopic);
   }
   
-  DEBUG("MQTT: Publish topic: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:       message: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:           qos: %d retain: %d", qos, retain);
+  INFO("MQTT: Publish topic: %s", otb_mqtt_topic_s);
+  INFO("MQTT:       message: %s", otb_mqtt_msg_s);
+  INFO("MQTT:           qos: %d retain: %d", qos, retain);
   MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
 
   DEBUG("MQTT: otb_mqtt_publish exit");
+
+  return;
+}
+
+// Need to statically assign, rather than from stack
+char otb_mqtt_string_empty[] = "";
+char otb_mqtt_string_slash[] = "/";
+void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
+                                           char **loc1_,
+                                           char **loc2,
+                                           char **loc2_,
+                                           char **loc3,
+                                           char **loc3_)
+{
+
+  DEBUG("MQTT: otb_mqtt_handle_loc entry");
+  
+  // Initialize
+  *loc1 = otb_mqtt_string_empty;
+  *loc1_ = otb_mqtt_string_empty;
+  *loc2 = otb_mqtt_string_empty;
+  *loc2_ = otb_mqtt_string_empty;
+  *loc3 = otb_mqtt_string_empty;
+  *loc3_ = otb_mqtt_string_empty;
+
+  // Just omit a location if empty
+  if (OTB_MQTT_LOCATION_1[0] != 0)
+  {
+    *loc1_ = otb_mqtt_string_slash;
+    *loc1 = OTB_MQTT_LOCATION_1;
+  }
+  if (OTB_MQTT_LOCATION_2[0] != 0)
+  {
+    *loc2_ = otb_mqtt_string_slash;
+    *loc2 = OTB_MQTT_LOCATION_2;
+  }
+  if (OTB_MQTT_LOCATION_3[0] != 0)
+  {
+    *loc3_ = otb_mqtt_string_slash;
+    *loc3 = OTB_MQTT_LOCATION_3;
+  }
+
+  DEBUG("MQTT: otb_mqtt_handle_loc exit");
 
   return;
 }
@@ -90,18 +142,24 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                                           char *extra_subtopic,
                                           uint8_t qos)
 {
+  char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
 
   DEBUG("MQTT: otb_mqtt_subscribe entry");
 
+  otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
+  
   if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MAIN_CHIPID,
                 subtopic);
   }
@@ -109,17 +167,20 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MAIN_CHIPID,
                 subtopic,
                 extra_subtopic);
   }
   
-  DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
+  INFO("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:             qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
@@ -128,11 +189,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MQTT_ALL,
                 subtopic);
   }
@@ -140,17 +204,20 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s/%s",
+                "/%s%s%s%s%s%s%s/%s/%s/%s",
                 OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
                 OTB_MQTT_ALL,
                 subtopic,
                 extra_subtopic);
   }
   
-  DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
+  INFO("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:             qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
@@ -259,6 +326,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_published(uint32_t *client)
 	DEBUG("MQTT: otb_mqtt_on_published exit");
 }
 
+char ALIGN4 otb_mqtt_reset_error_string[] = "MQTT: System command reset/reboot";
 void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
                                                    const char* topic,
                                                    uint32_t topic_len,
@@ -317,7 +385,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       if ((!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_RESET)) ||
           (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_REBOOT)))
       {
-        otb_reset("MQTT: System command reset/reboot");
+        otb_reset(otb_mqtt_reset_error_string);
       }
       else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
       {
@@ -335,6 +403,32 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       else if (!strncmp(otb_mqtt_msg_s, OTB_MQTT_CMD_HEAP, strlen(OTB_MQTT_CMD_HEAP)))
       {
         otb_util_get_heap_size();
+      }
+      else if (!strncmp(otb_mqtt_msg_s,
+                        OTB_MQTT_CMD_AP_ENABLE,
+                        strlen(OTB_MQTT_CMD_AP_ENABLE)))
+      {
+        otb_wifi_ap_enable();
+      }
+      else if (!strncmp(otb_mqtt_msg_s,
+                        OTB_MQTT_CMD_AP_DISABLE,
+                        strlen(OTB_MQTT_CMD_AP_DISABLE)))
+      {
+        otb_wifi_ap_disable();
+      }
+      else if ((!strncmp(otb_mqtt_msg_s, "loc1", 4)) ||
+               (!strncmp(otb_mqtt_msg_s, "loc2", 4)) ||
+               (!strncmp(otb_mqtt_msg_s, "loc3", 4)))
+      {
+        otb_conf_update_loc(otb_mqtt_msg_s);
+      }
+      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_WIFI_STRENGTH))
+      {
+        otb_wifi_mqtt_do_rssi(otb_mqtt_msg_s);
+      }
+      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_PING))
+      {
+        otb_mqtt_report_status(OTB_MQTT_STATUS_PONG, "");
       }
       else
       {
@@ -442,4 +536,40 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 
 	DEBUG("MQTT: otb_mqtt_initialize exit");
 
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
+{
+
+  DEBUG("MQTT: otb_mqtt_report_error entry");
+  
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_PUB_ERROR,
+                   "",
+                   cmd,
+                   error,
+                   2,
+                   0);  
+
+  DEBUG("MQTT: otb_mqtt_report_error exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_report_status(char *cmd, char *status)
+{
+
+  DEBUG("MQTT: otb_mqtt_report_status entry");
+  
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_PUB_STATUS,
+                   "",
+                   cmd,
+                   status,
+                   2,
+                   0);  
+
+  DEBUG("MQTT: otb_mqtt_report_status exit");
+
+  return;
 }

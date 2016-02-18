@@ -21,8 +21,8 @@
 #define OTB_CONF_H
 
 // Choosing 0x200000 as second boot image is at 0x202000
-#define OTB_CONF_LOCATION 0x200000
-#define OTB_CONF_MAX_CONF_SIZE 0x1000
+#define OTB_CONF_LOCATION OTB_BOOT_CONF_LOCATION
+#define OTB_CONF_MAX_CONF_SIZE OTB_BOOT_CONF_LEN
 
 // Randomly generated 32-bit int
 #define OTB_CONF_MAGIC 0x3B1EC363  
@@ -84,9 +84,12 @@ typedef struct otb_conf_struct
   // temporarily or permanently.  AP will always activate when station
   // disconnects
   char keep_ap_active;
+
+  // Number of configured DS18B20s
+  uint8_t ds18b20s;
   
   // Must be set to zero 
-  char pad1[2]; 
+  char pad1[1]; 
   
   // Wifi password.  Max is 63, but we're going to store as a string
 #define OTB_CONF_WIFI_PASSWORD_MAX_LEN  64
@@ -111,9 +114,14 @@ void otb_conf_init(void);
 bool otb_conf_verify(otb_conf_struct *conf);
 void otb_conf_init_config(otb_conf_struct *conf);
 bool otb_conf_load(void);
+void otb_conf_log(otb_conf_struct *conf);
 bool otb_conf_save(otb_conf_struct *conf);
 uint16_t otb_conf_calc_checksum(otb_conf_struct *conf);
 bool otb_conf_verify_checksum(otb_conf_struct *conf);
+bool otb_conf_store_sta_conf(char *ssid, char *password);
+bool otb_conf_store_ap_enabled(bool enable);
+bool otb_conf_update(otb_conf_struct *conf);
+void otb_conf_update_loc(char *loc);
 
 #ifdef OTB_CONF_C
 

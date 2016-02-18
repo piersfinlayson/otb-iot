@@ -45,9 +45,6 @@
 #define OTB_MQTT_SERVER "192.168.0.231" // DNS hostnames are fine
 #define OTB_MQTT_PORT 1883
 #define OTB_MQTT_ALL "all"
-#define OTB_MQTT_LOCATION_1 "home"
-#define OTB_MQTT_LOCATION_2 "office"
-#define OTB_MQTT_LOCATION_3 "rad"
 #define OTB_MQTT_TEMPERATURE "temp"
 #define OTB_MQTT_LOCATION_4_OPT "rad"
 #define OTB_MQTT_CMD_SYSTEM "system"
@@ -56,9 +53,13 @@
 #define OTB_MQTT_CMD_REBOOT "reboot"
 #define OTB_MQTT_CMD_UPDATE "update"
 #define OTB_MQTT_CMD_HEAP "heap"
+#define OTB_MQTT_CMD_WIFI_STRENGTH "rssi"
 #define OTB_MQTT_CMD_GPIO_GET "get"
 #define OTB_MQTT_CMD_GPIO_SET "set"
+#define OTB_MQTT_CMD_AP_ENABLE "ap_enable"
+#define OTB_MQTT_CMD_AP_DISABLE "ap_disable"
 #define OTB_MQTT_PUB_STATUS "status"
+#define OTB_MQTT_CMD_PING "ping"
 #define OTB_MQTT_PUB_LOG "log"
 #define OTB_MQTT_STATUS_BOOTED "booted"
 #define OTB_MQTT_STATUS_VERSION "version"
@@ -66,6 +67,8 @@
 #define OTB_MQTT_STATUS_SLOT "boot_slot"
 #define OTB_MQTT_STATUS_HEAP "offline"
 #define OTB_MQTT_STATUS_OFFLINE "heap"
+#define OTB_MQTT_STATUS_PONG "pong"
+#define OTB_MQTT_PUB_ERROR "error"
 
 // Fixed stuff
 #define OTB_GPIO_ESP_GPIO_PINS 17

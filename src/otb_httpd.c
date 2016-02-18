@@ -280,6 +280,8 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                             "<p>Password</p>"
                             "<input type=\"password\" name=\"password\" />"
                             "<p/>"
+                            "<p>Disable AP when station connected "
+                            "<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
                             "<input type=\"submit\" value=\"Store\">"
                             "</form>");
   
