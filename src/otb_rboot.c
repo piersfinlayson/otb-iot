@@ -43,6 +43,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
     if (rc)
     {
       INFO("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
+      // XXX Doesn't give system time to actually send the status
       otb_mqtt_report_status(OTB_MQTT_CMD_UPDATE, OTB_MQTT_STATUS_OK);
       otb_reset(otb_rboot_update_callback_error_string);
     }

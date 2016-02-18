@@ -68,7 +68,14 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
     otb_ds18b20_addresses[ii].timer_int = timer_int;
     os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
     os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
-    os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 0);
+    if (timer_int != OTB_DS18B20_REPORT_INTERVAL)
+    {
+      os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 0);
+    }
+    else
+    {
+      os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 1);
+    }
   }
   
   DEBUG("DS18B20: otb_ds18b20_initialize entry");

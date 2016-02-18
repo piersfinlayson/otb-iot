@@ -84,9 +84,11 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Publish topic: %s", otb_mqtt_topic_s);
-  INFO("MQTT:       message: %s", otb_mqtt_msg_s);
-  INFO("MQTT:           qos: %d retain: %d", qos, retain);
+  INFO("MQTT: Publish: %s %s qos: %d retain: %d",
+       otb_mqtt_topic_s,
+       otb_mqtt_msg_s,
+       qos,
+       retain);
   MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
 
   DEBUG("MQTT: otb_mqtt_publish exit");
