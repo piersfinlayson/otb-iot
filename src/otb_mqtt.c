@@ -261,31 +261,13 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
   mqtt_client = (MQTT_Client*)client;
 
   // Now publish status.  First off booted.  Don't need to retain this.
-  otb_mqtt_publish(mqtt_client,
-                   OTB_MQTT_PUB_STATUS,
-                   OTB_MQTT_STATUS_BOOTED,
-                   "",
-                   "",
-                   2,
-                   0);
+  otb_mqtt_report_status(OTB_MQTT_STATUS_BOOTED, "");
                    
   // Now version ID.  Need to retain this.                 
-  otb_mqtt_publish(mqtt_client,
-                   OTB_MQTT_PUB_STATUS,
-                   OTB_MQTT_STATUS_VERSION,
-                   OTB_MAIN_VERSION_ID,
-                   "",
-                   2,
-                   1);
+  otb_mqtt_report_status(OTB_MQTT_STATUS_VERSION, OTB_MAIN_VERSION_ID);
 
   // Now Chip ID.  Need to retain this.                 
-  otb_mqtt_publish(mqtt_client,
-                   OTB_MQTT_PUB_STATUS,
-                   OTB_MQTT_STATUS_CHIPID,
-                   OTB_MAIN_CHIPID,
-                   "",
-                   2,
-                   1);
+  otb_mqtt_report_status(OTB_MQTT_STATUS_CHIPID, OTB_MAIN_CHIPID);
 
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
@@ -340,6 +322,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   int no1;
   int no2;
   bool rc;
+  char response[8];
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
@@ -385,36 +368,58 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       if ((!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_RESET)) ||
           (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_REBOOT)))
       {
+        otb_mqtt_report_status(otb_mqtt_msg_s, OTB_MQTT_STATUS_OK);
         otb_reset(otb_mqtt_reset_error_string);
       }
       else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
       {
         // Call upgrage function with pointer to end of update and one char for the colon!
+        // This function handles response
         otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
       }
-      else if (!memcmp(otb_mqtt_msg_s, "set_boot_slot", 13))
+      // Use memcmp here as extra stuff on the end
+      else if (!os_memcmp(otb_mqtt_msg_s,
+                          OTB_MQTT_CMD_SET_BOOT_SLOT,
+                          strlen(OTB_MQTT_CMD_SET_BOOT_SLOT)))
       {
+        // This function sends the response
         otb_rboot_update_slot(otb_mqtt_msg_s);
       }
-      else if (!memcmp(otb_mqtt_msg_s, "get_boot_slot", 13))
+      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GET_BOOT_SLOT))
       {
+        // This function sends the response
         otb_rboot_get_slot(TRUE);
       }
       else if (!strncmp(otb_mqtt_msg_s, OTB_MQTT_CMD_HEAP, strlen(OTB_MQTT_CMD_HEAP)))
       {
+        // This function sends the response
         otb_util_get_heap_size();
       }
       else if (!strncmp(otb_mqtt_msg_s,
                         OTB_MQTT_CMD_AP_ENABLE,
                         strlen(OTB_MQTT_CMD_AP_ENABLE)))
       {
-        otb_wifi_ap_enable();
+        if (otb_wifi_ap_enable())
+        {
+          otb_mqtt_report_status(OTB_MQTT_CMD_AP_ENABLE, OTB_MQTT_STATUS_OK);
+        }
+        else
+        {
+          otb_mqtt_report_error(OTB_MQTT_CMD_AP_ENABLE, "");
+        }
       }
       else if (!strncmp(otb_mqtt_msg_s,
                         OTB_MQTT_CMD_AP_DISABLE,
                         strlen(OTB_MQTT_CMD_AP_DISABLE)))
       {
-        otb_wifi_ap_disable();
+        if (otb_wifi_ap_disable())
+        {
+          otb_mqtt_report_status(OTB_MQTT_CMD_AP_DISABLE, OTB_MQTT_STATUS_OK);
+        }
+        else
+        {
+          otb_mqtt_report_error(OTB_MQTT_CMD_AP_DISABLE, "");
+        }
       }
       else if ((!strncmp(otb_mqtt_msg_s, "loc1", 4)) ||
                (!strncmp(otb_mqtt_msg_s, "loc2", 4)) ||
@@ -433,6 +438,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       else
       {
         INFO("ERROR: Unknown system command: %s", otb_mqtt_msg_s);
+        otb_mqtt_report_error(otb_mqtt_msg_s, "");
       }
     }
     else if (!strcmp(sub_topic, OTB_MQTT_CMD_GPIO))
@@ -441,16 +447,23 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_GET, strlen(OTB_MQTT_CMD_GPIO_GET)))
       {
         INFO("MQTT: Get msg received");
+        no2 = -1;
         sub_msg = os_strstr(otb_mqtt_msg_s, ":");
         if (sub_msg)
         {
           sub_msg++;
           no1 = atoi(sub_msg);
-          otb_gpio_get(no1);
+          no2 = otb_gpio_get(no1);
+        }
+        if (rc >= 0)
+        {
+          os_snprintf(response, 8, "%d:%d", no1, no2);
+          otb_mqtt_report_status(OTB_MQTT_CMD_GPIO, response);
         }
         else
         {
-          ERROR("MQTT: Missing pin number");
+          INFO("MQTT: Missing pin number or failed to get GPIO");
+          otb_mqtt_report_error(OTB_MQTT_CMD_GPIO_GET, "");
         }
       }
       else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_SET, strlen(OTB_MQTT_CMD_GPIO_SET)))
@@ -467,27 +480,30 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
           {
             sub_msg++;
             no2 = atoi(sub_msg);
-            otb_gpio_set(no1, no2); 
-            rc = TRUE;
+            rc = otb_gpio_set(no1, no2); 
           }
         }
         if (!rc)
         {
-          ERROR("MQTT: Missing pin number or value");
+          INFO("MQTT: Missing pin number or value");
+          otb_mqtt_report_error(OTB_MQTT_CMD_GPIO_SET, "");
         }
       }
       else
       {
         INFO("MQTT: Unknown GPIO command: %s", otb_mqtt_msg_s);
+        otb_mqtt_report_error(otb_mqtt_msg_s, "");
       }
     }
     else
     {
-      ERROR("MQTT: Unknown sub-topic: %s", sub_topic);
+      INFO("MQTT: Unknown sub-topic: %s", sub_topic);
+      otb_mqtt_report_error(sub_topic, "");
     }
   }
   else
   {
+    // Shouldn't get here as haven't subscribed for another topic
     ERROR("MQTT: Unknown topic: %s", topic);
   }
   

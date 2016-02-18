@@ -60,6 +60,8 @@
 #define OTB_MQTT_CMD_AP_DISABLE "ap_disable"
 #define OTB_MQTT_PUB_STATUS "status"
 #define OTB_MQTT_CMD_PING "ping"
+#define OTB_MQTT_CMD_GET_BOOT_SLOT "get_boot_slot"
+#define OTB_MQTT_CMD_SET_BOOT_SLOT "set_boot_slot"
 #define OTB_MQTT_PUB_LOG "log"
 #define OTB_MQTT_STATUS_BOOTED "booted"
 #define OTB_MQTT_STATUS_VERSION "version"
@@ -68,6 +70,7 @@
 #define OTB_MQTT_STATUS_HEAP "offline"
 #define OTB_MQTT_STATUS_OFFLINE "heap"
 #define OTB_MQTT_STATUS_PONG "pong"
+#define OTB_MQTT_STATUS_OK "ok"
 #define OTB_MQTT_PUB_ERROR "error"
 
 // Fixed stuff

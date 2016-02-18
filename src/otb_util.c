@@ -517,14 +517,7 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
   
   size = system_get_free_heap_size();  
   os_snprintf(size_s, 8, "%d", size);
-  otb_mqtt_publish(&otb_mqtt_client,
-                   OTB_MQTT_PUB_STATUS,
-                   OTB_MQTT_STATUS_HEAP,
-                   size_s,
-                   "",
-                   2,
-                   0);
-  
+  otb_mqtt_report_status(OTB_MQTT_STATUS_HEAP, size_s);
   
   DEBUG("UTIL: otb_util_get_heap_size exit");
 

@@ -68,11 +68,10 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin)
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_gpio_get(int pin)
+sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
 {
-  bool rc = FALSE;
   bool special;
-  uint8 input;
+  sint8 input = -1;
   
   DEBUG("GPIO: otb_gpio_get entry");
 
@@ -90,13 +89,13 @@ bool ICACHE_FLASH_ATTR otb_gpio_get(int pin)
   
   input = GPIO_INPUT_GET(pin);
   
-  ERROR("GPIO: Pin %d state %d", pin, input);
+  INFO("GPIO: Pin %d state %d", pin, input);
   
 EXIT_LABEL:
   
   DEBUG("GPIO: otb_gpio_get exit");
   
-  return rc;
+  return input;
 }
 
 bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
@@ -122,6 +121,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
   INFO("GPIO: Set pin %d value %d", pin, value);
   otb_gpio_pin_io_status[pin-1] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
   GPIO_OUTPUT_SET(pin, value);
+  rc = TRUE;
   
 EXIT_LABEL:
   

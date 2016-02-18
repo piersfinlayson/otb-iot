@@ -183,7 +183,6 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 static void ICACHE_FLASH_ATTR upgrade_disconcb(void *arg) {
 	// use passed ptr, as upgrade struct may have gone by now
 	struct espconn *conn = (struct espconn*)arg;
-	INFO("RBOOT OTA: upgrade_disconcb");
 	
 	os_timer_disarm(&ota_timer);
 	if (conn) {
