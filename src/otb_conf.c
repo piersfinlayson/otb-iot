@@ -495,7 +495,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
     switch (field)
     {
       case OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_:
-        if (cmd3 != NULL)
+        if (cmd3 == NULL)
         {
           INFO("CONF: Invalid config command - no value");
           otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
