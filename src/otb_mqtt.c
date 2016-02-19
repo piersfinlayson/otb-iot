@@ -30,6 +30,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
 {
   char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
   int chars;
+  int ii;
 
   DEBUG("MQTT: otb_mqtt_publish entry");
 
@@ -48,6 +49,10 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                         extra_message);
   }
   otb_util_convert_ws_to_(otb_mqtt_msg_s);
+  for (ii = 0; ii < os_strlen(otb_mqtt_msg_s); ii++)
+  {
+    otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
+  }
   
   if (extra_subtopic[0] == 0)
   {
@@ -430,6 +435,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   uint8 topic_id;
   uint8 command;
   char *sub_cmd[3];
+  int ii;
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
@@ -450,6 +456,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   otb_mqtt_topic_s[topic_len] = 0;
   os_memcpy(otb_mqtt_msg_s, msg, msg_len);
   otb_mqtt_msg_s[msg_len] = 0;
+  for (ii = 0; ii < os_strlen(otb_mqtt_topic_s); ii++)
+  {
+    otb_mqtt_topic_s[ii] = tolower(otb_mqtt_topic_s[ii]);
+  }
+  for (ii = 0; ii < os_strlen(otb_mqtt_msg_s); ii++)
+  {
+    otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
+  }
 
   INFO("MQTT: Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
 
