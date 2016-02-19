@@ -32,9 +32,10 @@ OTB-IOT is a firmware for IOT applications intended to run "Out of The Box".  Th
 
 ### Serial
 
-I've chosen 74880 as baud rate, because this is used by the chip and bootloader
-so by using the same for the application code means you get all of the output
-without having to switch.
+I've chosen 115200 as baud rate, because this is used by the chip, SDK and
+bootloader and I can't figure out how to get them to consistenly use another
+value.  The one wrinkle is that on a hard boot the chip and bootloader will use
+74880.  Soft reboots use 115200.  Booting after flashing also uses 115200.
 
 
 ### Customization
@@ -180,13 +181,16 @@ All errors are logged to serial.  ERROR logs are also logged via MQTT, but only 
 
 OTB-IOT attempts to recover from serious errors by resetting.  However, ESP8266 software reset appears to be quite flakey on some devices (perhaps due to floating pins on many ESP boards). 
 
-Best solution I've found so far to make reset reliable is to tie GPIO 16 to
+One solution I've found so far to make reset reliable is to tie GPIO 16 to
 the reset PIN, and use that to reset the device.  This is what's currently
 implemented.  There is a downside - with pin 16 tied to reset dev boards like
 the D1 mini and Nodemcu v3 can't automatically reset the board to flash.
 Either reset it manually to flash or disconnect pin 16 from reset to reflash.
 Once you have an initial firmware on the board new flashes should be rare as
 you can then use OTA updates.
+
+However, it now looks like soft resets are only flaky before a hard reboot
+after flashing.  So have moved back to system_restart() SDK call.
 
 
 ## Included projects

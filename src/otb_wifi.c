@@ -41,6 +41,7 @@ void ICACHE_FLASH_ATTR otb_wifi_init(void)
 
   otb_wifi_ap_mode_done = FALSE;
   otb_wifi_ap_running = FALSE;
+  otb_wifi_dhcpc_started = FALSE;
 
   DEBUG("WIFI: otb_wifi_init exit");
 
@@ -240,10 +241,12 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   ETS_UART_INTR_ENABLE();
   
   dhcpc_rc = wifi_station_dhcpc_start();
-  if (!dhcpc_rc)
+  if (dhcpc_rc)
   {
-    // Eek, better reboot
-    otb_reset_error(otb_wifi_try_sta_error_string);
+    otb_wifi_dhcpc_started = TRUE;    
+  }
+  else
+  {
     rc = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
     goto EXIT;
   }
@@ -306,8 +309,18 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
   bool ip_info_rc;
   uint8_t rc;
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
+  bool dhcpc_rc;
 
   DEBUG("WIFI: otb_wifi_timerfunc entry");
+
+  if (!otb_wifi_dhcpc_started)
+  {
+    dhcpc_rc = wifi_station_dhcpc_start();
+    if (dhcpc_rc)
+    {
+      otb_wifi_dhcpc_started = TRUE;    
+    }
+  }
 
   if (otb_wifi_status == OTB_WIFI_STATUS_CONNECTED)
   {
@@ -807,11 +820,14 @@ void ICACHE_FLASH_ATTR otb_wifi_mqtt_do_rssi(char *msg)
   if (rssi != 31)
   {
     os_snprintf(strength, 8, "%d", rssi);
-    otb_mqtt_report_status(OTB_MQTT_CMD_WIFI_STRENGTH, strength);
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_RSSI, OTB_MQTT_STATUS_OK, strength, "");
   }
   else
   {
-    otb_mqtt_report_error(OTB_MQTT_CMD_WIFI_STRENGTH, "");
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_RSSI,
+                         OTB_MQTT_STATUS_ERROR,
+                         "Internal error",
+                         "");
   }
 
   DEBUG("WIFI: otb_wifi_mqtt_do_rssi exit");

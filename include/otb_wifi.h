@@ -105,4 +105,5 @@ static uint8_t otb_wifi_status;
 struct otb_wifi_ap_list otb_wifi_ap_list_struct;
 bool otb_wifi_ap_running;
 bool otb_wifi_ap_enabled;
+bool otb_wifi_dhcpc_started;
 #endif

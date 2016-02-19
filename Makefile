@@ -241,3 +241,5 @@ clean_otb_util_o:
 clean: 
 	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*
 
+erase_flash:
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash

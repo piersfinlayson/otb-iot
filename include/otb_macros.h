@@ -57,3 +57,6 @@
 #define OTB_MQTT_LOCATION_1  otb_conf->loc.loc1
 #define OTB_MQTT_LOCATION_2  otb_conf->loc.loc2
 #define OTB_MQTT_LOCATION_3  otb_conf->loc.loc3
+
+#define OTB_MAX(A, B)  (A > B) ? A : B
+#define OTB_MIN(A, B)  (A < B) ? A : B

@@ -17,12 +17,8 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define OTB_MQTT_C
 #include "otb.h"
-
-MQTT_Client otb_mqtt_client;
-
-char otb_mqtt_topic_s[OTB_MQTT_MAX_TOPIC_LENGTH];
-char otb_mqtt_msg_s[OTB_MQTT_MAX_MSG_LENGTH];
 
 void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                                         char *subtopic,
@@ -47,10 +43,11 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   {
     chars = os_snprintf(otb_mqtt_msg_s,
                         OTB_MQTT_MAX_MSG_LENGTH,
-                        "%s/%s",
+                        "%s:%s",
                         message,
                         extra_message);
   }
+  otb_util_convert_ws_to_(otb_mqtt_msg_s);
   
   if (extra_subtopic[0] == 0)
   {
@@ -96,9 +93,6 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   return;
 }
 
-// Need to statically assign, rather than from stack
-char otb_mqtt_string_empty[] = "";
-char otb_mqtt_string_slash[] = "/";
 void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
                                            char **loc1_,
                                            char **loc2,
@@ -110,27 +104,27 @@ void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
   DEBUG("MQTT: otb_mqtt_handle_loc entry");
   
   // Initialize
-  *loc1 = otb_mqtt_string_empty;
-  *loc1_ = otb_mqtt_string_empty;
-  *loc2 = otb_mqtt_string_empty;
-  *loc2_ = otb_mqtt_string_empty;
-  *loc3 = otb_mqtt_string_empty;
-  *loc3_ = otb_mqtt_string_empty;
+  *loc1 = OTB_MQTT_EMPTY;
+  *loc1_ = OTB_MQTT_EMPTY;
+  *loc2 = OTB_MQTT_EMPTY;
+  *loc2_ = OTB_MQTT_EMPTY;
+  *loc3 = OTB_MQTT_EMPTY;
+  *loc3_ = OTB_MQTT_EMPTY;
 
   // Just omit a location if empty
   if (OTB_MQTT_LOCATION_1[0] != 0)
   {
-    *loc1_ = otb_mqtt_string_slash;
+    *loc1_ = OTB_MQTT_SLASH;
     *loc1 = OTB_MQTT_LOCATION_1;
   }
   if (OTB_MQTT_LOCATION_2[0] != 0)
   {
-    *loc2_ = otb_mqtt_string_slash;
+    *loc2_ = OTB_MQTT_SLASH;
     *loc2 = OTB_MQTT_LOCATION_2;
   }
   if (OTB_MQTT_LOCATION_3[0] != 0)
   {
-    *loc3_ = otb_mqtt_string_slash;
+    *loc3_ = OTB_MQTT_SLASH;
     *loc3 = OTB_MQTT_LOCATION_3;
   }
 
@@ -182,8 +176,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:             qos: %d", qos);
+  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
@@ -219,8 +213,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:             qos: %d", qos);
+  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
@@ -244,8 +238,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  DEBUG("MQTT: Subscribe topic: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:             qos: %d", qos);
+  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
   DEBUG("MQTT: otb_mqtt_subscribe exit");
@@ -263,25 +257,19 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
   mqtt_client = (MQTT_Client*)client;
 
   // Now publish status.  First off booted.  Don't need to retain this.
-  otb_mqtt_report_status(OTB_MQTT_STATUS_BOOTED, "");
+  otb_mqtt_send_status(OTB_MQTT_STATUS_BOOTED, "", "", "");
                    
   // Now version ID.  Need to retain this.                 
-  otb_mqtt_report_status(OTB_MQTT_STATUS_VERSION, OTB_MAIN_VERSION_ID);
+  otb_mqtt_send_status(OTB_MQTT_STATUS_VERSION, OTB_MAIN_VERSION_ID, "", "");
 
   // Now Chip ID.  Need to retain this.                 
-  otb_mqtt_report_status(OTB_MQTT_STATUS_CHIPID, OTB_MAIN_CHIPID);
+  otb_mqtt_send_status(OTB_MQTT_STATUS_CHIPID, OTB_MAIN_CHIPID, "", "");
 
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
-                     OTB_MQTT_CMD_SYSTEM,
+                     OTB_MQTT_TOPIC_SYSTEM,
                      "",
                      1);
-
-  // Now subscribe for gpio topic, qos = 2 to ensure we get at only 1 of every command
-  otb_mqtt_subscribe(mqtt_client,
-                     OTB_MQTT_CMD_GPIO,
-                     "",
-                     2);
 
   DEBUG("MQTT: otb_mqtt_on_connected exit");
 
@@ -310,210 +298,6 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_published(uint32_t *client)
 	DEBUG("MQTT: otb_mqtt_on_published exit");
 }
 
-char ALIGN4 otb_mqtt_reset_error_string[] = "MQTT: System command reset/reboot";
-void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
-                                                   const char* topic,
-                                                   uint32_t topic_len,
-                                                   const char *msg,
-                                                   uint32_t msg_len)
-{
-  MQTT_Client* mqtt_client = (MQTT_Client*)client;
-  char *sub_topic = NULL;
-  char *next_sub_topic = NULL;
-  char *sub_msg = NULL;
-  int no1;
-  int no2;
-  bool rc;
-  char response[8];
-
-  DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
-
-  // Check can actually handle received topic and msg  
-  if (topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1))
-  {
-    WARN("MQTT: Received topic length too long: %d", topic_len);
-    topic_len = OTB_MQTT_MAX_TOPIC_LENGTH - 1;
-  }
-  if (msg_len > (OTB_MQTT_MAX_MSG_LENGTH - 1))
-  {
-    WARN("MQTT: Received msg length too long: %d", msg_len);
-    msg_len = OTB_MQTT_MAX_MSG_LENGTH - 1;
-  }
-
-  // Copy received topic and msg into our string buffers
-  os_memcpy(otb_mqtt_topic_s, topic, topic_len);
-  otb_mqtt_topic_s[topic_len] = 0;
-  os_memcpy(otb_mqtt_msg_s, msg, msg_len);
-  otb_mqtt_msg_s[msg_len] = 0;
-
-  DEBUG("MQTT: Received publish topic: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:                message: %s ", otb_mqtt_msg_s);
- 
-  // Find topic
-  next_sub_topic = os_strstr(otb_mqtt_topic_s, "/");
-  while (next_sub_topic != NULL)
-  {
-    sub_topic = next_sub_topic;
-    next_sub_topic++;
-    next_sub_topic = os_strstr(next_sub_topic, "/");
-  }
-  
-  if (sub_topic != NULL)
-  {
-    // This ++ should be safe - as its a string worse case scenario is this takes us to a
-    // null terminator
-    sub_topic++;
-  
-    if (!strcmp(sub_topic, OTB_MQTT_CMD_SYSTEM))
-    {
-      INFO("MQTT: system command %s", otb_mqtt_msg_s);
-      if ((!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_RESET)) ||
-          (!strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_REBOOT)))
-      {
-        otb_mqtt_report_status(otb_mqtt_msg_s, OTB_MQTT_STATUS_OK);
-        otb_reset(otb_mqtt_reset_error_string);
-      }
-      else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_UPDATE, strlen(OTB_MQTT_CMD_UPDATE)-1))
-      {
-        // Call upgrage function with pointer to end of update and one char for the colon!
-        // This function handles response
-        otb_rboot_update(otb_mqtt_msg_s + strlen(OTB_MQTT_CMD_UPDATE));
-      }
-      // Use memcmp here as extra stuff on the end
-      else if (!os_memcmp(otb_mqtt_msg_s,
-                          OTB_MQTT_CMD_SET_BOOT_SLOT,
-                          strlen(OTB_MQTT_CMD_SET_BOOT_SLOT)))
-      {
-        // This function sends the response
-        otb_rboot_update_slot(otb_mqtt_msg_s);
-      }
-      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GET_BOOT_SLOT))
-      {
-        // This function sends the response
-        otb_rboot_get_slot(TRUE);
-      }
-      else if (!strncmp(otb_mqtt_msg_s, OTB_MQTT_CMD_HEAP, strlen(OTB_MQTT_CMD_HEAP)))
-      {
-        // This function sends the response
-        otb_util_get_heap_size();
-      }
-      else if (!strncmp(otb_mqtt_msg_s,
-                        OTB_MQTT_CMD_AP_ENABLE,
-                        strlen(OTB_MQTT_CMD_AP_ENABLE)))
-      {
-        if (otb_wifi_ap_enable())
-        {
-          otb_mqtt_report_status(OTB_MQTT_CMD_AP_ENABLE, OTB_MQTT_STATUS_OK);
-        }
-        else
-        {
-          otb_mqtt_report_error(OTB_MQTT_CMD_AP_ENABLE, "");
-        }
-      }
-      else if (!strncmp(otb_mqtt_msg_s,
-                        OTB_MQTT_CMD_AP_DISABLE,
-                        strlen(OTB_MQTT_CMD_AP_DISABLE)))
-      {
-        if (otb_wifi_ap_disable())
-        {
-          otb_mqtt_report_status(OTB_MQTT_CMD_AP_DISABLE, OTB_MQTT_STATUS_OK);
-        }
-        else
-        {
-          otb_mqtt_report_error(OTB_MQTT_CMD_AP_DISABLE, "");
-        }
-      }
-      else if ((!strncmp(otb_mqtt_msg_s, "loc1", 4)) ||
-               (!strncmp(otb_mqtt_msg_s, "loc2", 4)) ||
-               (!strncmp(otb_mqtt_msg_s, "loc3", 4)))
-      {
-        otb_conf_update_loc(otb_mqtt_msg_s);
-      }
-      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_WIFI_STRENGTH))
-      {
-        otb_wifi_mqtt_do_rssi(otb_mqtt_msg_s);
-      }
-      else if (!os_strcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_PING))
-      {
-        otb_mqtt_report_status(OTB_MQTT_STATUS_PONG, "");
-      }
-      else
-      {
-        INFO("ERROR: Unknown system command: %s", otb_mqtt_msg_s);
-        otb_mqtt_report_error(otb_mqtt_msg_s, "");
-      }
-    }
-    else if (!strcmp(sub_topic, OTB_MQTT_CMD_GPIO))
-    {
-      INFO("MQTT: GPIO topic received");
-      if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_GET, strlen(OTB_MQTT_CMD_GPIO_GET)))
-      {
-        INFO("MQTT: Get msg received");
-        no2 = -1;
-        sub_msg = os_strstr(otb_mqtt_msg_s, ":");
-        if (sub_msg)
-        {
-          sub_msg++;
-          no1 = atoi(sub_msg);
-          no2 = otb_gpio_get(no1);
-        }
-        if (rc >= 0)
-        {
-          os_snprintf(response, 8, "%d:%d", no1, no2);
-          otb_mqtt_report_status(OTB_MQTT_CMD_GPIO, response);
-        }
-        else
-        {
-          INFO("MQTT: Missing pin number or failed to get GPIO");
-          otb_mqtt_report_error(OTB_MQTT_CMD_GPIO_GET, "");
-        }
-      }
-      else if (!memcmp(otb_mqtt_msg_s, OTB_MQTT_CMD_GPIO_SET, strlen(OTB_MQTT_CMD_GPIO_SET)))
-      {
-        INFO("MQTT: Set msg received");
-        rc = FALSE;
-        sub_msg = os_strstr(otb_mqtt_msg_s, ":");
-        if (sub_msg)
-        {
-          sub_msg++;
-          no1 = atoi(sub_msg);
-          sub_msg = os_strstr(sub_msg, ":");
-          if (sub_msg)
-          {
-            sub_msg++;
-            no2 = atoi(sub_msg);
-            rc = otb_gpio_set(no1, no2); 
-          }
-        }
-        if (!rc)
-        {
-          INFO("MQTT: Missing pin number or value");
-          otb_mqtt_report_error(OTB_MQTT_CMD_GPIO_SET, "");
-        }
-      }
-      else
-      {
-        INFO("MQTT: Unknown GPIO command: %s", otb_mqtt_msg_s);
-        otb_mqtt_report_error(otb_mqtt_msg_s, "");
-      }
-    }
-    else
-    {
-      INFO("MQTT: Unknown sub-topic: %s", sub_topic);
-      otb_mqtt_report_error(sub_topic, "");
-    }
-  }
-  else
-  {
-    // Shouldn't get here as haven't subscribed for another topic
-    ERROR("MQTT: Unknown topic: %s", topic);
-  }
-  
-  DEBUG("MQTT: otb_mqtt_on_receive_publish exit");
-  
-  return;
-}
-
 void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
                                            int port,
                                            int security,
@@ -540,7 +324,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
               OTB_MQTT_LOCATION_2,
               OTB_MQTT_LOCATION_3,
               OTB_MAIN_CHIPID,
-              OTB_MQTT_PUB_STATUS);
+              OTB_MQTT_TOPIC_STATUS);
 	MQTT_InitLWT(mqtt_client, otb_mqtt_topic_s, "offline", 0, 0);
 	
 	// Set up callbacks
@@ -562,7 +346,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
   DEBUG("MQTT: otb_mqtt_report_error entry");
   
   otb_mqtt_publish(&otb_mqtt_client,
-                   OTB_MQTT_PUB_ERROR,
+                   OTB_MQTT_TOPIC_ERROR,
                    "",
                    cmd,
                    error,
@@ -574,20 +358,302 @@ void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_mqtt_report_status(char *cmd, char *status)
+void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
+                                            char *val2,
+                                            char *val3,
+                                            char *val4)
 {
+  char *new_val2 = OTB_MQTT_EMPTY;
+  int max_len;
+  int len = 0;
 
-  DEBUG("MQTT: otb_mqtt_report_status entry");
+  DEBUG("MQTT: otb_mqtt_send_status entry");
+  
+  if ((val2 != NULL) && (os_strlen(val2) > 0))
+  {
+    len = os_snprintf(otb_mqtt_scratch,
+                      max_len,
+                      "%s",
+                      val2);
+    max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
+    if ((val3 != NULL) && (os_strlen(val3) > 0))
+    {
+      len += os_snprintf(otb_mqtt_scratch + len,
+                         max_len,
+                         ":%s",
+                         val3);
+      max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
+      if ((val4 != NULL) && (os_strlen(val4) > 0))
+      {
+        len += os_snprintf(otb_mqtt_scratch + len,
+                           max_len,
+                           ":%s",
+                           val4);
+        max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
+      }
+    }
+    new_val2 = otb_mqtt_scratch;
+  }
   
   otb_mqtt_publish(&otb_mqtt_client,
-                   OTB_MQTT_PUB_STATUS,
+                   OTB_MQTT_TOPIC_STATUS,
                    "",
-                   cmd,
-                   status,
+                   val1,
+                   new_val2,
                    2,
                    0);  
 
-  DEBUG("MQTT: otb_mqtt_report_status exit");
+  DEBUG("MQTT: otb_mqtt_send_status exit");
 
   return;
 }
+
+
+
+// This function handles publishes to the OTB-IOT device.  So this implements the 
+// handling of all support MQTT system commands
+char ALIGN4 otb_mqtt_reset_error_string[] = "MQTT: System command reset/reboot";
+void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
+                                                   const char* topic,
+                                                   uint32_t topic_len,
+                                                   const char *msg,
+                                                   uint32_t msg_len)
+{
+  MQTT_Client* mqtt_client = (MQTT_Client*)client;
+  char *sub_topic = NULL;
+  char *next_sub_topic = NULL;
+  char *sub_msg = NULL;
+  int no1;
+  int no2;
+  bool rc;
+  char response[8];
+  uint8 topic_id;
+  uint8 command;
+  char *sub_cmd[3];
+
+  DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
+
+  // Check can actually handle received topic and msg  
+  if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||
+      (msg_len > (OTB_MQTT_MAX_MSG_LENGTH - 1)))
+  {
+    INFO("MQTT: Received topic of msg length too long: %d", topic_len);
+    otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR,
+                         "Topic or message too long",
+                         "",
+                         "");
+    goto EXIT_LABEL;
+  }
+
+  // Copy received topic and msg into our string buffers
+  os_memcpy(otb_mqtt_topic_s, topic, topic_len);
+  otb_mqtt_topic_s[topic_len] = 0;
+  os_memcpy(otb_mqtt_msg_s, msg, msg_len);
+  otb_mqtt_msg_s[msg_len] = 0;
+
+  INFO("MQTT: Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
+
+  topic_id = otb_mqtt_pub_get_topic(otb_mqtt_topic_s);
+  if (topic_id != OTB_MQTT_TOPIC_SYSTEM_)
+  {
+    INFO("MQTT: Received unsupported topic");
+    otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported topic", "", "");
+    goto EXIT_LABEL;
+  }
+  
+  command = otb_mqtt_pub_get_command(otb_mqtt_msg_s, sub_cmd);
+  switch (command)
+  {
+    case OTB_MQTT_SYSTEM_CONFIG_:
+      otb_conf_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
+      break;
+
+    case OTB_MQTT_SYSTEM_GPIO_:
+      otb_gpio_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
+      break;
+
+    case OTB_MQTT_SYSTEM_BOOT_SLOT_:
+      if (sub_cmd[0] != NULL)
+      {
+        if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_SET))
+        {
+          otb_rboot_update_slot(sub_cmd[1]);
+        }
+        else if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET))
+        {
+          otb_rboot_get_slot(TRUE);
+        }
+        else
+        {
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+                               OTB_MQTT_STATUS_ERROR,
+                               "No or unsupported command",
+                               "");
+        }
+      }
+      else
+      {
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+                             OTB_MQTT_STATUS_ERROR,
+                             "No or unsupported command",
+                             "");
+      }
+      break;
+
+    case OTB_MQTT_SYSTEM_HEAP_SIZE_:
+      if ((sub_cmd[0] != NULL) && (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET)))
+      {
+        otb_util_get_heap_size();
+      }
+      else
+      {
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_HEAP_SIZE,
+                             OTB_MQTT_STATUS_ERROR,
+                             "No or unsupported command",
+                             "");
+      }
+      break;
+
+    case OTB_MQTT_SYSTEM_DS18B20_:
+      otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR,
+                           "DS18B20 MQTT commands not yet implemented",
+                           "",
+                           "");
+      break;
+
+    case OTB_MQTT_SYSTEM_UPDATE_:
+      otb_rboot_update(sub_cmd[0], sub_cmd[1]);
+      break;
+      
+    case OTB_MQTT_SYSTEM_UPGRADE_:
+      otb_rboot_update(sub_cmd[0], sub_cmd[1]);
+      break;
+
+    case OTB_MQTT_SYSTEM_RESET_:
+      otb_mqtt_send_status(OTB_MQTT_SYSTEM_RESET, OTB_MQTT_STATUS_OK, "", "");
+      otb_reset(otb_mqtt_reset_error_string);
+      break;
+  
+    case OTB_MQTT_SYSTEM_REBOOT_:
+      otb_mqtt_send_status(OTB_MQTT_SYSTEM_REBOOT, OTB_MQTT_STATUS_OK, "", "");
+      otb_reset(otb_mqtt_reset_error_string);
+      break;
+  
+    case OTB_MQTT_SYSTEM_PING_:
+      otb_mqtt_send_status(OTB_MQTT_STATUS_PONG, "", "", "");
+      break;
+      
+    case OTB_MQTT_SYSTEM_RSSI_:
+      otb_wifi_mqtt_do_rssi(otb_mqtt_msg_s);
+      break;
+
+    default:
+      INFO("MQTT: Unknown command");
+      otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported message type", "", "");
+      goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:  
+  
+  DEBUG("MQTT: otb_mqtt_on_receive_publish exit");
+  
+  return;
+}
+
+uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_topic(char *topic)
+{
+  char *sub_topic;
+  char *next_sub_topic;
+  uint8 topic_id = OTB_MQTT_TOPIC_INVALID_;
+
+  DEBUG("MQTT: otb_mqtt_pub_get_topic entry");
+  
+  // This function finds the last "sub-topic", and expects there to be more than 1 (i.e.
+  // it won't match on the first
+  
+  // Find topic
+  next_sub_topic = os_strstr(otb_mqtt_topic_s, OTB_MQTT_SLASH);
+  while (next_sub_topic != NULL)
+  {
+    sub_topic = next_sub_topic;
+    next_sub_topic++;
+    next_sub_topic = os_strstr(next_sub_topic, OTB_MQTT_SLASH);
+  }
+  
+  if (sub_topic != NULL)
+  {
+    // This ++ should be safe - as it's a string worse case scenario is this takes us to 
+    // a null terminator, but should take us past the /
+    sub_topic++;
+    
+    if (!os_memcmp(sub_topic, OTB_MQTT_TOPIC_SYSTEM, strlen(OTB_MQTT_TOPIC_SYSTEM)))
+    {
+      topic_id = OTB_MQTT_TOPIC_SYSTEM_;
+    }
+  }  
+
+  DEBUG("MQTT: otb_mqtt_pub_get_topic exit");
+  
+  return(topic_id);
+}  
+
+bool ICACHE_FLASH_ATTR otb_mqtt_match(char *msg, char *cmd)
+{
+  bool match = FALSE;
+
+  DEBUG("MQTT: otb_mqtt_match entry");
+
+  match = os_memcmp(msg, cmd, OTB_MIN(os_strlen(msg), os_strlen(cmd)));
+
+  // Flip match as os_strncmp says 0 if matched
+  match = match ? FALSE : TRUE;
+
+  DEBUG("MQTT: match %s vs %s = %d", msg, cmd, match);
+  
+  DEBUG("MQTT: otb_mqtt_match exit");
+  
+  return match;
+}
+
+uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_command(char *msg, char *val[])
+{
+  uint8 ii;
+  uint8 cmd_id = OTB_MQTT_SYSTEM_INVALID_;
+  char *temp;
+
+  DEBUG("MQTT: otb_mqtt_pub_get_command entry");
+  
+  val[0] = NULL;
+  val[1] = NULL;
+  val[2] = NULL;
+
+  // First get pointers to the various sub bits of the command
+  ii = 0;
+  temp = os_strstr(msg, OTB_MQTT_COLON);
+  while ((temp != NULL) && (ii < 3))
+  {
+    temp++;
+    if (*temp != 0)
+    {
+      val[ii] = temp;
+    }
+    ii++;
+    temp = os_strstr(temp, OTB_MQTT_COLON);
+  }
+  
+  // Now try to match the command.
+  for (ii = OTB_MQTT_SYSTEM_CMD_FIRST_; ii <= OTB_MQTT_SYSTEM_CMD_LAST_; ii++)
+  {
+    if (otb_mqtt_match(msg, otb_mqtt_system_cmds[ii]))
+    {
+      cmd_id = ii;
+      break;
+    }
+  }  
+  
+  DEBUG("MQTT: otb_mqtt_pub_get_command exit");
+  
+  return(cmd_id);
+}
+
+

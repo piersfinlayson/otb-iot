@@ -55,6 +55,24 @@ void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
   return;  
 }
 
+void ICACHE_FLASH_ATTR otb_util_convert_colon_to_period(char *text)
+{
+  char *ws;
+  
+  // DEBUG("UTIL: otb_util_convert_ws_to_ entry");
+  
+  ws = os_strstr(text, ":");
+  while (ws)
+  {
+    *ws = '.';
+    ws = os_strstr(ws, ":");
+  }
+
+  // DEBUG("UTIL: otb_util_convert_ws_to_ exit");
+
+  return;  
+}
+
 void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
 {
   char recovery_str[16];
@@ -71,11 +89,13 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   // Set up and log some useful info
   os_sprintf(otb_compile_date, "%s", __DATE__);
   otb_util_convert_ws_to_(otb_compile_date);
+  otb_util_convert_colon_to_period(otb_compile_date);
   os_sprintf(otb_compile_time, "%s", __TIME__);
   otb_util_convert_ws_to_(otb_compile_time);
+  otb_util_convert_colon_to_period(otb_compile_time);
   os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s/%s/%s/%s",
+              "%s:%s:%s:%s",
               OTB_MAIN_OTB_IOT,
               OTB_MAIN_FW_VERSION,
               otb_compile_date, 
@@ -103,6 +123,7 @@ void ICACHE_FLASH_ATTR otb_util_init_logging(void)
 {
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
+  uart_div_modify(1, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
   
   otb_util_asserting = FALSE;
   
@@ -336,10 +357,14 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
   // may be in wrong context
   otb_util_delay_ms(1000);
 
+  #if 0
   // Reset by pulling reset GPIO (connected to reset) low
   // XXX Only works for GPIO 16
   WRITE_PERI_REG(RTC_GPIO_OUT,
                    (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
+  #else
+  system_restart();
+  #endif
 
   DEBUG("OTB: otb_reset_internal exit");
 
@@ -517,7 +542,7 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
   
   size = system_get_free_heap_size();  
   os_snprintf(size_s, 8, "%d", size);
-  otb_mqtt_report_status(OTB_MQTT_STATUS_HEAP, size_s);
+  otb_mqtt_send_status(OTB_MQTT_STATUS_HEAP_SIZE, size_s, "", "");
   
   DEBUG("UTIL: otb_util_get_heap_size exit");
 

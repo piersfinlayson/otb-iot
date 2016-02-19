@@ -17,7 +17,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define OTB_UTIL_LOG_BUFFER_LEN  512
+#define OTB_UTIL_LOG_BUFFER_LEN 1024
 #define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
 
 typedef struct otb_util_log_buffer
@@ -40,6 +40,7 @@ typedef struct otb_util_timeout
 } otb_util_timeout;
 
 extern void otb_util_convert_ws_to_(char *text);
+void otb_util_convert_colon_to_period(char *text);
 extern void otb_util_log_useful_info(bool recovery);
 extern void otb_util_init_logging(void);
 extern void otb_util_log_fn(char *text);

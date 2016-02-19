@@ -44,20 +44,29 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
     {
       INFO("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
       // XXX Doesn't give system time to actually send the status
-      otb_mqtt_report_status(OTB_MQTT_CMD_UPDATE, OTB_MQTT_STATUS_OK);
+      otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
+                           OTB_MQTT_STATUS_OK,
+                           "",
+                           "");
       otb_reset(otb_rboot_update_callback_error_string);
     }
     else
     {
       ERROR("RBOOT: Failed to set slot to %d", otb_rboot_ota.rom_slot);
-      otb_mqtt_report_status(OTB_MQTT_CMD_UPDATE, OTB_MQTT_CMD_SET_BOOT_SLOT);
+      otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
+                           OTB_MQTT_STATUS_ERROR,
+                           "Failed to set boot slot after update",
+                           "");
       goto EXIT_LABEL;
     }
   }
   else
   {
     // Log this as an error so gets sent over MQTT
-    otb_mqtt_report_status(OTB_MQTT_CMD_UPDATE, "");
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
+                         OTB_MQTT_STATUS_ERROR,
+                         "Update failed",
+                         "");
     ERROR("RBOOT: Update failed");
     goto EXIT_LABEL;
   }
@@ -69,7 +78,7 @@ EXIT_LABEL:
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_rboot_update(char *url)
+bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *path)
 {
   uint8_t current_slot;
   uint8_t update_slot;
@@ -127,26 +136,54 @@ EXIT_LABEL:
 
 bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg)
 {
-  bool rc = FALSE;
-  uint8_t slot;
+  bool rc = TRUE;
+  int slot;
+  char *response;
 
   DEBUG("RBOOT: otb_rboot_update_slot entry");
   
-  if (os_strlen(msg) >= ((strlen(OTB_MQTT_CMD_SET_BOOT_SLOT)) + 1))
+  if (msg == NULL)
   {
-    slot = atoi(msg + strlen(OTB_MQTT_CMD_SET_BOOT_SLOT) + 1);
-    rc = rboot_set_current_rom(slot);
+    INFO("RBOOT: No slot number");
+    rc = FALSE;
+    response = "No slot number";
+    goto EXIT_LABEL;
+  }
+
+  slot = atoi(msg);
+  if ((slot < 0) || (slot > 1))
+  {
+    INFO("RBOOT: Invalid slot number");
+    rc = FALSE;
+    response = "Invalid slot number";
+    goto EXIT_LABEL;
   }
   
+  rc = rboot_set_current_rom(slot);
   if (rc)
   {
-    INFO("RBOOT: Set slot to %d", slot);
-    otb_mqtt_report_status(OTB_MQTT_CMD_SET_BOOT_SLOT, OTB_MQTT_STATUS_OK);
+    response = OTB_MQTT_EMPTY;
   }
   else
   {
-    ERROR("RBOOT: Failed to set slot to %d", slot);
-    otb_mqtt_report_error(OTB_MQTT_CMD_SET_BOOT_SLOT, "");
+    response = "Failed to set slot";
+  }
+  
+EXIT_LABEL:
+
+  if (rc)
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+                         OTB_MQTT_STATUS_OK,
+                         response,
+                         "");
+  }
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+                         OTB_MQTT_STATUS_ERROR,
+                         response,
+                         "");
   }
   
   DEBUG("RBOOT: otb_rboot_update_slot exit");
@@ -165,7 +202,10 @@ uint8_t ICACHE_FLASH_ATTR otb_rboot_get_slot(bool publish)
   if (publish)
   {
     os_snprintf(slot_s, 4, "%d", slot);
-    otb_mqtt_report_status(OTB_MQTT_STATUS_SLOT, slot_s);
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+                         OTB_MQTT_STATUS_OK,
+                         slot_s,
+                         "");
   }
   
   DEBUG("RBOOT: otb_rboot_get_slot exit");  

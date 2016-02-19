@@ -42,8 +42,8 @@
 #include "mem.h"
 #include "user_interface.h"
 #include "smartconfig.h"
-
 #include "esp_systemapi.h"
+#include "uart.h"
 
 // MQTT
 #include "espconn.h"

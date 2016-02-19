@@ -121,7 +121,8 @@ bool otb_conf_verify_checksum(otb_conf_struct *conf);
 bool otb_conf_store_sta_conf(char *ssid, char *password);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
-void otb_conf_update_loc(char *loc);
+void otb_conf_update_loc(char *loc, char *val);
+void otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3);
 
 #ifdef OTB_CONF_C
 

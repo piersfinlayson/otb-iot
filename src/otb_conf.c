@@ -367,10 +367,9 @@ bool ICACHE_FLASH_ATTR otb_conf_update(otb_conf_struct *conf)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_conf_update_loc(char *loc)
+void ICACHE_FLASH_ATTR otb_conf_update_loc(char *loc, char *val)
 {
   int len;
-  char *loc_text;
   int loc_num;
   bool rc = FALSE;
   otb_conf_struct *conf;
@@ -379,51 +378,54 @@ void ICACHE_FLASH_ATTR otb_conf_update_loc(char *loc)
   
   conf = &otb_conf_private;
   
-  loc_num = atoi(loc+3);
-  if ((loc_num < 0) || (loc_num > 3))
+  if (loc != NULL)
   {
-    WARN("CONF: Invalid location %d", loc_num);
+    loc_num = atoi(loc+3);
+    if ((loc_num < 1) || (loc_num > 3))
+    {
+      WARN("CONF: Invalid location %d", loc_num);
+      rc = FALSE;
+      goto EXIT_LABEL;
+    }
+  
+    if (val == NULL)
+    {
+      val = OTB_MQTT_EMPTY;
+    }
+    
+    len = os_strlen(val);
+    if (len > (OTB_CONF_LOCATION_MAX_LEN))
+    {
+      WARN("CONF: Invalid location string %s", loc);
+      rc = FALSE;
+      goto EXIT_LABEL;
+    }
+  
+    switch (loc_num)
+    {
+      case 1:
+        os_strncpy(conf->loc.loc1, val, OTB_CONF_LOCATION_MAX_LEN);
+        break;
+    
+      case 2:
+        os_strncpy(conf->loc.loc2, val, OTB_CONF_LOCATION_MAX_LEN);
+        break;
+    
+      case 3:
+        os_strncpy(conf->loc.loc3, val, OTB_CONF_LOCATION_MAX_LEN);
+        break;
+    
+      default:
+        // Only get here if sloppy coding as checked loc_num above!
+        OTB_ASSERT(FALSE);
+        break;
+    }
+  }
+  else
+  {
+    INFO("CONF: No value provided for location");
     rc = FALSE;
     goto EXIT_LABEL;
-  }
-  
-  loc_text = os_strstr(loc, ":");
-  if (loc_text == NULL)
-  {
-    WARN("CONF: Invalid location string %s", loc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-  
-  // len = 1 means only a colon
-  len = os_strlen(loc_text);
-  if ((len < 1) || (len > (OTB_CONF_LOCATION_MAX_LEN)))
-  {
-    WARN("CONF: Invalid location string %s", loc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-  
-  // Go past the colon, which may be null terminator - which is OK
-  loc_text++;
-  switch (loc_num)
-  {
-    case 1:
-      os_strncpy(conf->loc.loc1, loc_text, OTB_CONF_LOCATION_MAX_LEN);
-      break;
-    
-    case 2:
-      os_strncpy(conf->loc.loc2, loc_text, OTB_CONF_LOCATION_MAX_LEN);
-      break;
-    
-    case 3:
-      os_strncpy(conf->loc.loc3, loc_text, OTB_CONF_LOCATION_MAX_LEN);
-      break;
-    
-    default:
-      // Only get here if sloppy coding as checked loc_num above!
-      OTB_ASSERT(FALSE);
-      break;
   }
   
   rc = otb_conf_update(conf);
@@ -434,12 +436,223 @@ void ICACHE_FLASH_ATTR otb_conf_update_loc(char *loc)
   
 EXIT_LABEL:
 
-  if (!rc)
+  if (rc)
   {
-    otb_mqtt_report_error("loc","");
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_SET,
+                         OTB_MQTT_STATUS_OK,
+                         "");
+  }
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_SET,
+                         OTB_MQTT_STATUS_ERROR,
+                         loc);
   }
   
   DEBUG("CONF: otb_conf_update exit");
  
   return; 
+}
+
+void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
+{
+  uint8 ii;
+  uint8 field = OTB_MQTT_CONFIG_INVALID_;
+  bool rc = FALSE;
+  char *value;
+  int loc_num;
+
+  DEBUG("CONF: otb_conf_mqtt entry");
+  
+  // Note that cmd1 and cmd2 are colon terminated
+  // Supported commands:
+  // cmd1 = get/set
+  // cmd2 = field
+  // cmd3 = value (set only)
+  
+  if ((cmd1 == NULL) || (cmd2 == NULL))
+  {
+    INFO("CONF: Invalid config command");
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_STATUS_ERROR,
+                         "Invalid command",
+                         "");
+    goto EXIT_LABEL;
+  }
+  
+  if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_SET))
+  {
+    for (ii = OTB_MQTT_CONFIG_FIRST_; ii <= OTB_MQTT_CONFIG_LAST_; ii++)
+    {
+      if (otb_mqtt_match(cmd2, otb_mqtt_config_fields[ii]))
+      {
+        field = ii;
+        break;
+      }
+    }
+    switch (field)
+    {
+      case OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_:
+        if (cmd3 != NULL)
+        {
+          INFO("CONF: Invalid config command - no value");
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                               OTB_MQTT_CMD_SET,
+                               OTB_MQTT_STATUS_ERROR,
+                               "No value");
+          goto EXIT_LABEL;
+        }
+        if (!os_strcmp(cmd3, OTB_MQTT_CONFIG_TRUE) ||
+            !os_strcmp(cmd3, OTB_MQTT_CONFIG_YES))
+        {
+          if (otb_wifi_ap_enable())
+          {
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                 OTB_MQTT_CMD_SET,
+                                 OTB_MQTT_STATUS_OK,
+                                 OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_);
+          }
+          else
+          {
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                 OTB_MQTT_CMD_SET,
+                                 OTB_MQTT_STATUS_ERROR,
+                                 OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_);
+          }
+        }
+        else if (!os_strcmp(cmd3, OTB_MQTT_CONFIG_FALSE) ||
+                 !os_strcmp(cmd3, OTB_MQTT_CONFIG_NO))
+        {
+          if (otb_wifi_ap_disable())
+          {
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                 OTB_MQTT_CMD_SET,
+                                 OTB_MQTT_STATUS_OK,
+                                 OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_);
+          }
+          else
+          {
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                 OTB_MQTT_CMD_SET,
+                                 OTB_MQTT_STATUS_ERROR,
+                                 OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_);
+          }
+        }
+        else
+        {
+          INFO("CONF: Invalid value for keep_ap_active");
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                               OTB_MQTT_CMD_SET,
+                               OTB_MQTT_STATUS_ERROR,
+                               "Invalid value");
+          goto EXIT_LABEL;
+        }
+        break;
+        
+      case OTB_MQTT_CONFIG_LOC1_:
+      case OTB_MQTT_CONFIG_LOC2_:
+      case OTB_MQTT_CONFIG_LOC3_:
+        otb_conf_update_loc(cmd2, cmd3);
+        break;
+        
+      default:
+        INFO("CONF: Invalid config field");
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                             OTB_MQTT_CMD_SET,
+                             OTB_MQTT_STATUS_ERROR,
+                             "Invalid field");
+        goto EXIT_LABEL;
+        break;
+    }
+  }
+  else if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_GET))
+  {
+    for (ii = OTB_MQTT_CONFIG_FIRST_; ii++; ii <= OTB_MQTT_CONFIG_LAST_)
+    {
+      if (otb_mqtt_match(cmd2, otb_mqtt_config_fields[ii]))
+      {
+        field = ii;
+        break;
+      }
+    }
+    switch (field)
+    {
+      case OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_:
+        value = otb_conf->keep_ap_active ? OTB_MQTT_TRUE : OTB_MQTT_FALSE;
+        break;
+        
+      case OTB_MQTT_CONFIG_LOC1_:
+      case OTB_MQTT_CONFIG_LOC2_:
+      case OTB_MQTT_CONFIG_LOC3_:
+        loc_num = atoi(cmd2+3);
+        if ((loc_num >= 1) && (loc_num <= 3))
+        {
+          switch (loc_num)
+          {
+            case 1:
+              value = otb_conf->loc.loc1;
+              break;
+              
+            case 2:
+              value = otb_conf->loc.loc2;
+              break;
+              
+            case 3:
+              value = otb_conf->loc.loc3;
+              break;
+              
+            default:
+              OTB_ASSERT(FALSE);
+              otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                   OTB_MQTT_CMD_GET,
+                                   OTB_MQTT_STATUS_ERROR,
+                                   "Internal error");
+              goto EXIT_LABEL;
+              break;
+          }
+        }
+        else
+        {
+          INFO("CONF: Invalid location %d", loc_num);
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                               OTB_MQTT_CMD_GET,
+                               OTB_MQTT_STATUS_ERROR,
+                               "Invalid location");
+          
+          goto EXIT_LABEL;
+        }
+        break;
+        
+      default:
+        INFO("CONF: Invalid config field");
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                             OTB_MQTT_CMD_GET,
+                             OTB_MQTT_STATUS_ERROR,
+                             "Invalid location");
+        goto EXIT_LABEL;
+        break;
+    }
+  }
+  else
+  {
+    INFO("CONF: Unknown config command");
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_STATUS_ERROR,
+                         "Invalid command",
+                         "");
+    goto EXIT_LABEL;
+  }
+  
+EXIT_LABEL:
+  
+  if (!rc)
+  {
+    // Nothing to do - we send an error above
+  }  
+  
+  DEBUG("CONF: otb_conf_mqtt exit");
+  
+  return;
 }

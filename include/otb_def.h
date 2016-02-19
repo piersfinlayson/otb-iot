@@ -18,7 +18,7 @@
  */
 
 // Configurable stuff
-#define OTB_MAIN_BAUD_RATE 74880
+#define OTB_MAIN_BAUD_RATE 115200
 #define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
 #define OTB_MAIN_FW_VERSION "v0.1d" //max 8 chars
@@ -47,31 +47,7 @@
 #define OTB_MQTT_ALL "all"
 #define OTB_MQTT_TEMPERATURE "temp"
 #define OTB_MQTT_LOCATION_4_OPT "rad"
-#define OTB_MQTT_CMD_SYSTEM "system"
-#define OTB_MQTT_CMD_GPIO "gpio"
-#define OTB_MQTT_CMD_RESET "reset"
-#define OTB_MQTT_CMD_REBOOT "reboot"
-#define OTB_MQTT_CMD_UPDATE "update"
-#define OTB_MQTT_CMD_HEAP "heap"
-#define OTB_MQTT_CMD_WIFI_STRENGTH "rssi"
-#define OTB_MQTT_CMD_GPIO_GET "get"
-#define OTB_MQTT_CMD_GPIO_SET "set"
-#define OTB_MQTT_CMD_AP_ENABLE "ap_enable"
-#define OTB_MQTT_CMD_AP_DISABLE "ap_disable"
-#define OTB_MQTT_PUB_STATUS "status"
-#define OTB_MQTT_CMD_PING "ping"
-#define OTB_MQTT_CMD_GET_BOOT_SLOT "get_boot_slot"
-#define OTB_MQTT_CMD_SET_BOOT_SLOT "set_boot_slot"
 #define OTB_MQTT_PUB_LOG "log"
-#define OTB_MQTT_STATUS_BOOTED "booted"
-#define OTB_MQTT_STATUS_VERSION "version"
-#define OTB_MQTT_STATUS_CHIPID "chipid"
-#define OTB_MQTT_STATUS_SLOT "boot_slot"
-#define OTB_MQTT_STATUS_HEAP "offline"
-#define OTB_MQTT_STATUS_OFFLINE "heap"
-#define OTB_MQTT_STATUS_PONG "pong"
-#define OTB_MQTT_STATUS_OK "ok"
-#define OTB_MQTT_PUB_ERROR "error"
 
 // Fixed stuff
 #define OTB_GPIO_ESP_GPIO_PINS 17
