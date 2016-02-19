@@ -247,6 +247,32 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
+  // Also subscribe to system commands for this devices which no location
+  // Note if location isn't set this could cause us to sub twice for this topic.  Shrugs.
+  if (extra_subtopic[0] == 0)
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MAIN_CHIPID,
+                subtopic);
+  }
+  else
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MAIN_CHIPID,
+                subtopic,
+                extra_subtopic);
+  }
+  
+  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DEBUG("MQTT:       qos: %d", qos);
+  MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
+  
   DEBUG("MQTT: otb_mqtt_subscribe exit");
 
   return;
