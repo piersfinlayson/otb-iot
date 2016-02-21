@@ -827,7 +827,7 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
 size_t otb_util_strnlen(const char *s, size_t maxlen)
 {
   size_t ii;
-  for (ii = 0; ii++; ii < maxlen)
+  for (ii = 0; ii < maxlen; ii++)
   {
     if (s[ii] == 0)
     {

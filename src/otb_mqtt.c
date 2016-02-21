@@ -86,7 +86,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Publish: %s %s qos: %d retain: %d",
+  // We don't "INFO" this as can be retrieved from MQTT broker
+  DEBUG("MQTT: Publish: %s %s qos: %d retain: %d",
        otb_mqtt_topic_s,
        otb_mqtt_msg_s,
        qos,
@@ -460,10 +461,13 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   char response[8];
   uint8 topic_id;
   uint8 command;
-  char *sub_cmd[3];
+  char *sub_cmd[OTB_MQTT_MAX_CMDS-1];
   int ii;
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
+
+  // This function is currently written to expect 4 SUB commands (5 commands)
+  OTB_ASSERT(OTB_MQTT_MAX_CMDS >= 5);
 
   // Check can actually handle received topic and msg  
   if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||
@@ -505,7 +509,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   switch (command)
   {
     case OTB_MQTT_SYSTEM_CONFIG_:
-      otb_conf_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
+      otb_conf_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2], sub_cmd[3]);
       break;
 
     case OTB_MQTT_SYSTEM_GPIO_:
@@ -637,16 +641,41 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_topic(char *topic)
   return(topic_id);
 }  
 
+int ICACHE_FLASH_ATTR otb_mqtt_get_cmd_len(char *cmd)
+{
+  int len;
+  
+  DEBUG("MQTT: otb_mqtt_get_cmd_len entry");
+
+  for (len = 0; ((cmd[len] != ':') && (cmd[len] != 0)); len++);
+   
+  DEBUG("MQTT: otb_mqtt_get_cmd_len exit");
+
+  return(len);
+}
 bool ICACHE_FLASH_ATTR otb_mqtt_match(char *msg, char *cmd)
 {
   bool match = FALSE;
+  int len;
 
   DEBUG("MQTT: otb_mqtt_match entry");
+  
+  len = otb_mqtt_get_cmd_len(msg);
 
-  match = os_memcmp(msg, cmd, OTB_MIN(os_strlen(msg), os_strlen(cmd)));
+  DEBUG("MQTT: match msg %s len %d", msg, len);
+  DEBUG("MQTT: match cmd %s", cmd);
+  
+  if (os_strlen(cmd) == len)
+  {
+    match = os_memcmp(msg, cmd, len);
 
-  // Flip match as os_strncmp says 0 if matched
-  match = match ? FALSE : TRUE;
+    // Flip match as os_strncmp says 0 if matched
+    match = match ? FALSE : TRUE;
+  }
+  else
+  {
+    match = FALSE;
+  }
 
   DEBUG("MQTT: match %s vs %s = %d", msg, cmd, match);
   
@@ -663,20 +692,18 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_command(char *msg, char *val[])
 
   DEBUG("MQTT: otb_mqtt_pub_get_command entry");
   
-  val[0] = NULL;
-  val[1] = NULL;
-  val[2] = NULL;
+  for (ii = 0; ii < (OTB_MQTT_MAX_CMDS - 1); ii++)
+  {
+    val[ii] = NULL;
+  }
 
   // First get pointers to the various sub bits of the command
   ii = 0;
   temp = os_strstr(msg, OTB_MQTT_COLON);
-  while ((temp != NULL) && (ii < 3))
+  while ((temp != NULL) && (ii < (OTB_MQTT_MAX_CMDS - 1)))
   {
     temp++;
-    if (*temp != 0)
-    {
-      val[ii] = temp;
-    }
+    val[ii] = temp;
     ii++;
     temp = os_strstr(temp, OTB_MQTT_COLON);
   }

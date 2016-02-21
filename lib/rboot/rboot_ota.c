@@ -140,10 +140,10 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 				{ ptrData += 2; }
 			else
 				{ ptrData += 4; }
-			INFO("RBOOT OTA: length %d", length);
+			DEBUG("RBOOT OTA: length %d", length);
 			// length of data after header in this chunk
 			length -= (ptrData - pusrdata);
-			INFO("RBOOT OTA: length %d", length);
+			DEBUG("RBOOT OTA: length %d", length);
 			// running total of download length
 			upgrade->total_len += length;
 			// process current chunk
@@ -154,7 +154,8 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 			if (!ptr) ptr = (char *)os_strstr(ptrLen, "\n");
 			*ptr = '\0'; // destructive
 			upgrade->content_len = atoi(ptrLen);
-			INFO("RBOOT OTA: content_len %d", upgrade->content_len);
+			DEBUG("RBOOT OTA: content_len %d", upgrade->content_len);
+			INFO("RBOOT OTA: Kicked off update");
 		} else {
 			ERROR("fail, not a valid http header/non-200 response/etc. %s", pusrdata);
 			rboot_ota_deinit();

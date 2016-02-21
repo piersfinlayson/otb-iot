@@ -58,6 +58,11 @@ static volatile os_timer_t otb_ds18b20_timer[OTB_DS18B20_MAX_DS18B20S];
 extern void otb_ds18b20_initialize(uint8_t bus);
 extern void otb_ds18b20_callback(void *arg);
 extern bool otb_ds18b20_get_devices(void);
+extern char *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20 **ds);
+extern char *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds);
+bool otb_ds18b20_check_addr_format(char *addr);
+extern void otb_ds18b20_conf_set(char *addr, char *name);
+extern void otb_ds18b20_conf_get(char *sensor, char *index);
 extern void otb_ds18b20_prepare_to_read(void);
 extern bool otb_ds18b20_request_temp(char *addr, char *temp_s);
 void otb_ds18b20_init(int gpio);
@@ -76,7 +81,7 @@ static uint8_t crc8(const uint8_t *addr, uint8_t len);
 #define DS1820_WRITE_SCRATCHPAD	0x4E
 #define DS1820_READ_SCRATCHPAD	0xBE
 #define DS1820_COPY_SCRATCHPAD	0x48
-#define DS1820_READ_EEPROM		  0xB8
+#define DS1820_READ_EEPROM	  0xB8
 #define DS1820_READ_PWRSUPPLY	  0xB4
 #define DS1820_SEARCHROM		    0xF0
 #define DS1820_SKIP_ROM			    0xCC

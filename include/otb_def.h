@@ -58,7 +58,7 @@
 #define OTB_MAIN_CHIPID otb_chipid
 #define OTB_WIFI_MAX_IPV4_STRING_LEN 16 // 3+1+3+1+3+1+3+1
 #define OTB_DS18B20_DEVICE_ADDRESS_LENGTH 8
-#define OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH 16 // 7*2 +2
+#define OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH 16 // 7*2 + 1 + 1
 #define OTB_ESP_MAX_DELAY_MS 65 // os_delay_us can delay max 65535 us
 #define OTB_UTIL_DELAY_WAIT_MS 30 
 #define OTB_UTIL_MAX_DELAY_MS 0xffffffff / 1000 // max 32 bit int in us

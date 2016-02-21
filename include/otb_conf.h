@@ -52,7 +52,7 @@ typedef struct otb_conf_ds18b20
   // The chip ID of a DS18B20 sensor, as a null terminated string in the following format:
   // 28-02157166b0ff.  This is 15 chars, but 16 with 1 byte for terminating.
 #define OTB_CONF_DS18B20_MAX_ID_LEN  16
-  char id[16];
+  char id[OTB_CONF_DS18B20_MAX_ID_LEN];
   
   // Location of this sensor.  Maximum 31 chars, so 32 with padding.
 #define OTB_CONF_DS18B20_LOCATION_MAX_LEN  32  
@@ -122,7 +122,7 @@ bool otb_conf_store_sta_conf(char *ssid, char *password);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
 void otb_conf_update_loc(char *loc, char *val);
-void otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3);
+void otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3, char *cmd4);
 
 #ifdef OTB_CONF_C
 

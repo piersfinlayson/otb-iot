@@ -83,6 +83,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *path)
   uint8_t current_slot;
   uint8_t update_slot;
   bool rc = FALSE;
+  char slot[8];
   
   DEBUG("RBOOT: otb_rboot_update entry");
   
@@ -124,7 +125,15 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *path)
   
 EXIT_LABEL:  
 
-  if (!rc)
+  if (rc)
+  {
+    os_snprintf(slot, 8, "%d", update_slot);
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
+                         OTB_MQTT_STATUS_OK,
+                         "slot",
+                         slot);
+  }
+  else
   {
     otb_rboot_update_in_progress = FALSE;
   }

@@ -229,8 +229,8 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
   INFO("CONF: DS18B20s:  %d", conf->ds18b20s);
   for (ii = 0; ii < conf->ds18b20s; ii++)
   {
-    INFO("CONF: DS18B20 #%d address:  ", ii, conf->ds18b20[ii].id);
-    INFO("CONF: DS18B20 #%d location: ", ii, conf->ds18b20[ii].loc);
+    INFO("CONF: DS18B20 #%d address:  %s", ii, conf->ds18b20[ii].id);
+    INFO("CONF: DS18B20 #%d location: %s", ii, conf->ds18b20[ii].loc);
   }
   
   DEBUG("CONF: otb_conf_log exit");
@@ -456,13 +456,15 @@ EXIT_LABEL:
   return; 
 }
 
-void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
+void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3, char *cmd4)
 {
   uint8 ii;
   uint8 field = OTB_MQTT_CONFIG_INVALID_;
   bool rc = FALSE;
   char *value;
   int loc_num;
+  char response[8];
+  char *ok_error;
 
   DEBUG("CONF: otb_conf_mqtt entry");
   
@@ -557,6 +559,10 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
         otb_conf_update_loc(cmd2, cmd3);
         break;
         
+      case OTB_MQTT_CONFIG_DS18B20_:
+        otb_ds18b20_conf_set(cmd3, cmd4);
+        break;
+        
       default:
         INFO("CONF: Invalid config field");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
@@ -569,7 +575,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
   }
   else if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_GET))
   {
-    for (ii = OTB_MQTT_CONFIG_FIRST_; ii++; ii <= OTB_MQTT_CONFIG_LAST_)
+    for (ii = OTB_MQTT_CONFIG_FIRST_; ii <= OTB_MQTT_CONFIG_LAST_; ii++)
     {
       if (otb_mqtt_match(cmd2, otb_mqtt_config_fields[ii]))
       {
@@ -581,48 +587,64 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
     {
       case OTB_MQTT_CONFIG_KEEP_AP_ACTIVE_:
         value = otb_conf->keep_ap_active ? OTB_MQTT_TRUE : OTB_MQTT_FALSE;
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                             OTB_MQTT_CMD_GET,
+                             OTB_MQTT_STATUS_OK,
+                             value);
         break;
         
       case OTB_MQTT_CONFIG_LOC1_:
       case OTB_MQTT_CONFIG_LOC2_:
       case OTB_MQTT_CONFIG_LOC3_:
+        rc = FALSE;
+        ok_error = OTB_MQTT_STATUS_ERROR;
         loc_num = atoi(cmd2+3);
+        value = "Invalid location";
         if ((loc_num >= 1) && (loc_num <= 3))
         {
+          ok_error = OTB_MQTT_STATUS_OK;
           switch (loc_num)
           {
             case 1:
               value = otb_conf->loc.loc1;
+              rc = TRUE;
               break;
               
             case 2:
               value = otb_conf->loc.loc2;
+              rc = TRUE;
               break;
               
             case 3:
               value = otb_conf->loc.loc3;
+              rc = TRUE;
               break;
               
             default:
               OTB_ASSERT(FALSE);
-              otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
-                                   OTB_MQTT_CMD_GET,
-                                   OTB_MQTT_STATUS_ERROR,
-                                   "Internal error");
-              goto EXIT_LABEL;
+              rc = FALSE;
+              ok_error = OTB_MQTT_STATUS_OK;
+              value = "Internal error";
               break;
           }
         }
-        else
-        {
-          INFO("CONF: Invalid location %d", loc_num);
-          otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
-                               OTB_MQTT_CMD_GET,
-                               OTB_MQTT_STATUS_ERROR,
-                               "Invalid location");
-          
-          goto EXIT_LABEL;
-        }
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                             OTB_MQTT_CMD_GET,
+                             ok_error,
+                             value);
+        goto EXIT_LABEL;
+        break;
+        
+      case OTB_MQTT_CONFIG_DS18B20_:
+        otb_ds18b20_conf_get(cmd3, cmd4);
+        break;
+        
+      case OTB_MQTT_CONFIG_DS18B20S_:
+        os_snprintf(response, 8, "%d", otb_conf->ds18b20s);
+        otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                             OTB_MQTT_CMD_GET,
+                             OTB_MQTT_STATUS_OK,
+                             response);
         break;
         
       default:
@@ -630,7 +652,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3)
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
                              OTB_MQTT_CMD_GET,
                              OTB_MQTT_STATUS_ERROR,
-                             "Invalid location");
+                             "Invalid field");
         goto EXIT_LABEL;
         break;
     }

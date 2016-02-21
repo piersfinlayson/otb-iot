@@ -64,6 +64,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
     // Stagger timer for each temperature sensor
+    INFO("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
     timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
     otb_ds18b20_addresses[ii].timer_int = timer_int;
     os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
@@ -142,6 +143,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   int chars;
   bool rc;
   otbDs18b20DeviceAddress *addr;
+  char *sensor_loc;
   
   DEBUG("DS18B20: otb_ds18b20_callback entry");
 
@@ -159,6 +161,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + addr->index), (os_timer_func_t *)otb_ds18b20_callback, arg);
     // Set repeat to 1!
     os_timer_arm((os_timer_t*)(otb_ds18b20_timer + addr->index), OTB_DS18B20_REPORT_INTERVAL, 1);
+    // Note this won't match the last of N DS18B20s - that will have this interval
+    // already set, and when set that was tested and set to repeat.
   }
 
   // Read all this sensor.
@@ -188,17 +192,34 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
       // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
       // publish)
       // XXX Should replace with otb_mqtt_publish call
+      
+      // Put friendly name for sensor in as well, if exists.
+      sensor_loc = otb_ds18b20_get_sensor_name(addr->friendly, NULL);
+      if (sensor_loc != NULL)
+      {
+        DEBUG("DS18B20: Sensor location: %s", sensor_loc);
+        os_snprintf(otb_mqtt_scratch,
+                    OTB_MQTT_MAX_MSG_LENGTH,
+                    "%s/%s",
+                    sensor_loc,
+                    addr->friendly);
+        sensor_loc = otb_mqtt_scratch;            
+      }
+      else
+      {
+        sensor_loc = addr->friendly;
+      }
+      
       os_snprintf(otb_mqtt_topic_s,
                   OTB_MQTT_MAX_TOPIC_LENGTH,
-                  "/%s/%s/%s/%s/%s/%s/%s/%s",
+                  "/%s/%s/%s/%s/%s/%s/%s",
                   OTB_MQTT_ROOT,
                   OTB_MQTT_LOCATION_1,
                   OTB_MQTT_LOCATION_2,
                   OTB_MQTT_LOCATION_3,
                   OTB_MAIN_CHIPID,
-                  OTB_MQTT_LOCATION_4_OPT,
-                  addr->friendly,
-                  OTB_MQTT_TEMPERATURE);
+                  OTB_MQTT_TEMPERATURE,
+                  sensor_loc);
       DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
       DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[addr->index]);
       chars = strlen(otb_ds18b20_last_temp_s[addr->index]);
@@ -223,6 +244,345 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
 
   return;
 }
+
+char ICACHE_FLASH_ATTR *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20 **ds)
+{
+  char *match;
+  otb_conf_ds18b20 *ds18b20;
+  int uint8;
+  int ii;
+  
+  DEBUG("DS18B20: otb_ds18b20_get_sensor_name entry");
+  
+  DEBUG("DS18B20: addr %s", addr);
+  
+  match = NULL;
+  for (ii = 0, ds18b20 = otb_conf->ds18b20; ii < otb_conf->ds18b20s; ds18b20++, ii++)
+  {
+    DEBUG("DS18B20: test against %s", ds18b20->id);
+    if (otb_mqtt_match(addr, ds18b20->id))
+    {
+      match = ds18b20->loc;
+      if (ds != NULL)
+      {
+        *ds = ds18b20;
+      }
+      DEBUG("DS18B20: Match %d 0x%p", ii, match);
+      if (ds18b20->loc[0] != 0)
+      {
+        // Don't break unless the match was non-NULL - there may be another!
+        break;
+      }
+    }
+  }
+  
+  DEBUG("DS18B20: otb_ds18b20_get_sensor_name exit");
+  
+  return(match);
+}
+
+char ICACHE_FLASH_ATTR *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds)
+{
+  char *match;
+  otb_conf_ds18b20 *ds18b20;
+  int ii;
+  
+  DEBUG("DS18B20: otb_ds18b20_get_addr entry");
+  
+  match = NULL;
+  for (ii = 0, ds18b20 = otb_conf->ds18b20; ii < otb_conf->ds18b20s; ds18b20++, ii++)
+  {
+    if (otb_mqtt_match(name, ds18b20->loc))
+    {
+      match = (char *)&(ds18b20->id[0]);
+      if (ds != NULL)
+      {
+        *ds = ds18b20;
+      }
+      if (ds18b20->loc[0] != 0)
+      {
+        break;
+      }
+    }
+  }
+  
+  DEBUG("DS18B20: otb_ds18b20_get_addr exit");
+  
+  return(match);
+}
+
+bool ICACHE_FLASH_ATTR otb_ds18b20_check_addr_format(char *addr)
+{
+  bool rc = FALSE;
+  int ii;
+  int len;
+
+  DEBUG("DS18B20: otb_ds18b20_check_addr entry");
+  
+  len = otb_mqtt_get_cmd_len(addr);
+  
+  if (len != (OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH - 1))
+  {
+    DEBUG("DS18B20: addr - wrong string length");
+    goto EXIT_LABEL;
+  }
+  
+  if ((addr[0] != '2') || (addr[1] != '8') || (addr[2] != '-'))
+  {
+    DEBUG("DS18B20: addr - doesn't begin '28-'");
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+  for (ii = 0; ii < (OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH - 1); ii++)
+  {
+    if (ii != 2)
+    {
+      if ((addr[ii] < 0x30) ||
+          ((addr[ii] > 0x39) &&
+           ((addr[ii] < 0x60) || (addr[ii] > 0x66))))
+      {
+        // Not hex digit
+        DEBUG("DS18B20: addr - not hex digit found");
+        rc = FALSE;
+        goto EXIT_LABEL;
+        break;
+      }
+    }
+  }
+  
+EXIT_LABEL:  
+  
+  DEBUG("DS18B20: otb_ds18b20_check_addr exit");
+  
+  return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_ds18b20_conf_set(char *addr, char *name)
+{
+  char *match;
+  otb_conf_ds18b20 *ds18b20;
+  char *response = OTB_MQTT_EMPTY;
+  bool rc = FALSE;
+  int ii, jj;
+  struct otbDs18b20DeviceAddress *ds;
+  bool ds_match;
+
+  DEBUG("DS18B20: otb_ds18B20_conf_set entry");
+
+  if (addr == NULL)
+  {
+    rc = FALSE;
+    response = "no arguments";
+    goto EXIT_LABEL;
+  }
+
+  // See if command is really to clear
+  if (otb_mqtt_match(addr, OTB_MQTT_CMD_SET_CLEAR))
+  {
+    // Could just null first byte, but this is more privacy conscious
+    os_memset(otb_conf->ds18b20,
+              0,
+              sizeof(struct otbDs18b20DeviceAddress) * OTB_DS18B20_MAX_DS18B20S);  
+    otb_conf->ds18b20s = 0;
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }
+  
+  // Check name has been passed in and not index (invalid name).  Note zero length string
+  // is OK. 
+  if ((name == NULL) || (otb_mqtt_match(name, OTB_MQTT_CMD_GET_INDEX)))
+  {
+    response = "invalid location";
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+  rc = otb_ds18b20_check_addr_format(addr);
+  if (!rc)
+  {
+    // Malformed DS18B20 sensor address
+    INFO("DS18B20: Sensor address malformed %s", addr);
+    response = "sensor address malformed";
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+    
+  // First of all see if there's already a sensor of this address.  If so replace
+  // with the provided name.
+  match = otb_ds18b20_get_sensor_name(addr, &ds18b20);
+  if (match != NULL)
+  {
+    INFO("DS18B20: Found sensor, updating");
+    os_strncpy(ds18b20->loc, name, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }
+  
+  // If not, find a free slot to put the address in. 
+  for (ii = 0,ds18b20 = otb_conf->ds18b20; ii < OTB_DS18B20_MAX_DS18B20S; ds18b20++, ii++)
+  {
+    if (ds18b20->id[0] == 0)
+    {
+      INFO("DS18B20: Update empty slot %d %s %s", ii, addr, name);
+      // Have found an empty slot - fill it
+      os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
+      ds18b20->id[OTB_CONF_DS18B20_MAX_ID_LEN-1] = 0;
+      os_strncpy(ds18b20->loc, name, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
+      if (otb_conf->ds18b20s != ii)
+      {
+        INFO("DS18B20: Conf DS18B20s not correct %d", otb_conf->ds18b20s);
+      }
+      otb_conf->ds18b20s = (ii + 1);
+      rc = TRUE;
+      goto EXIT_LABEL;
+      break;
+    }
+  }
+  
+  // No free slot.  This is a bit trickier.  If there's a slot with the address of a
+  // sensor not currently present then replace that.  Otherwise reject (this only happens
+  // if the maximum number of sensors is present and the user tries to configure a
+  // different).
+  if (ii == OTB_DS18B20_MAX_DS18B20S)
+  {
+    for (ii = 0, ds18b20 = otb_conf->ds18b20;
+         ii < OTB_DS18B20_MAX_DS18B20S;
+         ds18b20++, ii++)
+    {
+      for (jj = 0, ds = otb_ds18b20_addresses; ii < otb_ds18b20_count; jj++, ds++)
+      {
+        ds_match = FALSE;
+        if (!os_strncmp(ds->friendly, ds18b20->id, OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH))
+        {
+          ds_match = TRUE;
+          break;
+        }
+      }
+      if (!ds_match)
+      {
+        // Can use this slot
+        INFO("DS18B20: Found slot not being used");
+        os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
+        os_strncpy(ds18b20->loc, name, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
+        rc = TRUE;
+        goto EXIT_LABEL;
+        break;
+      }
+    }
+  }
+  
+  // If we get here we failed.
+  rc = FALSE;
+  response = "no unused slots";
+
+EXIT_LABEL:
+
+  // If successful store off new config
+  if (rc)
+  {
+    rc = otb_conf_update(otb_conf);
+    if (!rc)
+    {
+      response = "failed to store new config";
+    }
+  }
+  
+  // Send appropriate response
+  if (rc)
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_SET,
+                         OTB_MQTT_STATUS_OK,
+                         "");
+  
+  }  
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_GET,
+                         OTB_MQTT_STATUS_ERROR,
+                         response);
+  }
+  
+  DEBUG("DS18B20: otb_ds18B20_conf_set exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_ds18b20_conf_get(char *sensor, char *index)
+{
+  char *match = NULL;
+  int slot_num;
+  char *response = NULL;
+
+  DEBUG("DS18B20: otb_ds18B20_conf_get entry");
+  
+  // Check "sensor" isn't really an index
+  if (sensor == NULL)
+  {
+    match = NULL;
+    response = "argument not provided";
+    goto EXIT_LABEL;
+  }
+  
+  if (!os_strncmp(sensor, OTB_MQTT_CMD_GET_INDEX, os_strlen(OTB_MQTT_CMD_GET_INDEX)))
+  {
+    if (index == NULL)
+    {
+      match = NULL;
+      response = "no index provided";
+      goto EXIT_LABEL;
+    }
+    // Get slot number
+    slot_num = atoi(index);
+    DEBUG("DS18B20: index %d", slot_num);
+    if ((slot_num >= 0) && (slot_num < otb_conf->ds18b20s))
+    {
+      match = otb_conf->ds18b20[slot_num].id;
+    } 
+    else
+    {
+      match = NULL;
+      response = "invalid index";
+    }
+    goto EXIT_LABEL; 
+  }
+  
+  // Not a slot, so sensor may be addr or friendly name - so return the other
+  match = otb_ds18b20_get_sensor_name(sensor, NULL);
+  if (match == NULL)
+  {
+    match = otb_ds18b20_get_addr(sensor, NULL);
+    goto EXIT_LABEL; 
+  }
+
+EXIT_LABEL:
+  
+  if (match != NULL)
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_GET,
+                         OTB_MQTT_STATUS_OK,
+                         match);
+  }
+  else
+  {
+    if (response == NULL)
+    {
+      response = "sensor not found";
+    }
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                         OTB_MQTT_CMD_GET,
+                         OTB_MQTT_STATUS_ERROR,
+                         response);
+  }
+  
+  DEBUG("DS18B20: otb_ds18B20_conf_get exit");
+  
+  return;
+}
+
 
 void ICACHE_FLASH_ATTR otb_ds18b20_prepare_to_read(void)
 {

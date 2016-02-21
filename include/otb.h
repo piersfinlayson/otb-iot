@@ -78,10 +78,10 @@
 #include "otb_main.h"
 #include "otb_wifi.h"
 #include "otb_mqtt.h"
+#include "otb_conf.h"
 #include "otb_ds18b20.h"
 #include "otb_rboot.h"
 #include "otb_gpio.h"
-#include "otb_conf.h"
 #include "otb_flash.h"
 #include "otb_httpd.h"
 

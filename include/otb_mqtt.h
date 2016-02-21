@@ -20,6 +20,8 @@
 #ifndef OTB_MQTT_H
 #define OTB_MQTT_H
 
+#define OTB_MQTT_MAX_CMDS  5
+
 #define OTB_MQTT_EMPTY   otb_mqtt_string_empty
 #define OTB_MQTT_SLASH   otb_mqtt_string_slash
 #define OTB_MQTT_COLON   otb_mqtt_string_colon
@@ -98,6 +100,9 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 };
 #endif
 
+#define OTB_MQTT_CMD_GET_INDEX     "index"
+#define OTB_MQTT_CMD_SET_CLEAR     "clear"
+
 #define OTB_MQTT_STATUS_GPIO       OTB_MQTT_SYSTEM_GPIO
 #define OTB_MQTT_STATUS_BOOT_SLOT  OTB_MQTT_SYSTEM_BOOT_SLOT
 #define OTB_MQTT_STATUS_HEAP_SIZE  OTB_MQTT_SYSTEM_HEAP_SIZE
@@ -122,7 +127,11 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_CONFIG_LOC2_           2
 #define OTB_MQTT_CONFIG_LOC3            "loc3"
 #define OTB_MQTT_CONFIG_LOC3_           3
-#define OTB_MQTT_CONFIG_LAST_           3
+#define OTB_MQTT_CONFIG_DS18B20S        "ds18b20s"
+#define OTB_MQTT_CONFIG_DS18B20S_       4
+#define OTB_MQTT_CONFIG_DS18B20	        "ds18b20"
+#define OTB_MQTT_CONFIG_DS18B20_        5
+#define OTB_MQTT_CONFIG_LAST_           5
 
 extern char *otb_mqtt_config_fields[];
 #ifdef OTB_MQTT_C
@@ -131,7 +140,9 @@ char *otb_mqtt_config_fields[OTB_MQTT_CONFIG_LAST_ + 1] =
   OTB_MQTT_CONFIG_KEEP_AP_ACTIVE,
   OTB_MQTT_CONFIG_LOC1,
   OTB_MQTT_CONFIG_LOC2,
-  OTB_MQTT_CONFIG_LOC3
+  OTB_MQTT_CONFIG_LOC3,
+  OTB_MQTT_CONFIG_DS18B20S,
+  OTB_MQTT_CONFIG_DS18B20
 };
 #endif // OTB_MQTT_C
 
@@ -174,6 +185,7 @@ extern void otb_mqtt_on_receive_publish(uint32_t *client,
                                         const char *msg,
                                         uint32_t msg_len);
 uint8 otb_mqtt_pub_get_topic(char *topic);
+int otb_mqtt_get_cmd_len(char *cmd);
 bool otb_mqtt_match(char *msg, char *cmd);
 uint8 otb_mqtt_pub_get_command(char *msg, char *val[]);
 
@@ -183,6 +195,7 @@ extern char otb_mqtt_string_slash[];
 extern char otb_mqtt_string_colon[];
 extern char otb_mqtt_string_true[];
 extern char otb_mqtt_string_false[];
+extern char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
 
 #ifdef OTB_MQTT_C
 
