@@ -60,7 +60,9 @@
 #define OTB_MQTT_SYSTEM_PING_      9
 #define OTB_MQTT_SYSTEM_RSSI       "rssi"
 #define OTB_MQTT_SYSTEM_RSSI_      10
-#define OTB_MQTT_SYSTEM_CMD_LAST_  10
+#define OTB_MQTT_SYSTEM_RSSI       "reason"
+#define OTB_MQTT_SYSTEM_RSSI_      11
+#define OTB_MQTT_SYSTEM_CMD_LAST_  11
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -76,7 +78,8 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_RESET,
   OTB_MQTT_SYSTEM_REBOOT,
   OTB_MQTT_SYSTEM_PING, 
-  OTB_MQTT_SYSTEM_RSSI
+  OTB_MQTT_SYSTEM_RSSI,
+  OTB_MQTT_SYSTEM_REASON
 };
 #endif // OTB_MQTT_C
 
@@ -184,6 +187,7 @@ extern void otb_mqtt_on_receive_publish(uint32_t *client,
                                         uint32_t topic_len,
                                         const char *msg,
                                         uint32_t msg_len);
+void otb_mqtt_reason(char *what);
 uint8 otb_mqtt_pub_get_topic(char *topic);
 int otb_mqtt_get_cmd_len(char *cmd);
 bool otb_mqtt_match(char *msg, char *cmd);

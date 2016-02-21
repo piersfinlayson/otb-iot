@@ -339,6 +339,9 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
                                            uint16_t keepalive)
 {
   MQTT_Client *mqtt_client;
+  char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
+  int chars;
+  int ii;
 
 	DEBUG("MQTT: otb_mqtt_initialize entry");
 
@@ -348,13 +351,17 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 	MQTT_InitClient(mqtt_client, device_id, mqtt_username, mqtt_password, keepalive, TRUE);
 	
   // Set up LWT (last will and testament)
+  otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
   os_snprintf(otb_mqtt_topic_s,
               OTB_MQTT_MAX_TOPIC_LENGTH,
-              "/%s/%s/%s/%s/%s/%s",
+              "/%s%s%s%s%s%s%s/%s/%s",
               OTB_MQTT_ROOT,
-              OTB_MQTT_LOCATION_1,
-              OTB_MQTT_LOCATION_2,
-              OTB_MQTT_LOCATION_3,
+              loc1,
+              loc1_,
+              loc2,
+              loc2_,
+              loc3,
+              loc3_,
               OTB_MAIN_CHIPID,
               OTB_MQTT_TOPIC_STATUS);
 	MQTT_InitLWT(mqtt_client, otb_mqtt_topic_s, "offline", 0, 0);
