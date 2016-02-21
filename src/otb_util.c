@@ -333,7 +333,7 @@ void ICACHE_FLASH_ATTR otb_reset_error(char *text)
 {
   DEBUG("OTB: otb_reset_error entry");
   
-  otb_reset_internal(text, TRUE);
+  otb_reset_schedule(1000, (const char *)text, TRUE);
   
   DEBUG("OTB: otb_reset_error exit");
   
