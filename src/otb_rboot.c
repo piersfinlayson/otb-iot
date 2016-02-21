@@ -24,7 +24,7 @@ static bool otb_rboot_update_in_progress = FALSE;
 static char otb_update_request[512];
 #define HTTP_HEADER "Connection: keep-alive\r\nCache-Control: no-cache\r\nUser-Agent: rBoot-Sample/1.0\r\nAccept: */*\r\n\r\n"
 
-char ALIGN4 otb_rboot_update_callback_error_string[] = "RBOOT: Update successful";
+const char ALIGN4 otb_rboot_update_callback_error_string[] = "RBOOT: Update successful";
 void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
 {
   bool rc;
@@ -45,9 +45,9 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
       // XXX Doesn't give system time to actually send the status
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
                            OTB_MQTT_STATUS_OK,
-                           "",
+                           "resetting",
                            "");
-      otb_reset(otb_rboot_update_callback_error_string);
+      otb_reset_schedule(1000, otb_rboot_update_callback_error_string, FALSE);
     }
     else
     {

@@ -17,25 +17,11 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define OTB_UTIL_C
 #include "otb.h"
 #include <stdarg.h>
 #include <limits.h>
 #include <errno.h>
-
-char otb_compile_date[12];
-char otb_compile_time[9];
-char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-char OTB_MAIN_DEVICE_ID[20];
-
-char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-
-// Force log buffer to be 4 byte aligned
-uint32 otb_util_log_buf_int32[OTB_UTIL_LOG_BUFFER_LEN/4];
-char *otb_util_log_buf;
-otb_util_log_buffer otb_util_log_buffer_struct;
-
-bool otb_util_asserting;
 
 void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
 {
@@ -303,6 +289,42 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
   }
 
   DEBUG("UTIL: otb_util_assert exit");
+  
+  return;
+}
+
+
+void ICACHE_FLASH_ATTR otb_reset_schedule(uint32_t timeout,
+                                          const char *reason,
+                                          bool error)
+{
+
+  DEBUG("UTIL: otb_reset_schedule entry");
+
+  os_memset(&otb_reset_reason_struct, 0, sizeof(otb_reset_reason_struct));
+  otb_reset_reason_struct.reason = reason;  
+  otb_reset_reason_struct.error = error;  
+
+  otb_util_timer_set((os_timer_t *)&otb_util_reset_timer,
+                     (os_timer_func_t *)otb_reset_timer,
+                     (void *)&otb_reset_reason_struct,
+                     timeout,
+                     0);
+
+  DEBUG("UTIL: otb_reset_schedule exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_reset_timer(void *arg)
+{
+  struct otb_reset_reason *reason_struct = (struct otb_reset_reason *)arg;
+
+  DEBUG("UTIL: otb_reset_timer entry");
+  
+  otb_reset_internal((char *)reason_struct->reason, reason_struct->error);
+  
+  DEBUG("UTIL: otb_reset_timer exit");
   
   return;
 }

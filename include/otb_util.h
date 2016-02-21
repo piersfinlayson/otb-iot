@@ -48,6 +48,10 @@ extern void otb_util_log_store(void);
 extern void otb_util_log_save(char *text);
 extern void otb_util_log_fn(char *text);
 extern void otb_util_assert(bool value, char *value_s);
+void otb_reset_schedule(uint32_t timeout,
+                        const char *reason,
+                        bool error);
+void otb_reset_timer(void *arg);
 extern void otb_reset_error(char *text);
 extern void otb_reset(char *text);
 void otb_reset_internal(char *text, bool error);
@@ -84,4 +88,34 @@ extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
+
+struct otb_reset_reason
+{
+  const char *reason;
+  
+  bool error;
+} otb_reset_reason;
+
+#ifdef OTB_UTIL_C
+
+os_timer_t otb_util_reset_timer;
+
+struct otb_reset_reason otb_reset_reason_struct;
+
+char otb_compile_date[12];
+char otb_compile_time[9];
+char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
+char OTB_MAIN_DEVICE_ID[20];
+
+char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
+
+// Force log buffer to be 4 byte aligned
+uint32 otb_util_log_buf_int32[OTB_UTIL_LOG_BUFFER_LEN/4];
+char *otb_util_log_buf;
+otb_util_log_buffer otb_util_log_buffer_struct;
+
+bool otb_util_asserting;
+
+#endif // OTB_UTIL_C
 
