@@ -410,6 +410,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
   
   if ((val2 != NULL) && (os_strlen(val2) > 0))
   {
+    otb_util_convert_ws_to_(val2);
+    otb_util_convert_colon_to_period(val2);
     len = os_snprintf(otb_mqtt_scratch,
                       max_len,
                       "%s",
@@ -417,6 +419,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
     max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
     if ((val3 != NULL) && (os_strlen(val3) > 0))
     {
+      otb_util_convert_ws_to_(val3);
+      otb_util_convert_colon_to_period(val3);
       len += os_snprintf(otb_mqtt_scratch + len,
                          max_len,
                          ":%s",
@@ -424,6 +428,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
       max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
       if ((val4 != NULL) && (os_strlen(val4) > 0))
       {
+        otb_util_convert_ws_to_(val4);
+        otb_util_convert_colon_to_period(val4);
         len += os_snprintf(otb_mqtt_scratch + len,
                            max_len,
                            ":%s",
@@ -598,6 +604,10 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       otb_wifi_mqtt_do_rssi(otb_mqtt_msg_s);
       break;
 
+    case OTB_MQTT_SYSTEM_REASON_:
+      otb_mqtt_reason(sub_cmd[0]);
+      break;
+
     default:
       INFO("MQTT: Unknown command");
       otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported message type", "", "");
@@ -607,6 +617,66 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 EXIT_LABEL:  
   
   DEBUG("MQTT: otb_mqtt_on_receive_publish exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_reason(char *what)
+{
+  // Must align 4 this as we're going to read into it from flash
+  char ALIGN4 flash_reason[48];
+  char *reason;
+  bool rc = FALSE;
+  uint8 reason_id;
+
+  DEBUG("MQTT: otb_mqtt_reason entry");
+  
+  if ((what == NULL) || (what[0] == 0))
+  {
+    rc = FALSE;
+    reason = "no argument";
+    goto EXIT_LABEL;
+  }
+  
+  reason_id = otb_mqtt_get_reason(what);
+  
+  switch (reason_id)
+  {
+    case OTB_MQTT_REASON_REBOOT_:
+    case OTB_MQTT_REASON_RESET_:
+      reason = "failed to read from flash";
+      rc = otb_util_flash_read(OTB_BOOT_LAST_REBOOT_REASON, (uint32 *)flash_reason, 48);
+      flash_reason[47] = 0;
+      if (rc)
+      {
+        reason = flash_reason;
+      }
+      break;
+      
+    default:
+      INFO("MQTT: Unknown reason %s", what);
+      reason = "unknown reason";
+      break;
+  }
+  
+EXIT_LABEL:
+  
+  if (rc)
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_REASON,
+                         OTB_MQTT_STATUS_OK,
+                         reason,
+                         "");
+  }
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_REASON,
+                         OTB_MQTT_STATUS_ERROR,
+                         reason,
+                         "");
+  }  
+  
+  DEBUG("MQTT: otb_mqtt_reason exit");
   
   return;
 }
@@ -730,4 +800,24 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_command(char *msg, char *val[])
   return(cmd_id);
 }
 
+uint8 ICACHE_FLASH_ATTR otb_mqtt_get_reason(char *msg)
+{
+  uint8 ii;
+  uint8 reason_id = OTB_MQTT_REASON_INVALID_;
+
+  DEBUG("MQTT: otb_mqtt_get_reason entry");
+  
+  for (ii = OTB_MQTT_REASON_FIRST_; ii <= OTB_MQTT_REASON_LAST_; ii++)
+  {
+    if (otb_mqtt_match(msg, otb_mqtt_reasons[ii]))
+    {
+      reason_id = ii;
+      break;
+    }
+  }
+    
+  DEBUG("MQTT: otb_mqtt_get_reason exit");
+  
+  return(reason_id);
+}
 
