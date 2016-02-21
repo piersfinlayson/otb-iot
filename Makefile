@@ -33,7 +33,7 @@ ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot
-HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd
+HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
@@ -107,6 +107,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
+             $(OTB_OBJ_DIR)/strcasecmp.o \
              $(OTB_OBJ_DIR)/pin_map.o 
 
 otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
@@ -121,6 +122,7 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
+             $(OTB_OBJ_DIR)/strcasecmp.o \
              $(OTB_OBJ_DIR)/pin_map.o 
 
 mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
@@ -133,12 +135,10 @@ mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
 httpdObjects = $(HTTPD_OBJ_DIR)/auth.o \
                $(HTTPD_OBJ_DIR)/base64.o \
                $(HTTPD_OBJ_DIR)/captdns.o \
-               $(HTTPD_OBJ_DIR)/cgiflash.o \
-               $(HTTPD_OBJ_DIR)/cgiwebsocket.o \
-               $(HTTPD_OBJ_DIR)/cgiwifi.o \
                $(HTTPD_OBJ_DIR)/espfs.o \
                $(HTTPD_OBJ_DIR)/heatshrink_decoder.o \
                $(HTTPD_OBJ_DIR)/httpd.o \
+               $(HTTPD_OBJ_DIR)/httpd-nonos.o \
                $(HTTPD_OBJ_DIR)/httpdespfs.o \
                $(HTTPD_OBJ_DIR)/sha1.o \
                $(HTTPD_OBJ_DIR)/stdout.o

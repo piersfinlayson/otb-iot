@@ -3,7 +3,7 @@
 #include <esp8266.h>
 #include "base64.h"
 
-static const uint8_t base64dec_tab[256]= {
+static const int base64dec_tab[256] ICACHE_RODATA_ATTR={
 	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
 	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
 	255,255,255,255,255,255,255,255,255,255,255, 62,255,255,255, 63,
@@ -38,7 +38,6 @@ static int ICACHE_FLASH_ATTR base64decode(const char in[4], char out[3]) {
 }
 #endif
 
-extern int isspace(int c);
 /* decode a base64 string in one shot */
 int ICACHE_FLASH_ATTR base64_decode(size_t in_len, const char *in, size_t out_len, unsigned char *out) {
 	unsigned int ii, io;

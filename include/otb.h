@@ -56,9 +56,9 @@
 #include "ringbuf.h"
 
 // HTTPD
+#include "platform.h"
 #include "httpd.h"
 #include "httpdespfs.h"
-#include "cgiwifi.h"
 #include "captdns.h"
 #include "webpages-espfs.h"
 #include "espfs.h"
@@ -82,7 +82,6 @@
 #include "otb_ds18b20.h"
 #include "otb_rboot.h"
 #include "otb_gpio.h"
-#include "otb_flash.h"
 #include "otb_httpd.h"
 
 #endif

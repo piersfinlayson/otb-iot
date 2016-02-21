@@ -40,13 +40,6 @@ HttpdBuiltInUrl otb_httpd_ap_urls[] =
         {"/", cgiRedirect, "/wifi"},
         {"/wifi.html", otb_httpd_station_config, NULL},
         {"/wifi", cgiRedirect, "/wifi.html"},
-        {"/1wifi", cgiRedirect, "/1wifi/wifi.tpl"},
-        {"/1wifi/", cgiRedirect, "/1wifi/wifi.tpl"},
-        {"/1wifi/wifiscan.cgi", cgiWiFiScan, NULL},
-        {"/1wifi/wifi.tpl", cgiEspFsTemplate, tplWlan},
-        {"/1wifi/connect.cgi", cgiWiFiConnect, NULL},
-        {"/1wifi/connstatus.cgi", cgiWiFiConnStatus, NULL},
-        {"/1wifi/setmode.cgi", cgiWiFiSetMode, NULL},
   {NULL, NULL, NULL}
 };
 

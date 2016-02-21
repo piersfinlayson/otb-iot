@@ -102,7 +102,7 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
   char password[64];
   char buf[512];
 
-  DEBUG("HTTPD: otb_httpd_station_config entry");
+  INFO("HTTPD: otb_httpd_station_config entry");
 
   if (connData->conn == NULL)
   {
@@ -169,8 +169,9 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
         httpdHeader(connData, "Content-Type", "text/html");
         httpdEndHeaders(connData);
 
-        len = otb_httpd_display_ap_list(otb_httpd_scratch, OTB_HTTP_SCRATCH_LEN);
+        len = 0;
         len += otb_httpd_wifi_form(otb_httpd_scratch+len, OTB_HTTP_SCRATCH_LEN-len);
+        len += otb_httpd_display_ap_list(otb_httpd_scratch+len, OTB_HTTP_SCRATCH_LEN-len);
         DEBUG("HTTPD: output %d bytes", len);
         if (len > 1024)
         {
