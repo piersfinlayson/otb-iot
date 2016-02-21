@@ -22,7 +22,6 @@
 volatile rboot_ota otb_rboot_ota;
 static bool otb_rboot_update_in_progress = FALSE;
 static char otb_update_request[512];
-static const uint8 ota_ip[4] = {192, 168, 0, 162};
 #define HTTP_HEADER "Connection: keep-alive\r\nCache-Control: no-cache\r\nUser-Agent: rBoot-Sample/1.0\r\nAccept: */*\r\n\r\n"
 
 char ALIGN4 otb_rboot_update_callback_error_string[] = "RBOOT: Update successful";
@@ -67,7 +66,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
                          OTB_MQTT_STATUS_ERROR,
                          "Update failed",
                          "");
-    ERROR("RBOOT: Update failed");
+    INFO("RBOOT: Update failed");
     goto EXIT_LABEL;
   }
   
@@ -78,28 +77,92 @@ EXIT_LABEL:
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *path)
+bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path)
 {
   uint8_t current_slot;
   uint8_t update_slot;
   bool rc = FALSE;
   char slot[8];
+  uint8 ota_ip[4];
+  char *error;
+  char *pos;
+  char *pos2;
+  int ii;
+  uint32 port_int;
+  int len;
   
   DEBUG("RBOOT: otb_rboot_update entry");
-  
+
+  // Won't update if already updtating.
   if (otb_rboot_update_in_progress)
   {
-    INFO("RBOOT: Can't update as already in progress");
+    DEBUG("RBOOT: Can't update as already in progress");
+    rc = FALSE;
+    error = "update already in progress";
     goto EXIT_LABEL;
   }
+
+  // Sanity check args
+  if ((ip == NULL) ||
+      (ip[0] == 0) ||
+      (port == NULL) ||
+      (port[0] == 0) ||
+      (path == NULL) ||
+      (path[0] == 0))
+  {
+    DEBUG("RBOOT: Duff input vars");
+    rc = FALSE;
+    error = "invalid arguments";
+    goto EXIT_LABEL;
+  }
+  
+  // Process IP address arg
+  for (ii = 0, pos = ip; (pos != NULL) && (ii < 4); ii++)
+  {
+    // Get next byte of IP address
+    ota_ip[ii] = (uint8)atoi(pos);
+    
+    // Move past the dot
+    pos2 = os_strstr(pos, OTB_MQTT_COLON);
+    pos = os_strstr(pos, OTB_MQTT_PERIOD);
+    if ((pos2 != NULL) && (pos < pos2))
+    {
+      pos++;
+    }
+  }
+  
+  // Null terminate the IP address string, as we'll need it later.  Don't care if this
+  // fails - means was already null terminated
+  pos = os_strstr(ip, OTB_MQTT_COLON);
+  if (pos != NULL)
+  {
+    *pos = 0;
+  }
+
+  // Process port argument
+  port_int = atoi(port);
+  
+  // Process path argument - see if there's a colon, and if so strip
+  pos = os_strstr(path, OTB_MQTT_COLON);
+  if (pos != NULL)
+  {
+    *pos = 0;
+  }
+  // If starts with / remove - we'll add back in later
+  if (path[0] == '/')
+  {
+    path++;
+  }
+
+  // Build update request struct
   otb_rboot_update_in_progress = TRUE;
   memset((void *)&otb_rboot_ota, 0, sizeof(otb_rboot_ota));
   memcpy((void *)otb_rboot_ota.ip, ota_ip, 4);
-  
-  otb_rboot_ota.port = 8080;
+  otb_rboot_ota.port = port_int;
   otb_rboot_ota.callback = (ota_callback)otb_rboot_update_callback;
   otb_rboot_ota.request = otb_update_request;
   
+  // Figure out which slot to update
   current_slot = rboot_get_current_rom();
   if (current_slot == 0)
   {
@@ -109,18 +172,32 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *path)
   {
     update_slot = 0;
   }
-  INFO("RBOOT: Update slot %d", update_slot);
   otb_rboot_ota.rom_slot = update_slot;
-  
-  os_snprintf((char *)otb_rboot_ota.request,
-              512,
-              "GET /app_image.bin HTTP/1.1\r\nHost: 192.168.0.162\r\n"HTTP_HEADER);
+
+  // Build the HTTP request
+  len = os_snprintf((char *)otb_rboot_ota.request,
+                    512,
+                    "GET /%s HTTP/1.1\r\nHost: %s\r\n" HTTP_HEADER,
+                    path,
+                    ip);
+  if (len >= 512)
+  {
+    rc = FALSE;
+    error = "path too long";
+    goto EXIT_LABEL;
+  }
+    
+  INFO("RBOOT: Update slot: %d from host: %s port: %d path: /%s",
+      update_slot,
+      ip,
+      port_int,
+      path);
   
   rc = rboot_ota_start((rboot_ota *)&otb_rboot_ota);
   if (!rc)
   {
-    // Log this as an error so gets sent over MQTT
-    ERROR("RBOOT: Update failed");
+    error = "internal error";
+    goto EXIT_LABEL;
   }
   
 EXIT_LABEL:  
@@ -136,6 +213,10 @@ EXIT_LABEL:
   else
   {
     otb_rboot_update_in_progress = FALSE;
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
+                         OTB_MQTT_STATUS_ERROR,
+                         error,
+                         "");
   }
   
   DEBUG("RBOOT: otb_rboot_update exit");

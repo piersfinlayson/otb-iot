@@ -18,7 +18,7 @@
  */
 
 void otb_rboot_update_callback(void *arg, bool result);
-bool otb_rboot_update(char *ip, char *path);
+bool otb_rboot_update(char *ip, char *port, char *path);
 bool otb_rboot_update_slot(char *msg);
 uint8_t otb_rboot_get_slot(bool publish);
 

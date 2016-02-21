@@ -102,7 +102,7 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
   char password[64];
   char buf[512];
 
-  INFO("HTTPD: otb_httpd_station_config entry");
+  DEBUG("HTTPD: otb_httpd_station_config entry");
 
   if (connData->conn == NULL)
   {

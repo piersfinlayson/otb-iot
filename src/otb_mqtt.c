@@ -291,12 +291,6 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
   // Now publish status.  First off booted.  Don't need to retain this.
   otb_mqtt_send_status(OTB_MQTT_STATUS_BOOTED, "", "", "");
                    
-  // Now version ID.  Need to retain this.                 
-  otb_mqtt_send_status(OTB_MQTT_STATUS_VERSION, OTB_MAIN_VERSION_ID, "", "");
-
-  // Now Chip ID.  Need to retain this.                 
-  otb_mqtt_send_status(OTB_MQTT_STATUS_CHIPID, OTB_MAIN_CHIPID, "", "");
-
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
                      OTB_MQTT_TOPIC_SYSTEM,
@@ -476,6 +470,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   uint8 command;
   char *sub_cmd[OTB_MQTT_MAX_CMDS-1];
   int ii;
+  char *cmd;
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
@@ -518,7 +513,18 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     goto EXIT_LABEL;
   }
   
+  // Get sub commands
   command = otb_mqtt_pub_get_command(otb_mqtt_msg_s, sub_cmd);
+  
+  // Set up cmd variable
+  cmd = os_strstr(otb_mqtt_msg_s, OTB_MQTT_COLON);
+  if (cmd != NULL)
+  {
+    *cmd = 0;
+  }
+  cmd = otb_mqtt_msg_s;
+  
+  // Now do stuff based on command
   switch (command)
   {
     case OTB_MQTT_SYSTEM_CONFIG_:
@@ -542,7 +548,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
         }
         else
         {
-          otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
+          otb_mqtt_send_status(cmd,
                                OTB_MQTT_STATUS_ERROR,
                                "No or unsupported command",
                                "");
@@ -550,21 +556,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       }
       else
       {
-        otb_mqtt_send_status(OTB_MQTT_SYSTEM_BOOT_SLOT,
-                             OTB_MQTT_STATUS_ERROR,
-                             "No or unsupported command",
-                             "");
-      }
-      break;
-
-    case OTB_MQTT_SYSTEM_HEAP_SIZE_:
-      if ((sub_cmd[0] != NULL) && (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET)))
-      {
-        otb_util_get_heap_size();
-      }
-      else
-      {
-        otb_mqtt_send_status(OTB_MQTT_SYSTEM_HEAP_SIZE,
+        otb_mqtt_send_status(cmd,
                              OTB_MQTT_STATUS_ERROR,
                              "No or unsupported command",
                              "");
@@ -572,18 +564,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       break;
 
     case OTB_MQTT_SYSTEM_DS18B20_:
-      otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR,
+      otb_mqtt_send_status(cmd,
+                          OTB_MQTT_STATUS_ERROR,
                            "DS18B20 MQTT commands not yet implemented",
-                           "",
                            "");
       break;
 
     case OTB_MQTT_SYSTEM_UPDATE_:
-      otb_rboot_update(sub_cmd[0], sub_cmd[1]);
-      break;
-      
     case OTB_MQTT_SYSTEM_UPGRADE_:
-      otb_rboot_update(sub_cmd[0], sub_cmd[1]);
+      otb_rboot_update(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
       break;
 
     case OTB_MQTT_SYSTEM_RESET_:
@@ -607,6 +596,51 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     case OTB_MQTT_SYSTEM_REASON_:
       otb_mqtt_reason(sub_cmd[0]);
       break;
+    
+    case OTB_MQTT_SYSTEM_VERSION_:
+    case OTB_MQTT_SYSTEM_CHIP_ID_:
+    case OTB_MQTT_SYSTEM_HEAP_SIZE_:
+    case OTB_MQTT_SYSTEM_COMPILE_DATE_:
+    case OTB_MQTT_SYSTEM_COMPILE_TIME_:
+      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET)))
+      {
+        otb_mqtt_send_status(cmd,
+                             OTB_MQTT_STATUS_ERROR,
+                             "only supports get command",
+                             "");
+        goto EXIT_LABEL;
+      }
+      
+      switch(command)
+      {
+        case OTB_MQTT_SYSTEM_VERSION_:
+          otb_mqtt_send_status(cmd, OTB_MAIN_FW_VERSION, "", "");
+          break;
+        
+        case OTB_MQTT_SYSTEM_CHIP_ID_:
+          otb_mqtt_send_status(cmd, OTB_MAIN_CHIPID, "", "");
+          break;
+        
+        case OTB_MQTT_SYSTEM_HEAP_SIZE_:
+          otb_util_get_heap_size();
+          break;
+          
+        case OTB_MQTT_SYSTEM_COMPILE_DATE_:
+          otb_mqtt_send_status(cmd, otb_compile_date, "", "");
+          break;
+          
+        case OTB_MQTT_SYSTEM_COMPILE_TIME_:
+          otb_mqtt_send_status(cmd, otb_compile_time, "", "");
+          break;
+          
+        default:
+          OTB_ASSERT(FALSE);
+          otb_mqtt_send_status(cmd,
+                               OTB_MQTT_STATUS_ERROR,
+                               "internal error",
+                               "");
+      }  
+    break;
 
     default:
       INFO("MQTT: Unknown command");

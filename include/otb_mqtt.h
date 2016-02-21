@@ -25,6 +25,7 @@
 #define OTB_MQTT_EMPTY   otb_mqtt_string_empty
 #define OTB_MQTT_SLASH   otb_mqtt_string_slash
 #define OTB_MQTT_COLON   otb_mqtt_string_colon
+#define OTB_MQTT_PERIOD  otb_mqtt_string_period
 #define OTB_MQTT_TRUE    otb_mqtt_string_true
 #define OTB_MQTT_FALSE   otb_mqtt_string_false
 
@@ -62,7 +63,15 @@
 #define OTB_MQTT_SYSTEM_RSSI_      10
 #define OTB_MQTT_SYSTEM_REASON     "reason"
 #define OTB_MQTT_SYSTEM_REASON_    11
-#define OTB_MQTT_SYSTEM_CMD_LAST_  11
+#define OTB_MQTT_SYSTEM_VERSION    "version"
+#define OTB_MQTT_SYSTEM_VERSION_   12
+#define OTB_MQTT_SYSTEM_CHIP_ID    "chip_id"
+#define OTB_MQTT_SYSTEM_CHIP_ID_    13
+#define OTB_MQTT_SYSTEM_COMPILE_DATE    "compile_date"
+#define OTB_MQTT_SYSTEM_COMPILE_DATE_   14
+#define OTB_MQTT_SYSTEM_COMPILE_TIME    "compile_time"
+#define OTB_MQTT_SYSTEM_COMPILE_TIME_   15
+#define OTB_MQTT_SYSTEM_CMD_LAST_  15
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -79,7 +88,11 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_REBOOT,
   OTB_MQTT_SYSTEM_PING, 
   OTB_MQTT_SYSTEM_RSSI,
-  OTB_MQTT_SYSTEM_REASON
+  OTB_MQTT_SYSTEM_REASON,
+  OTB_MQTT_SYSTEM_VERSION,
+  OTB_MQTT_SYSTEM_CHIP_ID,
+  OTB_MQTT_SYSTEM_COMPILE_DATE,
+  OTB_MQTT_SYSTEM_COMPILE_TIME
 };
 #endif // OTB_MQTT_C
 
@@ -214,6 +227,7 @@ extern char otb_mqtt_string_empty[];
 extern char otb_mqtt_string_slash[];
 extern char otb_mqtt_string_slash[];
 extern char otb_mqtt_string_colon[];
+extern char otb_mqtt_string_period[];
 extern char otb_mqtt_string_true[];
 extern char otb_mqtt_string_false[];
 extern char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
@@ -224,6 +238,7 @@ extern char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
 char otb_mqtt_string_empty[] = "";
 char otb_mqtt_string_slash[] = "/";
 char otb_mqtt_string_colon[] = ":";
+char otb_mqtt_string_period[] = ".";
 char otb_mqtt_string_true[] = "true";
 char otb_mqtt_string_false[] = "false";
 

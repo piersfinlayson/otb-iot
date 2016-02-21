@@ -38,7 +38,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 
 	upgrade = (upgrade_param*)os_zalloc(sizeof(upgrade_param));
 	if (!upgrade) {
-		ERROR("No ram!");
+		INFO("RBOOT OTA: No ram!");
 		return false;
 	}
 	
@@ -61,7 +61,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 	// create connection
 	upgrade->conn = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	if (!upgrade->conn) {
-		ERROR("No ram!");
+		INFO("RBOOT OTA: No ram!");
 		os_free(upgrade);
 		return false;
 	}
@@ -69,7 +69,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 	if (!upgrade->conn->proto.tcp) {
 		os_free(upgrade->conn);
 		upgrade->conn = 0;
-		ERROR("No ram!");
+		INFO("RBOOT OTA: No ram!");
 		os_free(upgrade);
 		return false;
 	}
@@ -89,7 +89,7 @@ static void ICACHE_FLASH_ATTR rboot_ota_deinit() {
 	rboot_ota *ota;
 	struct espconn *conn;
 
-	DEBUG("possible timeout or other error");
+	DEBUG("RBOOT OTA: possible timeout or other error");
 	os_timer_disarm(&ota_timer);
 	
 	// save only remaining bits of interest from upgrade struct
@@ -157,7 +157,7 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 			DEBUG("RBOOT OTA: content_len %d", upgrade->content_len);
 			INFO("RBOOT OTA: Kicked off update");
 		} else {
-			ERROR("fail, not a valid http header/non-200 response/etc. %s", pusrdata);
+			INFO("RBOOT OTA: fail, not a valid http header/non-200 response/etc. %s", pusrdata);
 			rboot_ota_deinit();
 			return;
 		}
@@ -174,7 +174,7 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 		// clean up and call user callback
 		rboot_ota_deinit();
 	} else if (upgrade->conn->state != ESPCONN_READ) {
-		ERROR("fail, but how do we get here? premature end of stream?");
+		ERROR("RBOOT OTA: fail, but how do we get here? premature end of stream?");
 		rboot_ota_deinit();
 	}
 }
@@ -201,7 +201,7 @@ static void ICACHE_FLASH_ATTR upgrade_disconcb(void *arg) {
 		// mark connection as gone
 		upgrade->conn = 0;
 		// end the update process
-		ERROR("discon callback");
+		DEBUG("RBOOT OTA: discon callback");
 		rboot_ota_deinit();
 	}
 }
@@ -224,7 +224,7 @@ static void ICACHE_FLASH_ATTR upgrade_connect_cb(void *arg) {
 
 // connection attempt timed out
 static void ICACHE_FLASH_ATTR connect_timeout_cb() {
-	ERROR("Connect timeout.");
+	DEBUG("RBOOT OTA: Connect timeout.");
 	// not connected so don't call disconnect on the connection
 	// but call our own disconnect callback to do the cleanup
 	upgrade_disconcb(upgrade->conn);
@@ -232,7 +232,7 @@ static void ICACHE_FLASH_ATTR connect_timeout_cb() {
 
 // call back for lost connection
 static void ICACHE_FLASH_ATTR upgrade_recon_cb(void *arg, sint8 errType) {
-	ERROR("Connection error.");
+	DEBUG("RBOOT OTA: Connection error.");
 	// not connected so don't call disconnect on the connection
 	// but call our own disconnect callback to do the cleanup
 	upgrade_disconcb(upgrade->conn);
@@ -248,7 +248,7 @@ bool ICACHE_FLASH_ATTR rboot_ota_start(rboot_ota *ota) {
 	
 	// check parameters
 	if (!ota || !ota->request) {
-		ERROR("Invalid parameters.");
+		DEBUG("RBOOT OTA: Invalid parameters.");
 		return false;
 	}
 	
