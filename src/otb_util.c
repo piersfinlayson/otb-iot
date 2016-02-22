@@ -204,6 +204,7 @@ void ICACHE_FLASH_ATTR otb_util_log_store(void)
   return;
 }
 
+// XXX Should really break this out§
 char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
 {
   uint16_t len_b4;
@@ -236,14 +237,11 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
   }
   log_start = NULL;
 
-  ets_printf("ii starts out %d\r\n", ii);
   for (times = index; times >= 0; times--)
   {
-    ets_printf("times %d\r\n", times);
     non_null = FALSE;
     while (TRUE)
     {
-      ets_printf("ii now %d\r\n", ii);
       // Need to skip over any trailing 0s (may be up to 4).
       if (otb_util_log_buffer_struct.buffer[ii] != 0)
       {
@@ -257,7 +255,6 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
           // Start from end
           ii = otb_util_log_buffer_struct.len - 1;
           first_loop = FALSE;
-          ets_printf("ii now %d\r\n", ii);
         }
       }
       else
@@ -265,7 +262,6 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
         if (ii <= len_b4)
         {
           // Gone all the way around with no match :-(
-          ets_printf("no match\r\n");
           break;
         }
       }
@@ -288,8 +284,6 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
     }
   }
   
-  ets_printf("match %s\r\n", log_start); 
-  
   // This is a bit of a hack - we'll basically copy the whole buffer into the log string
   // - well as much as there's space for.  However, "our" string will be NULL terminated
   // so it works
@@ -299,14 +293,12 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
     scratch_left = OTB_MAIN_MAX_LOG_LENGTH;
     buffer_left = otb_util_log_buffer_struct.len - ii;
     len = OTB_MIN(buffer_left, scratch_left);
-    ets_printf("len %d\r\n", len);
     os_memcpy(otb_log_s, log_start, len);
     scratch_left -= len;
     buffer_left -= len;
     if (buffer_left > 0)
     {
       // done
-      ets_printf("ran out of scratch\r\n");
       otb_log_s[len] = 0;
     }
     else
@@ -314,7 +306,6 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
       buffer_left = otb_util_log_buffer_struct.len - len;
       log_start = otb_util_log_buffer_struct.buffer;
       new_len = OTB_MIN(buffer_left, scratch_left);
-      ets_printf("newlen %d\r\n", new_len);
       os_memcpy(otb_log_s+len, log_start, new_len);
       scratch_left -= new_len;
       buffer_left -= new_len;
