@@ -315,8 +315,6 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
     log_start = otb_log_s;
   }
 
-  ets_printf("new match %s\r\n", log_start);
-
   return(log_start);
 }
 
