@@ -185,6 +185,12 @@ char *otb_mqtt_reasons[OTB_MQTT_REASON_LAST_ + 1] =
 };
 #endif // OTB_MQTT_C
 
+#define OTB_MQTT_MAX_SVR_LEN            32
+#define OTB_MQTT_MAX_USER_LEN           32
+#define OTB_MQTT_MAX_PASS_LEN           32
+
+#define OTB_MQTT_DEFAULT_PORT           1883
+
 extern void otb_mqtt_publish(MQTT_Client *mqtt_client,
                              char *subtopic,
                              char *extra_subtopic,
@@ -212,6 +218,9 @@ extern void otb_mqtt_initialize(char *host,
                                 char *mqtt_username,
                                 char *mqtt_password,
                                 uint16_t keepalive);
+void otb_mqtt_connected_timerfunc(void *arg);
+void otb_mqtt_wifi_timeout_set_timer(void);
+void otb_mqtt_wifi_timeout_timerfunc(void *arg);
 void otb_mqtt_report_error(char *cmd, char *error);
 void otb_mqtt_send_status(char *val1,
                           char *val2,
@@ -228,6 +237,8 @@ int otb_mqtt_get_cmd_len(char *cmd);
 bool otb_mqtt_match(char *msg, char *cmd);
 uint8 otb_mqtt_pub_get_command(char *msg, char *val[]);
 uint8 otb_mqtt_get_reason(char *msg);
+uint8 otb_mqtt_set_svr(char *svr, char *port, bool commit);
+uint8 otb_mqtt_set_user(char *user, char *pass, bool commit);
 
 extern char otb_mqtt_string_empty[];
 extern char otb_mqtt_string_slash[];
@@ -253,6 +264,10 @@ MQTT_Client otb_mqtt_client;
 char otb_mqtt_topic_s[OTB_MQTT_MAX_TOPIC_LENGTH];
 char otb_mqtt_msg_s[OTB_MQTT_MAX_MSG_LENGTH];
 char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
+
+bool otb_mqtt_connected = TRUE;
+os_timer_t otb_mqtt_connected_timer;
+os_timer_t otb_mqtt_wifi_timeout_timer;
 
 #endif // OTB_MQTT_C
 #endif // OTB_MQTT_H

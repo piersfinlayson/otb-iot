@@ -507,6 +507,7 @@ static void ICACHE_FLASH_ATTR httpdProcessRequest(HttpdConnData *conn) {
 	}
 	//See if we can find a CGI that's happy to handle the request.
 	while (1) {
+		//ets_printf("HTTPD esp: Handle url: %s\r\n", conn->url);
 		//Look up URL in the built-in URL table.
 		while (builtInUrls[i].url!=NULL) {
 			int match=0;

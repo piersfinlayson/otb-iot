@@ -59,6 +59,23 @@ typedef struct otb_conf_ds18b20
   char loc[OTB_CONF_DS18B20_LOCATION_MAX_LEN];
 } otb_conf_ds18b20;
 
+typedef struct otb_conf_mqtt
+{
+  // 100 bytes
+
+  // Currently only IP address format supported, 32 byte field
+  char svr[OTB_MQTT_MAX_SVR_LEN];
+
+  // MQTT port - default is 1883
+  int port;
+
+  // 32 byte field
+  char user[OTB_MQTT_MAX_USER_LEN];
+
+  // 32 byte field
+  char pass[OTB_MQTT_MAX_PASS_LEN];
+} otb_conf_mqtt;
+
 typedef struct otb_conf_struct
 {
   // Following fields are in version 1
@@ -102,11 +119,18 @@ typedef struct otb_conf_struct
   // Location information about this OTB-IOT device
   // Size is 96 bytes
   otb_conf_location loc;
+
+  // MQTT information
+  otb_conf_mqtt mqtt;
   
   // Adding any configuration past this point needs to be supported by a different
   // version
 
 } otb_conf_struct;
+
+#define OTB_CONF_RC_ERROR          0
+#define OTB_CONF_RC_NOT_CHANGED    1
+#define OTB_CONF_RC_CHANGED        2
 
 extern otb_conf_struct *otb_conf;
 
@@ -118,11 +142,11 @@ void otb_conf_log(otb_conf_struct *conf);
 bool otb_conf_save(otb_conf_struct *conf);
 uint16_t otb_conf_calc_checksum(otb_conf_struct *conf);
 bool otb_conf_verify_checksum(otb_conf_struct *conf);
-bool otb_conf_store_sta_conf(char *ssid, char *password);
+uint8  otb_conf_store_sta_conf(char *ssid, char *password, bool commit);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
 void otb_conf_update_loc(char *loc, char *val);
-void otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3, char *cmd4);
+void otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4);
 
 #ifdef OTB_CONF_C
 

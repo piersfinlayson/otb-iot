@@ -263,20 +263,8 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
   bool rc;
   bool rc1;
   bool rc2;
-#if 0  
-  OTB_WIFI_STATION_CONFIG wifi_conf;
-#endif   
   DEBUG("WIFI: otb_wifi_kick_off entry");
 
-#if 0  
-  rc = otb_wifi_get_stored_conf(&wifi_conf);
-  if (!rc)
-  {
-    ERROR("WIFI: Failed to get stored conf");
-    wifi_conf.ssid[0] = 0;
-    wifi_conf.password[0] = 0;
-  }
-#endif
 
   rc1 = otb_wifi_try_sta(otb_conf->ssid,
                          otb_conf->password,
@@ -412,26 +400,15 @@ void ICACHE_FLASH_ATTR otb_wifi_ap_done_timerfunc(void *arg)
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_wifi_set_station_config(char *ssid, char *password)
+uint8 ICACHE_FLASH_ATTR otb_wifi_set_station_config(char *ssid,
+                                                     char *password,
+                                                     bool commit)
 {
-  bool rc;
-#if 0  
-  OTB_WIFI_STATION_CONFIG wifi_conf;
-#endif
+  uint8 rc;
   
   DEBUG("WIFI: otb_wifi_set_station_config entry");
   
-  rc = otb_conf_store_sta_conf(ssid, password);
-#if 0  
-  rc = otb_wifi_get_stored_conf(&wifi_conf);
-  if (rc)
-  {
-    DEBUG("WIFI: get stored station config");
-    strncpy((char *)wifi_conf.ssid, ssid, 32); 
-    strncpy((char *)wifi_conf.password, password, 64);
-    rc = otb_wifi_set_stored_conf(&wifi_conf);
-  }
-#endif
+  rc = otb_conf_store_sta_conf(ssid, password, commit);
     
   DEBUG("WIFI: otb_wifi_set_station_config exit");
   
@@ -525,27 +502,10 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
     INFO("WIFI: Stopped AP");
   }
   
-
   DEBUG("WIFI: otb_wifi_ap_stop exit");
   
   return(rc);
 }
-
-#if 0
-// wifi_conf = address to store struct in
-bool ICACHE_FLASH_ATTR otb_wifi_get_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf)
-{
-  bool rc;
-  DEBUG("WIFI: otb_wifi_get_current_conf entry");
-  
-  // Will reimplement in future to store in OTB-IOT's own way
-  rc = wifi_station_get_config(wifi_conf);
-
-  DEBUG("WIFI: otb_wifi_get_current_conf exit");
-  
-  return rc;
-}
-#endif
 
 void ICACHE_FLASH_ATTR otb_wifi_store_station_connect_error()
 {
@@ -574,23 +534,6 @@ void ICACHE_FLASH_ATTR otb_wifi_get_ip_string(uint32_t addr, char *addr_s)
   
   return;
 }
-
-#if 0
-bool ICACHE_FLASH_ATTR otb_wifi_set_stored_conf(OTB_WIFI_STATION_CONFIG *wifi_conf)
-{
-  bool rc;
-  
-  DEBUG("WIFI: otb_wifi_set_stored_conf entry");
-  
-  ETS_UART_INTR_DISABLE();
-  rc = wifi_station_set_config(wifi_conf);
-  ETS_UART_INTR_ENABLE();
-  
-  DEBUG("WIFI: otb_wifi_set_stored_conf exit");
-  
-  return(rc);
-}
-#endif
 
 bool ICACHE_FLASH_ATTR otb_wifi_get_mac_addr(uint8_t if_id, char *mac)
 {

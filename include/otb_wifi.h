@@ -80,7 +80,7 @@ uint8_t otb_wifi_process_test(uint8_t rc);
 extern void otb_wifi_timerfunc(void *arg);
 void otb_wifi_ap_mode_done_fn(void);
 void otb_wifi_ap_done_timerfunc(void *arg);
-bool otb_wifi_set_station_config(char *ssid, char *password);
+uint8 otb_wifi_set_station_config(char *ssid, char *password, bool commit);
 bool otb_wifi_ap_quick_start(void);
 extern bool otb_wifi_try_ap();
 bool otb_wifi_ap_stop(void);
@@ -95,6 +95,8 @@ bool otb_wifi_ap_disable(void);
 void otb_wifi_ap_keep_alive(void);
 int8 otb_wifi_get_rssi(void);
 void otb_wifi_mqtt_do_rssi(char *msg);
+
+extern bool otb_wifi_ap_running;
 
 #ifdef OTB_WIFI_C
 

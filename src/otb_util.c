@@ -939,12 +939,12 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
   DEBUG("OTB: otb_init_mqtt entry");
   
   INFO("OTB: Set up MQTT stack");
-  otb_mqtt_initialize(OTB_MQTT_SERVER,
-                      OTB_MQTT_PORT,
+  otb_mqtt_initialize(otb_conf->mqtt.svr,
+                      otb_conf->mqtt.port,
                       0,
                       OTB_MAIN_DEVICE_ID,
-                      "user",
-                      "pass",
+                      otb_conf->mqtt.user,
+                      otb_conf->mqtt.pass,
                       OTB_MQTT_KEEPALIVE);
 
   // Now set up DS18B20 init

@@ -609,6 +609,7 @@ MQTT_InitLWT(MQTT_Client *mqttClient, uint8_t* will_topic, uint8_t* will_msg, ui
 void ICACHE_FLASH_ATTR
 MQTT_Connect(MQTT_Client *mqttClient)
 {
+	err_t error;
 	MQTT_Disconnect(mqttClient);
         // Could probably get right of zalloc using static variable and then
         // checking we don't go into this when already using it.
@@ -641,7 +642,8 @@ MQTT_Connect(MQTT_Client *mqttClient)
 	}
 	else {
 		DEBUG("TCP: Connect to domain %s:%d", mqttClient->host, mqttClient->port);
-		espconn_gethostbyname(mqttClient->pCon, mqttClient->host, &mqttClient->ip, mqtt_dns_found);
+		error = espconn_gethostbyname(mqttClient->pCon, mqttClient->host, &mqttClient->ip, mqtt_dns_found);
+		if (error == ESPCONN_ARG) ERROR("MQTT esp: Failed to lookup host");
 	}
 	mqttClient->connState = TCP_CONNECTING;
 }

@@ -285,6 +285,9 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
 	MQTT_Client* mqtt_client;
 	
   DEBUG("MQTT: otb_mqtt_on_connected entry");
+  
+  otb_mqtt_connected = TRUE;
+  otb_util_timer_cancel(&otb_mqtt_connected_timer);
 
   mqtt_client = (MQTT_Client*)client;
 
@@ -309,6 +312,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_disconnected(uint32_t *client)
 	DEBUG("MQTT: otb_mqtt_on_disconnected entry");
 	
   mqtt_client = (MQTT_Client*)client;
+  otb_mqtt_connected = FALSE;
 	
 	DEBUG("MQTT: otb_mqtt_on_disconnected exit");
 }
@@ -338,6 +342,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
   int ii;
 
 	DEBUG("MQTT: otb_mqtt_initialize entry");
+
+  otb_mqtt_connected = FALSE;
+  
+  otb_util_timer_set((os_timer_t *)&otb_mqtt_connected_timer,
+                     (os_timer_func_t *)otb_mqtt_connected_timerfunc,
+                     NULL,
+                     OTB_MQTT_INITIAL_CONNECT_TIMER,
+                     0);
 
   // Initialize library
   mqtt_client = &(otb_mqtt_client);
@@ -371,6 +383,65 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 
 	DEBUG("MQTT: otb_mqtt_initialize exit");
 
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_connected_timerfunc(void *arg)
+{
+
+  DEBUG("MQTT: otb_mqtt_connected_timerfunc entry");
+  
+  if (otb_mqtt_connected)
+  {
+    // Phew - window condition, nothing to do.
+    goto EXIT_LABEL;
+  }
+
+  INFO("MQTT: Failed to connect, so starting AP to allow manual recovery");
+  // If can't connect over MQTT better kick off the wireless AP
+  if (!otb_wifi_ap_running)
+  {
+    otb_wifi_ap_quick_start();
+  }
+  otb_mqtt_wifi_timeout_set_timer();
+  
+  DEBUG("MQTT: otb_mqtt_connected_timerfunc exit");
+
+EXIT_LABEL:
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_set_timer(void)
+{
+
+  DEBUG("WIFI: otb_wifi_set_timeout_timer entry");
+
+  // No args (NULL arg) and don't repeat this (the 0 arg)  
+  otb_util_timer_set((os_timer_t*)&otb_mqtt_wifi_timeout_timer,
+                     otb_mqtt_wifi_timeout_timerfunc,
+                     NULL,
+                     OTB_WIFI_DEFAULT_DISCONNECTED_TIMEOUT, // reuse wifi timer (5 mins)
+                     0);
+  
+  DEBUG("WIFI: otb_wifi_set_timeout_timer exit");
+  
+  return;
+}
+
+char ALIGN4 otb_mqtt_wifi_timeout_timerfunc_string[] = "MQTT: Failed to connect timeout";
+void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_timerfunc(void *arg)
+{
+
+  DEBUG("WIFI: otb_wifi_timeout_timerfunc entry");
+  
+  if (!otb_mqtt_connected)
+  {
+    otb_reset(otb_mqtt_wifi_timeout_timerfunc_string);
+  }
+  
+  DEBUG("WIFI: otb_wifi_timeout_timerfunc exit");
+  
+  return;
 }
 
 void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
@@ -529,7 +600,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   switch (command)
   {
     case OTB_MQTT_SYSTEM_CONFIG_:
-      otb_conf_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2], sub_cmd[3]);
+      otb_conf_mqtt_conf(sub_cmd[0], sub_cmd[1], sub_cmd[2], sub_cmd[3]);
       break;
 
     case OTB_MQTT_SYSTEM_GPIO_:
@@ -904,5 +975,163 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_get_reason(char *msg)
   DEBUG("MQTT: otb_mqtt_get_reason exit");
   
   return(reason_id);
+}
+
+uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
+{
+  uint8 rc = OTB_CONF_RC_NOT_CHANGED;
+  uint8 bytes;
+  char *ptr;
+  int byte;
+  int port_int;
+
+  DEBUG("MQTT: otb_mqtt_set_svr enty");
+
+  // First of all check the validity of the stuff passed in.
+  
+  if (svr != NULL)
+  {
+    bytes = 0;
+    ptr = svr;
+    while (bytes < 4)
+    {
+      byte = atoi(ptr);
+      if ((byte < 0) || (byte > 0xff))
+      {
+        INFO("MQTT: Invalid IP address, byte = %d", byte);
+        rc = OTB_CONF_RC_ERROR;
+        goto EXIT_LABEL;
+        break;
+      }
+      ptr = os_strstr(ptr, OTB_MQTT_PERIOD);
+      if (ptr != NULL)
+      {
+        ptr++;
+      }
+      else
+      {
+        break;
+      }
+      bytes++;
+    }  
+    if (bytes < 3)
+    {
+      INFO("MQTT: Invalid IP address");
+      rc = OTB_CONF_RC_ERROR;
+      goto EXIT_LABEL;
+    }
+  }
+  
+  if (port != NULL)
+  {
+    port_int = atoi(port);
+    if ((port_int < 0) || (port_int > 0xffff))
+    {
+      INFO("MQTT: Invalid MQTT port");
+      rc = OTB_CONF_RC_ERROR;
+      goto EXIT_LABEL;
+    }
+  }
+  
+  // Now see if it's actually changed
+  
+  if (svr != NULL)
+  {
+    if (os_strcmp(otb_conf->mqtt.svr, svr))
+    {
+      INFO("MQTT: server changed");
+      rc = OTB_CONF_RC_CHANGED;
+    }
+  }
+  
+  if (port != NULL)
+  {
+    if (port_int != otb_conf->mqtt.port)
+    {
+      INFO("MQTT: port changed");
+      rc = OTB_CONF_RC_CHANGED;
+    }
+  }
+  
+EXIT_LABEL:  
+  
+  // Valid looking IP address - store it off
+  if (rc == OTB_CONF_RC_CHANGED)
+  {
+    if (svr != NULL)
+    {
+      os_strncpy(otb_conf->mqtt.svr, svr, OTB_MQTT_MAX_SVR_LEN);
+      otb_conf->mqtt.svr[OTB_MQTT_MAX_SVR_LEN-1] = 0;
+    }
+    if (port != NULL)
+    {
+      otb_conf->mqtt.port = port_int;
+    }
+
+    if (commit)
+    {
+      rc = otb_conf_update(otb_conf);
+      if (!rc)
+      {
+        ERROR("CONF: Failed to update config");
+        rc = OTB_CONF_RC_ERROR;
+      }
+    }
+  }
+  
+  DEBUG("MQTT: otb_mqtt_set_svr exit");
+  
+  return(rc);
+}
+
+uint8 ICACHE_FLASH_ATTR otb_mqtt_set_user(char *user, char *pass, bool commit)
+{
+  uint8 rc = OTB_CONF_RC_NOT_CHANGED;
+
+  DEBUG("MQTT: otb_mqtt_set_user enty");
+
+  // First of all check validity of what's passed in - nothing to do here
+  
+  // Now see if anything's changed
+  
+  if (user != NULL)
+  {
+    if (os_strcmp(otb_conf->mqtt.user, user))
+    {
+      rc = OTB_CONF_RC_CHANGED;
+    }
+  }
+  
+  if (pass != NULL)
+  {
+    if (os_strcmp(otb_conf->mqtt.pass, pass))
+    {
+      rc = OTB_CONF_RC_CHANGED;
+    }
+  }
+
+EXIT_LABEL:
+  
+  if (rc == OTB_CONF_RC_CHANGED)
+  {
+    os_strncpy(otb_conf->mqtt.user, user, OTB_MQTT_MAX_USER_LEN);
+    otb_conf->mqtt.user[OTB_MQTT_MAX_USER_LEN-1] = 0;
+    os_strncpy(otb_conf->mqtt.pass, pass, OTB_MQTT_MAX_PASS_LEN);
+    otb_conf->mqtt.user[OTB_MQTT_MAX_PASS_LEN-1] = 0;
+
+    if (commit)
+    {
+      rc = otb_conf_update(otb_conf);
+      if (!rc)
+      {
+        rc = OTB_CONF_RC_ERROR;
+        ERROR("CONF: Failed to update config");
+      }
+    }
+  }
+
+  DEBUG("MQTT: otb_mqtt_set_user exit");
+  
+  return(rc);
 }
 

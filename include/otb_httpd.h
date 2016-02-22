@@ -36,10 +36,10 @@ int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 char otb_httpd_scratch[OTB_HTTP_SCRATCH_LEN];
 HttpdBuiltInUrl otb_httpd_ap_urls[] =
 {
-        {"*", cgiRedirectApClientToHostname, OTB_MAIN_DEVICE_ID},
-        {"/", cgiRedirect, "/wifi"},
-        {"/wifi.html", otb_httpd_station_config, NULL},
-        {"/wifi", cgiRedirect, "/wifi.html"},
+//  {"*", cgiRedirectApClientToHostname, OTB_MAIN_DEVICE_ID},
+  {"*", cgiRedirectApClientToHostname, "192.168.4.1"},
+  {"/", otb_httpd_station_config, NULL},
+  {"/*", cgiRedirect, "/"},
   {NULL, NULL, NULL}
 };
 

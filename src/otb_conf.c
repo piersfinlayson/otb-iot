@@ -159,15 +159,17 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
 {
   DEBUG("CONF: otb_conf_init_config entry");
-  DEBUG("CONF: otb_conf_init_config exit");
   
   os_memset(conf, 0, sizeof(otb_conf_struct));
   conf->magic = OTB_CONF_MAGIC;
   conf->version = OTB_CONF_VERSION_CURRENT;
+  conf->mqtt.port = OTB_MQTT_DEFAULT_PORT;
   
   // Do this last!
   conf->checksum = otb_conf_calc_checksum(conf);
   OTB_ASSERT(otb_conf_verify_checksum(conf));
+
+  DEBUG("CONF: otb_conf_init_config exit");
 
   return;
 }
@@ -223,9 +225,13 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
   INFO("CONF: ssid:     %s", conf->ssid);
   INFO("CONF: password: ********");
   INFO("CONF: keep_ap_active: %d", conf->keep_ap_active);
-  INFO("CONF: location1: %s", conf->loc.loc1);
-  INFO("CONF: location2: %s", conf->loc.loc2);
-  INFO("CONF: location3: %s", conf->loc.loc3);
+  INFO("CONF: MQTT server: %s", conf->mqtt.svr);
+  INFO("CONF: MQTT port:   %d", conf->mqtt.port);
+  INFO("CONF: MQTT user:   %s", conf->mqtt.user);
+  INFO("CONF: MQTT pass:   %s", conf->mqtt.pass);
+  INFO("CONF: location 1: %s", conf->loc.loc1);
+  INFO("CONF: location 2: %s", conf->loc.loc2);
+  INFO("CONF: location 3: %s", conf->loc.loc3);
   INFO("CONF: DS18B20s:  %d", conf->ds18b20s);
   for (ii = 0; ii < conf->ds18b20s; ii++)
   {
@@ -304,24 +310,31 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf)
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password)
+uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool commit)
 {
-  bool rc = TRUE;
+  uint8 rc = OTB_CONF_RC_NOT_CHANGED;
   otb_conf_struct *conf = &otb_conf_private;
   bool changed = FALSE;
+  bool update_rc;
 
   DEBUG("CONF: otb_conf_store_sta_conf entry");
   
   if (os_strncmp(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN) ||
       os_strncmp(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN))
   {
-    INFO("CONF: Updating config: ssid, password");
+    DEBUG("CONF: New config: ssid, password");
+    rc = OTB_CONF_RC_CHANGED;
     os_strncpy(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN);
     os_strncpy(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN);
-    rc = otb_conf_update(conf);
-    if (!rc)
+    if (commit)
     {
-      ERROR("CONF: Failed to update config");
+      INFO("CONF: Committing new config: ssid, password");
+      update_rc = otb_conf_update(conf);
+      if (!update_rc)
+      {
+        ERROR("CONF: Failed to update config");
+        rc = OTB_CONF_RC_ERROR;
+      }
     }
   }
   
@@ -456,7 +469,7 @@ EXIT_LABEL:
   return; 
 }
 
-void ICACHE_FLASH_ATTR otb_conf_mqtt(char *cmd1, char *cmd2, char *cmd3, char *cmd4)
+void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4)
 {
   uint8 ii;
   uint8 field = OTB_MQTT_CONFIG_INVALID_;
