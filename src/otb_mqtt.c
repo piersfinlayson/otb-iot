@@ -471,6 +471,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   char *sub_cmd[OTB_MQTT_MAX_CMDS-1];
   int ii;
   char *cmd;
+  char *error;
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
@@ -503,7 +504,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
   }
 
-  INFO("MQTT: Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
+  DEBUG("MQTT: Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
 
   topic_id = otb_mqtt_pub_get_topic(otb_mqtt_topic_s);
   if (topic_id != OTB_MQTT_TOPIC_SYSTEM_)
@@ -640,10 +641,60 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
                                "internal error",
                                "");
       }  
-    break;
+      break;
+    
+    case OTB_MQTT_SYSTEM_LOGS_:
+      rc = FALSE;
+      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_LOG_SOURCE_RAM)))
+      {
+        rc = FALSE;
+        error = "no supported source specified";
+      }
+      else if ((sub_cmd[1] == NULL) || (!otb_mqtt_match(sub_cmd[1], OTB_MQTT_CMD_GET)))
+      {
+        rc = FALSE;
+        error = "only supports get command";
+      }
+      else if (sub_cmd[2] == NULL)
+      {
+        rc = FALSE;
+        error = "no index";
+      }
+      else
+      {
+        // sub_cmd[2] should be an index
+        ii = atoi(sub_cmd[2]);
+        if ((ii <= 0xff) && (ii >= 0))
+        {
+          error = otb_util_get_log_ram((uint8)ii);
+          if (error != NULL)
+          {
+            rc = TRUE;
+          }
+          else
+          {
+            rc = FALSE;
+            error = "invalid index";
+          }
+        }
+        else
+        {
+          rc = FALSE;
+          error = "invalid index";
+        }
+      }
+      if (rc)
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_OK, error, "");
+      }
+      else
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
+      }
+      break;
 
     default:
-      INFO("MQTT: Unknown command");
+      DEBUG("MQTT: Unknown command");
       otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported message type", "", "");
       goto EXIT_LABEL;
   }

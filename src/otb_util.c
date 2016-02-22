@@ -204,6 +204,131 @@ void ICACHE_FLASH_ATTR otb_util_log_store(void)
   return;
 }
 
+char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
+{
+  uint16_t len_b4;
+  int ii;
+  sint16 times;
+  bool non_null;
+  bool first_loop;
+  char *log_start;
+  sint16 len;
+  sint16 new_len;
+  sint16 buffer_left;
+  sint16 scratch_left;
+
+  // Write from current position to whatever is closest to the end but a total length of
+  // a multiple of 4 bytes
+  len_b4 = (int16_t)(otb_util_log_buffer_struct.current -
+                      otb_util_log_buffer_struct.buffer);
+
+  // go backwards looking for null string terminator
+  ii = len_b4;
+  ii--;
+  if (ii < 0)
+  {
+    ii = otb_util_log_buffer_struct.len-1;
+    first_loop = FALSE;
+  }
+  else
+  {
+    first_loop = TRUE;
+  }
+  log_start = NULL;
+
+  ets_printf("ii starts out %d\r\n", ii);
+  for (times = index; times >= 0; times--)
+  {
+    ets_printf("times %d\r\n", times);
+    non_null = FALSE;
+    while (TRUE)
+    {
+      ets_printf("ii now %d\r\n", ii);
+      // Need to skip over any trailing 0s (may be up to 4).
+      if (otb_util_log_buffer_struct.buffer[ii] != 0)
+      {
+        non_null = TRUE;
+      }
+    
+      if (first_loop)
+      {
+        if (ii < 0)
+        {
+          // Start from end
+          ii = otb_util_log_buffer_struct.len - 1;
+          first_loop = FALSE;
+          ets_printf("ii now %d\r\n", ii);
+        }
+      }
+      else
+      {
+        if (ii <= len_b4)
+        {
+          // Gone all the way around with no match :-(
+          ets_printf("no match\r\n");
+          break;
+        }
+      }
+
+      if (non_null && otb_util_log_buffer_struct.buffer[ii] == 0)
+      {
+        if (times == 0)
+        {
+          // Have found first string.  Hurrah!
+          ii++;
+          if (ii > (otb_util_log_buffer_struct.len - 1))
+          {
+            ii = 0;
+          }
+          log_start = otb_util_log_buffer_struct.buffer + ii;
+        }
+        break;
+      }
+      ii--;
+    }
+  }
+  
+  ets_printf("match %s\r\n", log_start); 
+  
+  // This is a bit of a hack - we'll basically copy the whole buffer into the log string
+  // - well as much as there's space for.  However, "our" string will be NULL terminated
+  // so it works
+  if (log_start != NULL)
+  {
+    // Have a match, copy it into otb_log_s
+    scratch_left = OTB_MAIN_MAX_LOG_LENGTH;
+    buffer_left = otb_util_log_buffer_struct.len - ii;
+    len = OTB_MIN(buffer_left, scratch_left);
+    ets_printf("len %d\r\n", len);
+    os_memcpy(otb_log_s, log_start, len);
+    scratch_left -= len;
+    buffer_left -= len;
+    if (buffer_left > 0)
+    {
+      // done
+      ets_printf("ran out of scratch\r\n");
+      otb_log_s[len] = 0;
+    }
+    else
+    {
+      buffer_left = otb_util_log_buffer_struct.len - len;
+      log_start = otb_util_log_buffer_struct.buffer;
+      new_len = OTB_MIN(buffer_left, scratch_left);
+      ets_printf("newlen %d\r\n", new_len);
+      os_memcpy(otb_log_s+len, log_start, new_len);
+      scratch_left -= new_len;
+      buffer_left -= new_len;
+      // done
+    }
+    otb_log_s[OTB_MAIN_MAX_LOG_LENGTH-1] = 0;
+    log_start = otb_log_s;
+  }
+
+  ets_printf("new match %s\r\n", log_start);
+
+  return(log_start);
+}
+
 void ICACHE_FLASH_ATTR otb_util_log_save(char *text)
 {
   uint16_t text_len;
@@ -353,9 +478,12 @@ void ICACHE_FLASH_ATTR otb_reset(char *text)
 
 void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
 {
+  bool rc;
+  bool same;
+
   DEBUG("OTB: otb_reset_internal entry");
   
-  otb_util_reset_store_reason(text);
+  otb_util_reset_store_reason(text, &same);
   
   if (error)
   {
@@ -364,7 +492,12 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
     {
       ERROR(text);
     }
-    //otb_util_log_store();
+    if (!same)
+    {
+      // Only store logs if not the same reset reason as last time (to avoid destroying
+      // the flash)
+      otb_util_log_store();
+    }
   }
   else
   {
@@ -393,7 +526,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
+bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text, bool *same)
 {
   bool rc = TRUE;
   uint8 tries = 0;
@@ -403,6 +536,8 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
   char ALIGN4 stored[OTB_BOOT_LAST_REBOOT_LEN];
 
   DEBUG("UTIL: otb_util_reset_store_reason entry");
+  
+  *same = FALSE;
   
   // First read the current stored string - as only want to write if it differs (so we 
   // don't write the flash too many times
@@ -427,6 +562,7 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text)
     else
     {
       DEBUG("UTIL: New reset reason same as old one");
+      *same = TRUE;
     }
   }
   

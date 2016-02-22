@@ -71,7 +71,9 @@
 #define OTB_MQTT_SYSTEM_COMPILE_DATE_   14
 #define OTB_MQTT_SYSTEM_COMPILE_TIME    "compile_time"
 #define OTB_MQTT_SYSTEM_COMPILE_TIME_   15
-#define OTB_MQTT_SYSTEM_CMD_LAST_  15
+#define OTB_MQTT_SYSTEM_LOGS       "logs"
+#define OTB_MQTT_SYSTEM_LOGS_      16
+#define OTB_MQTT_SYSTEM_CMD_LAST_  16
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -92,7 +94,8 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_VERSION,
   OTB_MQTT_SYSTEM_CHIP_ID,
   OTB_MQTT_SYSTEM_COMPILE_DATE,
-  OTB_MQTT_SYSTEM_COMPILE_TIME
+  OTB_MQTT_SYSTEM_COMPILE_TIME,
+  OTB_MQTT_SYSTEM_LOGS
 };
 #endif // OTB_MQTT_C
 
@@ -169,6 +172,9 @@ char *otb_mqtt_config_fields[OTB_MQTT_CONFIG_LAST_ + 1] =
 #define OTB_MQTT_REASON_RESET           "reset"
 #define OTB_MQTT_REASON_RESET_          1
 #define OTB_MQTT_REASON_LAST_           1
+
+#define OTB_MQTT_LOG_SOURCE_RAM         "ram"
+#define OTB_MQTT_LOG_SOURCE_FLASH       "flash"
 
 extern char *otb_mqtt_reasons[];
 #ifdef OTB_MQTT_C

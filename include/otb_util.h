@@ -45,8 +45,8 @@ extern void otb_util_log_useful_info(bool recovery);
 extern void otb_util_init_logging(void);
 extern void otb_util_log_fn(char *text);
 extern void otb_util_log_store(void);
+char *otb_util_get_log_ram(uint8 index);
 extern void otb_util_log_save(char *text);
-extern void otb_util_log_fn(char *text);
 extern void otb_util_assert(bool value, char *value_s);
 void otb_reset_schedule(uint32_t timeout,
                         const char *reason,
@@ -55,7 +55,7 @@ void otb_reset_timer(void *arg);
 extern void otb_reset_error(char *text);
 extern void otb_reset(char *text);
 void otb_reset_internal(char *text, bool error);
-bool otb_util_reset_store_reason(char *text);
+bool otb_util_reset_store_reason(char *text, bool *same);
 extern void otb_util_clear_reset(void);
 bool otb_util_flash_read(uint32 location,
                          uint32 *dest,
