@@ -215,6 +215,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   ETS_UART_INTR_DISABLE();
   strcpy((char *)wifi_conf.ssid, ssid); 
   strcpy((char *)wifi_conf.password, password);
+  
   wifi_conf.bssid_set = bssid_set;
   if (bssid_set)
   {
@@ -265,7 +266,7 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
   bool rc2;
   DEBUG("WIFI: otb_wifi_kick_off entry");
 
-
+  rc = wifi_set_opmode_current(STATION_MODE);
   rc1 = otb_wifi_try_sta(otb_conf->ssid,
                          otb_conf->password,
                          FALSE,
@@ -401,15 +402,15 @@ void ICACHE_FLASH_ATTR otb_wifi_ap_done_timerfunc(void *arg)
 }
 
 uint8 ICACHE_FLASH_ATTR otb_wifi_set_station_config(char *ssid,
-                                                     char *password,
-                                                     bool commit)
+                                                    char *password,
+                                                    bool commit)
 {
   uint8 rc;
   
   DEBUG("WIFI: otb_wifi_set_station_config entry");
   
   rc = otb_conf_store_sta_conf(ssid, password, commit);
-    
+
   DEBUG("WIFI: otb_wifi_set_station_config exit");
   
   return(rc);

@@ -314,7 +314,6 @@ uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool
 {
   uint8 rc = OTB_CONF_RC_NOT_CHANGED;
   otb_conf_struct *conf = &otb_conf_private;
-  bool changed = FALSE;
   bool update_rc;
 
   DEBUG("CONF: otb_conf_store_sta_conf entry");
@@ -322,7 +321,7 @@ uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool
   if (os_strncmp(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN) ||
       os_strncmp(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN))
   {
-    DEBUG("CONF: New config: ssid, password");
+    INFO("CONF: New config: ssid, password");
     rc = OTB_CONF_RC_CHANGED;
     os_strncpy(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN);
     os_strncpy(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN);

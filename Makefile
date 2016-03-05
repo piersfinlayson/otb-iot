@@ -18,7 +18,7 @@
 
 # SDK versions, etc
 # SDK_BASE = /opt/esp-open-sdk
-ESP_SDK = esp_iot_sdk_v1.4.0
+ESP_SDK = sdk
 
 # Build tools
 XTENSA_DIR = $(SDK_BASE)/xtensa-lx106-elf/bin
@@ -33,7 +33,7 @@ ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot
-HTTPD_CFLAGS = -D_STDINT_H -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
+HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
@@ -148,7 +148,7 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 
-all: bin/app_image.bin bin/rboot.bin bin/recovery_image.bin
+all: directories bin/app_image.bin bin/rboot.bin bin/recovery_image.bin
 
 bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
@@ -243,3 +243,6 @@ clean:
 
 erase_flash:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash
+
+directories:
+	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) obj/html
