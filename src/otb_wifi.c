@@ -82,23 +82,27 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
     case EVENT_STAMODE_DHCP_TIMEOUT:
       ERROR("WIFI: DHCP timed out");
       otb_wifi_status = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
-    break;
+      break;
       
     case EVENT_SOFTAPMODE_STACONNECTED:
       INFO("WIFI: Event - AP mode - station connected");
+      goto EXIT_LABEL;
       break;
       
     case EVENT_SOFTAPMODE_STADISCONNECTED: 
       // Assume SDK will be retrying
       INFO("WIFI: Event - AP mode - station disconnected");
+      goto EXIT_LABEL;
       break;
       
     case EVENT_SOFTAPMODE_PROBEREQRECVED:
       DEBUG("WIFI: Event - AP mode - probe request received");
+      goto EXIT_LABEL;
       break;
 
     default:
       ERROR("WIFI: Unknown wifi event received: %02x", event->event);
+      goto EXIT_LABEL;
       break;
   }
   
@@ -126,6 +130,8 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
                          1);
     }
   }
+  
+EXIT_LABEL:  
   
   // Don't need to worry about connected - timer will catch this
     

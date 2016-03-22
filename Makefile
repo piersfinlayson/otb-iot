@@ -230,7 +230,7 @@ flash_recovery: bin/recovery_image.bin
 
 flash: flash_boot flash_app
 
-flash_initial: flash_boot flash_app flash_recovery
+flash_initial: erase_flash flash_boot flash_app flash_recovery
 
 connect:
 	platformio serialports monitor -b 115200
