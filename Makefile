@@ -79,8 +79,8 @@ endif
 
 # Link options
 LD_DIR = ld
-LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -Wl,--end-group
-LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/sdk/lib -L$(SDK_BASE)/$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
+LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -lssl -Wl,--end-group
+LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
 RBOOT_LDFLAGS = -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 LD_SCRIPT = $(LD_DIR)/eagle.app.v6.ld
 
@@ -133,7 +133,6 @@ mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
               $(MQTT_OBJ_DIR)/utils.o
 
 httpdObjects = $(HTTPD_OBJ_DIR)/auth.o \
-               $(HTTPD_OBJ_DIR)/base64.o \
                $(HTTPD_OBJ_DIR)/captdns.o \
                $(HTTPD_OBJ_DIR)/espfs.o \
                $(HTTPD_OBJ_DIR)/heatshrink_decoder.o \
@@ -156,13 +155,13 @@ bin/app_image.bin: bin/app_image.elf
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
 bin/recovery_image.bin: bin/recovery_image.elf
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
 bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) $(LDLIBS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
 # Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
 # can replace with our own version (from rboot-bigflash.c)

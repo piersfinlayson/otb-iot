@@ -104,7 +104,7 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 		DEBUG("let's connect");
 		os_memcpy(client->pCon->proto.tcp->remote_ip, &ipaddr->addr, 4);
 		if(client->security){
-			//espconn_secure_connect(client->pCon);
+			espconn_secure_connect(client->pCon);
 		}
 		else {
 			//delay(1000);
@@ -169,7 +169,7 @@ READPACKET:
 				if(client->mqtt_state.pending_msg_type != MQTT_MSG_TYPE_CONNECT){
 					WARN("MQTT: Invalid packet");
 					if(client->security){
-						//espconn_secure_disconnect(client->pCon);
+						espconn_secure_disconnect(client->pCon);
 					}
 					else {
 						espconn_disconnect(client->pCon);
@@ -310,7 +310,7 @@ void ICACHE_FLASH_ATTR mqtt_timer(void *arg)
 			client->sendTimeout = MQTT_SEND_TIMOUT;
 			DEBUG("MQTT: Sending, type: %d, id: %04X",client->mqtt_state.pending_msg_type, client->mqtt_state.pending_msg_id);
 			if(client->security){
-				//espconn_secure_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
+				espconn_secure_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
 			}
 			else{
 				espconn_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
@@ -375,7 +375,7 @@ mqtt_tcpclient_connect_cb(void *arg)
 	client->sendTimeout = MQTT_SEND_TIMOUT;
 	DEBUG("MQTT: Sending, type: %d, id: %04X",client->mqtt_state.pending_msg_type, client->mqtt_state.pending_msg_id);
 	if(client->security){
-		//espconn_secure_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
+		espconn_secure_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
 	}
 	else{
 		espconn_sent(client->pCon, client->mqtt_state.outbound_message->data, client->mqtt_state.outbound_message->length);
@@ -497,7 +497,7 @@ MQTT_Task(os_event_t *e)
 			client->sendTimeout = MQTT_SEND_TIMOUT;
 			DEBUG("MQTT: Sending, type: %d, id: %04X",client->mqtt_state.pending_msg_type, client->mqtt_state.pending_msg_id);
 			if(client->security){
-				//espconn_secure_sent(client->pCon, dataBuffer, dataLen);
+				espconn_secure_sent(client->pCon, dataBuffer, dataLen);
 			}
 			else{
 				espconn_sent(client->pCon, dataBuffer, dataLen);
@@ -634,7 +634,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 	if(UTILS_StrToIP(mqttClient->host, &mqttClient->pCon->proto.tcp->remote_ip)) {
 		DEBUG("TCP: Connect to ip  %s:%d", mqttClient->host, mqttClient->port);
 		if(mqttClient->security){
-			//espconn_secure_connect(mqttClient->pCon);
+			espconn_secure_connect(mqttClient->pCon);
 		}
 		else {
 			espconn_connect(mqttClient->pCon);
