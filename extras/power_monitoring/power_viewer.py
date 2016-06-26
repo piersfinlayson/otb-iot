@@ -136,7 +136,7 @@ def doGraph(path, scale, verticals, name, details):
   rrdtool.graph(path,
                 '-w', '800', '-h', '400', '-a', 'PNG', '--slope-mode',
                 '--start', '%s' % RESOLUTIONS[scale], '--end', 'now',
-                '--vertical-label', 'temperature (C)',
+                '--vertical-label', 'Power (kW)',
                 '--title', title,
                 '-l', '0', 
                 '--font', 'WATERMARK:8', 
