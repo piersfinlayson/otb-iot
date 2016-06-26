@@ -62,8 +62,8 @@ def outputGraph(graph, title, scale):
   output += '</p>\n'
   return output
 
-def readRrdData(rrdFile=RRD_FILE, rrdField=RRD_POWER):
-  time_span, names, values = rrdtool.fetch(rrdFile, 'AVERAGE', '-s -5s', '-e now')
+def readRrdData(rrdFile=RRD_FILE, rrdField=RRD_POWER, type='AVERAGE', range='5s'):
+  time_span, names, values = rrdtool.fetch(rrdFile, type, '-s -%s' % range, '-e now')
   # ts_start, ts_end, ts_res = time_span
   # times = range(ts_start, ts_end, ts_res)
   ii = 0
@@ -88,7 +88,7 @@ def power():
   output += "<p>Voltage: %.1fV</p>" % readRrdData(RRD_FILE, RRD_VOLTAGE)
   output += "<h3>Graphs</h3>"
   for graphName in GRAPH_NAMES:
-    output += '<p><iframe src="./%s" height="660" width="920"></iframe></p>\n' % graphName
+    output += '<p><iframe src="./%s" height="680" width="920"></iframe></p>\n' % graphName
   output += "<p><i>Page generated at %s local time (%s)</i></p>" % (str(datetime.datetime.now()).split('.')[0], os.environ['TZ']) 
   output += "</body>"
   return output
@@ -155,15 +155,47 @@ def graphPower():
   scale, fd, path = prepGraph(request)
   verticals = []
   details = ['DEF:power=%s:%s:AVERAGE' % (RRD_FILE, RRD_POWER),
+             'DEF:current=%s:%s:AVERAGE' % (RRD_FILE, RRD_CURRENT),
+             'DEF:voltage=%s:%s:AVERAGE' % (RRD_FILE, RRD_VOLTAGE),
              'VDEF:totalenergy=%s,AVERAGE' % (RRD_POWER),
              'CDEF:powerkw=%s,1000,/' % (RRD_POWER),
              'CDEF:powerkwtotal=powerkw,%d,*' % (SCALES_HOURS[scale]), 
              'VDEF:totalenergykwh=powerkw,AVERAGE',
              'VDEF:totalenergykwhtotal=powerkwtotal,AVERAGE',
-             'AREA:%s#0000ff:Instaneous power (kW)' % (RRD_POWER),
+             'AREA:%s#0000ff:Instantaneous power (kW)' % (RRD_POWER),
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
              'LINE2:totalenergy#ff0000:Average power over period\:',
-             'GPRINT:totalenergykwh:%.2lf kW',
-             'GPRINT:totalenergykwhtotal:  Total energy used during period\:  %.2lf kWh',
+             'GPRINT:totalenergykwh:%.2lfkW',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'GPRINT:totalenergykwhtotal:\n\n\nTotal energy used during period\:  %.2lfkWh',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'VDEF:maxpower=power,MAXIMUM',
+             'VDEF:minpower=power,MINIMUM',
+             'GPRINT:maxpower:\n\n\n\nMaximum power over period\: %.0lfkW',
+             'GPRINT:minpower:Minimum power over period\: %.0lfkW',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'VDEF:maxcurrent=current,MAXIMUM',
+             'VDEF:mincurrent=current,MINIMUM',
+             'GPRINT:maxcurrent:\nMaximum current over period\: %.2lfA',
+             'GPRINT:mincurrent:Minimum current over period\: %.2lfA',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'VDEF:maxvoltage=voltage,MAXIMUM',
+             'VDEF:minvoltage=voltage,MINIMUM',
+             'GPRINT:maxvoltage:Maximum voltage over period\: %.1lfV',
+             'GPRINT:minvoltage:Minimum voltage over period\: %.1lfV',
+             'COMMENT:\s',
+             'COMMENT:\s',
+             'COMMENT:\s',
              ]
   data = doGraph(path, scale, verticals, name, details)
   return Response(data, mimetype='image/png')
