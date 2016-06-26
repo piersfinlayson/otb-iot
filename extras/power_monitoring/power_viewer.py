@@ -29,8 +29,12 @@ time.tzset()
 
 TITLE_POWER = "Power Usage"
 LOCATION = "Gegin Fedw"
-SCALES = ('hour', '2 hours', '4 hours', '8 hours', '12 hours', 'day', '3 days', 'week', 'month', 'quarter', 'six months', 'year')
-SCALES_HOURS = {'hour':1,
+SCALES = ('1 min', '5 mins', '15 mins', '30 mins', 'hour', '2 hours', '4 hours', '8 hours', '12 hours', 'day', '3 days', 'week', 'month', 'quarter', 'six months', 'year')
+SCALES_HOURS = {'1 min':0.01666667,
+                '5 mins':0.08333333,
+                '15 mins':0.25,
+                '30 mins':0.5,
+                'hour':1,
                 '2 hours':2,
                 '4 hours':4,
                 '8 hours':8,
@@ -42,7 +46,7 @@ SCALES_HOURS = {'hour':1,
                 'quarter':2160,
                 'six months':4380,
                 'year':8760}
-RESOLUTIONS = {'hour': '-1h', '2 hours': '-2h', '4 hours': '-4h', '8 hours': '-8h', '12 hours': '-12h', 'day': '-24hours', '3 days': '-72hours', 'week':'-8d', 'month':'-35d', 'quarter':'-90d', 'six months':'-6months', 'year':'-1y'}
+RESOLUTIONS = {'1 min':'-60s', '5 mins': '-300s', '15 mins':'-900s', '30 mins':'-1800s', 'hour': '-1h', '2 hours': '-2h', '4 hours': '-4h', '8 hours': '-8h', '12 hours': '-12h', 'day': '-24hours', '3 days': '-72hours', 'week':'-8d', 'month':'-35d', 'quarter':'-90d', 'six months':'-6months', 'year':'-1y'}
 GRAPH_NAMES = ('graphPower',)
 GRAPHS = {'graphPower':TITLE_POWER}
 RRD_FILE = "/data/house/power/main.rrd"
@@ -159,7 +163,7 @@ def graphPower():
              'DEF:voltage=%s:%s:AVERAGE' % (RRD_FILE, RRD_VOLTAGE),
              'VDEF:totalenergy=%s,AVERAGE' % (RRD_POWER),
              'CDEF:powerkw=%s,1000,/' % (RRD_POWER),
-             'CDEF:powerkwtotal=powerkw,%d,*' % (SCALES_HOURS[scale]), 
+             'CDEF:powerkwtotal=powerkw,%f,*' % (SCALES_HOURS[scale]), 
              'VDEF:totalenergykwh=powerkw,AVERAGE',
              'VDEF:totalenergykwhtotal=powerkwtotal,AVERAGE',
              'AREA:%s#0000ff:Instantaneous power (kW)' % (RRD_POWER),
