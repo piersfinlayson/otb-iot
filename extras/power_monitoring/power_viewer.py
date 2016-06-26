@@ -29,8 +29,10 @@ time.tzset()
 
 TITLE_POWER = "Power Usage"
 LOCATION = "Gegin Fedw"
-SCALES = ('hour', '8 hours', '12 hours', 'day', '3 days', 'week', 'month', 'quarter', 'six months', 'year')
+SCALES = ('hour', '2 hours', '4 hours', '8 hours', '12 hours', 'day', '3 days', 'week', 'month', 'quarter', 'six months', 'year')
 SCALES_HOURS = {'hour':1,
+                '2 hours':2,
+                '4 hours':4,
                 '8 hours':8,
                 '12 hours':12,
                 'day':24,
@@ -40,7 +42,7 @@ SCALES_HOURS = {'hour':1,
                 'quarter':2160,
                 'six months':4380,
                 'year':8760}
-RESOLUTIONS = {'hour': '-1h', '8 hours': '-8h', '12 hours': '-12h', 'day': '-24hours', '3 days': '-72hours', 'week':'-8d', 'month':'-35d', 'quarter':'-90d', 'six months':'-6months', 'year':'-1y'}
+RESOLUTIONS = {'hour': '-1h', '2 hours': '-2h', '4 hours': '-4h', '8 hours': '-8h', '12 hours': '-12h', 'day': '-24hours', '3 days': '-72hours', 'week':'-8d', 'month':'-35d', 'quarter':'-90d', 'six months':'-6months', 'year':'-1y'}
 GRAPH_NAMES = ('graphPower',)
 GRAPHS = {'graphPower':TITLE_POWER}
 RRD_FILE = "/data/house/power/main.rrd"
