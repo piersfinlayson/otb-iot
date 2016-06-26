@@ -17,7 +17,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define OTB_UTIL_LOG_BUFFER_LEN 1024
+#define OTB_UTIL_LOG_BUFFER_LEN 1024 // 1024
 #define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
 
 typedef struct otb_util_log_buffer
@@ -39,6 +39,7 @@ typedef struct otb_util_timeout
   uint32_t end_time;
 } otb_util_timeout;
 
+extern size_t otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size);
 extern void otb_util_convert_ws_to_(char *text);
 void otb_util_convert_colon_to_period(char *text);
 extern void otb_util_log_useful_info(bool recovery);
@@ -88,6 +89,7 @@ extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
+void otb_init_ads(void *arg);
 
 struct otb_reset_reason
 {

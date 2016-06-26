@@ -20,7 +20,7 @@
 #ifndef OTB_MQTT_H
 #define OTB_MQTT_H
 
-#define OTB_MQTT_MAX_CMDS  5
+#define OTB_MQTT_MAX_CMDS  6
 
 #define OTB_MQTT_EMPTY   otb_mqtt_string_empty
 #define OTB_MQTT_SLASH   otb_mqtt_string_slash
@@ -73,7 +73,11 @@
 #define OTB_MQTT_SYSTEM_COMPILE_TIME_   15
 #define OTB_MQTT_SYSTEM_LOGS       "logs"
 #define OTB_MQTT_SYSTEM_LOGS_      16
-#define OTB_MQTT_SYSTEM_CMD_LAST_  16
+#define OTB_MQTT_SYSTEM_I2C        "i2c"
+#define OTB_MQTT_SYSTEM_I2C_       17
+#define OTB_MQTT_SYSTEM_ADS        "ads"
+#define OTB_MQTT_SYSTEM_ADS_       18
+#define OTB_MQTT_SYSTEM_CMD_LAST_  18
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -95,7 +99,9 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_CHIP_ID,
   OTB_MQTT_SYSTEM_COMPILE_DATE,
   OTB_MQTT_SYSTEM_COMPILE_TIME,
-  OTB_MQTT_SYSTEM_LOGS
+  OTB_MQTT_SYSTEM_LOGS,
+  OTB_MQTT_SYSTEM_I2C,
+  OTB_MQTT_SYSTEM_ADS
 };
 #endif // OTB_MQTT_C
 
@@ -107,7 +113,11 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
 #define OTB_MQTT_CMD_GET_NUM_      1
 #define OTB_MQTT_CMD_SET           "set"
 #define OTB_MQTT_CMD_SET_          2
-#define OTB_MQTT_CMD_LAST_         2
+#define OTB_MQTT_CMD_INIT          "init"
+#define OTB_MQTT_CMD_INIT_         3
+#define OTB_MQTT_CMD_SCAN          "scan"
+#define OTB_MQTT_CMD_SCAN_         4
+#define OTB_MQTT_CMD_LAST_         4
 
 extern char *otb_mqtt_cmds[];
 #ifdef OTB_MQTT_C
@@ -115,7 +125,8 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 {
   OTB_MQTT_CMD_GET,
   OTB_MQTT_CMD_GET_NUM,
-  OTB_MQTT_CMD_SET
+  OTB_MQTT_CMD_SET,
+  OTB_MQTT_CMD_INIT
 };
 #endif
 
@@ -150,7 +161,9 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_CONFIG_DS18B20S_       4
 #define OTB_MQTT_CONFIG_DS18B20	        "ds18b20"
 #define OTB_MQTT_CONFIG_DS18B20_        5
-#define OTB_MQTT_CONFIG_LAST_           5
+#define OTB_MQTT_CONFIG_ADS	            "ads"
+#define OTB_MQTT_CONFIG_ADS_            6
+#define OTB_MQTT_CONFIG_LAST_           6
 
 extern char *otb_mqtt_config_fields[];
 #ifdef OTB_MQTT_C
@@ -161,7 +174,8 @@ char *otb_mqtt_config_fields[OTB_MQTT_CONFIG_LAST_ + 1] =
   OTB_MQTT_CONFIG_LOC2,
   OTB_MQTT_CONFIG_LOC3,
   OTB_MQTT_CONFIG_DS18B20S,
-  OTB_MQTT_CONFIG_DS18B20
+  OTB_MQTT_CONFIG_DS18B20,
+  OTB_MQTT_CONFIG_ADS
 };
 #endif // OTB_MQTT_C
 
@@ -184,6 +198,52 @@ char *otb_mqtt_reasons[OTB_MQTT_REASON_LAST_ + 1] =
   OTB_MQTT_REASON_RESET
 };
 #endif // OTB_MQTT_C
+
+#define OTB_MQTT_I2C_ADS_CONT_MODE       "contmode"
+#define OTB_MQTT_I2C_ADS_READ_CONV_MODE  "readconv"
+#define OTB_MQTT_I2C_ADS_READ_CONF_MODE  "readconf"
+#define OTB_MQTT_I2C_ADS_READ_LO_MODE    "readlo"
+#define OTB_MQTT_I2C_ADS_READ_HIGH_MODE  "readhigh"
+#define OTB_MQTT_I2C_ADS_VALUE           "value"
+#define OTB_MQTT_I2C_ADS_RANGE           "range"
+#define OTB_MQTT_I2C_ADS_RMS_RANGE       "rmsrange"
+
+
+#define OTB_MQTT_I2C_ADS_FIELD_MUX       "mux"
+#define OTB_MQTT_I2C_ADS_FIELD_MUX_      0
+#define OTB_MQTT_I2C_ADS_FIELD_GAIN      "gain"
+#define OTB_MQTT_I2C_ADS_FIELD_GAIN_     1
+#define OTB_MQTT_I2C_ADS_FIELD_RATE      "rate"
+#define OTB_MQTT_I2C_ADS_FIELD_RATE_     2
+#define OTB_MQTT_I2C_ADS_FIELD_CONT      "cont"
+#define OTB_MQTT_I2C_ADS_FIELD_CONT_     3
+#define OTB_MQTT_I2C_ADS_FIELD_RMS       "rms"
+#define OTB_MQTT_I2C_ADS_FIELD_RMS_      4
+#define OTB_MQTT_I2C_ADS_FIELD_PERIOD    "period"
+#define OTB_MQTT_I2C_ADS_FIELD_PERIOD_   5
+#define OTB_MQTT_I2C_ADS_FIELD_SAMPLES   "samples"
+#define OTB_MQTT_I2C_ADS_FIELD_SAMPLES_  6
+#define OTB_MQTT_I2C_ADS_FIELD_LOC       "loc"
+#define OTB_MQTT_I2C_ADS_FIELD_LOC_      7
+#define OTB_MQTT_I2C_ADS_FIELD_LAST_     7
+
+extern char *otb_mqtt_i2c_ads_fields[];
+#ifdef OTB_MQTT_C
+char *otb_mqtt_i2c_ads_fields[OTB_MQTT_I2C_ADS_FIELD_LAST_ + 1] = 
+{
+  OTB_MQTT_I2C_ADS_FIELD_MUX,
+  OTB_MQTT_I2C_ADS_FIELD_GAIN,
+  OTB_MQTT_I2C_ADS_FIELD_RATE,
+  OTB_MQTT_I2C_ADS_FIELD_CONT,
+  OTB_MQTT_I2C_ADS_FIELD_RMS,
+  OTB_MQTT_I2C_ADS_FIELD_PERIOD,
+  OTB_MQTT_I2C_ADS_FIELD_SAMPLES,
+  OTB_MQTT_I2C_ADS_FIELD_LOC,
+};
+#endif // OTB_MQTT_C
+
+
+
 
 #define OTB_MQTT_MAX_SVR_LEN            32
 #define OTB_MQTT_MAX_USER_LEN           32

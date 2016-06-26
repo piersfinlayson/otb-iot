@@ -23,6 +23,38 @@
 #include <limits.h>
 #include <errno.h>
 
+size_t ICACHE_FLASH_ATTR otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size)
+{
+        int from, to;
+        uint32_t current32, byte;
+        uint8_t current8;
+        const uint32_t *from_ptr;
+
+        from_ptr = (const uint32_t *)(const void *)from_ptr_byte;
+
+        for(from = 0, to = 0; (int)(from * sizeof(*from_ptr)) < (size - 1); from++)
+        {
+                current32 = from_ptr[from];
+
+                for(byte = 4; byte > 0; byte--)
+                {
+                        if((current8 = (current32 & 0x000000ff)) == '\0')
+                                goto done;
+
+                        if((to + 1) >= size)
+                                goto done;
+
+                        dst[to++] = (char)current8;
+                        current32 = (current32 >> 8) & 0x00ffffff;
+                }
+        }
+
+done:
+        dst[to] = '\0';
+
+        return(to);
+}
+
 void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
 {
   char *ws;
@@ -964,9 +996,28 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
   INFO("OTB: Set up One Wire bus");
   otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
 
+  // Now set up ADS init
+  os_timer_disarm((os_timer_t*)&init_timer);
+  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ads, NULL);
+  os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
+
+
+  DEBUG("OTB: otb_init_ds18b20 exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
+{
+  DEBUG("OTB: otb_init_ads entry");
+
+  INFO("OTB: Set up ADS (+I2C bus)");
+  otb_ads_initialize();
+
+  // Now set up ADS init
   os_timer_disarm((os_timer_t*)&init_timer);
 
-  DEBUG("OTB: otb_init_mqtt exit");
+  DEBUG("OTB: otb_init_ads exit");
 
   return;
 }
@@ -1227,7 +1278,7 @@ long strtol(const char *nptr, char **endptr, int base) {
     return (acc);
 }
 
-long atol(const char* s) {
+long ICACHE_FLASH_ATTR atol(const char* s) {
     char * tmp;
     return strtol(s, &tmp, 10);
 }

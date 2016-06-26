@@ -37,6 +37,7 @@ HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
+I2C_CFLAGS = -Ilib/i2c
 
 # esptool.py options
 ESPBAUD = 115200
@@ -93,10 +94,13 @@ RBOOT_SRC_DIR = lib/rboot
 RBOOT_OBJ_DIR = obj/rboot
 MQTT_SRC_DIR = lib/mqtt
 MQTT_OBJ_DIR = obj/mqtt
+I2C_SRC_DIR = lib/i2c
+I2C_OBJ_DIR = obj/i2c
 
 # Object files
 otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_mqtt.o \
+             $(OTB_OBJ_DIR)/otb_i2c.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
@@ -112,6 +116,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
 
 otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_mqtt.o \
+             $(OTB_OBJ_DIR)/otb_i2c.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_recovery.o \
              $(OTB_OBJ_DIR)/otb_util.o \
@@ -147,6 +152,8 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 
+i2cObjects = $(I2C_OBJ_DIR)/i2c_master.o
+
 all: directories bin/app_image.bin bin/rboot.bin bin/recovery_image.bin
 
 bin/app_image.bin: bin/app_image.elf
@@ -154,14 +161,14 @@ bin/app_image.bin: bin/app_image.elf
 	$(OBJDUMP) -d $^ > bin/disassembly
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
-bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
+bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
 bin/recovery_image.bin: bin/recovery_image.elf
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
 
-bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
+bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
+	$(LD) $(LDFLAGS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
 # Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
 # can replace with our own version (from rboot-bigflash.c)
@@ -176,6 +183,8 @@ httpd_objects: $(httpdObjects)
 
 mqtt_objects: $(mqttObjects)
 
+i2c_objects: $(i2cObjects)
+
 $(OTB_OBJ_DIR)/%.o: $(OTB_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(OTB_CFLAGS) $^ -o $@ 
 
@@ -184,6 +193,9 @@ $(HTTPD_OBJ_DIR)/%.o: $(HTTPD_SRC_DIR)/%.c
 
 $(MQTT_OBJ_DIR)/%.o: $(MQTT_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(MQTT_CFLAGS) $^ -o $@ 
+
+$(I2C_OBJ_DIR)/%.o: $(I2C_SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(I2C_CFLAGS) $^ -o $@ 
 
 $(RBOOT_OBJ_DIR)/%.o: $(RBOOT_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $(OTB_CFLAGS) $^ -o $@
@@ -238,10 +250,10 @@ clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
 clean: 
-	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o obj/html/*
+	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o $(I2C_OBJ_DIR)/*.o obj/html/*
 
 erase_flash:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash
 
 directories:
-	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) obj/html
+	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) obj/html

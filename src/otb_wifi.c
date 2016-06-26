@@ -433,7 +433,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_quick_start(void)
 
   otb_wifi_ap_running = TRUE;
 
-  INFO("WIFI: Started AP");
+  INFO("WIFI: Started own AP");
 
   DEBUG("WIFI: otb_wifi_ap_quick_start exit");
   
@@ -478,7 +478,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
     rc = wifi_softap_set_config(&ap_conf);
   }
   ETS_UART_INTR_ENABLE();
-  INFO("WIFI: Started AP");
+  INFO("WIFI: Started own AP");
   
   // Not testing return code - if this fails, user can try again when they connect
   // otb_wifi_station_scan(NULL, NULL);
@@ -506,7 +506,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
   if (!otb_wifi_ap_enabled)
   {
     rc = wifi_set_opmode_current(STATION_MODE);
-    INFO("WIFI: Stopped AP");
+    INFO("WIFI: Stopped own AP");
   }
   
   DEBUG("WIFI: otb_wifi_ap_stop exit");

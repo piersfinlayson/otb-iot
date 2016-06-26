@@ -59,6 +59,84 @@ typedef struct otb_conf_ds18b20
   char loc[OTB_CONF_DS18B20_LOCATION_MAX_LEN];
 } otb_conf_ds18b20;
 
+// ADS1115 family sensors
+typedef struct otb_conf_ads
+{
+  // 44 bytes
+
+  // Location of this ADS.  Maximum 31 chars, so 32 with padding.
+  #define OTB_CONF_ADS_LOCATION_MAX_LEN 32
+  char loc[OTB_CONF_ADS_LOCATION_MAX_LEN];
+
+  // The I2C address of this ADS.  Will be 0x48, 0x49, 0x4a or 0x4b, as indicated by
+  // connection of addr pin.
+  // 0 means unset
+  char addr;
+
+  // Index into array of ADSs in config (OTB_CONF_ADS_MAX_ADSS)
+  char index;
+
+  // Mux setting for this ADS - valid values 0-7
+  // 000 : AINP = AIN0 and AINN = AIN1 (default)
+  // 001 : AINP = AIN0 and AINN = AIN3
+  // 010 : AINP = AIN1 and AINN = AIN3
+  // 011 : AINP = AIN2 and AINN = AIN3
+  // 100 : AINP = AIN0 and AINN = GND
+  // 101 : AINP = AIN1 and AINN = GND
+  // 110 : AINP = AIN2 and AINN = GND
+  // 111 : AINP = AIN3 and AINN = GND
+  char mux;
+
+  // Gain amplifier setting - valid values 0-7
+  // 000 : FS = ±6.144V(1)
+  // 001 : FS = ±4.096V(1)
+  // 010 : FS = ±2.048V (default)
+  // 011 : FS = ±1.024V
+  // 100 : FS = ±0.512V
+  // 101 : FS = ±0.256V
+  // 110 : FS = ±0.256V
+  // 111 : FS = ±0.256V
+  char gain;
+
+  // Sample rate
+  // 000 : 8SPS
+  // 001 : 16SPS
+  // 010 : 32SPS
+  // 011 : 64SPS
+  // 100 : 128SPS (default)
+  // 101 : 250SPS
+  // 110 : 475SPS
+  // 111 : 860SPS
+  char rate;
+
+  // Whether to do continuous or one shot sampling:
+  // 0 = continuous
+  // 1 = one shot
+  // One shot can be used to turn the ADS off
+  char cont;
+
+  // Whether to use RMS of straight average for sampling.
+  // 0 = straight average
+  // 1 = RMS
+  char rms;
+
+  // Unused, must be set to zero
+  char pad1[1];
+
+  // Period to sample over, set to seconds.  Will run number of samples as indicated
+  // below every period seconds - assuming set to continuous mode.
+  // 0xffff is invalid
+  // 0x0 means this function is off for this ADS
+  uint16_t period;
+
+  // Number of samples to take every second seconds.
+  // 0xffff is invalid
+  // 0x0 means this function is off for this ADS.
+  // > 1024 is unsupported
+  uint16_t samples;
+
+} otb_conf_ads;
+
 typedef struct otb_conf_mqtt
 {
   // 100 bytes
@@ -122,6 +200,17 @@ typedef struct otb_conf_struct
 
   // MQTT information
   otb_conf_mqtt mqtt;
+
+  // Number of configured ADSs
+  uint8_t adss;
+  
+  // Must be set to zero
+  char pad2[3];
+  
+  // Must be set to zero
+  
+#define OTB_CONF_ADS_MAX_ADSS 4  
+  otb_conf_ads ads[OTB_CONF_ADS_MAX_ADSS];
   
   // Adding any configuration past this point needs to be supported by a different
   // version
@@ -135,6 +224,8 @@ typedef struct otb_conf_struct
 extern otb_conf_struct *otb_conf;
 
 void otb_conf_init(void);
+void otb_conf_ads_init_one(otb_conf_ads *ads, char ii);
+void otb_conf_ads_init(otb_conf_struct *conf);
 bool otb_conf_verify(otb_conf_struct *conf);
 void otb_conf_init_config(otb_conf_struct *conf);
 bool otb_conf_load(void);
@@ -146,7 +237,7 @@ uint8  otb_conf_store_sta_conf(char *ssid, char *password, bool commit);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
 void otb_conf_update_loc(char *loc, char *val);
-void otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4);
+void otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4, char *cmd5);
 
 #ifdef OTB_CONF_C
 

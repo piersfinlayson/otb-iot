@@ -37,7 +37,7 @@
 #define OTB_MQTT_INITIAL_CONNECT_TIMER 10000
 #define OTB_MQTT_HEARTBEAT_INTERVAL 60000 // 1 minute
 #define OTB_MQTT_DISCONNECTED_REBOOT_INTERVAL 180000 // 3 minutes
-#define OTB_MQTT_QUEUE_BUFFER_SIZE 2048
+#define OTB_MQTT_QUEUE_BUFFER_SIZE 1024
 #define OTB_MQTT_MAX_TOPIC_LENGTH 128
 #define OTB_MQTT_MAX_MSG_LENGTH 128
 #define OTB_MAIN_OTB_IOT "otb_iot" // max 8 chars
@@ -47,7 +47,8 @@
 #define OTB_MQTT_PORT 1883
 #define OTB_MQTT_ALL "all"
 #define OTB_MQTT_TEMPERATURE "temp"
-#define OTB_MQTT_LOCATION_4_OPT "rad"
+#define OTB_MQTT_ADC "adc"
+#define OTB_MQTT_POWER "power"
 #define OTB_MQTT_PUB_LOG "log"
 
 // Fixed stuff

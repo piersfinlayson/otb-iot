@@ -35,12 +35,51 @@ void ICACHE_FLASH_ATTR otb_conf_init(void)
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_conf_ads_init_one(otb_conf_ads *ads, char ii)
+{
+
+  DEBUG("CONF: otb_conf_ads_init_one entry");
+
+  os_memset(ads, 0, sizeof(otb_conf_ads));
+  ads->index = ii;
+  ads->mux = 0b000;
+  ads->gain = 0b010;
+  ads->rate = 0b100;
+
+  DEBUG("CONF: otb_conf_ads_init_one exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_conf_ads_init(otb_conf_struct *conf)
+{
+  int ii;
+  
+  DEBUG("CONF: otb_conf_ads_init entry");
+  
+  conf->adss = 0;
+  
+  // Belt and braces:
+  os_memset(conf->ads, 0, OTB_CONF_ADS_MAX_ADSS * sizeof(otb_conf_ads));
+  
+  // Now reset each ADS individually
+  for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
+  {
+    otb_conf_ads_init_one(&(conf->ads[ii]), ii);
+  }
+
+  DEBUG("CONF: otb_conf_ads_init exit");
+  
+  return;
+}      
+
 bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
 {
   bool rc = FALSE;
   int ii;
   char pad[3] = {0, 0, 0};
   bool modified = FALSE;
+  int valid_adss = 0;
   
   DEBUG("CONF: otb_conf_verify entry");
 
@@ -89,6 +128,8 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       modified = TRUE;
     }
     
+    // DS18B20 config checking
+    
     if ((conf->ds18b20s < 0) || (conf->ds18b20s > OTB_DS18B20_MAX_DS18B20S))
     {
       WARN("CONF: Invalid number of DS18B20s");
@@ -126,6 +167,67 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       os_memset(conf->loc.loc3, 0, OTB_CONF_LOCATION_MAX_LEN);
       modified = TRUE;
     }
+    
+    // ADS config checking
+    
+    if ((conf->adss < 0) || (conf->adss > OTB_CONF_ADS_MAX_ADSS))
+    {
+      WARN("CONF: Invalid number of ADSs");
+      otb_conf_ads_init(conf);
+      modified = TRUE;
+    }
+    
+
+    for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
+    {
+      if (conf->ads[ii].addr != 0x00)
+      {
+        valid_adss++;
+      }
+    }
+    if (valid_adss != otb_conf->adss)
+    {
+      WARN("CONF: Wrong overall ADS number set - clearing"); 
+      otb_conf_ads_init(conf);
+      modified = TRUE;
+    }
+    
+    for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
+    {
+      // Check DS18B20 id is right length (or 0), and location is null terminated
+      if ((os_strnlen(conf->ads[ii].loc, OTB_CONF_ADS_LOCATION_MAX_LEN) >=
+                                                         OTB_CONF_ADS_LOCATION_MAX_LEN) ||
+          ((conf->ads[ii].addr != 0x00) &&
+           (conf->ads[ii].addr != 0x48) &&
+           (conf->ads[ii].addr != 0x49) &&
+           (conf->ads[ii].addr != 0x4a) &&
+           (conf->ads[ii].addr != 0x4b)) ||
+          (conf->ads[ii].index != ii) ||
+          (conf->ads[ii].pad1[0] != 0) ||
+          ((conf->ads[ii].mux < 0) || (conf->ads[ii].mux > 7)) ||
+          ((conf->ads[ii].gain < 0) || (conf->ads[ii].gain > 7)) ||
+          ((conf->ads[ii].rate < 0) || (conf->ads[ii].rate > 7)) ||
+          ((conf->ads[ii].cont < 0) || (conf->ads[ii].cont > 1)) ||
+          ((conf->ads[ii].rms < 0) || (conf->ads[ii].rms > 1)) ||
+          ((conf->ads[ii].period < 0) || (conf->ads[ii].period >= 0xffff)) ||
+          ((conf->ads[ii].samples < 0) || (conf->ads[ii].samples >= 1024)))
+      {
+        WARN("CONF: ADS index %d something invalid", ii);
+        INFO("CONF: ADS %d index:     %d", ii, conf->ads[ii].index);
+        INFO("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
+        INFO("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
+        INFO("CONF: ADS %d pad1:      0x%x", ii, conf->ads[ii].pad1[0]);
+        INFO("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
+        INFO("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
+        INFO("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
+        INFO("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
+        INFO("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
+        INFO("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
+        INFO("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
+        otb_conf_ads_init_one(&(conf->ads[ii]), ii);
+        modified = TRUE;
+      }
+    }
   }
   
   if (otb_conf->version > 1)
@@ -138,7 +240,8 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
   
   if (modified)
   {
-    rc = otb_conf_save(conf);
+    // Need to update rather than save so new checksum is calculated
+    rc = otb_conf_update(conf);
     if (!rc)
     {
       ERROR("CONF: Failed to save corrected config");
@@ -237,6 +340,19 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
   {
     INFO("CONF: DS18B20 #%d address:  %s", ii, conf->ds18b20[ii].id);
     INFO("CONF: DS18B20 #%d location: %s", ii, conf->ds18b20[ii].loc);
+  }
+  INFO("CONF: ADSs:  %d", conf->adss);
+  for (ii = 0; ii < conf->adss; ii++)
+  {
+    INFO("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
+    INFO("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
+    INFO("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
+    INFO("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
+    INFO("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
+    INFO("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
+    INFO("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
+    INFO("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
+    INFO("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
   }
   
   DEBUG("CONF: otb_conf_log exit");
@@ -468,7 +584,7 @@ EXIT_LABEL:
   return; 
 }
 
-void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4)
+void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4, char *cmd5)
 {
   uint8 ii;
   uint8 field = OTB_MQTT_CONFIG_INVALID_;
@@ -575,6 +691,10 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
         otb_ds18b20_conf_set(cmd3, cmd4);
         break;
         
+      case OTB_MQTT_CONFIG_ADS_:
+        otb_i2c_ads_conf_set(cmd3, cmd4, cmd5);
+        break;
+        
       default:
         INFO("CONF: Invalid config field");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
@@ -649,6 +769,10 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
         
       case OTB_MQTT_CONFIG_DS18B20_:
         otb_ds18b20_conf_get(cmd3, cmd4);
+        break;
+        
+      case OTB_MQTT_CONFIG_ADS_:
+        otb_i2c_ads_conf_get(cmd3, cmd4, cmd5);
         break;
         
       case OTB_MQTT_CONFIG_DS18B20S_:

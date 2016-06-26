@@ -500,7 +500,7 @@ EXIT_LABEL:
   else
   {
     otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
-                         OTB_MQTT_CMD_GET,
+                         OTB_MQTT_CMD_SET,
                          OTB_MQTT_STATUS_ERROR,
                          response);
   }

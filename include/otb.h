@@ -22,6 +22,9 @@
 #ifndef OTB_H_INCLUDED
 #define OTB_H_INCLUDED
 
+//#define OTB_FLASH_ATTR __attribute__((section(".otb-iot.rodata"))) __attribute__((aligned(sizeof(char*))))
+#define OTB_FLASH_ATTR
+
 // #define OTB_DEBUG 1
 // #define OTB_ARDUINO 1
 
@@ -79,6 +82,7 @@
 #include "otb_wifi.h"
 #include "otb_mqtt.h"
 #include "otb_conf.h"
+#include "otb_i2c.h"
 #include "otb_ds18b20.h"
 #include "otb_rboot.h"
 #include "otb_gpio.h"

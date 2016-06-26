@@ -546,8 +546,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 
   DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
 
-  // This function is currently written to expect 4 SUB commands (5 commands)
-  OTB_ASSERT(OTB_MQTT_MAX_CMDS >= 5);
+  // This function is currently written to expect 5 SUB commands (6 commands)
+  OTB_ASSERT(OTB_MQTT_MAX_CMDS == 6);
 
   // Check can actually handle received topic and msg  
   if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||
@@ -600,7 +600,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   switch (command)
   {
     case OTB_MQTT_SYSTEM_CONFIG_:
-      otb_conf_mqtt_conf(sub_cmd[0], sub_cmd[1], sub_cmd[2], sub_cmd[3]);
+      otb_conf_mqtt_conf(sub_cmd[0], sub_cmd[1], sub_cmd[2], sub_cmd[3], sub_cmd[4]);
       break;
 
     case OTB_MQTT_SYSTEM_GPIO_:
@@ -764,6 +764,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       }
       break;
 
+    case OTB_MQTT_SYSTEM_I2C_:
+      otb_i2c_mqtt(cmd, sub_cmd);
+      break;
+
+    case OTB_MQTT_SYSTEM_ADS_:
+      otb_i2c_ads_mqtt(cmd, sub_cmd);
+      break;
+
     default:
       DEBUG("MQTT: Unknown command");
       otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported message type", "", "");
@@ -886,6 +894,7 @@ int ICACHE_FLASH_ATTR otb_mqtt_get_cmd_len(char *cmd)
 
   return(len);
 }
+
 bool ICACHE_FLASH_ATTR otb_mqtt_match(char *msg, char *cmd)
 {
   bool match = FALSE;
