@@ -119,7 +119,8 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
   }
   
   INFO("GPIO: Set pin %d value %d", pin, value);
-  otb_gpio_pin_io_status[pin-1] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
+  // Code used to say pin - 1.  Why???
+  otb_gpio_pin_io_status[pin] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
   GPIO_OUTPUT_SET(pin, value);
   rc = TRUE;
   

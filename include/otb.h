@@ -25,6 +25,8 @@
 //#define OTB_FLASH_ATTR __attribute__((section(".otb-iot.rodata"))) __attribute__((aligned(sizeof(char*))))
 #define OTB_FLASH_ATTR
 
+#define USE_US_TIMER
+
 // #define OTB_DEBUG 1
 // #define OTB_ARDUINO 1
 
@@ -87,5 +89,6 @@
 #include "otb_rboot.h"
 #include "otb_gpio.h"
 #include "otb_httpd.h"
+#include "otb_led.h"
 
 #endif

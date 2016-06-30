@@ -20,6 +20,43 @@
 #ifndef OTB_I2C_H
 #define OTB_I2C_H
 
+typedef struct otb_i2c_ads_samples
+{
+  otb_conf_ads *ads;
+  
+  int time;
+  
+  volatile os_timer_t timer;
+
+  uint16_t next_sample;
+  
+  uint8_t type;
+
+  uint16_t dupes;
+
+} otb_i2c_ads_samples;
+
+#define OTB_I2C_ADS_MAX_SAMPLES 1024
+typedef struct otb_i2c_ads_rms_samples
+{
+  otb_i2c_ads_samples hdr;
+  
+  int16_t samples[OTB_I2C_ADS_MAX_SAMPLES];
+
+  uint16_t final_val;
+  
+} otb_i2c_ads_rms_samples;
+
+typedef struct otb_i2c_ads_nonrms_samples
+{
+  otb_i2c_ads_samples hdr;
+
+  int16_t samples[OTB_I2C_ADS_MAX_SAMPLES];
+
+  int16_t final_val;
+  
+} otb_i2c_ads_nonrms_samples;
+
 void i2c_master_gpio_init(void);
 void i2c_master_init(void);
 
@@ -41,10 +78,22 @@ char otb_i2c_mqtt_error[OTB_I2C_MQTT_ERROR_LEN];
 #else
 extern char otb_i2c_mqtt_error[];
 #endif // OTB_I2C_C
+
+void otb_i2c_ads_disable_all_timers(void);
 void otb_i2c_ads_on_timer(void *arg);
 void otb_ads_build_msb_lsb_conf(otb_conf_ads *ads, uint8 *msb, uint8 *lsb);
 bool otb_ads_configure(otb_conf_ads *ads);
 void otb_ads_initialize(void);
+void otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_samples *samples);
+void otb_i2c_ads_on_timer(void *arg);
+void otb_i2c_ads_sample_timer(void *arg);
+void otb_i2c_ads_start_sample(otb_i2c_ads_samples *samples);
+bool otb_i2c_ads_read_rms_sample(otb_i2c_ads_samples *samples);
+bool otb_i2c_ads_read_nonrms_sample(otb_i2c_ads_samples *samples);
+uint16_t otb_i2c_ads_finish_rms_samples(otb_i2c_ads_samples *samples);
+int16_t otb_i2c_ads_finish_nonrms_samples(otb_i2c_ads_samples *samples);
+bool otb_i2c_ads_get_sample(otb_i2c_ads_samples *samples);
+void otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples);
 extern bool otb_i2c_init();
 char *otb_i2c_mqtt_error_write(char *error);
 bool otb_i2c_mqtt_get_addr(char *byte, uint8 *addr);
@@ -63,6 +112,7 @@ bool otb_i2c_ads_conf_get_loc(char *loc, otb_conf_ads **ads);
 int8_t otb_i2c_ads_conf_field_match(char *field);
 void otb_i2c_ads_conf_set(char *addr, char *field, char *value);
 void otb_i2c_ads_conf_get(char *addr, char *field, char *field2);
+unsigned long isqrt(unsigned long x);
 
 #define OTB_I2C_ADC_GAIN_VALUES 8
 #ifndef OTB_I2C_C  
