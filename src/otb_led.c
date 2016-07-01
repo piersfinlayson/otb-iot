@@ -21,15 +21,61 @@
 #define OTB_LED_C
 #include "otb.h"
 
-void ICACHE_FLASH_ATTR otb_led_test(void)
+bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned char **error_text)
 {
-  bool rc;
-  otb_led_control_init(&otb_led_test_seq);
-  otb_led_test_seq.type = OTB_LED_TYPE_STATUS;
-  otb_led_test_seq.step_array = otb_led_test_steps;
-  otb_led_test_seq.steps = 18;
-  otb_led_test_seq.afterwards = OTB_LED_SEQUENCE_AFTER_RESTART_SEQ;
-  rc = otb_led_control_seq(&otb_led_test_seq);
+  bool rc = FALSE;
+  int ii;
+  otb_led_type_info *led_type = NULL;
+  
+  DEBUG("LED: otb_led_test entry");
+
+  *error_text = "";
+  for (ii = 0; ii < OTB_LED_TYPE_NUM; ii++)
+  {
+    if (!os_strcmp(OTB_LED_TYPE_INFO[ii].name, name))
+    {
+      led_type = OTB_LED_TYPE_INFO + ii;
+      break;
+    }
+  }
+  
+  if (led_type == NULL)
+  {
+    *error_text = "invalid led type";
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  else
+  { 
+    if (!led_type->is_gpio || (!otb_gpio_is_reserved(led_type->pin, (char **)error_text)))
+    {
+      if ((otb_led_test_seq.handle == 0) || (otb_led_test_seq.done))
+      {
+        otb_led_control_init(&otb_led_test_seq);
+        otb_led_test_seq.type = led_type->type;
+        otb_led_test_seq.step_array = otb_led_test_steps;
+        otb_led_test_seq.steps = 18;
+        otb_led_test_seq.afterwards = repeat ? OTB_LED_SEQUENCE_AFTER_RESTART_SEQ : OTB_LED_SEQUENCE_AFTER_OFF;
+        otb_led_test_seq.handle = (void *)-1;
+        rc = otb_led_control_seq(&otb_led_test_seq);
+      }
+      else
+      {
+        rc = FALSE;
+        *error_text = "test already in progress";
+      }
+    }
+    else
+    {
+      rc = FALSE;
+    }
+  }
+
+EXIT_LABEL:
+
+  DEBUG("LED: otb_led_test exit");
+  
+  return rc;
 }
 
 void ICACHE_FLASH_ATTR otb_led_get_colours(uint32_t colour,

@@ -768,6 +768,40 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       otb_i2c_mqtt(cmd, sub_cmd);
       break;
 
+    case OTB_MQTT_SYSTEM_TEST_:
+      rc = FALSE;
+      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED)))
+      {
+        rc = FALSE;
+        error = "no supported command specified";
+      }
+      else if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED))
+      {
+        if (sub_cmd[1] != NULL)
+        {
+          rc = otb_led_test(sub_cmd[1], FALSE, ((unsigned char **)&error));
+        }
+        else
+        {
+          rc = FALSE;
+          error = "no led specified";
+        }
+      }
+      else if (sub_cmd[2] == NULL)
+      {
+        rc = FALSE;
+        error = "no index";
+      }
+      if (rc)
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_OK, error, "");
+      }
+      else
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
+      }
+      break;
+
     case OTB_MQTT_SYSTEM_ADS_:
       otb_i2c_ads_mqtt(cmd, sub_cmd);
       break;

@@ -50,17 +50,40 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin)
+bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
 {
   bool rc = FALSE;
   
   DEBUG("GPIO: otb_gpio_is_reserved entry");
   
-  if ((pin == OTB_MAIN_GPIO_RESET) ||
-      (pin == OTB_DS18B20_DEFAULT_GPIO))
+  *reserved_text = "";
+
+  switch (pin)
   {
-    DEBUG("GPIO: Pin is reserved");
-    rc = TRUE;
+    case OTB_MAIN_GPIO_RESET:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for reset";
+      rc = TRUE;
+      break;
+
+    case OTB_DS18B20_DEFAULT_GPIO:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for One Wire protocol";
+      rc = TRUE;
+      break;
+
+    case 4:
+    case 5:
+      if (otb_i2c_initialized)
+      {
+        DEBUG("GPIO: Pin is reserved");
+        *reserved_text = "GPIO pin is reserved for I2C bus";
+        rc = TRUE;
+      }
+      break;
+      
+    default:
+      break;
   }
 
   DEBUG("GPIO: otb_gpio_is_reserved exit");
@@ -72,6 +95,7 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
 {
   bool special;
   sint8 input = -1;
+  char *error_text;
   
   DEBUG("GPIO: otb_gpio_get entry");
 
@@ -81,9 +105,9 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin))
+  if (otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - reserved", pin);
+    ERROR("GPIO: Can't get pin %d - %s", error_text);
     goto EXIT_LABEL;
   }
   
@@ -103,6 +127,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
   bool rc = FALSE;
   bool special;
   uint8 input;
+  char *error_text
   
   DEBUG("GPIO: otb_gpio_set entry");
 
@@ -112,9 +137,9 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin))
+  if (otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - reserved", pin);
+    ERROR("GPIO: Can't get pin %d - %s", pin, error_text);
     goto EXIT_LABEL;
   }
   

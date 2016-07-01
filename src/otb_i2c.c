@@ -29,9 +29,6 @@ char OTB_FLASH_ATTR *otb_str_i2c_bad_addr = "bad address";
 char OTB_FLASH_ATTR *otb_str_i2c_no_addr = "no address";
 char OTB_FLASH_ATTR *otb_str_i2c_no_scratch = "ran out of error scratch space";
 
-// Store off whether I2C already initialized
-bool otb_i2c_initialized = FALSE;
-
 // timer routines for ADS devices
 volatile os_timer_t otb_ads_timer[OTB_CONF_ADS_MAX_ADSS];
 
@@ -528,6 +525,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_init()
   DEBUG("I2C: otb_i2c_init entry");
 
   i2c_master_gpio_init();
+  otb_i2c_initialized = TRUE;
   rc = TRUE;
 
   DEBUG("I2C: otb_i2c_init exit");

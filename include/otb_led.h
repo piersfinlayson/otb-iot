@@ -56,9 +56,10 @@ typedef struct otb_led_sequence
   // Pointer to array (not linked list) of steps
   otb_led_sequence_step *step_array;
 
-#define OTB_LED_TYPE_0       0
-#define OTB_LED_TYPE_STATUS  1
-#define OTB_LED_TYPE_NUM     2
+#define OTB_LED_TYPE_GPIO0   0
+#define OTB_LED_TYPE_GPIO5   1
+#define OTB_LED_TYPE_STATUS  2
+#define OTB_LED_TYPE_NUM     3
   // LED type - which LED
   uint8_t type;
 
@@ -104,6 +105,8 @@ typedef struct otb_led_sequence
 
 typedef struct otb_led_type_info
 {
+  unsigned char *name;
+  
   // Type, one of OTB_LED_TYPE_...
   uint8_t type;
   
@@ -144,19 +147,20 @@ otb_led_sequence_step otb_led_test_steps[18] =
   {0, 0, 0, 0, 700000},
 };
 
-otb_led_sequence otb_led_test_seq;
+otb_led_sequence otb_led_test_seq = { 0 };
 
 #endif //OTB_LED_C
 
 #ifdef OTB_LED_C
 otb_led_type_info OTB_LED_TYPE_INFO[OTB_LED_TYPE_NUM] = 
 {
-  {OTB_LED_TYPE_0, FALSE, TRUE, 0},
-  {OTB_LED_TYPE_STATUS, TRUE, FALSE, 0},
+  {"gpio0", OTB_LED_TYPE_GPIO0, FALSE, TRUE, 0},
+  {"gpio5", OTB_LED_TYPE_GPIO5, FALSE, TRUE, 5},
+  {"status", OTB_LED_TYPE_STATUS, TRUE, FALSE, 0},
 };
 #endif // OTB_LED_C
 
-void otb_led_test(void);
+bool otb_led_test(unsigned char *name, bool repeat, unsigned char **error_text);
 void otb_led_get_colours(uint32_t colour,
                          uint8_t *red,
                          uint8_t *green,

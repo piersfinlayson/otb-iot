@@ -142,4 +142,12 @@ float otb_i2c_ads_gain_to_v[OTB_I2C_ADC_GAIN_VALUES] =
 };
 #endif //OTB_I2C_C
 
+// Store off whether I2C already initialized
+#ifndef OTB_I2C_C
+extern bool otb_i2c_initialized;
+#else
+bool otb_i2c_initialized = FALSE;
+#endif // OTB_I2C_C
+
+
 #endif // OTB_I2C_H

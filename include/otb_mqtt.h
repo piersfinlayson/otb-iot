@@ -77,7 +77,9 @@
 #define OTB_MQTT_SYSTEM_I2C_       17
 #define OTB_MQTT_SYSTEM_ADS        "ads"
 #define OTB_MQTT_SYSTEM_ADS_       18
-#define OTB_MQTT_SYSTEM_CMD_LAST_  18
+#define OTB_MQTT_SYSTEM_TEST       "test"
+#define OTB_MQTT_SYSTEM_TEST_      19
+#define OTB_MQTT_SYSTEM_CMD_LAST_  19
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -101,7 +103,8 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_COMPILE_TIME,
   OTB_MQTT_SYSTEM_LOGS,
   OTB_MQTT_SYSTEM_I2C,
-  OTB_MQTT_SYSTEM_ADS
+  OTB_MQTT_SYSTEM_ADS,
+  OTB_MQTT_SYSTEM_TEST,
 };
 #endif // OTB_MQTT_C
 
@@ -142,6 +145,8 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_STATUS_BOOTED "booted"
 #define OTB_MQTT_STATUS_VERSION "version"
 #define OTB_MQTT_STATUS_CHIPID "chipid"
+
+#define OTB_MQTT_TEST_LED               "led"
 
 #define OTB_MQTT_CONFIG_TRUE            "true"
 #define OTB_MQTT_CONFIG_FALSE           "false"

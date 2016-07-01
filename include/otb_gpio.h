@@ -23,7 +23,7 @@
 
 void otb_gpio_init(void);
 bool otb_gpio_is_valid(uint8_t pin);
-bool otb_gpio_is_reserved(uint8_t pin);
+bool otb_gpio_is_reserved(uint8_t pin, char **reserved_text);
 sint8 otb_gpio_get(int pin);
 bool otb_gpio_set(int pin, int value);
 void otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3);
