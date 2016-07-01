@@ -776,7 +776,27 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       {
         if (sub_cmd[1] != NULL)
         {
-          rc = otb_led_test(sub_cmd[1], FALSE, ((unsigned char **)&error));
+          if (sub_cmd[2] == NULL)
+          {
+            // Go, but once only
+            rc = otb_led_test(sub_cmd[1], FALSE, ((unsigned char **)&error));
+          }
+          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_GO))
+          {
+            // Go, and repeat
+            rc = otb_led_test(sub_cmd[1], TRUE, ((unsigned char **)&error));
+          }
+          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_STOP))
+          {
+            // Stop
+            rc = otb_led_test_stop(sub_cmd[1], ((unsigned char **)&error));
+          }
+          else
+          {
+            // unknown sub_cmd[2]
+            rc = FALSE;
+            error = "unknown test:led command";
+          }
         }
         else
         {

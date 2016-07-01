@@ -120,7 +120,11 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
 #define OTB_MQTT_CMD_INIT_         3
 #define OTB_MQTT_CMD_SCAN          "scan"
 #define OTB_MQTT_CMD_SCAN_         4
-#define OTB_MQTT_CMD_LAST_         4
+#define OTB_MQTT_CMD_GO            "go"
+#define OTB_MQTT_CMD_GO_           5
+#define OTB_MQTT_CMD_STOP          "stop"
+#define OTB_MQTT_CMD_STOP_         6
+#define OTB_MQTT_CMD_LAST_         6
 
 extern char *otb_mqtt_cmds[];
 #ifdef OTB_MQTT_C
@@ -129,7 +133,10 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
   OTB_MQTT_CMD_GET,
   OTB_MQTT_CMD_GET_NUM,
   OTB_MQTT_CMD_SET,
-  OTB_MQTT_CMD_INIT
+  OTB_MQTT_CMD_INIT,
+  OTB_MQTT_CMD_SCAN,
+  OTB_MQTT_CMD_GO,
+  OTB_MQTT_CMD_STOP,
 };
 #endif
 

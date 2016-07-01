@@ -26,15 +26,17 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
   bool rc = FALSE;
   int ii;
   otb_led_type_info *led_type = NULL;
+  otb_led_sequence *seq = NULL;
   
   DEBUG("LED: otb_led_test entry");
 
   *error_text = "";
   for (ii = 0; ii < OTB_LED_TYPE_NUM; ii++)
   {
-    if (!os_strcmp(OTB_LED_TYPE_INFO[ii].name, name))
+    if (otb_mqtt_match(name, OTB_LED_TYPE_INFO[ii].name))
     {
       led_type = OTB_LED_TYPE_INFO + ii;
+      seq = led_type->seq;
       break;
     }
   }
@@ -49,15 +51,15 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
   { 
     if (!led_type->is_gpio || (!otb_gpio_is_reserved(led_type->pin, (char **)error_text)))
     {
-      if ((otb_led_test_seq.handle == 0) || (otb_led_test_seq.done))
+      if ((seq->handle == 0) || (seq->done))
       {
-        otb_led_control_init(&otb_led_test_seq);
-        otb_led_test_seq.type = led_type->type;
-        otb_led_test_seq.step_array = otb_led_test_steps;
-        otb_led_test_seq.steps = 18;
-        otb_led_test_seq.afterwards = repeat ? OTB_LED_SEQUENCE_AFTER_RESTART_SEQ : OTB_LED_SEQUENCE_AFTER_OFF;
-        otb_led_test_seq.handle = (void *)-1;
-        rc = otb_led_control_seq(&otb_led_test_seq);
+        otb_led_control_init(seq);
+        seq->type = led_type->type;
+        seq->step_array = otb_led_test_steps;
+        seq->steps = 18;
+        seq->afterwards = repeat ? OTB_LED_SEQUENCE_AFTER_RESTART_SEQ : OTB_LED_SEQUENCE_AFTER_OFF;
+        seq->handle = (void *)-1;
+        rc = otb_led_control_seq(seq);
       }
       else
       {
@@ -67,6 +69,7 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
     }
     else
     {
+      *error_text = "reserved pin";
       rc = FALSE;
     }
   }
@@ -74,6 +77,53 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
 EXIT_LABEL:
 
   DEBUG("LED: otb_led_test exit");
+  
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_led_test_stop(unsigned char *name, unsigned char **error_text)
+{
+  bool rc = FALSE;
+  int ii;
+  otb_led_type_info *led_type = NULL;
+  otb_led_sequence *seq = NULL;
+  
+  DEBUG("LED: otb_led_test_stop entry");
+
+  *error_text = "";
+  for (ii = 0; ii < OTB_LED_TYPE_NUM; ii++)
+  {
+    if (otb_mqtt_match(name, OTB_LED_TYPE_INFO[ii].name))
+    {
+      led_type = OTB_LED_TYPE_INFO + ii;
+      seq = led_type->seq;
+      break;
+    }
+  }
+  
+  if (led_type == NULL)
+  {
+    *error_text = "invalid led type";
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  else
+  { 
+    if (!led_type->is_gpio || (!otb_gpio_is_reserved(led_type->pin, (char **)error_text)))
+    {
+      seq->stop = TRUE;
+      rc = TRUE;
+    }
+    else
+    {
+      *error_text = "reserved pin";
+      rc = FALSE;
+    }
+  }
+
+EXIT_LABEL:
+
+  DEBUG("LED: otb_led_test_stop exit");
   
   return rc;
 }
@@ -138,18 +188,19 @@ bool ICACHE_FLASH_ATTR otb_led_control_step(otb_led_sequence *seq)
   OTB_ASSERT(seq->steps > 0);
   OTB_ASSERT(seq->type < OTB_LED_TYPE_NUM);
 
-  if (seq->stop)
-  {
-    // Don't set done to true as we aren't!
-    rc = TRUE;
-    goto EXIT_LABEL;
-  }  
-  
   type_info = &OTB_LED_TYPE_INFO[seq->type];
   
   // Get the step to execute
   step = (seq->step_array + seq->next_step);
 
+  if (seq->stop)
+  {
+    // Don't set done to true as we aren't!
+    // Need to do this after have found type_info (and step for belt and braces!)
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }  
+  
   if (type_info->is_gpio)
   {
     // Do GPIO - only valid for non RGB LEDs
@@ -214,6 +265,21 @@ EXIT_LABEL:
   {
     if ((seq->stop) || (seq->done))
     {
+      if (seq->stop)
+      {
+        seq->stop = FALSE;
+        if (type_info->is_gpio)
+        {
+          // Really not a lot to do if this fails!
+          rc = otb_gpio_set(type_info->pin, 0);
+        }
+        else
+        {
+          // I2C XXX implement turning it off!
+          OTB_ASSERT(FALSE);
+        }
+        seq->done = TRUE;
+      }
       if ((seq->next_step > 1) && (seq->on_done != NULL))
       {
         // Only notify function if there was more than 1 step, and have a function to call
@@ -311,6 +377,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
   seq->done = FALSE;
   seq->iterations = 0;
   seq->error = FALSE;
+  seq->stop = FALSE;
 
   // Kick it off
   os_timer_setfn((os_timer_t*)&(seq->timer), (os_timer_func_t *)otb_led_control_on_timer, seq);

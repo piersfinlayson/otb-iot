@@ -27,6 +27,27 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
 
   memset(otb_gpio_pin_io_status, 0, OTB_GPIO_ESP_GPIO_PINS);
   gpio_init();
+  
+  // Initialize all the pins we might use as GPIO.  Pins not included:
+  // 1/3 (serial)
+  // 6-11 (SPI flash)
+  // 16 (reset)
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
+  otb_gpio_set(0, 0);
+  otb_gpio_set(2, 0);
+  otb_gpio_set(4, 0);
+  otb_gpio_set(5, 0);
+  otb_gpio_set(12, 0);
+  otb_gpio_set(13, 0);
+  otb_gpio_set(14, 0);
+  otb_gpio_set(15, 0);
 
   DEBUG("GPIO: otb_gpio_init exit");
   
