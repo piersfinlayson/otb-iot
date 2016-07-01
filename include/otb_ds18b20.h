@@ -57,6 +57,7 @@ static volatile os_timer_t otb_ds18b20_timer[OTB_DS18B20_MAX_DS18B20S];
 
 extern void otb_ds18b20_initialize(uint8_t bus);
 extern void otb_ds18b20_callback(void *arg);
+void otb_ds18b20_cmd(char *cmd0, char *cmd1, char *cmd2);
 extern bool otb_ds18b20_get_devices(void);
 extern char *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20 **ds);
 extern char *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds);

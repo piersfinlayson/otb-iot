@@ -636,10 +636,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       break;
 
     case OTB_MQTT_SYSTEM_DS18B20_:
-      otb_mqtt_send_status(cmd,
-                          OTB_MQTT_STATUS_ERROR,
-                           "DS18B20 MQTT commands not yet implemented",
-                           "");
+      otb_ds18b20_cmd(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
       break;
 
     case OTB_MQTT_SYSTEM_UPDATE_:
