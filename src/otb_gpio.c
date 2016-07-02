@@ -343,7 +343,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       DEBUG("GPIO: Set command");
       if ((value != -1) || (cmd3 != NULL))
       {
-        if (value != -1)
+        if (value == -1)
         {
           value = atoi(cmd3);
         }
