@@ -728,6 +728,94 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
   return;
 }  
 
+bool otb_util_vdd33_flash_ok = FALSE;
+
+void ICACHE_FLASH_ATTR otb_util_get_vdd33(void)
+{
+  uint16 vdd33;
+  char output[16];
+  double voltage;
+  int voltage_int;
+  int voltage_thou;
+  unsigned char ALIGN4 flash[0x1000];
+  bool rc;
+  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
+
+  DEBUG("UTIL: otb_util_get_vdd33 entry");
+
+  // To work byte 107 of ESP user.bin (0x3fc000 in 4MB flash) must be 0xff.  Really.
+  // And you need to reboot afterwards.
+  if (!otb_util_vdd33_flash_ok)
+  {
+    // Sigh.  Make it OK.
+    DEBUG("UTIL: read flash 0x%p", flash);
+    rc = otb_util_flash_read(OTB_BOOT_ESP_USER_BIN,
+                             (uint32 *)flash,
+                             0x1000);
+    if (rc)
+    {
+      if (flash[107] != 0xff)
+      {
+        DEBUG("UTIL: write flash");
+        flash[107] = 0xff;
+        spi_rc = spi_flash_erase_sector(OTB_BOOT_ESP_USER_BIN / 0x1000);
+        if (spi_rc != SPI_FLASH_RESULT_ERR)
+        {
+          rc = otb_util_flash_write(OTB_BOOT_ESP_USER_BIN,
+                                    (uint32 *)flash,
+                                    0x1000);
+        }
+        else
+        {
+          WARN("UTIL: Failed to erase flash");
+          rc = FALSE;
+        }
+        if (rc)
+        {
+          otb_util_vdd33_flash_ok = TRUE;
+          otb_mqtt_send_status(OTB_MQTT_STATUS_VDD33, OTB_MQTT_STATUS_ERROR, "reset first", "");
+          goto EXIT_LABEL;
+        }
+        else
+        {
+          WARN("UTIL: Failed to update ESP user bin to flash 0x%x", OTB_BOOT_ESP_USER_BIN);
+        }
+      }
+      else
+      {
+        DEBUG("UTIL: Byte 107 of ESP user bin 0x%x already 0xff", OTB_BOOT_ESP_USER_BIN);
+        otb_util_vdd33_flash_ok = TRUE;
+      }
+    }
+    else
+    {
+      WARN("UTIL: Failed to read ESP user bin from flash 0x%x", OTB_BOOT_ESP_USER_BIN);
+    }
+  }  
+
+
+  if (otb_util_vdd33_flash_ok)  
+  {
+    vdd33 = system_get_vdd33();  
+    //vdd33 = system_adc_read();
+    voltage = vdd33/1024;
+    voltage_int = voltage/1;
+    voltage_thou = (int)(vdd33*1000/1024)%1000;
+    os_snprintf(output, 16, "0x%04x/%d.%03dV", vdd33, voltage_int, voltage_thou);
+    otb_mqtt_send_status(OTB_MQTT_STATUS_VDD33, output, "", "");
+  }
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_STATUS_VDD33, OTB_MQTT_STATUS_ERROR, "", "");
+  }
+
+EXIT_LABEL:
+  
+  DEBUG("UTIL: otb_util_get_vdd33 exit");
+
+  return;
+}  
+
 void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)
 {
 

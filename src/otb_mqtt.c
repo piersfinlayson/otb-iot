@@ -282,6 +282,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
 void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
 {
   int chars;
+  uint8_t slot;
+  char slot_s[4];
 	MQTT_Client* mqtt_client;
 	
   DEBUG("MQTT: otb_mqtt_on_connected entry");
@@ -292,7 +294,12 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
   mqtt_client = (MQTT_Client*)client;
 
   // Now publish status.  First off booted.  Don't need to retain this.
-  otb_mqtt_send_status(OTB_MQTT_STATUS_BOOTED, "", "", "");
+
+  DEBUG("RBOOT: otb_rboot_get_slot entry");
+
+  slot = rboot_get_current_rom();  
+  os_snprintf(slot_s, 4, "%d", slot);
+  otb_mqtt_send_status(OTB_MQTT_STATUS_BOOTED, "slot", slot_s, "");
                    
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
@@ -671,6 +678,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     case OTB_MQTT_SYSTEM_HEAP_SIZE_:
     case OTB_MQTT_SYSTEM_COMPILE_DATE_:
     case OTB_MQTT_SYSTEM_COMPILE_TIME_:
+    case OTB_MQTT_SYSTEM_VDD33_:
       if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET)))
       {
         otb_mqtt_send_status(cmd,
@@ -692,6 +700,10 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
         
         case OTB_MQTT_SYSTEM_HEAP_SIZE_:
           otb_util_get_heap_size();
+          break;
+          
+        case OTB_MQTT_SYSTEM_VDD33_:
+          otb_util_get_vdd33();
           break;
           
         case OTB_MQTT_SYSTEM_COMPILE_DATE_:

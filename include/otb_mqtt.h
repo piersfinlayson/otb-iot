@@ -79,7 +79,9 @@
 #define OTB_MQTT_SYSTEM_ADS_       18
 #define OTB_MQTT_SYSTEM_TEST       "test"
 #define OTB_MQTT_SYSTEM_TEST_      19
-#define OTB_MQTT_SYSTEM_CMD_LAST_  19
+#define OTB_MQTT_SYSTEM_VDD33      "vdd33"
+#define OTB_MQTT_SYSTEM_VDD33_     20
+#define OTB_MQTT_SYSTEM_CMD_LAST_  20
 
 extern char *otb_mqtt_system_cmds[];
 #ifdef OTB_MQTT_C
@@ -105,6 +107,7 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
   OTB_MQTT_SYSTEM_I2C,
   OTB_MQTT_SYSTEM_ADS,
   OTB_MQTT_SYSTEM_TEST,
+  OTB_MQTT_SYSTEM_VDD33,
 };
 #endif // OTB_MQTT_C
 
@@ -149,6 +152,7 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_STATUS_GPIO       OTB_MQTT_SYSTEM_GPIO
 #define OTB_MQTT_STATUS_BOOT_SLOT  OTB_MQTT_SYSTEM_BOOT_SLOT
 #define OTB_MQTT_STATUS_HEAP_SIZE  OTB_MQTT_SYSTEM_HEAP_SIZE
+#define OTB_MQTT_STATUS_VDD33      OTB_MQTT_SYSTEM_VDD33
 #define OTB_MQTT_STATUS_PONG       "pong"
 #define OTB_MQTT_STATUS_OK         "ok"
 #define OTB_MQTT_STATUS_ERROR      "error"

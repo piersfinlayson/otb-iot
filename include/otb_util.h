@@ -66,6 +66,7 @@ bool otb_util_flash_write_string(uint32 location,
                                  uint32 len);
 bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len);
 void otb_util_get_heap_size(void);
+void otb_util_get_vdd33(void);
 void otb_util_timer_cancel(os_timer_t *timer);
 bool otb_util_timer_is_set(os_timer_t *timer);
 void otb_util_timer_set(os_timer_t *timer,
