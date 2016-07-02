@@ -32,6 +32,12 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   DEBUG("OTB: user_init entry");
   
+  // Log some useful info
+  otb_util_log_useful_info(FALSE);
+
+  // Do some sanity checking
+  otb_util_check_defs();
+  
   // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO)  
   otb_gpio_init();
   
@@ -41,12 +47,6 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   otb_wifi_init();
 
-  // Log some useful info
-  otb_util_log_useful_info(FALSE);
-
-  // Do some sanity checking
-  otb_util_check_defs();
-  
 #if 0
   OTB_WIFI_STATION_CONFIG wifi_conf;
   // Some code to burn an SSID/password into the flash
@@ -63,6 +63,8 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Initialize and load config
   otb_conf_init();
   otb_conf_load();
+  
+  otb_gpio_apply_boot_state();
   
   system_init_done_cb((init_done_cb_t)otb_wifi_kick_off);
   

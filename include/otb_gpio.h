@@ -22,6 +22,7 @@
 #define OTB_GPIO_PIN_IO_STATUS_OUTPUT   2
 
 void otb_gpio_init(void);
+void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void);
 bool otb_gpio_is_valid(uint8_t pin);
 bool otb_gpio_is_reserved(uint8_t pin, char **reserved_text);
 sint8 otb_gpio_get(int pin);

@@ -212,6 +212,12 @@ typedef struct otb_conf_struct
 #define OTB_CONF_ADS_MAX_ADSS 4  
   otb_conf_ads ads[OTB_CONF_ADS_MAX_ADSS];
   
+  // ESP has 17 GPIO pins.
+  char gpio_boot_state[17];
+  
+  // Must be set to zero
+  char pad3[3];
+  
   // Adding any configuration past this point needs to be supported by a different
   // version
 

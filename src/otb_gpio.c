@@ -54,6 +54,35 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
+{
+  char *dummy;
+  int ii;
+  bool rc;
+
+  DEBUG("GPIO: gpio_apply_boot_state entry");
+
+  for (ii = 0; ii < 17; ii++)
+  {
+    if (!otb_gpio_is_reserved(ii, &dummy))
+    {
+      rc = otb_gpio_set(ii, otb_conf->gpio_boot_state[ii]);
+      if (!rc)
+      {
+        WARN("GPIO: failed to set boot state for pin %d", ii);
+      }
+    }
+    else
+    {
+      WARN("GPIO: not applying boot state for reserved pin %d", ii);
+    }
+  }
+  
+  DEBUG("GPIO: gpio_apply_boot_state exit");
+  
+  return;
+}
+
 bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
 {
   bool rc = TRUE;
@@ -90,6 +119,24 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
     case OTB_DS18B20_DEFAULT_GPIO:
       DEBUG("GPIO: Pin is reserved");
       *reserved_text = "GPIO pin is reserved for One Wire protocol";
+      rc = TRUE;
+      break;
+      
+    case 1:
+    case 3:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for serial";
+      rc = TRUE;
+      break;
+
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for flash";
       rc = TRUE;
       break;
 
@@ -180,10 +227,13 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
 {
   int pin;
-  int value;
+  int value = -1;
   uint8 cmd_id = OTB_MQTT_CMD_INVALID_;
   bool rc;
   char response[8];
+  bool save = FALSE;
+  char *error_text;
+  char *cmd = "";
 
   DEBUG("GPIO: otb_gpio_cmd entry");
 
@@ -203,46 +253,113 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
     goto EXIT_LABEL;
   }
   
-  pin = atoi(cmd2);
-  DEBUG("GPIO: Pin %d", pin);
   if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_SET))
   {
+    cmd = OTB_MQTT_CMD_SET;
     cmd_id = OTB_MQTT_CMD_SET_;
   }
   else if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_GET))
   {
+    cmd = OTB_MQTT_CMD_GET;
     cmd_id = OTB_MQTT_CMD_GET_;
   }
+  else if (otb_mqtt_match(cmd1, OTB_MQTT_CMD_SAVE))
+  {
+    cmd = OTB_MQTT_CMD_SAVE;
+    cmd_id = OTB_MQTT_CMD_SAVE_;
+  }
   
+  pin = atoi(cmd2);
+  DEBUG("GPIO: Pin %d", pin);
+  if ((pin < 0) || (pin >= GPIO_PIN_NUM))
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                         cmd,
+                         OTB_MQTT_STATUS_ERROR,
+                         "invalid Pin");
+  }
+
   switch (cmd_id)
   {
-    case OTB_MQTT_CMD_SET_:
-      DEBUG("GPIO: Set command");
-      if (pin >= GPIO_PIN_NUM)
+    case OTB_MQTT_CMD_SAVE_:
+      // Deliberately fall through to set.  Will store once we've decided if this GPIO
+      // works
+      DEBUG("GPIO: Save command");
+      save = TRUE;
+      if (cmd3 == NULL)
       {
-        INFO("GPIO: Invalid pin num %d", pin);
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                             OTB_MQTT_CMD_SET,
+                             cmd,
                              OTB_MQTT_STATUS_ERROR,
-                             "Invalid pin number");
-        goto EXIT_LABEL;                         
+                             "no state");
+        goto EXIT_LABEL;
+        break;
       }
-      if (cmd3 != NULL)
+      else
       {
         value = atoi(cmd3);
+        if ((value >= 0) && (value <= 1))
+        {
+          if (!otb_gpio_is_reserved(pin, &error_text))
+          {
+            if (otb_conf->gpio_boot_state[pin] != value)
+            {
+              otb_conf->gpio_boot_state[pin] = value;
+              rc = otb_conf_update(otb_conf);
+              if (!rc)
+              {
+                ERROR("CONF: Failed to save new boot state");
+                otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                                     cmd,
+                                     OTB_MQTT_STATUS_ERROR,
+                                     "failed to store off new boot state");
+                goto EXIT_LABEL;
+                break;
+              }
+            }
+          }
+          else
+          {
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                                 cmd,
+                                 OTB_MQTT_STATUS_ERROR,
+                                 error_text);
+            goto EXIT_LABEL;
+            break;
+          }
+        }
+        else
+        {
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                               cmd,
+                               OTB_MQTT_STATUS_ERROR,
+                               "invalid state");
+          goto EXIT_LABEL;
+          break;
+        }
+      }
+      // Fall through to actually set GPIO ...
+    case OTB_MQTT_CMD_SET_:
+      DEBUG("GPIO: Set command");
+      if ((value != -1) || (cmd3 != NULL))
+      {
+        if (value != -1)
+        {
+          value = atoi(cmd3);
+        }
         DEBUG("GPIO: Set - new value %d", value);
         rc = otb_gpio_set(pin, value); 
         if (rc)
         {
           otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                               OTB_MQTT_CMD_SET,
+                               cmd,
                                OTB_MQTT_STATUS_OK,
                                "");
         }
         else
         {
           otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                               OTB_MQTT_CMD_SET,
+                               cmd,
                                OTB_MQTT_STATUS_ERROR,
                                "");
         }
@@ -251,7 +368,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       {
         INFO("GPIO: no value");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                             OTB_MQTT_CMD_SET,
+                             cmd,
                              OTB_MQTT_STATUS_ERROR,
                              "No value");
         goto EXIT_LABEL;                         
@@ -261,34 +378,47 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       
     case OTB_MQTT_CMD_GET_:
       DEBUG("GPIO: Get command");
-      if (pin >= GPIO_PIN_NUM)
+      if (cmd3 != NULL)
       {
-        INFO("GPIO: Invalid pin num %d", pin);
-        otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                             OTB_MQTT_CMD_GET,
-                             OTB_MQTT_STATUS_ERROR,
-                             "Invalid pin number");
-        goto EXIT_LABEL;                         
-      }
-
-      value = otb_gpio_get(pin);
-      if (rc >= 0)
-      {
-        os_snprintf(response, 8, "%d", value);
-        otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                             OTB_MQTT_CMD_GET,
-                             OTB_MQTT_STATUS_OK,
-                             response);
+        if (otb_mqtt_match(cmd3, OTB_MQTT_BOOT_STATE))
+        {
+          value = otb_conf->gpio_boot_state[pin];
+          os_snprintf(response, 8, "%d", value);
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                               cmd,
+                               OTB_MQTT_STATUS_OK,
+                               response);
+        }
+        else
+        {
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                               cmd,
+                               OTB_MQTT_STATUS_ERROR,
+                               "Unknown get command");
+          goto EXIT_LABEL;                         
+          break;
+        }
       }
       else
       {
-        INFO("MQTT: Failed to get GPIO");
-        otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
-                             OTB_MQTT_CMD_GET,
-                             OTB_MQTT_STATUS_ERROR,
-                             "");
+        value = otb_gpio_get(pin);
+        if (rc >= 0)
+        {
+          os_snprintf(response, 8, "%d", value);
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                               cmd,
+                               OTB_MQTT_STATUS_OK,
+                               response);
+        }
+        else
+        {
+          INFO("MQTT: Failed to get GPIO");
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
+                               cmd,
+                               OTB_MQTT_STATUS_ERROR,
+                               "");
+        }
       }
-
       break;
     
     default:

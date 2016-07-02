@@ -228,6 +228,26 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
         modified = TRUE;
       }
     }
+    
+    for (ii = 0; ii < 17; ii++)
+    {
+      if ((conf->gpio_boot_state[ii] < 0) || (conf->gpio_boot_state[ii] > 1))
+      {
+        WARN("CONF: gpio_boot_state %d invalid 0x2.2x", ii, conf->gpio_boot_state[ii]);
+        conf->gpio_boot_state[ii] = 0;
+        modified = TRUE;
+      } 
+    }
+    
+    for (ii = 0; ii < 3; ii++)
+    {
+      if (conf->pad3[ii] != 0)
+      {
+        WARN("CONF: pad3 %d invalid 0x%2.2x", ii, conf->pad3[0]);
+        conf->pad3[ii] = 0;
+        modified = TRUE;
+      }
+    }
   }
   
   if (otb_conf->version > 1)

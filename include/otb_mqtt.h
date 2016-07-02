@@ -124,7 +124,9 @@ char *otb_mqtt_system_cmds[OTB_MQTT_SYSTEM_CMD_LAST_ + 1] =
 #define OTB_MQTT_CMD_GO_           5
 #define OTB_MQTT_CMD_STOP          "stop"
 #define OTB_MQTT_CMD_STOP_         6
-#define OTB_MQTT_CMD_LAST_         6
+#define OTB_MQTT_CMD_SAVE          "save"
+#define OTB_MQTT_CMD_SAVE_         7
+#define OTB_MQTT_CMD_LAST_         7
 
 extern char *otb_mqtt_cmds[];
 #ifdef OTB_MQTT_C
@@ -137,6 +139,7 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
   OTB_MQTT_CMD_SCAN,
   OTB_MQTT_CMD_GO,
   OTB_MQTT_CMD_STOP,
+  OTB_MQTT_CMD_SAVE,
 };
 #endif
 
@@ -154,6 +157,7 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_STATUS_CHIPID "chipid"
 
 #define OTB_MQTT_TEST_LED               "led"
+#define OTB_MQTT_BOOT_STATE             "boot_state"
 
 #define OTB_MQTT_CONFIG_TRUE            "true"
 #define OTB_MQTT_CONFIG_FALSE           "false"
