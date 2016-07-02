@@ -124,6 +124,7 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
   if (connData->cgiData == NULL)
     if (connData->requestType == HTTPD_METHOD_GET)
     {
+#ifdef OTB_HTTPD_SEARCH_WIFI_APS    
       // XXX Handle providing list of APs
       if (otb_wifi_ap_list_struct.searched == OTB_WIFI_AP_SEARCH_NOT_STARTED)
       {
@@ -176,13 +177,16 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
       {
         DEBUG("HTTPD: Station search complete");
         OTB_ASSERT(otb_wifi_ap_list_struct.searched == OTB_WIFI_AP_SEARCH_DONE);
+#endif // OTB_HTTPD_SEARCH_WIFI_APS       
         httpdStartResponse(connData, 200);
         httpdHeader(connData, "Content-Type", "text/html");
         httpdEndHeaders(connData);
 
         len = 0;
         len += otb_httpd_wifi_form(otb_httpd_scratch+len, OTB_HTTP_SCRATCH_LEN-len);
+#ifdef OTB_HTTPD_SEARCH_WIFI_APS
         len += otb_httpd_display_ap_list(otb_httpd_scratch+len, OTB_HTTP_SCRATCH_LEN-len);
+#endif  // OTB_HTTPD_SEARCH_WIFI_APS
         DEBUG("HTTPD: output %d bytes", len);
         if (len > 1024)
         {
@@ -199,7 +203,9 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
           rc = HTTPD_CGI_DONE;
         }
         goto EXIT_LABEL;
+#ifdef OTB_HTTPD_SEARCH_WIFI_APS       
       }
+#endif // OTB_HTTPD_SEARCH_WIFI_APS
     }
     else if (connData->requestType == HTTPD_METHOD_POST)
     {
