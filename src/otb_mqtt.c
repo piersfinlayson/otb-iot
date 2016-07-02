@@ -636,10 +636,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       break;
 
     case OTB_MQTT_SYSTEM_DS18B20_:
-      otb_mqtt_send_status(cmd,
-                          OTB_MQTT_STATUS_ERROR,
-                           "DS18B20 MQTT commands not yet implemented",
-                           "");
+      otb_ds18b20_cmd(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
       break;
 
     case OTB_MQTT_SYSTEM_UPDATE_:
@@ -766,6 +763,60 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 
     case OTB_MQTT_SYSTEM_I2C_:
       otb_i2c_mqtt(cmd, sub_cmd);
+      break;
+
+    case OTB_MQTT_SYSTEM_TEST_:
+      rc = FALSE;
+      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED)))
+      {
+        rc = FALSE;
+        error = "no supported command specified";
+      }
+      else if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED))
+      {
+        if (sub_cmd[1] != NULL)
+        {
+          if (sub_cmd[2] == NULL)
+          {
+            // Go, but once only
+            rc = otb_led_test(sub_cmd[1], FALSE, ((unsigned char **)&error));
+          }
+          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_GO))
+          {
+            // Go, and repeat
+            rc = otb_led_test(sub_cmd[1], TRUE, ((unsigned char **)&error));
+          }
+          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_STOP))
+          {
+            // Stop
+            rc = otb_led_test_stop(sub_cmd[1], ((unsigned char **)&error));
+          }
+          else
+          {
+            // unknown sub_cmd[2]
+            rc = FALSE;
+            error = "unknown test:led command";
+          }
+        }
+        else
+        {
+          rc = FALSE;
+          error = "no led specified";
+        }
+      }
+      else if (sub_cmd[2] == NULL)
+      {
+        rc = FALSE;
+        error = "no index";
+      }
+      if (rc)
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_OK, error, "");
+      }
+      else
+      {
+        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
+      }
       break;
 
     case OTB_MQTT_SYSTEM_ADS_:

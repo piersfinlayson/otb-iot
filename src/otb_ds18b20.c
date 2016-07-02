@@ -84,6 +84,92 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   return;
 }
 
+void otb_ds18b20_cmd(char *cmd0, char *cmd1, char *cmd2)
+{
+  bool rc = FALSE;
+  char *error_text = "";
+  char num_output[16];
+  char *get = "";
+
+  DEBUG("DS18B20 otb_ds18b20_cmd entry");
+  
+  // from docs:
+  // ds18b20:get_num          # Gets number of devices connected at last book
+  // ds18b20:get:ds18b20:num  # Where num starts at 0 and goes up to 7 depending on number of connected - returns address in above format
+  
+  if (cmd0 == NULL)
+  {
+    rc = FALSE;
+    error_text = "no command";
+    goto EXIT_LABEL;
+  }
+  
+  if (otb_mqtt_match(cmd0, OTB_MQTT_CMD_GET_NUM))
+  {
+    get = OTB_MQTT_CMD_GET_NUM;
+    os_snprintf(num_output, 16, "%d", otb_ds18b20_count);
+    num_output[15] = 0;
+    error_text = num_output;
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }
+  else if (otb_mqtt_match(cmd0, OTB_MQTT_CMD_GET))
+  {
+    get = OTB_MQTT_CMD_GET;
+    if ((cmd1 == NULL) || (cmd2 == NULL))
+    {
+      rc = FALSE;
+      error_text = "nothing to get";
+      goto EXIT_LABEL;
+    }
+    else if (otb_mqtt_match(cmd1, OTB_MQTT_SYSTEM_DS18B20))
+    {
+      int num;
+      num = atoi(cmd2);
+      if ((num >=0) && (num < OTB_DS18B20_MAX_DS18B20S) && (num < otb_ds18b20_count))
+      {
+        error_text = otb_ds18b20_addresses[num].friendly;
+        rc = TRUE;
+      }
+      else
+      {
+        rc = FALSE;
+        error_text = "invalid num to get";
+        goto EXIT_LABEL;
+      }
+    }
+    else
+    {
+      rc = FALSE;
+      error_text = "unsupported get";
+      goto EXIT_LABEL;
+    }
+  }
+  
+EXIT_LABEL:
+
+  // Send appropriate response
+  if (rc)
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_DS18B20,
+                         get,
+                         OTB_MQTT_STATUS_OK,
+                         error_text);
+  
+  }  
+  else
+  {
+    otb_mqtt_send_status(OTB_MQTT_SYSTEM_DS18B20,
+                         get,
+                         OTB_MQTT_STATUS_ERROR,
+                         error_text);
+  }
+  
+  DEBUG("DS18B20 otb_ds18b20_cmd exit");
+  
+  return;
+}
+
 // Returns TRUE if more than OTB_DS18B20_MAX_DS18B20S devices
 bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
 {

@@ -25,6 +25,9 @@ char ssid[32];
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
+  // According to docs required as first step, to enable us timer
+  system_timer_reinit();
+
   otb_util_init_logging();
 
   DEBUG("OTB: user_init entry");

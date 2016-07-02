@@ -193,6 +193,9 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path)
       port_int,
       path);
   
+  // Kill all timers cos they'll interfere
+  otb_i2c_ads_disable_all_timers();
+  
   rc = rboot_ota_start((rboot_ota *)&otb_rboot_ota);
   if (!rc)
   {
@@ -217,6 +220,7 @@ EXIT_LABEL:
                          OTB_MQTT_STATUS_ERROR,
                          error,
                          "");
+    otb_reset_error("Update failed so rebooting");                     
   }
   
   DEBUG("RBOOT: otb_rboot_update exit");

@@ -27,6 +27,27 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
 
   memset(otb_gpio_pin_io_status, 0, OTB_GPIO_ESP_GPIO_PINS);
   gpio_init();
+  
+  // Initialize all the pins we might use as GPIO.  Pins not included:
+  // 1/3 (serial)
+  // 6-11 (SPI flash)
+  // 16 (reset)
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
+  otb_gpio_set(0, 0);
+  otb_gpio_set(2, 0);
+  otb_gpio_set(4, 0);
+  otb_gpio_set(5, 0);
+  otb_gpio_set(12, 0);
+  otb_gpio_set(13, 0);
+  otb_gpio_set(14, 0);
+  otb_gpio_set(15, 0);
 
   DEBUG("GPIO: otb_gpio_init exit");
   
@@ -50,17 +71,40 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin)
+bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
 {
   bool rc = FALSE;
   
   DEBUG("GPIO: otb_gpio_is_reserved entry");
   
-  if ((pin == OTB_MAIN_GPIO_RESET) ||
-      (pin == OTB_DS18B20_DEFAULT_GPIO))
+  *reserved_text = "";
+
+  switch (pin)
   {
-    DEBUG("GPIO: Pin is reserved");
-    rc = TRUE;
+    case OTB_MAIN_GPIO_RESET:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for reset";
+      rc = TRUE;
+      break;
+
+    case OTB_DS18B20_DEFAULT_GPIO:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for One Wire protocol";
+      rc = TRUE;
+      break;
+
+    case 4:
+    case 5:
+      if (otb_i2c_initialized)
+      {
+        DEBUG("GPIO: Pin is reserved");
+        *reserved_text = "GPIO pin is reserved for I2C bus";
+        rc = TRUE;
+      }
+      break;
+      
+    default:
+      break;
   }
 
   DEBUG("GPIO: otb_gpio_is_reserved exit");
@@ -72,6 +116,7 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
 {
   bool special;
   sint8 input = -1;
+  char *error_text;
   
   DEBUG("GPIO: otb_gpio_get entry");
 
@@ -81,9 +126,9 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin))
+  if (otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - reserved", pin);
+    ERROR("GPIO: Can't get pin %d - %s", error_text);
     goto EXIT_LABEL;
   }
   
@@ -103,6 +148,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
   bool rc = FALSE;
   bool special;
   uint8 input;
+  char *error_text
   
   DEBUG("GPIO: otb_gpio_set entry");
 
@@ -112,14 +158,15 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin))
+  if (otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - reserved", pin);
+    ERROR("GPIO: Can't get pin %d - %s", pin, error_text);
     goto EXIT_LABEL;
   }
   
   INFO("GPIO: Set pin %d value %d", pin, value);
-  otb_gpio_pin_io_status[pin-1] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
+  // Code used to say pin - 1.  Why???
+  otb_gpio_pin_io_status[pin] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
   GPIO_OUTPUT_SET(pin, value);
   rc = TRUE;
   

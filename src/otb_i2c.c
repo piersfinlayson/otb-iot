@@ -29,14 +29,33 @@ char OTB_FLASH_ATTR *otb_str_i2c_bad_addr = "bad address";
 char OTB_FLASH_ATTR *otb_str_i2c_no_addr = "no address";
 char OTB_FLASH_ATTR *otb_str_i2c_no_scratch = "ran out of error scratch space";
 
-// Store off whether I2C already initialized
-bool otb_i2c_initialized = FALSE;
-
 // timer routines for ADS devices
 volatile os_timer_t otb_ads_timer[OTB_CONF_ADS_MAX_ADSS];
 
 // Whether ADS running;
 bool otb_i2c_ads_state[OTB_CONF_ADS_MAX_ADSS];
+
+otb_i2c_ads_samples *otb_i2c_ads_samples_array[OTB_CONF_ADS_MAX_ADSS] = { 0 };
+
+void ICACHE_FLASH_ATTR otb_i2c_ads_disable_all_timers(void)
+{
+  otb_i2c_ads_samples *samples;
+  int ii;
+  
+  DEBUG("I2C: otb_i2c_ads_disable_all_timers entry");
+  
+  os_timer_disarm((os_timer_t*)&otb_ads_timer);
+  for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
+  {
+    if (samples != NULL)
+    {
+      os_timer_disarm((os_timer_t*)&(samples->timer));
+    }
+  }
+  
+  
+  DEBUG("I2C: otb_i2c_ads_disable_all_timers exit");
+}
 
 void ICACHE_FLASH_ATTR otb_ads_build_msb_lsb_conf(otb_conf_ads *ads, uint8 *msb, uint8 *lsb)
 {
@@ -80,12 +99,14 @@ bool ICACHE_FLASH_ATTR otb_ads_configure(otb_conf_ads *ads)
   
   return rc;
 }
+
 // Called from main initialization serialization
 void ICACHE_FLASH_ATTR otb_ads_initialize(void)
 {
   bool rc;
   int ii;
   otb_conf_ads *ads;
+  otb_i2c_ads_samples *samples;
 
   DEBUG("I2C: otb_ads_initialize entry");
 
@@ -117,11 +138,21 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
             // Set up timer function to activate every period
             if (ads->period > 0)
             {
-              os_timer_disarm((os_timer_t*)&otb_ads_timer);
-              os_timer_setfn((os_timer_t*)&otb_ads_timer, (os_timer_func_t *)otb_i2c_ads_on_timer, ads);
-              // Set this timer up to run repeatedly, rather than reschedule each time
-              os_timer_arm((os_timer_t*)&otb_ads_timer, ads->period*1000, 1);  
-              INFO("I2C: ADS 0x%02x sampling scheduled", ads->addr);
+              samples = os_malloc(sizeof(otb_i2c_ads_rms_samples));
+              otb_i2c_ads_samples_array[ads->index] = samples;
+              if (samples)
+              {
+                otb_i2c_ads_init_samples(ads, samples);
+                os_timer_disarm((os_timer_t*)&otb_ads_timer);
+                os_timer_setfn((os_timer_t*)&otb_ads_timer, (os_timer_func_t *)otb_i2c_ads_on_timer, samples);
+                // Set this timer up to run repeatedly, rather than reschedule each time
+                os_timer_arm((os_timer_t*)&otb_ads_timer, ads->period*1000, 1);  
+                INFO("I2C: ADS 0x%02x sampling scheduled", ads->addr);
+              }
+              else
+              {
+                ERROR("I2C: Couldn't schedule ADS 0x%02x sampling", ads->addr);
+              }
             }
           }
           else
@@ -157,12 +188,228 @@ EXIT_LABEL:
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_samples *samples)
+{
+
+  DEBUG("I2C: otb_i2c_ads_init_samples entry");
+  
+  OTB_ASSERT(sizeof(otb_i2c_ads_rms_samples) == sizeof(otb_i2c_ads_nonrms_samples));
+
+  // Structure of nonrms samples is the same
+  os_memset(samples, 0, sizeof(otb_i2c_ads_samples));
+  samples->ads = ads;
+  
+  DEBUG("I2C: otb_i2c_ads_init_samples exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_i2c_ads_on_timer(void *arg)
 {
+  otb_i2c_ads_samples *samples;
+  
+  DEBUG("I2C: otb_i2c_ads_on_timer entry");
+  
+  OTB_ASSERT(arg != NULL);
+  samples = (otb_i2c_ads_samples *)arg;
+  otb_i2c_ads_start_sample(samples);
+  
+  DEBUG("I2C: otb_i2c_ads_on_timer exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_i2c_ads_sample_timer(void *arg)
+{
+  otb_i2c_ads_samples *samples;
+  
+  DEBUG("I2C: otb_i2c_ads_sample_timer entry");
+  
+  OTB_ASSERT(arg != NULL);
+  samples = (otb_i2c_ads_samples *)arg;
+  otb_i2c_ads_get_sample(samples);
+  
+  DEBUG("I2C: otb_i2c_ads_sample_timer exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_i2c_ads_start_sample(otb_i2c_ads_samples *samples)
+{
   bool rc;
-  int time_taken;
-  otb_conf_ads *ads;
-  int16_t val = 0;
+
+  DEBUG("I2C: otb_i2c_ads_start_sample entry");
+  
+  os_timer_disarm((os_timer_t*)&(samples->timer));
+  os_timer_setfn((os_timer_t*)&(samples->timer), (os_timer_func_t *)otb_i2c_ads_sample_timer, samples);
+
+  // Record start time
+  samples->time = system_get_time();
+  
+  // Get a sample (handles errors and if finished)
+  rc = otb_i2c_ads_get_sample(samples);
+
+  if (rc)
+  {  
+    // Run the timer at 860Hz (in fact just less) and repeat
+    // We start it here so we don't go for less than 1/860Hz between reads
+    os_timer_arm_us((os_timer_t*)&(samples->timer), (1000000/860)+1, 1);  
+  }
+
+  DEBUG("I2C: otb_i2c_ads_start_sample exit");
+  
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_read_rms_sample(otb_i2c_ads_samples *samples)
+{
+  bool rc;
+  otb_i2c_ads_rms_samples *rms_samples;
+  
+  DEBUG("I2c: otb_i2c_ads_read_rms_sample entry");
+  
+  rms_samples = (otb_i2c_ads_rms_samples *)samples;
+  rc = otb_i2c_ads_read(samples->ads->addr, &(rms_samples->samples[samples->next_sample]));
+  
+  DEBUG("I2c: otb_i2c_ads_read_rms_sample exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_read_nonrms_sample(otb_i2c_ads_samples *samples)
+{
+  bool rc;
+  otb_i2c_ads_nonrms_samples *nonrms_samples;
+  
+  DEBUG("I2c: otb_i2c_ads_read_nonrms_sample entry");
+  
+  nonrms_samples = (otb_i2c_ads_nonrms_samples *)samples;
+  rc = otb_i2c_ads_read(samples->ads->addr, &(nonrms_samples->samples[samples->next_sample]));
+  
+  DEBUG("I2c: otb_i2c_ads_read_nonrms_sample exit");
+
+  return rc;
+}
+
+uint16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_rms_samples(otb_i2c_ads_samples *samples)
+{
+  otb_i2c_ads_rms_samples *rms_samples;
+  uint16_t val;
+  unsigned long long sum;
+  int ii;
+  uint32_t working;
+
+  DEBUG("I2C: otb_i2c_ads_finish_rms_samples entry");
+
+  rms_samples = (otb_i2c_ads_rms_samples *)samples;
+  sum = 0;
+  for (ii = 0; ii < samples->ads->samples; ii++)
+  {
+    sum += (rms_samples->samples[ii] * rms_samples->samples[ii]);
+  }
+  
+  working = sum/(samples->ads->samples);
+  working = isqrt(working);
+  OTB_ASSERT(working < 0xffff);
+  val = (uint16_t)working;
+
+  DEBUG("I2C: otb_i2c_ads_finish_rms_samples exit");
+  
+  return val;
+}
+
+int16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_nonrms_samples(otb_i2c_ads_samples *samples)
+{
+  otb_i2c_ads_nonrms_samples *nonrms_samples;
+  int16_t val;
+  int sum;
+  int ii;
+  int working;
+
+  DEBUG("I2C: otb_i2c_ads_finish_nonrms_samples entry");
+
+  nonrms_samples = (otb_i2c_ads_nonrms_samples *)samples;
+  sum = 0;
+  for (ii = 0; ii < samples->ads->samples; ii++)
+  {
+    sum += nonrms_samples->samples[ii];
+  }
+  
+  working = sum/(samples->ads->samples);
+  val = (int16_t)working;
+
+  DEBUG("I2C: otb_i2c_ads_finish_nonrms_samples exit");
+  
+  return val;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_get_sample(otb_i2c_ads_samples *samples)
+{
+  bool rc = FALSE;
+  int time_now;
+  otb_i2c_ads_rms_samples rms_samples;
+  otb_i2c_ads_nonrms_samples nonrms_samples;
+  
+  DEBUG("I2C: otb_i2c_ads_get_sample entry");
+
+  // Get a sample
+  if (samples->ads->rms)
+  {
+    rc = otb_i2c_ads_read_rms_sample(samples);
+  }
+  else
+  {
+    rc = otb_i2c_ads_read_nonrms_sample(samples);
+  }
+  
+  if (!rc)
+  { 
+    goto EXIT_LABEL;
+  }
+  
+  if (samples->next_sample > 0)
+  {
+    // This is a bit hacky - should really do rms and nonrms separately or assert
+    // somewhere that offset of samples in samples is same for rms and nonrms (it is).
+    // Also note will get lots of dupes for non AC current
+    if (((otb_i2c_ads_rms_samples*)samples)->samples[samples->next_sample-1] == ((otb_i2c_ads_rms_samples*)samples)->samples[samples->next_sample])
+    {
+      samples->dupes++;
+    }
+  }
+
+  samples->next_sample++;
+
+EXIT_LABEL:
+
+  if (rc)
+  {
+    // See if finished
+    if ((samples->next_sample == 0) || (samples->next_sample >= samples->ads->samples))
+    {
+      os_timer_disarm((os_timer_t*)&(samples->timer));
+      samples->time = system_get_time() - samples->time;
+      otb_i2c_ads_finish_sample(samples);
+      // Reinitialise samples!    
+      otb_i2c_ads_init_samples(samples->ads, samples);
+    }
+  }
+  else
+  {
+    // Failed, give up this time around - will sent MQTT message if connected
+    ERROR("I2C: Failed to collect samples from ADS %d 0x%02x", samples->ads->index, samples->ads->addr);
+    os_timer_disarm((os_timer_t*)&(samples->timer));
+    // Reinitialise samples!    
+    otb_i2c_ads_init_samples(samples->ads, samples);
+  }
+
+  DEBUG("I2C: otb_i2c_ads_get_sample exit");
+
+  return rc;
+}
+
+void ICACHE_FLASH_ATTR otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples)  
+{
 #define OTB_I2C_ADS_ON_TIMER_MSG_LEN 64
   char message[OTB_I2C_ADS_ON_TIMER_MSG_LEN];
   char message_mains[OTB_I2C_ADS_ON_TIMER_MSG_LEN];
@@ -178,106 +425,95 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_on_timer(void *arg)
   int current_sens_int;
   int current_sens_thou;
   int power;
+  int val;
+  otb_conf_ads *ads;
 #define OTB_I2C_ADS_ON_TIMER_RESISTOR_VALUE 22.14 // measured with isotech dmm
 #define OTB_I2C_ADS_ON_TIMER_TRANSFORMER_TURNS 2000
 #define OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE 245 // measured with isotech dmm, but will vary
 
-  DEBUG("I2C: otb_i2c_ads_on_timer entry");
+  DEBUG("I2C: otb_i2c_ads_finish_sample entry");
   
-  // Null term the strings
-  message[0] = 0;
-  message_mains[0] = 0;
-  
-  OTB_ASSERT(arg != NULL);
-  ads = (otb_conf_ads *)arg;
-  
-  // Do samples
+  ads = samples->ads;
+  // Different messages if RMS or not (in latter case may be negative)
   if (ads->rms)
   {
-    rc = otb_i2c_ads_rms_range(ads->addr, ads->samples, &val, &time_taken);
+    val = otb_i2c_ads_finish_rms_samples(samples);
     chars = os_snprintf(message, OTB_I2C_ADS_ON_TIMER_MSG_LEN, "0x%04x", val);
   }
   else
   {
-    rc = otb_i2c_ads_range(ads->addr, ads->samples, &val, &time_taken);
+    val = otb_i2c_ads_finish_nonrms_samples(samples);
     chars = os_snprintf(message,
                         OTB_I2C_ADS_ON_TIMER_MSG_LEN,
                         "%s0x%04x",
                         (val<0)?"-":"",
                         (val<0)?-val:val);
   }
+
+  // Calculate the voltage
+  OTB_ASSERT(ads->gain < OTB_I2C_ADC_GAIN_VALUES);
+  voltage = otb_i2c_ads_gain_to_v[ads->gain] * val * 1000/ 0x8000; // 0x8000 as in differential (+ & -ve mode)
+  voltage_int = voltage/1;
+  voltage_hundreth = (int)(voltage*100)%100;
   
-  if (rc)
-  {    
-    // Calculate the voltage
-    OTB_ASSERT(ads->gain < OTB_I2C_ADC_GAIN_VALUES);
-    voltage = otb_i2c_ads_gain_to_v[ads->gain] * val * 1000/ 0x8000; // 0x8000 as in differential (+ & -ve mode)
-    voltage_int = voltage/1;
-    voltage_hundreth = (int)(voltage*100)%100;
-    
-    // Calculate the current through sensor circuit
-    current_sens = voltage / OTB_I2C_ADS_ON_TIMER_RESISTOR_VALUE;
-    current_sens_int = current_sens/1;
-    current_sens_thou = (int)(current_sens*1000)%1000;
+  // Calculate the current through sensor circuit
+  current_sens = voltage / OTB_I2C_ADS_ON_TIMER_RESISTOR_VALUE;
+  current_sens_int = current_sens/1;
+  current_sens_thou = (int)(current_sens*1000)%1000;
 
-    chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%d.%03dmA", current_sens_int, current_sens_thou);
-    chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%d.%02dmV", voltage_int, voltage_hundreth); 
-    chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%duS", time_taken); 
-    
-    // Calculate voltage of mains supply
-    // No op at the moment
-    
-    // Calculate the current flowing through the transformer
-    // Note hack - this should be configured
-    current = voltage * OTB_I2C_ADS_ON_TIMER_TRANSFORMER_TURNS / OTB_I2C_ADS_ON_TIMER_RESISTOR_VALUE / 1000; // 1000 as mV
-    current_int = current/1;
-    current_thou = (int)(current*1000)%1000;
-    
-    // Calculate power P = IV
-    // Hack - should detect voltage
-    power = OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE * current;
-
-    // Build up power output
-    chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, "%dW", power);
-    chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, ":%d.%03dA", current_int, current_thou);
-    chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, ":%d.%02dV", OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE, 0);
+  chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%d.%03dmA", current_sens_int, current_sens_thou);
+  chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%d.%02dmV", voltage_int, voltage_hundreth); 
+  chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%dus", samples->time); 
+  chars += os_snprintf(message+chars, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars, ":%d", samples->dupes); 
   
-    // ADS ADC measurements (reading, time taken, mV)
-    os_snprintf(otb_mqtt_topic_s,
-                OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s/%s",
-                OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
-                OTB_MAIN_CHIPID,
-                OTB_MQTT_ADC,
-                ads->loc);
-    DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
-    DEBUG("I2C:       message: %s", message);
-    MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message, chars, 0, 0);
+  // Calculate voltage of mains supply
+  // No op at the moment XXX
+  
+  // Calculate the current flowing through the transformer
+  // Note hack - this should be configured
+  current = voltage * OTB_I2C_ADS_ON_TIMER_TRANSFORMER_TURNS / OTB_I2C_ADS_ON_TIMER_RESISTOR_VALUE / 1000; // 1000 as mV
+  current_int = current/1;
+  current_thou = (int)(current*1000)%1000;
+  
+  // Calculate power P = IV
+  // Hack - should detect voltage
+  power = OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE * current;
 
-    os_snprintf(otb_mqtt_topic_s,
-                OTB_MQTT_MAX_TOPIC_LENGTH,
-                "/%s/%s/%s/%s/%s/%s/%s",
-                OTB_MQTT_ROOT,
-                OTB_MQTT_LOCATION_1,
-                OTB_MQTT_LOCATION_2,
-                OTB_MQTT_LOCATION_3,
-                OTB_MAIN_CHIPID,
-                OTB_MQTT_POWER,
-                ads->loc);
-    DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
-    DEBUG("I2C:       message: %s", message_mains);
-    MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message_mains, chars_mains, 0, 0);
-  }
-  else
-  {
-    // ERROR will cause MQTT message to be sent (if connected)
-    ERROR("I2C: Failed to collect samples from ADS %d 0x%02x", ads->index, ads->addr);
-  }
-    
-  DEBUG("I2C: otb_i2c_ads_on_timer exit");
+  // Build up power output
+  chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, "%dW", power);
+  chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, ":%d.%03dA", current_int, current_thou);
+  chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, ":%d.%02dV", OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE, 0);
+
+  // ADS ADC measurements (reading, time taken, mV)
+  os_snprintf(otb_mqtt_topic_s,
+              OTB_MQTT_MAX_TOPIC_LENGTH,
+              "/%s/%s/%s/%s/%s/%s/%s",
+              OTB_MQTT_ROOT,
+              OTB_MQTT_LOCATION_1,
+              OTB_MQTT_LOCATION_2,
+              OTB_MQTT_LOCATION_3,
+              OTB_MAIN_CHIPID,
+              OTB_MQTT_ADC,
+              ads->loc);
+  DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
+  DEBUG("I2C:       message: %s", message);
+  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message, chars, 0, 0);
+
+  os_snprintf(otb_mqtt_topic_s,
+              OTB_MQTT_MAX_TOPIC_LENGTH,
+              "/%s/%s/%s/%s/%s/%s/%s",
+              OTB_MQTT_ROOT,
+              OTB_MQTT_LOCATION_1,
+              OTB_MQTT_LOCATION_2,
+              OTB_MQTT_LOCATION_3,
+              OTB_MAIN_CHIPID,
+              OTB_MQTT_POWER,
+              ads->loc);
+  DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
+  DEBUG("I2C:       message: %s", message_mains);
+  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message_mains, chars_mains, 0, 0);
+
+  DEBUG("I2C: otb_i2c_ads_finish_sample exit");
   
   return;
 }
@@ -289,8 +525,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_init()
   DEBUG("I2C: otb_i2c_init entry");
 
   i2c_master_gpio_init();
+  otb_i2c_initialized = TRUE;
   rc = TRUE;
-  INFO("I2C: I2C bus initialized");
 
   DEBUG("I2C: otb_i2c_init exit");
 
@@ -902,7 +1138,7 @@ EXIT_LABEL:
 }
 
 // Came from http://www.codecodex.com/wiki/Calculate_an_integer_square_root
-unsigned long isqrt(unsigned long x)  
+unsigned long ICACHE_FLASH_ATTR isqrt(unsigned long x)  
 {  
     register unsigned long op, res, one;  
   

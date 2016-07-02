@@ -101,6 +101,7 @@ I2C_OBJ_DIR = obj/i2c
 otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_mqtt.o \
              $(OTB_OBJ_DIR)/otb_i2c.o \
+             $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
@@ -117,6 +118,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
 otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_mqtt.o \
              $(OTB_OBJ_DIR)/otb_i2c.o \
+             $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_recovery.o \
              $(OTB_OBJ_DIR)/otb_util.o \
