@@ -19,6 +19,7 @@
 
 #define OTB_UTIL_LOG_BUFFER_LEN 1024 // 1024
 #define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
+#define OTB_UTIL_NS_PER_CYCLE 12.5
 
 typedef struct otb_util_log_buffer
 {
@@ -91,6 +92,15 @@ extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
 void otb_init_ads(void *arg);
+static inline uint32_t otb_util_get_cycle_count(void) __attribute__((always_inline));
+static inline uint32_t otb_util_get_cycle_count(void)
+{
+  uint32_t ccount;
+  __asm__ volatile ("rsr %0,ccount"
+                    :
+                    "=a" (ccount));
+  return ccount;
+}
 
 struct otb_reset_reason
 {

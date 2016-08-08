@@ -22,6 +22,30 @@
 
 #define OTB_LED_H
 
+#define OTB_LED_NEO_PIN  13
+
+#define OTB_LED_NEO_COLOUR_OFF     0x000000
+#define OTB_LED_NEO_COLOUR_RED     0xff0000
+#define OTB_LED_NEO_COLOUR_GREEN   0x00ff00
+#define OTB_LED_NEO_COLOUR_BLUE    0x0000ff
+#define OTB_LED_NEO_COLOUR_CYAN    0x00ffff
+#define OTB_LED_NEO_COLOUR_PURPLE  0x7f007f
+#define OTB_LED_NEO_COLOUR_WHITE   0xffffff
+#define OTB_LED_NEO_COLOUR_ORANGE  0xff8700
+#define OTB_LED_NEO_COLOUR_YELLOW  0xffff00
+#define OTB_LED_NEO_COLOUR_PINK    0x8b636c
+
+#define OTB_LED_NEO_T1H  800
+#define OTB_LED_NEO_T1L  450
+#define OTB_LED_NEO_T0H  400
+#define OTB_LED_NEO_T0L  850
+
+#define OTB_LED_NEO_T1H_CYCLES  OTB_LED_NEO_T1H/OTB_UTIL_NS_PER_CYCLE
+#define OTB_LED_NEO_T1L_CYCLES  OTB_LED_NEO_T1L/OTB_UTIL_NS_PER_CYCLE
+#define OTB_LED_NEO_T0H_CYCLES  OTB_LED_NEO_T0H/OTB_UTIL_NS_PER_CYCLE
+#define OTB_LED_NEO_T0L_CYCLES  OTB_LED_NEO_T0L/OTB_UTIL_NS_PER_CYCLE
+
+
 // error_step is 0 if successful is True
 typedef void (otb_led_control_callback)(void *, bool , uint8_t );
 
@@ -193,5 +217,8 @@ bool otb_led_control_step(otb_led_sequence *seq);
 void otb_led_control_on_timer(void *arg);
 void otb_led_control_init(otb_led_sequence *seq);
 bool otb_led_control_seq(otb_led_sequence *seq);
+void otb_led_wifi_update(uint32_t rgb);
+void otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin);
+uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue);
 
 #endif  // OTB_LED_H

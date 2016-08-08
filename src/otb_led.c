@@ -387,3 +387,91 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
   
   return rc;
 }
+
+void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb)
+{
+
+  DEBUG("LED: otb_led_wifi_update entry");
+
+  INFO("LED: Update wifi LED 0x%06x", rgb);
+  otb_led_neo_update(&rgb, 1, OTB_LED_NEO_PIN);
+
+  DEBUG("LED: otb_led_wifi_update exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin)
+{
+  int ii, jj;
+  uint32_t colour_mask;
+  uint32_t ccount;
+  int wait_high_cycles;
+  int wait_low_cycles;
+  uint32_t start_ccount;
+  uint32_t pin_mask;
+
+  DEBUG("LED: otb_led_neo_update entry");
+
+  pin_mask = 1 << pin;
+
+  ETS_UART_INTR_DISABLE();
+
+  for (ii = 0; ii < num; ii++)
+  {
+    colour_mask = 1 << 23;
+    while (colour_mask)
+    {
+      if (colour_mask & rgb[ii])
+      {
+        wait_high_cycles = OTB_LED_NEO_T1H_CYCLES;
+        wait_low_cycles = OTB_LED_NEO_T1L_CYCLES;
+      }
+      else
+      {
+        wait_high_cycles = OTB_LED_NEO_T0H_CYCLES;
+        wait_low_cycles = OTB_LED_NEO_T0L_CYCLES;
+      }
+      GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pin_mask);
+      start_ccount = otb_util_get_cycle_count();
+      for (ccount = otb_util_get_cycle_count();
+           ccount - start_ccount < wait_high_cycles;
+           ccount = otb_util_get_cycle_count());
+      GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
+      start_ccount = otb_util_get_cycle_count();
+      for (ccount = otb_util_get_cycle_count();
+           ccount - start_ccount < wait_low_cycles;
+           ccount = otb_util_get_cycle_count());
+      colour_mask >>= 1;
+    }
+  }
+
+  ETS_UART_INTR_ENABLE();
+
+  os_delay_us(50);
+
+  DEBUG("LED: otb_led_neo_update exit");
+
+  return;
+}
+
+uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue)
+{
+  uint32_t rgb;
+
+  DEBUG("LED: otb_led_neo_get_rgb entry");
+
+  rgb = 0;
+  
+  rgb = red << 16;
+  rgb += green << 8;
+  rgb += blue;
+
+  return(rgb);
+
+  DEBUG("LED: otb_led_neo_get_rgb exit");
+
+}
+
+
+

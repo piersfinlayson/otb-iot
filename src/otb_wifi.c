@@ -42,6 +42,8 @@ void ICACHE_FLASH_ATTR otb_wifi_init(void)
   otb_wifi_ap_mode_done = FALSE;
   otb_wifi_ap_running = FALSE;
   otb_wifi_dhcpc_started = FALSE;
+  
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_OFF);
 
   DEBUG("WIFI: otb_wifi_init exit");
 
@@ -58,6 +60,7 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       // Not really connected til gets IP!
       DEBUG("WIFI: Event - station connected");
       otb_wifi_status = OTB_WIFI_STATUS_CONNECTING;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_YELLOW);
       break;
       
     case EVENT_STAMODE_DISCONNECTED:
@@ -67,32 +70,38 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
         INFO("WIFI: Event - station disconnected");
       }
       otb_wifi_status = OTB_WIFI_STATUS_CONNECTING;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_ORANGE);
       break;
       
     case EVENT_STAMODE_AUTHMODE_CHANGE:
       INFO("WIFI: Event - station authmode changed");
       otb_wifi_status = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED);
       break;
       
     case EVENT_STAMODE_GOT_IP:
       DEBUG("WIFI: Event - station got IP");
       otb_wifi_status = OTB_WIFI_STATUS_CONNECTED;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_GREEN);
       break;
       
     case EVENT_STAMODE_DHCP_TIMEOUT:
       ERROR("WIFI: DHCP timed out");
       otb_wifi_status = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED);
       break;
       
     case EVENT_SOFTAPMODE_STACONNECTED:
       INFO("WIFI: Event - AP mode - station connected");
       goto EXIT_LABEL;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_PINK);
       break;
       
     case EVENT_SOFTAPMODE_STADISCONNECTED: 
       // Assume SDK will be retrying
       INFO("WIFI: Event - AP mode - station disconnected");
       goto EXIT_LABEL;
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED);
       break;
       
     case EVENT_SOFTAPMODE_PROBEREQRECVED:
@@ -272,6 +281,8 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
   bool rc2;
   DEBUG("WIFI: otb_wifi_kick_off entry");
 
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_ORANGE);
+  
   rc = wifi_set_opmode_current(STATION_MODE);
   rc1 = otb_wifi_try_sta(otb_conf->ssid,
                          otb_conf->password,
@@ -292,7 +303,7 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
                      NULL,
                      1000,
                      1);
-  
+                     
   DEBUG("WIFI: otb_wifi_kick_off exit");
   
   return;
@@ -433,6 +444,8 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_quick_start(void)
 
   otb_wifi_ap_running = TRUE;
 
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED);
+
   INFO("WIFI: Started own AP");
 
   DEBUG("WIFI: otb_wifi_ap_quick_start exit");
@@ -478,6 +491,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
     rc = wifi_softap_set_config(&ap_conf);
   }
   ETS_UART_INTR_ENABLE();
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED);
   INFO("WIFI: Started own AP");
   
   // Not testing return code - if this fails, user can try again when they connect
@@ -508,7 +522,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
     rc = wifi_set_opmode_current(STATION_MODE);
     INFO("WIFI: Stopped own AP");
   }
-  
+
   DEBUG("WIFI: otb_wifi_ap_stop exit");
   
   return(rc);

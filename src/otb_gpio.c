@@ -46,6 +46,8 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   otb_gpio_set(5, 0);
   otb_gpio_set(12, 0);
   otb_gpio_set(13, 0);
+  // otb_gpio_set is ignored where PIN is reserved so do it manually
+  GPIO_OUTPUT_SET(13, 0);
   otb_gpio_set(14, 0);
   otb_gpio_set(15, 0);
 
@@ -119,6 +121,12 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
     case OTB_DS18B20_DEFAULT_GPIO:
       DEBUG("GPIO: Pin is reserved");
       *reserved_text = "GPIO pin is reserved for One Wire protocol";
+      rc = TRUE;
+      break;
+      
+    case OTB_LED_NEO_PIN:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for neo pixels";
       rc = TRUE;
       break;
       
