@@ -40,6 +40,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
+  // XXX Other reserved pins - need to set output manually!
   otb_gpio_set(0, 0);
   otb_gpio_set(2, 0);
   otb_gpio_set(4, 0);
