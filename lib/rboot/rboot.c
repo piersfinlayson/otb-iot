@@ -499,7 +499,7 @@ void NOINLINE factory_reset(void)
     ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
     
     // Erase config sector - that's all we need to do to clear config
-    SPIEraseSector(OTB_BOOT_BOOT_CONFIG_LOCATION/0x1000);
+    SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
     ets_printf("BOOT: Config cleared\r\n");
 
     for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
