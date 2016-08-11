@@ -903,6 +903,10 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_mqtt(char *cmd, char **sub_cmd)
                           (val<0)?-val:val);
               error = otb_i2c_mqtt_error;
             }
+            else
+            {
+              error = otb_i2c_mqtt_error_write("failed to read value");
+            }
           }
           else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_I2C_ADS_RANGE))
           {
@@ -965,6 +969,11 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_mqtt(char *cmd, char **sub_cmd)
             {
               error = otb_i2c_mqtt_error_write("invalid range");
             }
+          }
+          else
+          {
+            rc = FALSE;
+            error = otb_i2c_mqtt_error_write(otb_str_i2c_ads_invalid_cmd);
           }
         }
         else
@@ -1032,14 +1041,14 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 ls
   i2c_master_writeByte((addr << 1) | 0b0); // Write
   if (!i2c_master_checkAck())
   {
-    goto EXIT_LABEL;
     INFO("I2C: No ack");
+    goto EXIT_LABEL;
   }
   i2c_master_writeByte(0b00000001); // Config register
   if (!i2c_master_checkAck())
   {
-    goto EXIT_LABEL;
     INFO("I2C: No ack");
+    goto EXIT_LABEL;
   }
   // MSB
   // Bit 15        1 = begin conversion
@@ -1049,8 +1058,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 ls
   i2c_master_writeByte(msb); // MSB 
   if (!i2c_master_checkAck())
   {
-    goto EXIT_LABEL;
     INFO("I2C: No ack");
+    goto EXIT_LABEL;
   }
   // LSB
   // Bits 7:5    100 = 128SPS (111=860SPS)
@@ -1061,8 +1070,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 ls
   i2c_master_writeByte(lsb); // LSB
   if (!i2c_master_checkAck())
   {
-    goto EXIT_LABEL;
     INFO("I2C: No ack");
+    goto EXIT_LABEL;
   }
   
   rc = TRUE;
@@ -1118,8 +1127,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_read(uint8 addr, int16_t *val)
   i2c_master_writeByte((addr << 1) | 0b1); // Read
   if (!i2c_master_checkAck())
   {
-    goto EXIT_LABEL;
     INFO("I2C: No ack");
+    goto EXIT_LABEL;
   }
   val1 = i2c_master_readByte();
   i2c_master_send_ack();

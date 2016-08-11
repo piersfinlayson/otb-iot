@@ -16,10 +16,15 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+ #ifndef OTB_RBOOT_H
+ #define OTB_RBOOT_H
 
 void otb_rboot_update_callback(void *arg, bool result);
 bool otb_rboot_update(char *ip, char *port, char *path);
 bool otb_rboot_update_slot(char *msg);
 uint8_t otb_rboot_get_slot(bool publish);
+bool ota_rboot_check_factory_image(void);
+bool ota_rboot_use_factory_image(void);
 
-
+#endif // OTB_RBOOT_H

@@ -205,7 +205,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_step(otb_led_sequence *seq)
   {
     // Do GPIO - only valid for non RGB LEDs
     OTB_ASSERT(!type_info->is_rgb);
-    rc = otb_gpio_set(type_info->pin, step->on ? 1 : 0);
+    rc = otb_gpio_set(type_info->pin, step->on ? 1 : 0, FALSE);
   }
   else
   {
@@ -233,7 +233,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_step(otb_led_sequence *seq)
           }
           else
           {
-            rc = otb_gpio_set(type_info->pin, 0);
+            rc = otb_gpio_set(type_info->pin, 0, FALSE);
           }
           break;
           
@@ -271,7 +271,7 @@ EXIT_LABEL:
         if (type_info->is_gpio)
         {
           // Really not a lot to do if this fails!
-          rc = otb_gpio_set(type_info->pin, 0);
+          rc = otb_gpio_set(type_info->pin, 0, FALSE);
         }
         else
         {
@@ -388,13 +388,25 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
   return rc;
 }
 
-void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb)
+void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
 {
 
   DEBUG("LED: otb_led_wifi_update entry");
 
-  INFO("LED: Update wifi LED 0x%06x", rgb);
+  DEBUG("LED: Update wifi LED 0x%06x", rgb);
+  if (store)
+  {
+    otb_led_wifi_colour = rgb;
+  }
   otb_led_neo_update(&rgb, 1, OTB_LED_NEO_PIN);
+  if (rgb)
+  {
+    otb_led_wifi_on = TRUE;
+  }
+  else
+  {
+    otb_led_wifi_on = FALSE;
+  }
 
   DEBUG("LED: otb_led_wifi_update exit");
 
@@ -473,5 +485,85 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8
 
 }
 
+void ICACHE_FLASH_ATTR otb_led_wifi_blink(uint8 times)
+{
+  DEBUG("LED: otb_led_wifi_blink entry");
+  
+  otb_led_wifi_blink_times += times;
+  otb_led_wifi_disable_blink_timer();
+  otb_led_wifi_init_blink_timer();
+  
+  DEBUG("LED: otb_led_wifi_blink exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_wifi_init_blink_timer(void)
+{
+
+  DEBUG("LED: otb_led_wifi_init_blink_timer entry");
+
+  otb_util_timer_set((os_timer_t*)&otb_led_wifi_blink_timer, 
+                     (os_timer_func_t *)otb_led_wifi_blink_timerfunc,
+                     NULL,
+                     100,
+                     1);
+
+  DEBUG("LED: otb_led_wifi_init_blink_timer exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_wifi_disable_blink_timer(void)
+{
+
+  DEBUG("LED: otb_led_wifi_disable_blink_timer entry");
+
+  otb_util_timer_cancel((os_timer_t*)&otb_led_wifi_blink_timer);
+  // Make sure LED is left lit!
+  otb_led_wifi_update(otb_led_wifi_colour, FALSE);
+
+  DEBUG("LED: otb_led_wifi_disable_blink_timer exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_wifi_blink_it(void)
+{
+  uint32_t colour;
+
+  DEBUG("LED: otb_led_wifi_blink entry");
+
+  colour = otb_led_wifi_on ? OTB_LED_NEO_COLOUR_OFF : otb_led_wifi_colour;
+
+  DEBUG("LED: status colour 0x%06x", colour);
+
+  otb_led_wifi_update(colour, FALSE);
+
+  DEBUG("LED: otb_led_wifi_blink exit");
+  
+  return;
+}
 
 
+void otb_led_wifi_blink_timerfunc(void *arg)
+{
+
+  DEBUG("LED: otb_led_wifi_blink_timerfunc entry");
+  
+  // Blink it!
+  otb_led_wifi_blink_it();
+  if (otb_led_wifi_on)
+  {
+    otb_led_wifi_blink_times--;
+  }
+  if (otb_led_wifi_blink_times <= 0)
+  {
+    // Done
+    otb_led_wifi_disable_blink_timer();
+  }
+  
+  DEBUG("LED: otb_led_wifi_blink_timerfunc exit");
+  
+  return;
+}

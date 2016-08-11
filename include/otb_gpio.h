@@ -16,17 +16,32 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+#ifndef OTB_GPIO_H
+#define OTB_GPIO_H
 
 #define OTB_GPIO_PIN_IO_STATUS_UNKNOWN  0
 #define OTB_GPIO_PIN_IO_STATUS_INPUT    1
 #define OTB_GPIO_PIN_IO_STATUS_OUTPUT   2
 
+#define OTB_GPIO_RESET_PIN              14
+#define OTB_GPIO_RESET_COUNT_MAX        15
+
+#ifdef OTB_GPIO_C
+uint8_t otb_gpio_reset_count;
+os_timer_t otb_gpio_reset_timer;
+unsigned char ALIGN4 otb_gpio_reset_string[] = "Resetting to factory settings";
+#endif // OTB_GPIO_C
+
 void otb_gpio_init(void);
-void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void);
+void otb_gpio_reset_kick_off(void);
+void otb_gpio_init_reset_timer(void);
+void otb_gpio_reset_timerfunc(void *arg);
+void otb_gpio_apply_boot_state(void);
 bool otb_gpio_is_valid(uint8_t pin);
 bool otb_gpio_is_reserved(uint8_t pin, char **reserved_text);
-sint8 otb_gpio_get(int pin);
-bool otb_gpio_set(int pin, int value);
+sint8 otb_gpio_get(int pin, bool override_reserved);
+bool otb_gpio_set(int pin, int value, bool override_reserved);
 void otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3);
 
-
+#endif // OTB_GPIO_H

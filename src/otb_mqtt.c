@@ -295,11 +295,13 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
 
   // Now publish status.  First off booted.  Don't need to retain this.
 
-  DEBUG("RBOOT: otb_rboot_get_slot entry");
-
   slot = rboot_get_current_rom();  
   os_snprintf(slot_s, 4, "%d", slot);
   otb_mqtt_send_status(OTB_MQTT_STATUS_BOOTED, "slot", slot_s, "");
+  
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_GREEN, TRUE);
+  otb_led_wifi_blink(OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_CONNECTED);
+  
                    
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
@@ -331,6 +333,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_published(uint32_t *client)
 	DEBUG("MQTT: otb_mqtt_on_published entry");
 	
   mqtt_client = (MQTT_Client*)client;
+  otb_led_wifi_blink(OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_PUBLISHED);
 	
 	DEBUG("MQTT: otb_mqtt_on_published exit");
 }
@@ -555,6 +558,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 
   // This function is currently written to expect 5 SUB commands (6 commands)
   OTB_ASSERT(OTB_MQTT_MAX_CMDS == 6);
+
+  otb_led_wifi_blink(OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_PUBLISH);
 
   // Check can actually handle received topic and msg  
   if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||

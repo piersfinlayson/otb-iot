@@ -65,8 +65,20 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_load();
   
   otb_gpio_apply_boot_state();
-  
-  system_init_done_cb((init_done_cb_t)otb_wifi_kick_off);
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+
+#if 0  
+  if (otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE))
+  {
+#endif
+    system_init_done_cb((init_done_cb_t)otb_wifi_kick_off);
+#if 0
+  }
+  else
+  {
+    system_init_done_cb((init_done_cb_t)otb_gpio_reset_kick_off);
+  }
+#endif
   
   DEBUG("OTB: user_init exit");
 

@@ -132,6 +132,23 @@ static uint32 check_image(uint32 readpos) {
 #define RTC_GPIO_IN_DATA						(REG_RTC_BASE + 0x08C)
 #define RTC_GPIO_CONF							(REG_RTC_BASE + 0x090)
 #define PAD_XPD_DCDC_CONF						(REG_RTC_BASE + 0x0A0)
+
+// GPIO14 stuff
+#define PERIPHS_IO_MUX                                          0x60000800
+#define PERIPHS_IO_MUX_MTMS_U           (PERIPHS_IO_MUX + 0x0C)
+#define FUNC_GPIO14                     3
+#define GPIO14                      (REG_RTC_BASE + 0x10C)
+#define PIN_FUNC_SELECT(PIN_NAME, FUNC)  do { \
+    WRITE_PERI_REG(PIN_NAME,   \
+                                READ_PERI_REG(PIN_NAME) \
+                                     &  (~(PERIPHS_IO_MUX_FUNC<<PERIPHS_IO_MUX_FUNC_S))  \
+                                     |( (((FUNC&BIT2)<<2)|(FUNC&0x3))<<PERIPHS_IO_MUX_FUNC_S) );  \
+    } while (0)
+
+//}}
+#define PERIPHS_IO_MUX_FUNC             0x13
+#define PERIPHS_IO_MUX_FUNC_S           4
+#define BIT2     0x00000004
 static uint32 get_gpio16() {
 	// set output level to 1
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
@@ -142,6 +159,35 @@ static uint32 get_gpio16() {
 	WRITE_PERI_REG(RTC_GPIO_ENABLE, READ_PERI_REG(RTC_GPIO_ENABLE) & (uint32)0xfffffffe);	//out disable
 	
 	uint32 x = (READ_PERI_REG(RTC_GPIO_IN_DATA) & 1);
+	
+	return x;
+}
+
+static uint32 get_gpio14() {
+  uint32 x;
+  uint32 *pin_in = (uint32 *)0x60000318;
+#if 0  
+  uint32 *pin_dir_input = (uint32 *)0x60000314;
+  uint32 *pin_out_set = (uint32 *)0x60000304;
+  uint32 *pin_out = (uint32 *)0x60000300;
+#endif  
+#define GPIO14_MASK  (1 << 14)
+
+  //ets_printf("BOOT: Reading GPIO14 ... ");
+  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
+#if 0  
+  // uint32 x = (READ_PERI_REG(GPIO14) & 1); 
+  ets_printf("BOOT: GPIO14 via macro: 0x%08x\n", READ_PERI_REG(GPIO14));
+
+  ets_printf("BOOT: before all pins output: 0x%08x input: 0x%08x\n", *pin_out, *pin_in);
+  *pin_out_set = GPIO14_MASK;
+  *pin_dir_input = GPIO14_MASK;
+#endif  
+  x = (*pin_in & GPIO14_MASK) >> 14;
+#if 0
+  ets_printf("BOOT:  after all pins output: 0x%08x input: 0x%08x\n", *pin_out, *pin_in);
+#endif
+  //ets_printf("%d\r\n", x);
 	
 	return x;
 }
@@ -196,11 +242,6 @@ uint32 NOINLINE find_image() {
 	rboot_config *romconf = (rboot_config*)buffer;
 	rom_header *header = (rom_header*)buffer;
 	
-	// delay to slow boot (help see messages when debugging)
-	ets_delay_us(2000000);
-	
-	ets_printf("\r\nBOOT: OTA-BOOT v0.1\r\n");
-	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
 	if (BOOT_CONFIG_SECTOR * SECTOR_SIZE != OTB_BOOT_BOOT_CONFIG_LOCATION)
 	{
 		ets_printf("BOOT: !!! Inconsistent build !!!");
@@ -401,6 +442,91 @@ uint32 NOINLINE find_image() {
 
 }
 
+// otb-iot factory reset function
+#define FACTORY_RESET_LEN  15
+#define OTB_BOOT_ROM_0_LEN            0xfe000
+#define OTB_BOOT_ROM_1_LEN            0xfe000
+#define OTB_BOOT_ROM_2_LEN            0xfa000
+#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
+#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
+#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
+
+void NOINLINE start_otb_boot(void)
+{
+	// delay to slow boot (help see messages when debugging)
+	ets_delay_us(2000000);
+	
+	ets_printf("\r\nBOOT: OTA-BOOT v0.1\r\n");
+	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
+
+  return;
+}
+
+void NOINLINE factory_reset(void)
+{
+  uint32 gpio14;
+  uint32 ii;
+  uint32 from_loc;
+  uint32 to_loc;
+  uint32 written;
+  uint32 buffer[0x1000/4];
+  
+  // Check if GPIO14 is depressed
+	ets_printf("BOOT: Checking GPIO14 ");
+  for (ii = 0; ii <= FACTORY_RESET_LEN; ii++)
+  {
+    gpio14 = get_gpio14();
+    if (gpio14)
+    {
+      ets_printf("o");
+      break;
+    }
+    else
+    {
+      ets_printf("x");
+      ets_delay_us(1000000);
+    }
+  }
+  ets_printf("\r\n");
+  
+  // Would be lovely to flash the status LED at this point, but that's beyond our
+  // abilities - as we would need to speak I2C to do so!
+  
+  // If gpio14 is zero we have looped 15 times ...
+  if (!gpio14)
+  {
+    // Implement factory reset
+    ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
+    
+    // Erase config sector - that's all we need to do to clear config
+    SPIEraseSector(OTB_BOOT_BOOT_CONFIG_LOCATION/0x1000);
+    ets_printf("BOOT: Config cleared\r\n");
+
+    for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
+         written < OTB_BOOT_ROM_2_LEN;
+         written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
+    {
+      // Dubious this will work as from_loc is on differnet 1MB segment of flash
+      SPIRead(from_loc, buffer, 0x1000);
+      SPIEraseSector(to_loc/0x1000);
+      SPIWrite(to_loc, buffer, 0x1000);
+    }
+    while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
+    {
+      // Zero out spare space on end of slot 0 (recovery slot is smaller)
+      SPIEraseSector(to_loc/0x1000);
+      to_loc += 0x1000;
+    }
+    ets_printf("BOOT: Factory image written into slot 0\r\n");
+    ets_delay_us(2000000);
+    reset();
+  }
+  
+EXIT_LABEL:
+  
+  return;
+}
+
 #ifdef BOOT_NO_ASM
 
 // small stub method to ensure minimum stack space used
@@ -408,6 +534,7 @@ void call_user_start() {
 	uint32 addr;
 	stage2a *loader;
 	
+	factory_reset();
 	addr = find_image();
 	if (addr != 0) {
 		loader = (stage2a*)entry_addr;
@@ -422,6 +549,10 @@ void call_user_start() {
 void call_user_start() {
 	__asm volatile (
 		"mov a15, a0\n"          // store return addr, hope nobody wanted a15!
+		"call0 start_otb_boot\n" // output some otb-iot info
+		"mov a0, a15\n"          // restore return addr
+		"call0 factory_reset\n"  // See whether to reset to factory defaults
+		"mov a0, a15\n"          // restore return addr
 		"call0 find_image\n"     // find a good rom to boot
 		"mov a0, a15\n"          // restore return addr
 		"bnez a2, 1f\n"          // ?success

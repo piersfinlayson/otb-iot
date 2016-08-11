@@ -183,7 +183,9 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_CONFIG_DS18B20_        5
 #define OTB_MQTT_CONFIG_ADS	            "ads"
 #define OTB_MQTT_CONFIG_ADS_            6
-#define OTB_MQTT_CONFIG_LAST_           6
+#define OTB_MQTT_CONFIG_ALL	            "all"
+#define OTB_MQTT_CONFIG_ALL_            7
+#define OTB_MQTT_CONFIG_LAST_           7
 
 extern char *otb_mqtt_config_fields[];
 #ifdef OTB_MQTT_C
@@ -195,7 +197,8 @@ char *otb_mqtt_config_fields[OTB_MQTT_CONFIG_LAST_ + 1] =
   OTB_MQTT_CONFIG_LOC3,
   OTB_MQTT_CONFIG_DS18B20S,
   OTB_MQTT_CONFIG_DS18B20,
-  OTB_MQTT_CONFIG_ADS
+  OTB_MQTT_CONFIG_ADS,
+  OTB_MQTT_CONFIG_ALL,
 };
 #endif // OTB_MQTT_C
 
@@ -262,8 +265,9 @@ char *otb_mqtt_i2c_ads_fields[OTB_MQTT_I2C_ADS_FIELD_LAST_ + 1] =
 };
 #endif // OTB_MQTT_C
 
-
-
+#define OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_PUBLISHED  1
+#define OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_PUBLISH    2
+#define OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_CONNECTED  3
 
 #define OTB_MQTT_MAX_SVR_LEN            32
 #define OTB_MQTT_MAX_USER_LEN           32
@@ -350,4 +354,5 @@ os_timer_t otb_mqtt_connected_timer;
 os_timer_t otb_mqtt_wifi_timeout_timer;
 
 #endif // OTB_MQTT_C
+
 #endif // OTB_MQTT_H

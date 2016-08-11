@@ -23,6 +23,78 @@
 #include <limits.h>
 #include <errno.h>
 
+#if 0
+
+void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
+{
+  rc = FALSE;
+
+  DEBUG("UTIL: otb_util_factory_reset entry");
+  
+  // First of all reset config
+  otb_led_wifi_blink();  // Will turn off
+  otb_conf_init_config(otb_conf); 
+  rc = otb_conf_save(otb_conf);
+  if (!rc)
+  {
+    // But plow on regardless
+    WARN("UTIL: Failed to reset config to factory");
+  }
+  otb_led_wifi_blink();  // Will turn back on
+  
+  // Now update boot slot
+  rc = otb_rboot_update_slot(0);  // Updates slot to 0
+  if (!rc)
+  {
+    // But plow on regardless
+    WARN("UTIL: Failed to reset boot slot to 0");
+  }
+
+  // Now actually do the firmware update
+  
+  // check factory partition is valid
+  if (!ota_rboot_check_factory_image())
+  {
+    // Can't recover from this
+    ERROR("UTIL: No good factory image");
+    goto EXIT_LABEL;
+  }
+  
+  if (ota_rboot_use_factory_image())
+  {
+    rc = TRUE;
+  }
+  else
+  {
+    // Can't recover from this
+    ERROR("UTIL: Failed to update boot image with factory");
+    goto EXIT_LABEL;
+  }
+  
+  // Get length of recovery partition
+  // Copy a sector at a time from recovery parition to partition 0
+  // Blinking between each sector
+
+  // Cyan for good, blue for bad
+  if (rc)
+  {
+    otb_led_wifi_update(OTB_LED_NEO_COLOUR_CYAN, TRUE);
+  }
+  else
+  {
+    otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+  }
+  
+  // Blink for 5s before reset to indicate completion
+  otb_led_wifi_init_blink_timer();
+  otb_reset_schedule(otb_util_factory_reset_reason, 5000, FALSE);
+  
+  DEBUG("UTIL: otb_util_factory_reset exit");
+  
+  return;
+}
+#endif
+
 size_t ICACHE_FLASH_ATTR otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size)
 {
         int from, to;

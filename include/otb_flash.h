@@ -47,5 +47,7 @@
 #define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
 #define OTB_BOOT_SDK_RESERVED        0x30c000  // length 0x4000  = 16KB
 #define OTB_BOOT_ESP_USER_BIN        0x3fc000  // length ??? ESP SDK user bin
-
+#define OTB_BOOT_ROM_0_LEN            0xfe000
+#define OTB_BOOT_ROM_1_LEN            0xfe000
+#define OTB_BOOT_ROM_2_LEN            0xfa000
 #endif // OTB_FLASH_H

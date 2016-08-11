@@ -56,6 +56,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
                            OTB_MQTT_STATUS_ERROR,
                            "Failed to set boot slot after update",
                            "");
+      otb_ads_initialize();
       goto EXIT_LABEL;
     }
   }
@@ -67,6 +68,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
                          "Update failed",
                          "");
     INFO("RBOOT: Update failed");
+    otb_ads_initialize();
     goto EXIT_LABEL;
   }
   
@@ -195,6 +197,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path)
   
   // Kill all timers cos they'll interfere
   otb_i2c_ads_disable_all_timers();
+  otb_led_wifi_disable_blink_timer();
   
   rc = rboot_ota_start((rboot_ota *)&otb_rboot_ota);
   if (!rc)
@@ -306,3 +309,32 @@ uint8_t ICACHE_FLASH_ATTR otb_rboot_get_slot(bool publish)
   
   return(slot);
 }
+
+#if 0
+
+bool ICACHE_FLASH_ATTR ota_rboot_check_factory_image(void)
+{
+  bool rc = FALSE;
+  unsigned char buffer[0x1000]; // Shouldn't really allocate 4k on stack, but should be a clean boot
+  uint16_t buf_len;
+  
+  DEBUG("RBOOT: ota_rboot_check_factory_image entry");
+  
+  rboot_check_image();
+  
+  DEBUG("RBOOT: ota_rboot_check_factory_image exit");
+  
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR ota_rboot_use_factory_image(void)
+{
+  bool rc = FALSE;
+  
+  DEBUG("RBOOT: ota_rboot_use_factory_image entry");
+  
+  DEBUG("RBOOT: ota_rboot_use_factory_image exit");
+  
+  return rc;
+}
+#endif

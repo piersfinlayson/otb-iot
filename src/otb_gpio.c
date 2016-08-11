@@ -17,6 +17,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define OTB_GPIO_C
 #include "otb.h"
 
 uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
@@ -41,21 +42,73 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
   // XXX Other reserved pins - need to set output manually!
-  otb_gpio_set(0, 0);
-  otb_gpio_set(2, 0);
-  otb_gpio_set(4, 0);
-  otb_gpio_set(5, 0);
-  otb_gpio_set(12, 0);
-  otb_gpio_set(13, 0);
-  // otb_gpio_set is ignored where PIN is reserved so do it manually
-  GPIO_OUTPUT_SET(13, 0);
-  otb_gpio_set(14, 0);
-  otb_gpio_set(15, 0);
+  otb_gpio_set(0, 0, FALSE);
+  otb_gpio_set(2, 0, FALSE);
+  otb_gpio_set(4, 0, FALSE);
+  otb_gpio_set(5, 0, FALSE);
+  otb_gpio_set(12, 0, FALSE);
+  otb_gpio_set(13, 0, TRUE);
+  otb_gpio_set(15, 0, FALSE);
 
   DEBUG("GPIO: otb_gpio_init exit");
   
   return;
 }
+
+#if 0
+void ICACHE_FLASH_ATTR otb_gpio_reset_kick_off(void)
+{
+  DEBUG("GPIO: otb_gpio_init_reset_kick_off entry");
+
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_WHITE, TRUE);
+  otb_gpio_init_reset_timer();
+  otb_gpio_reset_count = 0;
+
+  DEBUG("GPIO: otb_gpio_init_reset_kick_off exit");
+}
+
+void ICACHE_FLASH_ATTR otb_gpio_init_reset_timer(void)
+{
+  DEBUG("GPIO: otb_gpio_init_reset_timer entry");
+  
+  otb_util_timer_set((os_timer_t*)&otb_gpio_reset_timer, 
+                     (os_timer_func_t *)otb_gpio_reset_timerfunc,
+                     NULL,
+                     1000,
+                     1);
+
+  DEBUG("GPIO: otb_gpio_init_reset_timer exit");
+}
+
+void otb_gpio_reset_timerfunc(void *arg)
+{
+  DEBUG("GPIO: otb_gpio_reset_timerfunc entry");
+  
+  otb_gpio_reset_count++;
+  
+  if (!otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE))
+  {
+    if (otb_gpio_reset_count >= (OTB_GPIO_RESET_COUNT_MAX-1))
+    {
+      WARN("GPIO: Reset the device - not implemented!!!");
+      otb_util_factory_reset();
+      otb_util_timer_cancel((os_timer_t*)&otb_gpio_reset_timer);
+      otb_reset(otb_gpio_reset_string);
+    }
+  }
+  else
+  {
+    INFO("GPIO: Reset cancelled");
+    otb_gpio_reset_count = 0;
+    otb_util_timer_cancel((os_timer_t*)&otb_gpio_reset_timer);
+    
+    // Re-instate usual processing
+    otb_wifi_kick_off();
+  }
+  
+  DEBUG("GPIO: otb_gpio_reset_timerfunc exit");
+}
+#endif
 
 void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
 {
@@ -69,7 +122,7 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
   {
     if (!otb_gpio_is_reserved(ii, &dummy))
     {
-      rc = otb_gpio_set(ii, otb_conf->gpio_boot_state[ii]);
+      rc = otb_gpio_set(ii, otb_conf->gpio_boot_state[ii], FALSE);
       if (!rc)
       {
         WARN("GPIO: failed to set boot state for pin %d", ii);
@@ -131,6 +184,12 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
       rc = TRUE;
       break;
       
+    case OTB_GPIO_RESET_PIN:
+      DEBUG("GPIO: Pin is reserved");
+      *reserved_text = "GPIO pin is reserved for reset";
+      rc = TRUE;
+      break;
+      
     case 1:
     case 3:
       DEBUG("GPIO: Pin is reserved");
@@ -168,7 +227,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
   return rc;
 }
 
-sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
+sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin, bool override_reserved)
 {
   bool special;
   sint8 input = -1;
@@ -182,7 +241,7 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin, &error_text))
+  if (!override_reserved && otb_gpio_is_reserved(pin, &error_text))
   {
     ERROR("GPIO: Can't get pin %d - %s", error_text);
     goto EXIT_LABEL;
@@ -199,7 +258,7 @@ EXIT_LABEL:
   return input;
 }
 
-bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
+bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
 {
   bool rc = FALSE;
   bool special;
@@ -214,7 +273,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value)
     goto EXIT_LABEL;
   }
   
-  if (otb_gpio_is_reserved(pin, &error_text))
+  if (!override_reserved && otb_gpio_is_reserved(pin, &error_text))
   {
     ERROR("GPIO: Can't get pin %d - %s", pin, error_text);
     goto EXIT_LABEL;
@@ -357,7 +416,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
           value = atoi(cmd3);
         }
         DEBUG("GPIO: Set - new value %d", value);
-        rc = otb_gpio_set(pin, value); 
+        rc = otb_gpio_set(pin, value, FALSE); 
         if (rc)
         {
           otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
@@ -410,7 +469,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       }
       else
       {
-        value = otb_gpio_get(pin);
+        value = otb_gpio_get(pin, FALSE);
         if (rc >= 0)
         {
           os_snprintf(response, 8, "%d", value);

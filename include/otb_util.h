@@ -21,6 +21,8 @@
 #define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
 #define OTB_UTIL_NS_PER_CYCLE 12.5
 
+void ICACHE_FLASH_ATTR otb_util_factory_reset(void);
+
 typedef struct otb_util_log_buffer
 {
   // Pointer to buffer (which is otb_util_log_buf)
@@ -112,6 +114,7 @@ struct otb_reset_reason
 #ifdef OTB_UTIL_C
 
 os_timer_t otb_util_reset_timer;
+unsigned char otb_util_factory_reset_reason[] = "Factory reset completed";
 
 struct otb_reset_reason otb_reset_reason_struct;
 

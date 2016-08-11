@@ -803,6 +803,46 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
                              response);
         break;
         
+      case OTB_MQTT_CONFIG_ALL_:
+        {
+          unsigned char *conf_struct = (unsigned char *)otb_conf;
+          unsigned char scratch[129];
+          unsigned char kk = 0;
+          os_snprintf(scratch, 128, "len:%d", sizeof(otb_conf_struct));
+          otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                               OTB_MQTT_CMD_GET,
+                               OTB_MQTT_STATUS_OK,
+                               scratch);
+          for (int jj = 0; jj < sizeof(otb_conf_struct); jj++)
+          {
+            os_snprintf(scratch+(kk*2), (128-(kk*2)), "%02x", conf_struct[jj]);
+            if (kk >= 63)
+            {
+              // Send message of 64 bytes (128 byte string null terminated)
+              scratch[128] = 0;
+              otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                   OTB_MQTT_CMD_GET,
+                                   OTB_MQTT_STATUS_OK,
+                                   scratch);
+              kk = 0;
+            }
+            else
+            {
+              kk++;
+            }
+          }
+          if (kk != 0)
+          {
+            // Send message of k bytes
+            scratch[kk*2] = 0;
+            otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
+                                 OTB_MQTT_CMD_GET,
+                                 OTB_MQTT_STATUS_OK,
+                                 scratch);
+          }
+        }
+        break;
+        
       default:
         INFO("CONF: Invalid config field");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,

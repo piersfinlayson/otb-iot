@@ -40,7 +40,7 @@ OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 I2C_CFLAGS = -Ilib/i2c
 
 # esptool.py options
-ESPBAUD = 115200
+ESPBAUD = 230400
 ESPPORT = /dev/ttyUSB0
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
@@ -120,7 +120,7 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_i2c.o \
              $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
-             $(OTB_OBJ_DIR)/otb_recovery.o \
+             $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
@@ -156,7 +156,7 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
 
 i2cObjects = $(I2C_OBJ_DIR)/i2c_master.o
 
-all: directories bin/app_image.bin bin/rboot.bin bin/recovery_image.bin
+all: directories bin/app_image.bin bin/rboot.bin
 
 bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
@@ -166,20 +166,11 @@ bin/app_image.bin: bin/app_image.elf
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
-bin/recovery_image.bin: bin/recovery_image.elf
-	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
-
-bin/recovery_image.elf: libmain2 otb_recovery_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) -o bin/recovery_image.elf $(otbRecoveryObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
-
-# Build our own version of libmain with "weakened" Cache_Read_Enable_new so we
 # can replace with our own version (from rboot-bigflash.c)
 libmain2:
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
 otb_objects: clean_otb_util_o $(otbObjects)
-
-otb_recovery_objects: clean_otb_util_o $(otbRecoveryObjects)
 
 httpd_objects: $(httpdObjects)
 
@@ -238,12 +229,12 @@ flash_app: bin/app_image.bin
 flash_app2: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
 
-flash_recovery: bin/recovery_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/recovery_image.bin
+flash_factory: bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/app_image.bin
 
 flash: flash_boot flash_app
 
-flash_initial: erase_flash flash_boot flash_app flash_recovery
+flash_initial: erase_flash flash_boot flash_app flash_factory
 
 connect:
 	platformio serialports monitor -b 115200

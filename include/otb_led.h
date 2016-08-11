@@ -25,15 +25,15 @@
 #define OTB_LED_NEO_PIN  13
 
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
-#define OTB_LED_NEO_COLOUR_RED     0xff0000
-#define OTB_LED_NEO_COLOUR_GREEN   0x00ff00
-#define OTB_LED_NEO_COLOUR_BLUE    0x0000ff
-#define OTB_LED_NEO_COLOUR_CYAN    0x00ffff
-#define OTB_LED_NEO_COLOUR_PURPLE  0x7f007f
-#define OTB_LED_NEO_COLOUR_WHITE   0xffffff
-#define OTB_LED_NEO_COLOUR_ORANGE  0xff8700
-#define OTB_LED_NEO_COLOUR_YELLOW  0xffff00
-#define OTB_LED_NEO_COLOUR_PINK    0x8b636c
+#define OTB_LED_NEO_COLOUR_RED     0x200000
+#define OTB_LED_NEO_COLOUR_GREEN   0x002000
+#define OTB_LED_NEO_COLOUR_BLUE    0x000020
+#define OTB_LED_NEO_COLOUR_CYAN    0x002020
+#define OTB_LED_NEO_COLOUR_PURPLE  0x200020
+#define OTB_LED_NEO_COLOUR_WHITE   0x202020
+#define OTB_LED_NEO_COLOUR_ORANGE  0x201000
+#define OTB_LED_NEO_COLOUR_YELLOW  0x202000
+#define OTB_LED_NEO_COLOUR_PINK    0x201818
 
 #define OTB_LED_NEO_T1H  800
 #define OTB_LED_NEO_T1L  450
@@ -192,7 +192,13 @@ otb_led_sequence otb_led_test_seq[OTB_LED_TYPE_NUM] =
 
 #endif //OTB_LED_C
 
+extern uint32_t otb_led_wifi_colour;
+
 #ifdef OTB_LED_C
+uint32_t otb_led_wifi_colour;
+static volatile os_timer_t otb_led_wifi_blink_timer;
+bool otb_led_wifi_on;
+sint32_t otb_led_wifi_blink_times = 0;
 otb_led_type_info OTB_LED_TYPE_INFO[OTB_LED_TYPE_NUM] = 
 {
   {"gpio0", OTB_LED_TYPE_GPIO0, FALSE, TRUE, 0, otb_led_test_seq+0},
@@ -217,8 +223,13 @@ bool otb_led_control_step(otb_led_sequence *seq);
 void otb_led_control_on_timer(void *arg);
 void otb_led_control_init(otb_led_sequence *seq);
 bool otb_led_control_seq(otb_led_sequence *seq);
-void otb_led_wifi_update(uint32_t rgb);
+void otb_led_wifi_update(uint32_t rgb, bool store);
 void otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin);
-uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue);
+uint32_t otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue);
+void otb_led_wifi_blink(uint8 times);
+void otb_led_wifi_init_blink_timer(void);
+void otb_led_wifi_disable_blink_timer(void);
+void otb_led_wifi_blink_it(void);
+void otb_led_wifi_blink_timerfunc(void *arg);
 
 #endif  // OTB_LED_H
