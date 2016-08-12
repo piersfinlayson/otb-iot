@@ -31,9 +31,11 @@
 uint8_t otb_gpio_reset_count;
 os_timer_t otb_gpio_reset_timer;
 unsigned char ALIGN4 otb_gpio_reset_string[] = "Resetting to factory settings";
+unsigned char ALIGN4 otb_gpio_reset_reason_reset[] = "Reset button pressed";
 #endif // OTB_GPIO_C
 
 void otb_gpio_init(void);
+void otb_gpio_reset_button_interrupt(void);
 void otb_gpio_reset_kick_off(void);
 void otb_gpio_init_reset_timer(void);
 void otb_gpio_reset_timerfunc(void *arg);

@@ -49,8 +49,47 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   otb_gpio_set(12, 0, FALSE);
   otb_gpio_set(13, 0, TRUE);
   otb_gpio_set(15, 0, FALSE);
+  
+  // Register GPIO14 interrupt
+  ETS_GPIO_INTR_DISABLE();
+  ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, OTB_GPIO_RESET_PIN);
+	GPIO_DIS_OUTPUT(OTB_GPIO_RESET_PIN);
+	gpio_pin_intr_state_set(GPIO_ID_PIN(OTB_GPIO_RESET_PIN), 1);
+	ETS_GPIO_INTR_ENABLE();
 
   DEBUG("GPIO: otb_gpio_init exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void)
+{
+  sint8 get;
+  uint32_t gpio_status;
+
+  // Disable interrupts
+  ETS_GPIO_INTR_DISABLE();
+  
+  // Get and act on interrupt
+  get = otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE);
+  if (get)
+  {
+    WARN("GPIO: Reset button pressed");
+    otb_reset_schedule(1000, otb_gpio_reset_reason_reset, FALSE);
+    otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+    otb_led_wifi_blink(5);
+  }
+  else
+  {
+    DEBUG("GPIO: Reset button released");
+  }
+  
+  // Clear interrupt
+  gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+  GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
+  
+  // Re-enable interrupts
+  ETS_GPIO_INTR_ENABLE();
   
   return;
 }
@@ -93,7 +132,6 @@ void otb_gpio_reset_timerfunc(void *arg)
       WARN("GPIO: Reset the device - not implemented!!!");
       otb_util_factory_reset();
       otb_util_timer_cancel((os_timer_t*)&otb_gpio_reset_timer);
-      otb_reset(otb_gpio_reset_string);
     }
   }
   else
@@ -249,7 +287,7 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin, bool override_reserved)
   
   input = GPIO_INPUT_GET(pin);
   
-  INFO("GPIO: Pin %d state %d", pin, input);
+  DEBUG("GPIO: Pin %d state %d", pin, input);
   
 EXIT_LABEL:
   

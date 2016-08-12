@@ -442,15 +442,6 @@ uint32 NOINLINE find_image() {
 
 }
 
-// otb-iot factory reset function
-#define FACTORY_RESET_LEN  15
-#define OTB_BOOT_ROM_0_LEN            0xfe000
-#define OTB_BOOT_ROM_1_LEN            0xfe000
-#define OTB_BOOT_ROM_2_LEN            0xfa000
-#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
-
 void NOINLINE start_otb_boot(void)
 {
 	// delay to slow boot (help see messages when debugging)
@@ -462,14 +453,53 @@ void NOINLINE start_otb_boot(void)
   return;
 }
 
-void NOINLINE factory_reset(void)
+// otb-iot factory reset function
+#define FACTORY_RESET_LEN  15  // seconds
+#define OTB_BOOT_ROM_0_LEN            0xfe000
+#define OTB_BOOT_ROM_1_LEN            0xfe000
+#define OTB_BOOT_ROM_2_LEN            0xfa000
+#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
+#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
+#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
+
+void do_factory_reset(void)
 {
-  uint32 gpio14;
-  uint32 ii;
   uint32 from_loc;
   uint32 to_loc;
   uint32 written;
   uint32 buffer[0x1000/4];
+
+  // Implement factory reset
+  ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
+  
+  // Erase config sector - that's all we need to do to clear config
+  SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
+  ets_printf("BOOT: Config cleared\r\n");
+
+  for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
+       written < OTB_BOOT_ROM_2_LEN;
+       written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
+  {
+    // Dubious this will work as from_loc is on differnet 1MB segment of flash
+    SPIRead(from_loc, buffer, 0x1000);
+    SPIEraseSector(to_loc/0x1000);
+    SPIWrite(to_loc, buffer, 0x1000);
+  }
+  while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
+  {
+    // Zero out spare space on end of slot 0 (recovery slot is smaller)
+    SPIEraseSector(to_loc/0x1000);
+    to_loc += 0x1000;
+  }
+  ets_printf("BOOT: Factory image written into slot 0\r\n");
+
+  return;
+}
+
+void NOINLINE factory_reset(void)
+{
+  uint32 ii;
+  uint32 gpio14;
   
   // Check if GPIO14 is depressed
 	ets_printf("BOOT: Checking GPIO14 ");
@@ -495,29 +525,7 @@ void NOINLINE factory_reset(void)
   // If gpio14 is zero we have looped 15 times ...
   if (!gpio14)
   {
-    // Implement factory reset
-    ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
-    
-    // Erase config sector - that's all we need to do to clear config
-    SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
-    ets_printf("BOOT: Config cleared\r\n");
-
-    for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
-         written < OTB_BOOT_ROM_2_LEN;
-         written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
-    {
-      // Dubious this will work as from_loc is on differnet 1MB segment of flash
-      SPIRead(from_loc, buffer, 0x1000);
-      SPIEraseSector(to_loc/0x1000);
-      SPIWrite(to_loc, buffer, 0x1000);
-    }
-    while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
-    {
-      // Zero out spare space on end of slot 0 (recovery slot is smaller)
-      SPIEraseSector(to_loc/0x1000);
-      to_loc += 0x1000;
-    }
-    ets_printf("BOOT: Factory image written into slot 0\r\n");
+    do_factory_reset();
     ets_delay_us(2000000);
     reset();
   }
