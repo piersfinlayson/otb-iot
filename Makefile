@@ -16,6 +16,8 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+include hardware
+
 # SDK versions, etc
 # SDK_BASE = /opt/esp-open-sdk
 ESP_SDK = sdk
@@ -32,9 +34,9 @@ ESPTOOL2 = /usr/bin/esptool2
 ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
 # Compile options
-CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot
+CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
-RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
+RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM 
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
 I2C_CFLAGS = -Ilib/i2c

@@ -1,0 +1,5 @@
+# When using OTB V0.1 hardware
+HW_DEFINES=-DOTB_V0_1
+
+# When using generic hardware (such as the Wemos D1 mini
+#HW_DEFINES=
