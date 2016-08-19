@@ -170,6 +170,9 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
         otb_i2c_ads_state[ii] = FALSE;
       }
     }
+    
+    // XXX Temporary
+    otb_i2c_pca9685_test_init();
   }
   else
   {
