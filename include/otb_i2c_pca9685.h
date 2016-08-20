@@ -65,6 +65,7 @@
 
 
 #else
+
 bool otb_i2c_pca9685_led_on;
 static volatile os_timer_t otb_i2c_pca9685_test_timer;
 uint8_t otb_i2c_pca9685_test_addr;
@@ -75,13 +76,6 @@ void otb_i2c_pca9685_test_timerfunc(void);
 void otb_i2c_pca9685_test_init(void);
 bool otb_i2c_pca9685_led_conf(uint8_t, uint8_t led, uint16_t on, uint16_t off);
 bool otb_i2c_pca9685_init(uint8_t addr);
-bool otb_i2c_pca9685_read_reg(uint8_t addr, uint8_t reg, uint8_t *val);
 bool otb_i2c_pca9685_set_mode(uint8_t addr, uint16_t mode);
-bool otb_i2c_pca9685_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val);
-void otb_i2c_pca9685_start();
-void otb_i2c_pca9685_stop();
-bool otb_i2c_pca9685_call(uint8_t addr);
-bool otb_i2c_pca9685_reg(uint8_t reg);
-bool otb_i2c_pca9685_val(uint8_t val);
 
 #endif // OTB_I2C_PCA9685_H

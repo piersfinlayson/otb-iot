@@ -113,6 +113,15 @@ int8_t otb_i2c_ads_conf_field_match(char *field);
 void otb_i2c_ads_conf_set(char *addr, char *field, char *value);
 void otb_i2c_ads_conf_get(char *addr, char *field, char *field2);
 unsigned long isqrt(unsigned long x);
+bool otb_i2c_write_reg(uint8_t reg);
+bool otb_i2c_write_val(uint8_t val);
+void otb_i2c_bus_start();
+void otb_i2c_bus_stop();
+bool otb_i2c_bus_call(uint8_t addr, bool read);
+bool otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val);
+bool otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val);
+bool otb_i2c_read_one_reg(uint8_t addr, uint8_t reg, uint8_t *val);
+bool otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val);
 
 #define OTB_I2C_ADC_GAIN_VALUES 8
 #ifndef OTB_I2C_C  

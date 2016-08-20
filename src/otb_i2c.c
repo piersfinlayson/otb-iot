@@ -172,7 +172,7 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
     }
     
     // XXX Temporary
-    otb_i2c_pca9685_test_init();
+    otb_i2c_mcp23017_test_init();
   }
   else
   {
@@ -1704,4 +1704,241 @@ EXIT_LABEL:
   
   return;
 }
+
+void ICACHE_FLASH_ATTR otb_i2c_bus_start()
+{
+  DEBUG("I2C: otb_i2c_bus_start entry");
+
+  i2c_master_start();
+  
+  DEBUG("I2C: otb_i2c_bus_start exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_i2c_bus_stop()
+{
+  DEBUG("I2C: otb_i2c_bus_stop entry");
+
+  i2c_master_stop();
+  
+  DEBUG("I2C: otb_i2c_bus_stop exit");
+
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_bus_call(uint8_t addr, bool read)
+{
+  bool rc = FALSE;
+  uint8_t bus_read;
+
+  DEBUG("I2C: otb_i2c_bus_call entry");
+
+  DEBUG("I2C: Call addr: 0x%02x", addr);
+  
+  // Write it negative way around in case read is something other than 1 or 0!
+  bus_read = (!read) ? 0b0 : 0b1;
+
+  // Write the address and check for ack
+  i2c_master_writeByte((addr << 1) | bus_read);
+  if (!i2c_master_checkAck())
+  {
+    INFO("I2C: No ack in bus call");
+    goto EXIT_LABEL;
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("I2C: otb_i2c_bus_call exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_write_reg(uint8_t reg)
+{
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_write_reg entry");
+
+  DEBUG("I2C: Write reg: 0x%02x", reg);
+
+  // Write register
+  i2c_master_writeByte(reg);
+  if (!i2c_master_checkAck())
+  {
+    INFO("I2C: No ack in write reg");
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("I2C: otb_i2c_write_reg exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_write_val(uint8_t val)
+{
+  bool rc = FALSE;
+
+  DEBUG("I2C: otb_i2c_write_val entry");
+
+  DEBUG("I2C: Write val: 0x%02x", val);
+
+  // Write  value
+  i2c_master_writeByte(val);
+  if (!i2c_master_checkAck())
+  {
+    INFO("I2C: No ack in write val");
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("I2C: otb_i2c_write_val exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val)
+{
+  bool rc;
+
+  DEBUG("I2C: otb_i2c_write_one_reg entry");
+  
+  rc = otb_i2c_write_reg_seq(addr, reg, 1, &val)
+  
+  DEBUG("I2C: otb_i2c_write_one_reg exit");
+  
+  return rc;
+}
+
+// Device must be in write sequential mode!
+bool ICACHE_FLASH_ATTR otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val)
+{
+  bool rc = FALSE;
+  int ii;
+
+  DEBUG("I2C: otb_i2c_write_one_reg entry");
+
+  otb_i2c_bus_start();
+  
+  rc = otb_i2c_bus_call(addr, FALSE);
+  if (!rc)
+  {
+    WARN("I2C: Failed to call address 0x%02x", addr);
+    goto EXIT_LABEL;
+  }
+  
+  rc = otb_i2c_write_reg(reg);
+  if (!rc)
+  {
+    WARN("I2C: Failed to write reg 0x%02x", reg);
+    goto EXIT_LABEL;
+  }
+  
+  for (ii = 0; ii < count; ii++)
+  {
+    rc = otb_i2c_write_val(*(val+ii));
+    if (!rc)
+    {
+      WARN("I2C: Failed to write val #%d: 0x%02x, reg: 0x%02x", ii, *(val+ii), reg);
+      goto EXIT_LABEL;
+    }
+    else
+    {
+      DEBUG("I2C: Written reg: 0x%02x val: 0x%02x", reg, *(val+ii));
+    }
+  }
+
+  rc = TRUE;
+  
+EXIT_LABEL:
+
+  otb_i2c_bus_start();
+
+  otb_i2c_bus_stop();
+  
+  DEBUG("I2C: otb_i2c_write_one_reg exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_read_one_reg(uint8_t addr, uint8_t reg, uint8_t *val)
+{
+  bool rc;
+
+  DEBUG("I2C: otb_i2c_read_one_reg entry");
+  
+  rc = otb_i2c_read_reg_seq(addr, reg, 1, val);
+  
+  DEBUG("I2C: otb_i2c_read_one_reg exit");
+  
+  return rc;
+}
+
+// Note the device must be in sequential read mode for this to work!
+bool ICACHE_FLASH_ATTR otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val)
+{
+  bool rc = FALSE;
+  int ii;
+  
+  DEBUG("I2C: otb_i2c_read_reg_seq entry");
+  
+  // Read pointer register.  To do this start the bus, write to the right address,
+  // write the reg we want to read, and then stop.
+  // Then start the bus, calling the address indicating a read, and then do the read.
+  otb_i2c_bus_start();
+  
+  rc = otb_i2c_bus_call(addr, FALSE);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+
+  rc = otb_i2c_write_reg(reg);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+  
+  // No need for the stop - a start then becomes a restart
+  // otb_i2c_bus_stop();
+
+  otb_i2c_bus_start();
+
+  rc = otb_i2c_bus_call(addr, TRUE);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+  
+  for (ii = 0; ii < count; ii++)
+  {
+    *(val+ii) = i2c_master_readByte();
+    DEBUG("I2C: Read value #%d: 0x%02x", ii, *(val+ii));
+    i2c_master_send_ack();
+  }
+  
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  // Not entirely sure why this restart is required after reading, but if we don't do it
+  // the next register write fails (for the PCA9685 at least).
+  otb_i2c_bus_start();
+
+  otb_i2c_bus_stop();
+
+  DEBUG("I2C: otb_i2c_read_reg_seq exit");
+  
+  return rc;
+}
+
 

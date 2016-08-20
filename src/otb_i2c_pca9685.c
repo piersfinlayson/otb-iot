@@ -24,6 +24,8 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
 {
   bool rc;
   
+  DEBUG("I2C: otb_i2c_pca9685_test_timer_func entry");
+
   if (otb_i2c_pca9685_led_on)
   {
     // Off
@@ -38,7 +40,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
   else
   {
     // On
-    INFO("PCA9685: LED on - turn it on");
+    INFO("PCA9685: LED off - turn it on");
     rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 0, OTB_I2C_PCA9685_IO_FULL_ON, 0);
     if (!rc)
     {
@@ -47,12 +49,16 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
     otb_i2c_pca9685_led_on = TRUE;
   }
   
+  DEBUG("I2C: otb_i2c_pca9685_test_timer_func entry");
+
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_init(void)
 {
   bool rc = FALSE;
+
+  DEBUG("I2C: otb_i2c_pca9685_test_init entry");
 
   otb_i2c_pca9685_led_on = FALSE;
   otb_i2c_pca9685_test_addr = OTB_I2C_PCA9685_BASE_ADDR;
@@ -73,6 +79,8 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_init(void)
   
 EXIT_LABEL:
   
+  DEBUG("I2C: otb_i2c_pca9685_test_init exit");
+
   return;
 }
 
@@ -83,6 +91,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   int ii;
   uint8_t reg;
   
+  DEBUG("I2C: otb_i2c_pca9685_led_conf entry");
+
   // on and off are only 13-bit values
   OTB_ASSERT(!(on & 0b1110000000000000));
   OTB_ASSERT(!(off & 0b1110000000000000));
@@ -103,38 +113,19 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   byte[2] = off & 0xff;
   byte[3] = off >> 8;
   
-  // Start bus, and then call the PCA9685
-  otb_i2c_pca9685_start();
-  rc = otb_i2c_pca9685_call(addr);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  // Signal the start register, based on LED value (first LED = 0)
   OTB_ASSERT((led >= 0) && (led < OTB_I2C_PCA9685_REG_IO_NUM)); 
   reg = OTB_I2C_PCA9685_REG_IO0_ON_L + (led * 4);
-  otb_i2c_pca9685_reg(reg);
+  rc = otb_i2c_write_reg_seq(addr, reg, 4, byte);
   if (!rc)
   {
     goto EXIT_LABEL;
   }
 
-  // Now write each of the 4 registers - two for on and two for off
-  for (ii = 0; ii < 4; ii++)
-  {
-    otb_i2c_pca9685_val(byte[ii]);
-    if (!rc)
-    {
-      goto EXIT_LABEL;
-    }
-  }
-
-  otb_i2c_pca9685_stop();
-  
   rc = TRUE;
   
 EXIT_LABEL:
+  
+  DEBUG("I2C: otb_i2c_pca9685_led_conf exit");
 
   return rc;
 }
@@ -143,95 +134,47 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
 {
   bool rc = FALSE;
   uint8_t read_mode[2];
-  uint16_t mode = 0;
-  int ii;
+  uint16_t mode;
 
-#if 0
+  DEBUG("I2C: otb_i2c_pca9685_init entry");
+
   // XXX This is bugged - for some reason the second read doesn't work
   // Read the mode
-  for (ii = 0; ii < 2; ii++)
+  rc = otb_i2c_read_reg_seq(addr, OTB_I2C_PCA9685_REG_MODE1, 2, read_mode);
+  if (!rc)
   {
-    rc = otb_i2c_pca9685_read_reg(addr, OTB_I2C_PCA9685_REG_MODE1+ii, read_mode+ii);
-    if (!rc)
-    {
-      WARN("PCA9685: Failed to read mode %d", ii);
-      goto EXIT_LABEL;
-    }
-    os_delay_us(1000);
+    WARN("PCA9685: Failed to read mode");
+    goto EXIT_LABEL;
   }
   mode = read_mode[0] & (read_mode[1] << 8);
-  INFO("PCA9685: Read mode %02x", mode);
-#endif
+  INFO("PCA9685: Read mode 0x%04x", mode);
+  
+  // Set prescale (to default for now)
+  rc = otb_i2c_write_one_reg(addr,
+                             OTB_I2C_PCA9685_REG_PRE_SCALE,
+                             OTB_I2C_PCA9685_PRESCALE_DEFAULT);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
   
   // Set the mode.  Key thing to change is that auto-incrementing of registers is
   // defaulted - this allows us to write more than one register with successive writes
   // without restarting comms for each one (speeding things up).
+  mode = 0;
   mode |= OTB_I2C_PCA9685_MODE_AI_REG | OTB_I2C_PCA9685_MODE_INVERT;
-  mode &= ~ OTB_I2C_PCA9685_MODE_TOTEM;
+  mode &= ~OTB_I2C_PCA9685_MODE_TOTEM;
   rc = otb_i2c_pca9685_set_mode(addr, mode);
   if (!rc)
   {
     goto EXIT_LABEL;
   }
 
-  rc = otb_i2c_pca9685_write_one_reg(addr,
-                                     OTB_I2C_PCA9685_REG_PRE_SCALE,
-                                     OTB_I2C_PCA9685_PRESCALE_DEFAULT);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-
   rc = TRUE;
   
 EXIT_LABEL:
 
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_pca9685_read_reg(uint8_t addr, uint8_t reg, uint8_t *val)
-{
-  bool rc = FALSE;
-  
-  // Read pointer register.  To do this start the bus, write to the right address,
-  // write the reg we want to read, and then stop.
-  // Then start the bus, calling the address indicating a read, and then do the read.
-  otb_i2c_pca9685_start();
-  
-  rc = otb_i2c_pca9685_call(addr);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-
-  rc = otb_i2c_pca9685_reg(reg);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  otb_i2c_pca9685_stop();
-  
-  otb_i2c_pca9685_start();
-
-  i2c_master_writeByte((addr << 1) | 0b1); // Read
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  
-  *val = i2c_master_readByte();
-  INFO("PCA9685: Read value: 0x%02x", *val);
-  i2c_master_send_ack();
-  
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  otb_i2c_pca9685_stop();
-
-  DEBUG("I2C: otb_i2c_ads_read exit");
+  DEBUG("I2C: otb_i2c_pca9685_init exit");
 
   return rc;
 }
@@ -240,139 +183,30 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set_mode(uint8_t addr, uint16_t mode)
 {
   bool rc = FALSE;
   int ii;
+  uint8_t mode_byte[2];
 
-  // Mode is a 2 byte value - so 2 registers
-  for (ii = 0; ii < 2; ii++)
-  {
-    rc = otb_i2c_pca9685_write_one_reg(addr,
-                                       OTB_I2C_PCA9685_REG_MODE1 + ii,
-                                       (uint8_t)(mode & 0xFF));
-    if (!rc)
-    {
-      goto EXIT_LABEL;
-    }
-    mode = mode >> 8;
-  }
-  
-  rc = TRUE;
-  
-EXIT_LABEL:
+  DEBUG("I2C: otb_i2c_pca9685_set_mode entry");
 
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_pca9685_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val)
-{
-  bool rc = FALSE;
-
-  otb_i2c_pca9685_start();
-  
-  rc = otb_i2c_pca9685_call(addr);
+  mode_byte[0] = mode & 0xff;
+  mode_byte[1] = mode >> 8;
+  rc = otb_i2c_write_reg_seq(addr,
+                             OTB_I2C_PCA9685_REG_MODE1,
+                             2,
+                             mode_byte);
   if (!rc)
   {
-    WARN("PCA9685: Failed to call address %02x", addr);
     goto EXIT_LABEL;
   }
-  
-  rc = otb_i2c_pca9685_reg(reg);
-  if (!rc)
-  {
-    WARN("PCA9685: Failed to write reg %02x", reg);
-    goto EXIT_LABEL;
-  }
-  
-  rc = otb_i2c_pca9685_val(val);
-  if (!rc)
-  {
-    WARN("PCA9685: Failed to write val %02x", val);
-    goto EXIT_LABEL;
-  }
-  otb_i2c_pca9685_stop();
   
   rc = TRUE;
   
 EXIT_LABEL:
 
-  return rc;
-}
-
-void ICACHE_FLASH_ATTR otb_i2c_pca9685_start()
-{
-  INFO("PCA9685: Start I2C bus");
-
-  i2c_master_start();
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_i2c_pca9685_stop()
-{
-  INFO("PCA9685: Stop I2C bus");
-
-  i2c_master_stop();
-  
-  return;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_pca9685_call(uint8_t addr)
-{
-  bool rc = FALSE;
-
-  INFO("PCA9685: Call addr: %02x", addr);
-
-  // Write the address and check for ack
-  i2c_master_writeByte((addr << 1) | 0b0);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-
-  rc = TRUE;
-
-EXIT_LABEL:
+  DEBUG("I2C: otb_i2c_pca9685_set_mode exit");
 
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_i2c_pca9685_reg(uint8_t reg)
-{
-  bool rc = FALSE;
 
-  INFO("PCA9685: Write reg: %02x", reg);
 
-  // Write register
-  i2c_master_writeByte(reg);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
 
-EXIT_LABEL:
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_pca9685_val(uint8_t val)
-{
-  bool rc = FALSE;
-
-  INFO("PCA9685: Write val: %02x", val);
-
-  // Write  value
-  i2c_master_writeByte(val);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  return rc;
-}
