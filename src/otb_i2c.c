@@ -1941,4 +1941,76 @@ EXIT_LABEL:
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_i2c_write_one_val(uint8_t addr, uint8_t val)
+{
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_write_one_val entry");
+  
+  otb_i2c_bus_start();
+  
+  rc = otb_i2c_bus_call(addr, FALSE);
+  if (!rc)
+  {
+    WARN("I2C: Failed to call address 0x%02x", addr);
+    goto EXIT_LABEL;
+  }
+  
+  rc = otb_i2c_write_val(val);
+  if (!rc)
+  {
+    WARN("I2C: Failed to write val: 0x%02x", val);
+    goto EXIT_LABEL;
+  }
+  else
+  {
+    DEBUG("I2C: Written val: 0x%02x", val+);
+  }
+
+  rc = TRUE;
+  
+EXIT_LABEL:
+
+  otb_i2c_bus_start();
+
+  otb_i2c_bus_stop();
+  
+  DEBUG("I2C: otb_i2c_write_one_val exit");
+  
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_read_one_val(uint8_t addr, uint8_t *val)
+{
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_read_one_val entry");
+
+  otb_i2c_bus_start();
+  
+  rc = otb_i2c_bus_call(addr, TRUE);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+  
+  *val = i2c_master_readByte();
+  DEBUG("I2C: Read value: 0x%02x", *val);
+  i2c_master_send_ack();
+  
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  // Not entirely sure why this restart is required after reading, but if we don't do it
+  // the next register write fails.
+  otb_i2c_bus_start();
+
+  otb_i2c_bus_stop();
+
+  DEBUG("I2C: otb_i2c_read_one_val exit");
+  
+  return rc;
+}
+
 

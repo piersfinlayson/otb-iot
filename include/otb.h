@@ -87,6 +87,7 @@
 #include "otb_i2c.h"
 #include "otb_i2c_pca9685.h"
 #include "otb_i2c_mcp23017.h"
+#include "otb_i2c_pcf8574.h"
 #include "otb_ds18b20.h"
 #include "otb_rboot.h"
 #include "otb_gpio.h"

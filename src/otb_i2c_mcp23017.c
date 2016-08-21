@@ -99,7 +99,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_led_conf(uint8_t addr, uint8_t led, bool
   gpio_reg = otb_i2c_mcp23017_get_io_reg(led);
   
   // Figure out which bit within this register this led is on
-  io = led & 0xff;
+  io = 1 << (led|8);
 
 #if 0
   rc = otb_i2c_read_one_reg(addr, gpio_reg, &gpio_val);
@@ -181,7 +181,7 @@ uint8_t ICACHE_FLASH_ATTR otb_i2c_mcp23017_get_io_reg(uint8_t io)
 {
   uint8_t bank_reg;
 
-  DEBUG("otb_i2c_mcp_23017_get_io_reg entry");
+  DEBUG("otb_i2c_mcp23017_get_io_reg entry");
   
   OTB_ASSERT(io < OTB_I2C_MCP23017_REG_IO_NUM);
   
@@ -194,7 +194,7 @@ uint8_t ICACHE_FLASH_ATTR otb_i2c_mcp23017_get_io_reg(uint8_t io)
     bank_reg = OTB_I2C_MCP23017_REG_GPIOB;
   }
 
-  DEBUG("otb_i2c_mcp_23017_get_io_reg exit");
+  DEBUG("otb_i2c_mcp23017_get_io_reg exit");
 
   return bank_reg;
 }

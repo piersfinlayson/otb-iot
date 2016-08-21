@@ -105,6 +105,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_i2c.o \
              $(OTB_OBJ_DIR)/otb_i2c_pca9685.o \
              $(OTB_OBJ_DIR)/otb_i2c_mcp23017.o \
+             $(OTB_OBJ_DIR)/otb_i2c_pcf8574.o \
              $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \
@@ -124,6 +125,7 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_i2c.o \
              $(OTB_OBJ_DIR)/otb_i2c_pca9685.o \
              $(OTB_OBJ_DIR)/otb_i2c_mcp23017.o \
+             $(OTB_OBJ_DIR)/otb_i2c_pcf8574.o \
              $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \
