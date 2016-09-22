@@ -84,7 +84,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   return;
 }
 
-void otb_ds18b20_cmd(char *cmd0, char *cmd1, char *cmd2)
+void ICACHE_FLASH_ATTR otb_ds18b20_cmd(char *cmd0, char *cmd1, char *cmd2)
 {
   bool rc = FALSE;
   char *error_text = "";

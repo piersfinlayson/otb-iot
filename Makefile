@@ -34,11 +34,11 @@ ESPTOOL2 = /usr/bin/esptool2
 ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 
 # Compile options
-CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -std=c99 -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
-HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5
+CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
+HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM 
-MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd
-OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode
+MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
+OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 
 I2C_CFLAGS = -Ilib/i2c
 
 # esptool.py options
@@ -96,8 +96,8 @@ RBOOT_SRC_DIR = lib/rboot
 RBOOT_OBJ_DIR = obj/rboot
 MQTT_SRC_DIR = lib/mqtt
 MQTT_OBJ_DIR = obj/mqtt
-I2C_SRC_DIR = lib/i2c
-I2C_OBJ_DIR = obj/i2c
+I2C_SRC_DIR = lib/brzo_i2c
+I2C_OBJ_DIR = obj/brzo_i2c
 
 # Object files
 otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
@@ -162,7 +162,7 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 
-i2cObjects = $(I2C_OBJ_DIR)/i2c_master.o
+i2cObjects = $(I2C_OBJ_DIR)/brzo_i2c.o
 
 all: directories bin/app_image.bin bin/rboot.bin
 

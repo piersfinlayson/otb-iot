@@ -1,0 +1,3 @@
+[submodule "lib/brzo_i2c"]
+	path = lib/brzo_i2c
+	url = https://github.com/piersfinlayson/brzo_i2c

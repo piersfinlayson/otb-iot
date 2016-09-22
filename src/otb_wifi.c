@@ -637,7 +637,7 @@ void ICACHE_FLASH_ATTR otb_wifi_ap_free_list(void)
   return;
 }
 
-void otb_wifi_station_scan_callback(void *arg, STATUS status)
+void ICACHE_FLASH_ATTR otb_wifi_station_scan_callback(void *arg, STATUS status)
 {
   struct bss_info *bss_link;
   struct otb_wifi_ap *ap;

@@ -119,7 +119,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init_reset_timer(void)
   DEBUG("GPIO: otb_gpio_init_reset_timer exit");
 }
 
-void otb_gpio_reset_timerfunc(void *arg)
+void ICACHE_FLASH_ATTR otb_gpio_reset_timerfunc(void *arg)
 {
   DEBUG("GPIO: otb_gpio_reset_timerfunc entry");
   

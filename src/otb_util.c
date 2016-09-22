@@ -1182,7 +1182,7 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   return;
 }
 
-size_t otb_util_strnlen(const char *s, size_t maxlen)
+size_t ICACHE_FLASH_ATTR otb_util_strnlen(const char *s, size_t maxlen)
 {
   size_t ii;
   for (ii = 0; ii < maxlen; ii++)
@@ -1195,11 +1195,11 @@ size_t otb_util_strnlen(const char *s, size_t maxlen)
   return ii;
 }
 
-char* strcat(char * dest, const char * src) {
+char* ICACHE_FLASH_ATTR strcat(char * dest, const char * src) {
     return strncat(dest, src, strlen(src));
 }
 
-char* strncat(char * dest, const char * src, size_t n) {
+char* ICACHE_FLASH_ATTR strncat(char * dest, const char * src, size_t n) {
     size_t i;
     size_t offset = strlen(dest);
     for(i = 0; i < n && src[i]; i++) {
@@ -1209,70 +1209,70 @@ char* strncat(char * dest, const char * src, size_t n) {
     return dest;
 }
 
-int islower(int c) {
+int ICACHE_FLASH_ATTR islower(int c) {
     if(c >= 'a' && c <= 'z') {
         return 1;
     }
     return 0;
 }
 
-int isupper(int c) {
+int ICACHE_FLASH_ATTR isupper(int c) {
     if(c >= 'A' && c <= 'Z') {
         return 1;
     }
     return 0;
 }
 
-int isalpha(int c) {
+int ICACHE_FLASH_ATTR isalpha(int c) {
     if(islower(c) || isupper(c)) {
         return 1;
     }
     return 0;
 }
 
-int isdigit(int c) {
+int ICACHE_FLASH_ATTR isdigit(int c) {
     if(c >= '0' && c <= '9') {
         return 1;
     }
     return 0;
 }
 
-int isalnum(int c) {
+int ICACHE_FLASH_ATTR isalnum(int c) {
     if(isalpha(c) || isdigit(c)) {
         return 1;
     }
     return 0;
 }
 
-int iscntrl(int c) {
+int ICACHE_FLASH_ATTR iscntrl(int c) {
     if(c <= 0x1F || c == 0x7F) {
         return 1;
     }
     return 0;
 }
 
-int isprint(int c) {
+int ICACHE_FLASH_ATTR isprint(int c) {
     if(!iscntrl(c)) {
         return 1;
     }
     return 0;
 }
 
-int isgraph(int c) {
+int ICACHE_FLASH_ATTR isgraph(int c) {
     if(isprint(c) && c != ' ') {
         return 1;
     }
     return 0;
 }
 
-int ispunct(int c) {
+int ICACHE_FLASH_ATTR ispunct(int c) {
     if(isgraph(c) && !isalnum(c)) {
         return 1;
     }
     return 0;
 }
 
-int isxdigit(int c) {
+int ICACHE_FLASH_ATTR isxdigit(int c) {
     if(c >= 'A' && c <= 'F') {
         return 1;
     }
@@ -1285,21 +1285,21 @@ int isxdigit(int c) {
     return 0;
 }
 
-int tolower(int c) {
+int ICACHE_FLASH_ATTR tolower(int c) {
     if(isupper(c)) {
         c += 0x20;
     }
     return c;
 }
 
-int toupper(int c) {
+int ICACHE_FLASH_ATTR toupper(int c) {
     if(islower(c)) {
         c -= 0x20;
     }
     return c;
 }
 
-int isblank(int c) {
+int ICACHE_FLASH_ATTR isblank(int c) {
     switch(c) {
         case 0x20: // ' '
         case 0x09: // '\t'
@@ -1309,7 +1309,7 @@ int isblank(int c) {
 }
 
 
-int isspace(int c) {
+int ICACHE_FLASH_ATTR isspace(int c) {
     switch(c) {
         case 0x20: // ' '
         case 0x09: // '\t'
@@ -1362,7 +1362,7 @@ int isspace(int c) {
  * SUCH DAMAGE.
  */
 
-long strtol(const char *nptr, char **endptr, int base) {
+long ICACHE_FLASH_ATTR strtol(const char *nptr, char **endptr, int base) {
     const unsigned char *s = (const unsigned char *)nptr;
     unsigned long acc;
     int c;
@@ -1443,7 +1443,7 @@ long ICACHE_FLASH_ATTR atol(const char* s) {
     return strtol(s, &tmp, 10);
 }
 
-int atoi(const char* s) {
+int ICACHE_FLASH_ATTR atoi(const char* s) {
     return (int) atol(s);
 }
 

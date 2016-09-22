@@ -37,7 +37,7 @@ void ICACHE_FLASH_ATTR otb_httpd_start(void)
   return;
 }
 
-void otb_httpd_station_config_callback(void *arg)
+void ICACHE_FLASH_ATTR otb_httpd_station_config_callback(void *arg)
 {
   HttpdConnData *connData;
   int len;

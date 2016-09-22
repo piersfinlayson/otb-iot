@@ -546,7 +546,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink_it(void)
 }
 
 
-void otb_led_wifi_blink_timerfunc(void *arg)
+void ICACHE_FLASH_ATTR otb_led_wifi_blink_timerfunc(void *arg)
 {
 
   DEBUG("LED: otb_led_wifi_blink_timerfunc entry");
