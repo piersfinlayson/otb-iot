@@ -122,6 +122,7 @@ bool otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val);
 bool otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val);
 bool otb_i2c_read_one_reg(uint8_t addr, uint8_t reg, uint8_t *val);
 bool otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val);
+bool otb_i2c_write_seq_vals(uint8_t addr, uint8_t count, uint8_t *val);
 bool otb_i2c_read_one_val(uint8_t addr, uint8_t *val);
 bool otb_i2c_write_one_val(uint8_t addr, uint8_t val);
 

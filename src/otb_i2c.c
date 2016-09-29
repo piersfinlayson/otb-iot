@@ -173,7 +173,7 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
     }
     
     // XXX Temporary
-    otb_i2c_pcf8574_test_init();
+    //otb_i2c_24xxyy_test_init();
   }
   else
   {
@@ -1902,7 +1902,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t co
   bool rc = FALSE;
   int ii;
 
-  DEBUG("I2C: otb_i2c_write_one_reg entry");
+  DEBUG("I2C: otb_i2c_write_reg_seq entry");
 
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(&reg, 1, FALSE);
@@ -1953,7 +1953,7 @@ EXIT_LABEL:
   otb_i2c_bus_stop();
 #endif  
   
-  DEBUG("I2C: otb_i2c_write_one_reg exit");
+  DEBUG("I2C: otb_i2c_write_reg_seq exit");
 
   return rc;
 }
@@ -2038,6 +2038,26 @@ EXIT_LABEL:
 #endif
 
   DEBUG("I2C: otb_i2c_read_reg_seq exit");
+  
+  return rc;
+}
+
+bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals(uint8_t addr, uint8_t count, uint8_t *val)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_write_seq_vals entry");
+  
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_write(val, count, FALSE);
+  brzo_rc = brzo_i2c_end_transaction();
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+  
+  DEBUG("I2C: otb_i2c_write_seq_vals exit");
   
   return rc;
 }
