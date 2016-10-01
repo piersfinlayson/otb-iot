@@ -19,7 +19,7 @@
 include hardware
 
 # SDK versions, etc
-# SDK_BASE = /opt/esp-open-sdk
+SDK_BASE = /opt/esp-open-sdk
 ESP_SDK = sdk
 
 # Build tools
@@ -48,7 +48,7 @@ ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
 # esptool2 options
 E2_OPTS = -quiet -bin -boot0
-SPI_SIZE = 1M
+SPI_SIZE = 4M
 
 ifeq ($(SPI_SIZE), 256K)
         E2_OPTS += -256
@@ -60,6 +60,10 @@ else ifeq ($(SPI_SIZE), 2M)
         E2_OPTS += -2048
 else ifeq ($(SPI_SIZE), 4M)
         E2_OPTS += -4096
+else ifeq ($(SPI_SIZE), 8M)
+        E2_OPTS += -8192
+else ifeq ($(SPI_SIZE), 16M)
+        E2_OPTS += -16384
 endif
 ifeq ($(SPI_MODE), qio)
         E2_OPTS += -qio

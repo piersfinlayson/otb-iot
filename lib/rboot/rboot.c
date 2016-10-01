@@ -280,6 +280,20 @@ uint32 NOINLINE find_image() {
 #else
 		flashsize = 0x100000; // limit to 8Mbit
 #endif
+	} else if (flag == 5) {
+		ets_printf("64 Mbit\r\n");
+#ifdef BOOT_BIG_FLASH
+		flashsize = 0x800000;
+#else
+		flashsize = 0x100000; // limit to 8Mbit
+#endif
+	} else if (flag == 6) {
+		ets_printf("128 Mbit\r\n");
+#ifdef BOOT_BIG_FLASH
+		flashsize = 0x1000000;
+#else
+		flashsize = 0x100000; // limit to 8Mbit
+#endif
 	} else {
 		ets_printf("unknown\r\n");
 		// assume at least 4mbit
