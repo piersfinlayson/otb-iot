@@ -174,6 +174,7 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
     
     // XXX Temporary
     //otb_i2c_24xxyy_test_init();
+    otb_i2c_pcf8574_test_init();
   }
   else
   {

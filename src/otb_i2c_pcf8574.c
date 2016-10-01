@@ -66,7 +66,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_init(void)
   if (!rc)
   {
     WARN("PCF8574: Failed to init PCF8574 at address 0x%02x", otb_i2c_pcf8574_test_addr);
-    goto EXIT_LABEL;
+    //goto EXIT_LABEL;
   }
   
   otb_util_timer_set((os_timer_t*)&otb_i2c_pcf8574_test_timer, 

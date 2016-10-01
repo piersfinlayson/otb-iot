@@ -75,7 +75,7 @@
 // 24XX04 - 16 bytes
 // 24XX08 - 16 bytes
 // 24XX16 - 16 bytes
-// 24XX16 - 32 bytes
+// 24XX32 - 32 bytes
 //
 // Reading is done as follows:
 //
