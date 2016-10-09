@@ -49,6 +49,7 @@ ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 # esptool2 options
 E2_OPTS = -quiet -bin -boot0
 SPI_SIZE = 4M
+SPI_SPEED = 40
 
 ifeq ($(SPI_SIZE), 256K)
         E2_OPTS += -256
@@ -234,7 +235,7 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
 flash_boot: bin/rboot.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fs 32m 0x0 bin/rboot.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x2000 bin/app_image.bin
@@ -260,6 +261,9 @@ clean:
 
 erase_flash:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash
+
+flash_40mhz:
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 flash/esp_init_data_40mhz_xtal.hex
 
 directories:
 	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) obj/html
