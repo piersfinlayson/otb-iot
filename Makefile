@@ -250,6 +250,8 @@ flash: flash_boot flash_app
 
 flash_initial: erase_flash flash_boot flash_app flash_factory
 
+flash_initial_40mhz: erase_flash flash_boot flash_app flash_factory flash_40mhz
+
 connect:
 	platformio serialports monitor -b 115200
 
