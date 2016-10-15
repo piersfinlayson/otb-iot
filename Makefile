@@ -85,6 +85,19 @@ else ifeq ($(SPI_SPEED), 80)
         E2_OPTS += -80
 endif
 
+# Check image size
+# 983040 is 0xf0000. If factory image is written to 0x305000 and the SDK writes
+# at 0x3fc000 then we have a bit over 0xf0000 for the app image - so leave a
+# bit of contingency
+CHECK_APP_IMAGE_FILE_SIZE = \
+        if [ ! -f "bin/app_image.bin" ]; then \
+                echo "bin/app_image.bin does not exist" ; exit 1 ; \
+        fi; \
+        FILE_SIZE=$$(du -b "bin/app_image.bin" | cut -f 1) ; \
+        if [ $$FILE_SIZE -gt 983040 ]; then \
+                echo "bin/app_image.bin too large" ; exit 1 ; \
+        fi
+
 # Link options
 LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -lssl -Wl,--end-group
@@ -176,6 +189,7 @@ bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
 	$(OBJDUMP) -d $^ > bin/disassembly
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
+	@$(CHECK_APP_IMAGE_FILE_SIZE)
 
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
@@ -238,13 +252,13 @@ flash_boot: bin/rboot.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x2000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3000 bin/app_image.bin
 
 flash_app2: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x203000 bin/app_image.bin
 
 flash_factory: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x303000 bin/app_image.bin
 
 flash: flash_boot flash_app
 
