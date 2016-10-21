@@ -1434,182 +1434,203 @@ int8_t ICACHE_FLASH_ATTR otb_i2c_ads_conf_field_match(char *field)
 
   return match;
 }
-  
-void ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(char *addr, char *field, char *value)
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_valid_addr(unsigned char *to_match)
 {
-  otb_conf_ads *ads;
-  char *response = OTB_MQTT_EMPTY;
   bool rc = FALSE;
-  int ii, jj;
-  bool ads_match;
   uint8_t addr_b;
-  int8_t field_i;
-  uint8_t val_b;
-  int val_i;
-
-  DEBUG("I2C: otb_i2c_ads_conf_set entry");
-
-  if (addr == NULL)
-  {
-    rc = FALSE;
-    response = "no addr";
-    goto EXIT_LABEL;
-  }
-
-  // See if command is really to clear
-  if (otb_mqtt_match(addr, OTB_MQTT_CMD_SET_CLEAR))
-  {
-    // Could just null first byte, but this is more privacy conscious, and we have to
-    // completely erase and rewrite the flash segment anyway ...
-    otb_conf_ads_init(otb_conf);
-    rc = TRUE;
-    goto EXIT_LABEL;
-  }
   
-  // Get address
-  if (!otb_i2c_mqtt_get_addr(addr, &addr_b) ||
+  DEBUG("I2C: otb_i2c_ads_valid_addr entry");
+
+  if (!otb_i2c_mqtt_get_addr(to_match, &addr_b) ||
       (addr_b < 0x48) ||
       (addr_b > 0x4b))
   {
     rc = FALSE;
-    response = "invalid address";
+    otb_cmd_rsp_append("invalid ads address");
     goto EXIT_LABEL;
   }
   
-  // First of all see if there's already an ADS of this address. If so replace with the
-  // provided field/value.
+  rc = TRUE;
+  
+EXIT_LABEL:
+
+  DEBUG("I2C: otb_i2c_ads_valid_addr exit");
+
+ return rc;
+
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_configured_addr(unsigned char *to_match)
+{
+  bool rc = FALSE;
+  uint8_t addr_b;
+  otb_conf_ads *ads;
+
+  DEBUG("I2C: otb_i2c_ads_configured_addr entry");
+  
+  if (!otb_i2c_mqtt_get_addr(to_match, &addr_b) ||
+      (addr_b < 0x48) ||
+      (addr_b > 0x4b))
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("invalid ads address");
+    goto EXIT_LABEL;
+  }
+  
+  rc = otb_i2c_ads_conf_get_addr(addr_b, &ads);
+  if (!rc)
+  {
+    otb_cmd_rsp_append("unconfigured ads address");
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+  
+EXIT_LABEL:
+  
+  DEBUG("I2C: otb_i2c_ads_configured_addr exit");
+  
+  return rc;
+  
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int cmd;
+  unsigned char *value;
+  unsigned char *addr;
+  otb_conf_ads *ads = NULL;
+  int slot = -1;
+  uint8_t addr_b;
+  uint8_t val_b;
+  int val_i;
+  int min;
+  int max;
+  int val;
+  bool byte;
+  char *ads_val_b;
+  uint16_t *ads_val_i;
+  uint8_t type;
+  int offset;
+    
+  DEBUG("I2C: otb_i2c_ads_conf_set entry");
+
+  cmd = (int)arg;
+  OTB_ASSERT((cmd >= 0) && (cmd < OTB_CMD_ADS_NUM));
+  
+  // We've tested the address is valid already
+  addr = prev_cmd;
+  if (!otb_i2c_mqtt_get_addr(addr, &addr_b) ||
+      (addr_b < 0x48) ||
+      (addr_b > 0x4b))
+  {
+    // Shouldn't happen as already tested!
+    OTB_ASSERT(FALSE);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+  // See if there's already an ADS of this address
   rc = otb_i2c_ads_conf_get_addr(addr_b, &ads);
   if (!rc)
   {
     // No match, so we need to find a free slot instead
-    for (ii = 0, ads = otb_conf->ads; ii < OTB_CONF_ADS_MAX_ADSS; ads++, ii++)
+    ads = NULL;
+    for (slot = 0; slot < OTB_CONF_ADS_MAX_ADSS; slot++)
     {
-      if (ads->addr == 0)
+      if (otb_conf->ads[slot].addr == 0)
       {
-        INFO("I2C: Use empty slot %d", ii);
-        ads->addr = addr_b;
-        otb_conf->adss++;
-        rc = TRUE;
+        DEBUG("I2C: Found empty slot %d", slot);
+        ads = otb_conf->ads + slot;
         break;
       }
     }
-  }  
-  
-  if (!rc)
+  }
+
+  // If we haven't found an ADS reject with error
+  rc = FALSE;
+  if (ads == NULL)
   {
-    // Going to have to reject
-    response = "no free slots";
-    rc = FALSE;
+    if (cmd == OTB_CMD_ADS_ADD)
+    {
+      otb_cmd_rsp_append("no free slots");
+    }
+    else
+    {
+      otb_cmd_rsp_append("unconfigured ads");
+    }
     goto EXIT_LABEL;
   }
   
-  // If we've got to here then we've found a suitable ADS, so update the field
-  
-  // Blank field is actually OK - this will just have set up a slot if there wasn't
-  // already so succeed, but indicate no field
-  if (field == NULL)
+  // Now we're here we can assume we have a slot pointer stored off in ads
+  switch(cmd)
   {
-    rc = TRUE;
-    response = "no field";
-    goto EXIT_LABEL;
-  }
-  
-  // If we get to here with no value then things aren't going to work, as we will need
-  // to store something
-  if (value == NULL)
-  {
-    rc = FALSE;
-    response = "no value";
-    goto EXIT_LABEL;
-  }
-  
-  field_i = otb_i2c_ads_conf_field_match(field);
-  DEBUG("CONF: ADS field %d", field_i);
-  switch (field_i)
-  {
-    case OTB_MQTT_I2C_ADS_FIELD_MUX_:
-      rc = otb_i2c_ads_get_binary_val(value, &val_b);
-      if (!rc || (val_b < 0) || (val_b > 7))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->mux = val_b;
+    case OTB_CMD_ADS_ADD:
+      ads->addr = addr_b;
+      otb_conf->adss++;
+      rc = TRUE;
       break;
 
-    case OTB_MQTT_I2C_ADS_FIELD_GAIN_:
-      rc = otb_i2c_ads_get_binary_val(value, &val_b);
-      if (!rc || (val_b < 0) || (val_b > 7))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->gain = val_b;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_RATE_:
-      rc = otb_i2c_ads_get_binary_val(value, &val_b);
-      if (!rc || (val_b < 0) || (val_b > 7))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->rate = val_b;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_CONT_:
-      rc = otb_i2c_ads_get_binary_val(value, &val_b);
-      if (!rc || (val_b < 0) || (val_b > 1))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->cont = val_b;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_RMS_:
-      rc = otb_i2c_ads_get_binary_val(value, &val_b);
-      if (!rc || (val_b < 0) || (val_b > 1))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->rms = val_b;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_PERIOD_:
-      rc = otb_i2c_mqtt_get_num(value, &val_i);
-      if (!rc || (val_i < 0) || (val_i > 65535))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->period = val_i;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_SAMPLES_:
-      rc = otb_i2c_mqtt_get_num(value, &val_i);
-      if (!rc || (val_i < 0) || (val_i > 1024))
-      {
-        response = "invalid value";
-        goto EXIT_LABEL;
-      }
-      ads->samples = val_i;
-      break;
-
-    case OTB_MQTT_I2C_ADS_FIELD_LOC_:
+    case OTB_CMD_ADS_LOC:
       os_strncpy(ads->loc, value, OTB_CONF_ADS_LOCATION_MAX_LEN);
       ads->loc[OTB_CONF_ADS_LOCATION_MAX_LEN-1] = 0;
       rc = TRUE;
       break;
-    
-    default:
-      rc = FALSE;
-      response = "invalid field";
-      goto EXIT_LABEL;
-      break;
-  }
 
+    case OTB_CMD_ADS_MUX:
+    case OTB_CMD_ADS_RATE:
+    case OTB_CMD_ADS_GAIN:
+    case OTB_CMD_ADS_CONT:
+    case OTB_CMD_ADS_RMS:
+    case OTB_CMD_ADS_PERIOD:
+    case OTB_CMD_ADS_SAMPLES:
+      type = otb_i2c_ads_conf[cmd].type;
+      offset = otb_i2c_ads_conf[cmd].offset;
+      min = otb_i2c_ads_conf[cmd].min;
+      max = otb_i2c_ads_conf[cmd].max;
+      if (type == OTB_I2C_ADS_CONF_VAL_TYPE_BYTE)
+      {
+        rc = otb_i2c_ads_get_binary_val(value, &val_b);
+        val = val_b;
+      }
+      else if (type == OTB_I2C_ADS_CONF_VAL_TYPE_UINT16)
+      {
+        rc = otb_i2c_mqtt_get_num(value, &val_i);
+        val = val_i;
+      }
+      else
+      {
+        // Should handle any other type of field separately
+        OTB_ASSERT(FALSE);
+      }
+      
+      if (!rc || (val < min) || (val > max))
+      {
+        otb_cmd_rsp_append("invalid value");
+        rc = FALSE;
+        goto EXIT_LABEL;
+      }
+      
+      if (type == OTB_I2C_ADS_CONF_VAL_TYPE_BYTE)
+      {
+        ads_val_b = (char *)(((unsigned char *)ads) + offset);
+        *ads_val_b = val;
+      }
+      else if (type == OTB_I2C_ADS_CONF_VAL_TYPE_UINT16)
+      {
+        ads_val_i = (uint16_t *)(((unsigned char *)ads) + offset);
+        *ads_val_i = val;
+      }
+      break;
+
+    default:
+      OTB_ASSERT(FALSE);
+      break;
+
+  }
+  
 EXIT_LABEL:
 
   // If successful store off new config
@@ -1618,31 +1639,66 @@ EXIT_LABEL:
     rc = otb_conf_update(otb_conf);
     if (!rc)
     {
-      response = "failed to store new config";
+      otb_cmd_rsp_append("failed to store new config");
     }
   }
+
+  DEBUG("I2C: otb_i2c_ads_conf_set exit");
   
-  // Send appropriate response
-  if (rc)
+  return rc;
+  
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_delete(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int cmd;
+  otb_conf_ads *ads = NULL;
+  char *addr;
+  uint8_t addr_b;
+  
+  DEBUG("I2C: otb_i2c_ads_conf_delete entry");
+  
+  cmd = (int)arg;
+
+  if (cmd == OTB_CMD_ADS_ALL)
   {
-    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
-                         OTB_MQTT_CMD_SET,
-                         OTB_MQTT_STATUS_OK,
-                         "");
-  
-  }  
+    otb_conf_ads_init(otb_conf);
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }
+  else if (cmd == OTB_CMD_ADS_ADDR)
+  {
+    // We've tested the address is configured already, so a bit of asserting
+    addr = prev_cmd;
+    rc = otb_i2c_mqtt_get_addr(addr, &addr_b);
+    OTB_ASSERT(rc);
+    rc = otb_i2c_ads_conf_get_addr(addr_b, &ads);
+    OTB_ASSERT(rc);
+    otb_conf_ads_init_one(ads, ads->index);
+    otb_conf->adss--;
+    rc = TRUE;
+  }
   else
   {
-    otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
-                         OTB_MQTT_CMD_SET,
-                         OTB_MQTT_STATUS_ERROR,
-                         response);
-    INFO("CONF: Sent status");
+    OTB_ASSERT(FALSE);
+  }  
+  
+EXIT_LABEL:
+
+  // If successful store off new config
+  if (rc)
+  {
+    rc = otb_conf_update(otb_conf);
+    if (!rc)
+    {
+      otb_cmd_rsp_append("failed to store new config");
+    }
   }
+
+  DEBUG("I2C: otb_i2c_ads_conf_delete exit");
   
-  DEBUG("DS18B20: otb_i2c_ads_conf_set exit");
-  
-  return;
+  return rc;
 }
 
 void ICACHE_FLASH_ATTR otb_i2c_ads_conf_get(char *addr, char *field, char *field2)

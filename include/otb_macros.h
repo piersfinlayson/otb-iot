@@ -38,17 +38,40 @@
 #define WARN(...)  LOG(FALSE, __VA_ARGS__);
 #define ERROR(...)  LOG(TRUE, __VA_ARGS__);
 
+#ifndef ESPUT
 #ifdef OTB_DEBUG
   #define DEBUG(...)  LOG(FALSE, __VA_ARGS__);
-#else
+#else // OTB_DEBUG
   #define DEBUG(...)
+#endif // OTB_DEBUG
+#else // ESPUT
+#define DEBUG(...)  if (esput_debug) { esput_printf("DEBUG LOG", __VA_ARGS__); esput_printf("", "\n");}
 #endif
 
+#ifndef ESPUT
 // #X passes a stringified version of X, which is used for logging purposes
 #define OTB_ASSERT(X) otb_util_assert(X, (char *)#X)
+#else
+#define OTB_ASSERT(X)                                                     \
+{                                                                         \
+  esput_printf("ASSERTION", "%s\n", #X);                                  \
+  esput_printf("         ", "%s\n", (X) ? "passed" : "failed");           \
+  if (!X)                                                                 \
+  {                                                                       \
+    esput_assertion_failed = TRUE;                                        \
+  }                                                                       \
+}
 
+
+#endif // ESPUT
+
+#ifndef ESPUT
 #define os_vsnprintf(A, B, ...)  ets_vsnprintf(A, B, __VA_ARGS__)
 #define os_snprintf ets_snprintf
+#else
+#define os_vsnprintf(A, B, ...)  vsnprintf(A, B, __VA_ARGS__)
+#define os_snprintf snprintf
+#endif // ESPUT
 
 // Macro to align stuff to 4 byte boundary.  Useful for reading and writing
 // to flash
@@ -58,5 +81,6 @@
 #define OTB_MQTT_LOCATION_2  otb_conf->loc.loc2
 #define OTB_MQTT_LOCATION_3  otb_conf->loc.loc3
 
-#define OTB_MAX(A, B)  (A > B) ? A : B
-#define OTB_MIN(A, B)  (A < B) ? A : B
+#define OTB_MAX(A, B)  ((A > B) ? A : B)
+#define OTB_MIN(A, B)  ((A < B) ? A : B)
+

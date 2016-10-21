@@ -48,7 +48,11 @@
 #ifndef __PIN_MAP_H__
 #define __PIN_MAP_H__
 
+#ifndef ESPUT
 #include "c_types.h"
+#else
+#include "ctype.h"
+#endif // ESPUT
 #include "user_config.h"
 #include "gpio.h"
 

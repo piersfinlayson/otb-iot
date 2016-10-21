@@ -149,8 +149,22 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   DEBUG("MQTT: otb_mqtt_subscribe entry");
 
   otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
-  
-  if (extra_subtopic[0] == 0)
+
+  if (subtopic[0] == 0)
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s%s%s%s%s%s%s/%s",
+                OTB_MQTT_ROOT,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
+                OTB_MAIN_CHIPID);
+  }
+  else if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -187,7 +201,21 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
-  if (extra_subtopic[0] == 0)
+  if (subtopic[0] == 0)
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s%s%s%s%s%s%s/%s",
+                OTB_MQTT_ROOT,
+                loc1_,
+                loc1,
+                loc2_,
+                loc2,
+                loc3_,
+                loc3,
+                OTB_MQTT_ALL);
+  }
+  else if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -224,7 +252,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
-  if (extra_subtopic[0] == 0)
+  if (subtopic[0] == 0)
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MQTT_ALL);
+  }
+  else if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -250,7 +286,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
   
   // Also subscribe to system commands for this devices which no location
   // Note if location isn't set this could cause us to sub twice for this topic.  Shrugs.
-  if (extra_subtopic[0] == 0)
+  if (subtopic[0] == 0)
+  {
+    os_snprintf(otb_mqtt_topic_s,
+                OTB_MQTT_MAX_TOPIC_LENGTH,
+                "/%s/%s",
+                OTB_MQTT_ROOT,
+                OTB_MAIN_CHIPID);
+  }
+  else if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,
                 OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -305,7 +349,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
                    
   // Now subscribe for system topic, qos = 1 to ensure we get at least 1 of every command
   otb_mqtt_subscribe(mqtt_client,
-                     OTB_MQTT_TOPIC_SYSTEM,
+                     "",
                      "",
                      1);
 
@@ -386,7 +430,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 	MQTT_OnConnected(mqtt_client, otb_mqtt_on_connected);
 	MQTT_OnDisconnected(mqtt_client, otb_mqtt_on_disconnected);
 	MQTT_OnPublished(mqtt_client, otb_mqtt_on_published);
-	MQTT_OnData(mqtt_client, otb_mqtt_on_receive_publish);
+	//MQTT_OnData(mqtt_client, otb_mqtt_on_receive_publish);
+	MQTT_OnData(mqtt_client, otb_cmd_mqtt_receive);
 	
 	// Connect to server
 	MQTT_Connect(mqtt_client);
@@ -619,221 +664,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       otb_gpio_mqtt(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
       break;
 
-    case OTB_MQTT_SYSTEM_BOOT_SLOT_:
-      if (sub_cmd[0] != NULL)
-      {
-        if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_SET))
-        {
-          otb_rboot_update_slot(sub_cmd[1]);
-        }
-        else if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET))
-        {
-          otb_rboot_get_slot(TRUE);
-        }
-        else
-        {
-          otb_mqtt_send_status(cmd,
-                               OTB_MQTT_STATUS_ERROR,
-                               "No or unsupported command",
-                               "");
-        }
-      }
-      else
-      {
-        otb_mqtt_send_status(cmd,
-                             OTB_MQTT_STATUS_ERROR,
-                             "No or unsupported command",
-                             "");
-      }
-      break;
-
-    case OTB_MQTT_SYSTEM_DS18B20_:
-      otb_ds18b20_cmd(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
-      break;
-
-    case OTB_MQTT_SYSTEM_UPDATE_:
-    case OTB_MQTT_SYSTEM_UPGRADE_:
-      otb_rboot_update(sub_cmd[0], sub_cmd[1], sub_cmd[2]);
-      break;
-
-    case OTB_MQTT_SYSTEM_RESET_:
-      otb_mqtt_send_status(OTB_MQTT_SYSTEM_RESET, OTB_MQTT_STATUS_OK, "", "");
-      otb_reset(otb_mqtt_reset_error_string);
-      break;
-  
-    case OTB_MQTT_SYSTEM_REBOOT_:
-      otb_mqtt_send_status(OTB_MQTT_SYSTEM_REBOOT, OTB_MQTT_STATUS_OK, "", "");
-      otb_reset(otb_mqtt_reset_error_string);
-      break;
-  
-    case OTB_MQTT_SYSTEM_PING_:
-      otb_mqtt_send_status(OTB_MQTT_STATUS_PONG, "", "", "");
-      break;
-      
-    case OTB_MQTT_SYSTEM_RSSI_:
-      otb_wifi_mqtt_do_rssi(otb_mqtt_msg_s);
-      break;
-
-    case OTB_MQTT_SYSTEM_REASON_:
-      otb_mqtt_reason(sub_cmd[0]);
-      break;
-    
-    case OTB_MQTT_SYSTEM_VERSION_:
-    case OTB_MQTT_SYSTEM_CHIP_ID_:
-    case OTB_MQTT_SYSTEM_HEAP_SIZE_:
-    case OTB_MQTT_SYSTEM_COMPILE_DATE_:
-    case OTB_MQTT_SYSTEM_COMPILE_TIME_:
-    case OTB_MQTT_SYSTEM_VDD33_:
-      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_CMD_GET)))
-      {
-        otb_mqtt_send_status(cmd,
-                             OTB_MQTT_STATUS_ERROR,
-                             "only supports get command",
-                             "");
-        goto EXIT_LABEL;
-      }
-      
-      switch(command)
-      {
-        case OTB_MQTT_SYSTEM_VERSION_:
-          otb_mqtt_send_status(cmd, OTB_MAIN_FW_VERSION, "", "");
-          break;
-        
-        case OTB_MQTT_SYSTEM_CHIP_ID_:
-          otb_mqtt_send_status(cmd, OTB_MAIN_CHIPID, "", "");
-          break;
-        
-        case OTB_MQTT_SYSTEM_HEAP_SIZE_:
-          otb_util_get_heap_size();
-          break;
-          
-        case OTB_MQTT_SYSTEM_VDD33_:
-          otb_util_get_vdd33();
-          break;
-          
-        case OTB_MQTT_SYSTEM_COMPILE_DATE_:
-          otb_mqtt_send_status(cmd, otb_compile_date, "", "");
-          break;
-          
-        case OTB_MQTT_SYSTEM_COMPILE_TIME_:
-          otb_mqtt_send_status(cmd, otb_compile_time, "", "");
-          break;
-          
-        default:
-          OTB_ASSERT(FALSE);
-          otb_mqtt_send_status(cmd,
-                               OTB_MQTT_STATUS_ERROR,
-                               "internal error",
-                               "");
-      }  
-      break;
-    
-    case OTB_MQTT_SYSTEM_LOGS_:
-      rc = FALSE;
-      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_LOG_SOURCE_RAM)))
-      {
-        rc = FALSE;
-        error = "no supported source specified";
-      }
-      else if ((sub_cmd[1] == NULL) || (!otb_mqtt_match(sub_cmd[1], OTB_MQTT_CMD_GET)))
-      {
-        rc = FALSE;
-        error = "only supports get command";
-      }
-      else if (sub_cmd[2] == NULL)
-      {
-        rc = FALSE;
-        error = "no index";
-      }
-      else
-      {
-        // sub_cmd[2] should be an index
-        ii = atoi(sub_cmd[2]);
-        if ((ii <= 0xff) && (ii >= 0))
-        {
-          error = otb_util_get_log_ram((uint8)ii);
-          if (error != NULL)
-          {
-            rc = TRUE;
-          }
-          else
-          {
-            rc = FALSE;
-            error = "invalid index";
-          }
-        }
-        else
-        {
-          rc = FALSE;
-          error = "invalid index";
-        }
-      }
-      if (rc)
-      {
-        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_OK, error, "");
-      }
-      else
-      {
-        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
-      }
-      break;
-
     case OTB_MQTT_SYSTEM_I2C_:
       otb_i2c_mqtt(cmd, sub_cmd);
-      break;
-
-    case OTB_MQTT_SYSTEM_TEST_:
-      rc = FALSE;
-      if ((sub_cmd[0] == NULL) || (!otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED)))
-      {
-        rc = FALSE;
-        error = "no supported command specified";
-      }
-      else if (otb_mqtt_match(sub_cmd[0], OTB_MQTT_TEST_LED))
-      {
-        if (sub_cmd[1] != NULL)
-        {
-          if (sub_cmd[2] == NULL)
-          {
-            // Go, but once only
-            rc = otb_led_test(sub_cmd[1], FALSE, ((unsigned char **)&error));
-          }
-          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_GO))
-          {
-            // Go, and repeat
-            rc = otb_led_test(sub_cmd[1], TRUE, ((unsigned char **)&error));
-          }
-          else if (otb_mqtt_match(sub_cmd[2], OTB_MQTT_CMD_STOP))
-          {
-            // Stop
-            rc = otb_led_test_stop(sub_cmd[1], ((unsigned char **)&error));
-          }
-          else
-          {
-            // unknown sub_cmd[2]
-            rc = FALSE;
-            error = "unknown test:led command";
-          }
-        }
-        else
-        {
-          rc = FALSE;
-          error = "no led specified";
-        }
-      }
-      else if (sub_cmd[2] == NULL)
-      {
-        rc = FALSE;
-        error = "no index";
-      }
-      if (rc)
-      {
-        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_OK, error, "");
-      }
-      else
-      {
-        otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
-      }
       break;
 
     case OTB_MQTT_SYSTEM_ADS_:
@@ -849,66 +681,6 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
 EXIT_LABEL:  
   
   DEBUG("MQTT: otb_mqtt_on_receive_publish exit");
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_mqtt_reason(char *what)
-{
-  // Must align 4 this as we're going to read into it from flash
-  char ALIGN4 flash_reason[48];
-  char *reason;
-  bool rc = FALSE;
-  uint8 reason_id;
-
-  DEBUG("MQTT: otb_mqtt_reason entry");
-  
-  if ((what == NULL) || (what[0] == 0))
-  {
-    rc = FALSE;
-    reason = "no argument";
-    goto EXIT_LABEL;
-  }
-  
-  reason_id = otb_mqtt_get_reason(what);
-  
-  switch (reason_id)
-  {
-    case OTB_MQTT_REASON_REBOOT_:
-    case OTB_MQTT_REASON_RESET_:
-      reason = "failed to read from flash";
-      rc = otb_util_flash_read(OTB_BOOT_LAST_REBOOT_REASON, (uint32 *)flash_reason, 48);
-      flash_reason[47] = 0;
-      if (rc)
-      {
-        reason = flash_reason;
-      }
-      break;
-      
-    default:
-      INFO("MQTT: Unknown reason %s", what);
-      reason = "unknown reason";
-      break;
-  }
-  
-EXIT_LABEL:
-  
-  if (rc)
-  {
-    otb_mqtt_send_status(OTB_MQTT_SYSTEM_REASON,
-                         OTB_MQTT_STATUS_OK,
-                         reason,
-                         "");
-  }
-  else
-  {
-    otb_mqtt_send_status(OTB_MQTT_SYSTEM_REASON,
-                         OTB_MQTT_STATUS_ERROR,
-                         reason,
-                         "");
-  }  
-  
-  DEBUG("MQTT: otb_mqtt_reason exit");
   
   return;
 }

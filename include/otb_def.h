@@ -40,7 +40,7 @@
 #define OTB_MQTT_QUEUE_BUFFER_SIZE 4096
 #define OTB_MQTT_MAX_TOPIC_LENGTH 128
 #define OTB_MQTT_MAX_MSG_LENGTH 128
-#define OTB_MAIN_OTB_IOT "otb_iot" // max 8 chars
+#define OTB_MAIN_OTB_IOT "otb-iot" // max 8 chars
 #define OTB_MQTT_KEEPALIVE 120 // seconds
 #define OTB_MQTT_ROOT OTB_MAIN_OTB_IOT // max 8 chars
 #define OTB_MQTT_SERVER "192.168.0.231" // DNS hostnames are fine

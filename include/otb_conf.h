@@ -242,7 +242,10 @@ bool otb_conf_verify_checksum(otb_conf_struct *conf);
 uint8  otb_conf_store_sta_conf(char *ssid, char *password, bool commit);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
-void otb_conf_update_loc(char *loc, char *val);
+bool otb_conf_update_loc(int loc, char *val);
+bool otb_conf_set_keep_ap_active(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_conf_set_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_conf_delete_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4, char *cmd5);
 
 #ifdef OTB_CONF_C

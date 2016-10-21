@@ -54,7 +54,11 @@
 #ifdef OTB_ARDUINO
 #include <Arduino.h>
 #endif
+#ifndef ESPUT
 #include "os_type.h"
+#else
+#include "ctype.h"
+#endif
 #include "ringbuf.h"
 typedef struct {
 	uint8_t *buf;

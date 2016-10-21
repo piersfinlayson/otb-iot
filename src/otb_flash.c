@@ -1,5 +1,4 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
  * Copyright (C) 2016 Piers Finlayson
@@ -16,33 +15,9 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 
-#ifndef _RING_BUF_H_
-#define _RING_BUF_H_
+#define OTB_FLASH_C
+#define OTB_FLASH_INC_FUNCS
+#include "otb.h"
 
-#ifdef OTB_ARDUINO
-#include <Arduino.h>
-#endif
-#ifndef ESPUT
-#include "osapi.h"
-#include <os_type.h>
-#else
-#include "esput.h"
-#endif // ESPUT
-#include <stdlib.h>
-#include "mqtt_typedef.h"
-
-typedef struct{
-	U8* p_o;				/**< Original pointer */
-	U8* volatile p_r;		/**< Read pointer */
-	U8* volatile p_w;		/**< Write pointer */
-	volatile I32 fill_cnt;	/**< Number of filled slots */
-	I32 size;				/**< Buffer size */
-}RINGBUF;
-
-I16 ICACHE_FLASH_ATTR RINGBUF_Init(RINGBUF *r, U8* buf, I32 size);
-I16 ICACHE_FLASH_ATTR RINGBUF_Put(RINGBUF *r, U8 c);
-I16 ICACHE_FLASH_ATTR RINGBUF_Get(RINGBUF *r, U8* c);
-#endif

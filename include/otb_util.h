@@ -69,7 +69,7 @@ bool otb_util_flash_write_string(uint32 location,
                                  uint32 len);
 bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len);
 void otb_util_get_heap_size(void);
-void otb_util_get_vdd33(void);
+bool otb_util_get_vdd33(uint16 *vdd33);
 void otb_util_timer_cancel(os_timer_t *timer);
 bool otb_util_timer_is_set(os_timer_t *timer);
 void otb_util_timer_set(os_timer_t *timer,
@@ -123,6 +123,7 @@ char otb_compile_time[9];
 char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 char OTB_MAIN_DEVICE_ID[20];
+char otb_hw_info[10];
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 

@@ -22,7 +22,11 @@
 #ifndef _UTILS_H_
 #define	_UTILS_H_
 
+#ifndef ESPUT
 #include "c_types.h"
+#else
+#include "esput.h"
+#endif
 
 uint32_t ICACHE_FLASH_ATTR UTILS_Atoh(const int8_t *s);
 uint8_t ICACHE_FLASH_ATTR UTILS_StrToIP(const int8_t* str, void *ip);

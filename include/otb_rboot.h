@@ -21,8 +21,8 @@
  #define OTB_RBOOT_H
 
 void otb_rboot_update_callback(void *arg, bool result);
-bool otb_rboot_update(char *ip, char *port, char *path);
-bool otb_rboot_update_slot(char *msg);
+bool otb_rboot_update(char *ip, char *port, char *path, unsigned char **error);
+bool otb_rboot_update_slot(char *msg, unsigned char **response);
 uint8_t otb_rboot_get_slot(bool publish);
 bool ota_rboot_check_factory_image(void);
 bool ota_rboot_use_factory_image(void);

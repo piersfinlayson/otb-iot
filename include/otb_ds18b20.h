@@ -46,6 +46,9 @@ typedef struct otbDs18b20DeviceAddress
   char friendly[OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH];
 } otbDs18b20DeviceAddress;
 
+extern struct otbDs18b20DeviceAddress otb_ds18b20_addresses[OTB_DS18B20_MAX_DS18B20S];
+extern uint8_t otb_ds18b20_count;
+
 #ifdef OTB_DS18B20_C
 // Globals
 uint8_t otb_ds18b20_mqtt_disconnected_counter = 0;
@@ -62,7 +65,7 @@ extern bool otb_ds18b20_get_devices(void);
 extern char *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20 **ds);
 extern char *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds);
 bool otb_ds18b20_check_addr_format(char *addr);
-extern void otb_ds18b20_conf_set(char *addr, char *name);
+bool otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 extern void otb_ds18b20_conf_get(char *sensor, char *index);
 extern void otb_ds18b20_prepare_to_read(void);
 extern bool otb_ds18b20_request_temp(char *addr, char *temp_s);

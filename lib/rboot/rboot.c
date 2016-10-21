@@ -11,6 +11,7 @@
 
 #include "rboot-private.h"
 #include <rboot-hex2a.h>
+#include "otb_flash.h"
 
 static uint32 check_image(uint32 readpos) {
 	

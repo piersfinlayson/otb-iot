@@ -23,6 +23,82 @@
 #include <limits.h>
 #include <errno.h>
 
+void ICACHE_FLASH_ATTR otb_util_flash_init(void)
+{
+
+  DEBUG("UTIL: otb_util_flash_init entry");
+  
+#ifdef OTB_SUPER_BIG_FLASH_8266  
+  uint32_t id_size;
+  uint32_t actual_size;
+  int ii;
+
+  id_size = (flashchip->deviceId >> 16) & 0xff;
+  otb_flash_size_actual = 1;
+  for (ii = 0; ii < id_size; ii++)
+  {
+    otb_flash_size_actual *= 2;
+  }
+  otb_flash_size_sdk = flashchip->chip_size;
+  otb_flash_size_actual = actual_size;
+  INFO("UTIL: Flash size from sdk: %d bytes", otb_flash_size_sdk);
+  INFO("UTIL: Flash size actual:   %d bytes", otb_flash_size_actual);
+  OTB_ASSERT(otb_flash_size_actual >= otb_flash_size_sdk); 
+  if (otb_flash_size_actual == otb_flash_size_sdk)
+  {
+    // Optimisation so we can avoid a bit of processing when calling spi_flash_ functions
+    otb_flash_size_actual = 0;
+  }
+#endif // OTB_SUPER_BIG_FLASH_8266  
+
+  DEBUG("UTIL: otb_util_flash_init exit");
+  
+  return;
+}
+
+#ifdef OTB_SUPER_BIG_FLASH_8266
+
+SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_erase_sector_big(uint16 sector)
+{
+  int8 status;
+
+  flashchip->chip_size = otb_flash_size_actual;
+
+  status = spi_flash_erase_sector(sector);
+
+  flashchip->chip_size = otb_flash_size_sdk;
+
+  return status;
+}
+
+SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_write_big(uint32 des_addr, uint32 *src_addr, uint32 size)
+{
+  int8 status;
+
+  flashchip->chip_size = otb_flash_size_actual;
+
+  status = spi_flash_write(des_addr, src_addr, size);
+
+  flashchip->chip_size = otb_flash_size_sdk;
+
+  return status;
+}
+
+SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_read_big(uint32 src_addr, uint32 *des_addr, uint32 size)
+{
+  int8 status;
+  
+  flashchip->chip_size = otb_flash_size_actual;
+
+  status = spi_flash_read(src_addr, des_addr, size);
+
+  flashchip->chip_size = otb_flash_size_sdk;
+
+  return status;
+}
+
+#endif // OTB_SUPER_BIG_FLASH_8266
+
 #if 0
 
 void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
@@ -197,6 +273,10 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   INFO("OTB: ESP device: %s", OTB_MAIN_CHIPID);
   os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
   INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
+  
+  // Need to read this!
+  os_sprintf(otb_hw_info, "%04x:%04x", 1, 1);
+  INFO("OTB: Hardware info: %s", otb_hw_info);
   
   if (recovery)
   {
@@ -802,15 +882,11 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
 
 bool otb_util_vdd33_flash_ok = FALSE;
 
-void ICACHE_FLASH_ATTR otb_util_get_vdd33(void)
+bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
 {
-  uint16 vdd33;
+  bool rc = FALSE;
   char output[16];
-  double voltage;
-  int voltage_int;
-  int voltage_thou;
   unsigned char ALIGN4 flash[0x1000];
-  bool rc;
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
 
   DEBUG("UTIL: otb_util_get_vdd33 entry");
@@ -865,27 +941,18 @@ void ICACHE_FLASH_ATTR otb_util_get_vdd33(void)
     }
   }  
 
-
+  rc = FALSE;
   if (otb_util_vdd33_flash_ok)  
   {
-    vdd33 = system_get_vdd33();  
-    //vdd33 = system_adc_read();
-    voltage = vdd33/1024;
-    voltage_int = voltage/1;
-    voltage_thou = (int)(vdd33*1000/1024)%1000;
-    os_snprintf(output, 16, "0x%04x/%d.%03dV", vdd33, voltage_int, voltage_thou);
-    otb_mqtt_send_status(OTB_MQTT_STATUS_VDD33, output, "", "");
-  }
-  else
-  {
-    otb_mqtt_send_status(OTB_MQTT_STATUS_VDD33, OTB_MQTT_STATUS_ERROR, "", "");
+    *vdd33 = system_get_vdd33();  
+    rc = TRUE;
   }
 
 EXIT_LABEL:
   
   DEBUG("UTIL: otb_util_get_vdd33 exit");
 
-  return;
+  return rc;
 }  
 
 void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)

@@ -110,7 +110,7 @@ bool otb_i2c_ads_rms_range(uint8 addr, int num, uint16_t *result, int *time_take
 bool otb_i2c_ads_conf_get_addr(uint8_t addr, otb_conf_ads **ads);
 bool otb_i2c_ads_conf_get_loc(char *loc, otb_conf_ads **ads);
 int8_t otb_i2c_ads_conf_field_match(char *field);
-void otb_i2c_ads_conf_set(char *addr, char *field, char *value);
+bool otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_i2c_ads_conf_get(char *addr, char *field, char *field2);
 unsigned long isqrt(unsigned long x);
 bool otb_i2c_write_reg(uint8_t reg);
@@ -153,6 +153,45 @@ float otb_i2c_ads_gain_to_v[OTB_I2C_ADC_GAIN_VALUES] =
   0.256,
 };
 #endif //OTB_I2C_C
+
+typedef struct otb_i2c_ads_conf_entry
+{
+#define OTB_I2C_ADS_CONF_VAL_TYPE_BYTE    0
+#define OTB_I2C_ADS_CONF_VAL_TYPE_UINT16  1
+#define OTB_I2C_ADS_CONF_VAL_TYPE_OTHER   2
+#define OTB_I2C_ADS_CONF_VAL_TYPE_NUM     3
+  uint8_t type;
+  int offset;
+  int max;
+  int min;
+ 
+} otb_i2c_ads_conf_entry;
+
+#define OTB_CMD_ADS_ADD      0
+#define OTB_CMD_ADS_MUX      1
+#define OTB_CMD_ADS_RATE     2
+#define OTB_CMD_ADS_GAIN     3
+#define OTB_CMD_ADS_CONT     4
+#define OTB_CMD_ADS_RMS      5
+#define OTB_CMD_ADS_PERIOD   6
+#define OTB_CMD_ADS_SAMPLES  7
+#define OTB_CMD_ADS_LOC      8
+#define OTB_CMD_ADS_NUM      9
+
+#ifdef OTB_I2C_C
+otb_i2c_ads_conf_entry otb_i2c_ads_conf[OTB_CMD_ADS_NUM] = 
+{
+  {OTB_I2C_ADS_CONF_VAL_TYPE_OTHER, -1, 0, 0},     // Add
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, mux),     0, 7},      // Mux
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, rate),    0, 7},      // Rate
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, gain),    0, 7},      // Gain
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, cont),    0, 7},      // Cont
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, rms),     0, 7},      // RMS
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, period),  0, 65535},  // Period
+  {OTB_I2C_ADS_CONF_VAL_TYPE_BYTE,  offsetof(otb_conf_ads, samples), 0, 1024},   // Samples
+  {OTB_I2C_ADS_CONF_VAL_TYPE_OTHER, offsetof(otb_conf_ads, loc),     0, 0},     // Loc
+};
+#endif // OTB_I2C_C
 
 // Store off whether I2C already initialized
 #ifndef OTB_I2C_C

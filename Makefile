@@ -119,6 +119,8 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
              $(OTB_OBJ_DIR)/otb_httpd.o \
+             $(OTB_OBJ_DIR)/otb_cmd.o \
+             $(OTB_OBJ_DIR)/otb_flash.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -139,6 +141,8 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
              $(OTB_OBJ_DIR)/otb_httpd.o \
+             $(OTB_OBJ_DIR)/otb_cmd.o \
+             $(OTB_OBJ_DIR)/otb_flash.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -247,7 +251,13 @@ flash_factory: bin/app_image.bin
 
 flash: flash_boot flash_app
 
-flash_initial: erase_flash flash_boot flash_app flash_factory
+create_ff: directories
+	dd if=/dev/zero ibs=1k count=4 | tr "\000" "\377" > bin/ff.bin
+
+flash_sdk: create_ff
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 bin/ff.bin
+
+flash_initial: erase_flash flash_sdk flash_boot flash_app flash_factory
 
 connect:
 	platformio serialports monitor -b 115200
