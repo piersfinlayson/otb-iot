@@ -256,13 +256,13 @@ flash_boot: bin/rboot.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x2000 bin/app_image.bin
 
 flash_app2: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x203000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
 
 flash_factory: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x303000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/app_image.bin
 
 flash: flash_boot flash_app
 
