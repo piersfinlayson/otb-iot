@@ -37,8 +37,11 @@ import time, syslog
 # how much above trigger temp will turn pump off, or below will turn it off
 hysteresis = 0.5
 
-# target temperature
-trigger_temp = 13.0
+# target temperatures
+min_floor_temp = 13.0    # Minimum temp floor can get to
+target_room_temp = 13.0  # Target temp for room
+max_floor_temp = 25.0    # Maximum floor temp (to avoid damaging it, but may exceed if and only if room temp is below min_room_temp 
+min_room_temp = 5.0      # Room mustn't go below this (e.g. frozen pipes), so risk damaging floor to heat room
 
 # amount of time to sleep between checking we've received updated - these should come
 # every 30s, so 60s is a good bet.  We'll also check pump state every sleep_time to check
@@ -68,9 +71,11 @@ INVALID = -1
 pump_state = INVALID
 requested_pump_state = INVALID
 pump_states = {ON:"on", OFF:"off", INVALID:"unknown"}
-
+FLOOR = "floor"
+WALL = "wall"
 temp_topic = "/otb-iot/%s/temp/" % temp_chip_id
-temp_sensor_topics = {temp_topic + floor_sensor:"floor", temp_topic + wall_sensor:"wall"}
+temp_sensor_topics = {temp_topic + floor_sensor:FLOOR, temp_topic + wall_sensor:WALL}
+temp_locations = {FLOOR:temp_topic + floor_sensor, WALL:temp_topic + wall_sensor}
 
 #
 # If using updated otb-iot MQTT API for pump controller, tweak this section
@@ -85,21 +90,23 @@ pump_query_response = "gpio:get:ok"
 temp_sub = temp_topic + '#'
 pump_sub = pump_topic
 
+# Set last temps to be safeish values
+last_temps = {FLOOR:min_floor_temp, WALL:target_room_temp}
+
 def turn_pump(requested_state):
-  global pump_state, requested_pump_state, client
+  global pump_state, requested_pump_state, client, last_temps
   assert(requested_state in pump_states)
   if requested_pump_state != INVALID:
     print ("Previous pump state update not yet completed");
   do_it = False
   print "Pump state currently " + pump_states[pump_state]
-  print "Target temp " + str(trigger_temp) + "C"
   if requested_state == ON:
     if pump_state == OFF or pump_state == INVALID:
       print ("Turn pump on")
       if requested_pump_state != ON:
         requested_pump_state = ON
         do_it = True
-        syslog.syslog(syslog.LOG_INFO, "heating: set pump state to on")
+        syslog.syslog(syslog.LOG_INFO, "heating: set pump state to on, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
   else:
     if pump_state == ON or pump_state == INVALID:
       if requested_pump_state != OFF:
@@ -107,7 +114,7 @@ def turn_pump(requested_state):
         # Turn it off
         requested_pump_state = OFF
         do_it = True
-        syslog.syslog(syslog.LOG_INFO, "heating: set pump state to off")
+        syslog.syslog(syslog.LOG_INFO, "heating: set pump state to off, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
   if do_it:
     client.publish(pump_update_topic, pump_update_msg % requested_pump_state)
   else:
@@ -117,6 +124,53 @@ def check_pump_state():
   client.publish(pump_update_topic, pump_query)
   print "Sent pump state query"
 
+def make_pump_decision():
+  global last_temps, temp_updates_received, pump_state, requested_pump_state
+  target_pump_state = pump_state
+  print "Making pump decision based on floor: %fC wall: %fC" % (last_temps[FLOOR], last_temps[WALL])
+  print "min_floor_temp: %f target_room_temp: %f max_floor_temp: %f min_room_temp: %f" % (min_floor_temp, target_room_temp, max_floor_temp, min_room_temp)
+  # If pump is already on, then only turn off if either:
+  # - floor is too hot (hotter than max), and temp is not below min_room_temp 
+  # - both wall and floor above target temps
+  if pump_state == ON:
+    if (last_temps[FLOOR] > (max_floor_temp + hysteresis)):
+      if (last_temps[WALL] > min_room_temp): # No hysteresis performed
+        target_pump_state = OFF
+        print "Turning pump off as wall temp above min room temp, and floor temp above max floor temp"
+    if (last_temps[FLOOR] > (min_floor_temp + hysteresis)):
+      if (last_temps[WALL] > (target_room_temp + hysteresis)):
+        target_pump_state = OFF
+        print "Turning pump off floor temp above min floor temp, and wall temp above target room temp"
+        
+  # If pump is off, then turn on if any of the following are true:
+  # - floor temp is below minimum temp
+  # - wall temp is below target room temp and floor isn't too hot
+  # - wall temp is below minimum (even if floor is too hot)
+  elif pump_state == OFF:
+    if (last_temps[FLOOR] < (min_floor_temp - hysteresis)):
+      target_pump_state = ON
+      print "Turning pump on as floor temp is below min floor temp"
+    if (last_temps[WALL] < (target_room_temp - hysteresis)):
+      if (last_temps[FLOOR] < (max_floor_temp - hysteresis)):
+        target_pump_state = ON
+        print "Turning pump on as wall temp below target room temp and floor doesn't exceed max"
+    if (last_temps[WALL] < (min_room_temp)): # No hysteresis
+      target_pump_state = ON
+      print "Turning pump on as wall temp min room temp (even though max floor temp might have been exceed"
+      if (last_temps[FLOOR] > max_floor_temp):
+        syslog.syslog(syslog.LOG_WARN, "heating: turning pump on even though max floor temp exceeded, as room temp below minimum")
+      
+  # Pump state is invalid, meaning we haven't set it yet - this will be set after sleep_time (60s default)
+  else:
+    print "Not yet read pump state, no action"
+    syslog.syslog(syslog.LOG_INFO, "heating: not yet read pump state, no action")
+    
+  # Actually change pump state  
+  if (target_pump_state != pump_state):
+    turn_pump(target_pump_state)
+  else:
+    print "No pump state change"
+  
 def on_message(client, userdata, msg):
   global pump_state, requested_pump_state, temp_updates_received
   if msg.topic in temp_sensor_topics:
@@ -124,12 +178,8 @@ def on_message(client, userdata, msg):
     temp_updates_received += 1
     temp = float(msg.payload)
     print "Got temp " + str(temp) + "C from " + temp_sensor_topics[msg.topic]
-    if (temp < (trigger_temp - hysteresis)):
-      # turn pump on
-      turn_pump(ON)
-    elif (temp > (trigger_temp + hysteresis)):
-      # turn pump off
-      turn_pump(OFF)
+    last_temps[temp_sensor_topics[msg.topic]] = temp
+    make_pump_decision()
   elif msg.topic == pump_topic:
     if (msg.payload == pump_response):
       if requested_pump_state == INVALID:
@@ -148,20 +198,18 @@ def on_message(client, userdata, msg):
         print ("Unknown pump state " + state)
       if state != pump_state:
         pump_state = state
-        print "Pump state updated to " + pump_states[pump_state]
-        syslog.syslog(syslog.LOG_INFO, "Pump state updated to " + pump_states[pump_state])
+        print "Internal pump state updated to " + pump_states[pump_state]
+        syslog.syslog(syslog.LOG_INFO, "Internal pump state updated to " + pump_states[pump_state])
       elif state not in pump_states:
         pump_state = INVALID
-        print "Pump state updated to " + pump_states[pump_state]
-        syslog.syslog(syslog.LOG_INFO, "Pump state updated to " + pump_states[pump_state])
+        print "Internal pump state updated to " + pump_states[pump_state]
+        syslog.syslog(syslog.LOG_INFO, "Internal pump state updated to " + pump_states[pump_state])
     else:
       print("Error pump response!!!")
       requested_pump_state = INVALID
   else:
       print("Got unknown topic/message: " + msg.topic+" "+str(msg.payload))
   print ""
-
-
     
 def on_connect(client, userdata, flags, rc):
   print("Connected to broker with result code "+str(rc))
@@ -170,6 +218,7 @@ def on_connect(client, userdata, flags, rc):
   # reconnect then subscriptions will be renewed.
   client.subscribe(temp_sub)
   client.subscribe(pump_sub)
+  check_pump_state()
 
   global connected    
   connected = True
