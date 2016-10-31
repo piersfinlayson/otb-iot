@@ -28,7 +28,7 @@
 # temperature device
 
 import paho.mqtt.client as mqtt
-import time, syslog
+import time, syslog, datetime
 
 #
 # Config section - tweak the values in this section as appropriate
@@ -38,8 +38,8 @@ import time, syslog
 hysteresis = 0.5
 
 # target temperatures
-min_floor_temp = 13.0    # Minimum temp floor can get to
-target_room_temp = 13.0  # Target temp for room
+min_floor_temp = 8.0     # Minimum temp floor can be allowed get to
+backup_target_room_temp = 13.0  # Target temp for room
 max_floor_temp = 25.0    # Maximum floor temp (to avoid damaging it, but may exceed if and only if room temp is below min_room_temp 
 min_room_temp = 5.0      # Room mustn't go below this (e.g. frozen pipes), so risk damaging floor to heat room
 
@@ -76,6 +76,26 @@ WALL = "wall"
 temp_topic = "/otb-iot/%s/temp/" % temp_chip_id
 temp_sensor_topics = {temp_topic + floor_sensor:FLOOR, temp_topic + wall_sensor:WALL}
 temp_locations = {FLOOR:temp_topic + floor_sensor, WALL:temp_topic + wall_sensor}
+DAY = "day"
+HOUR = "hour"
+MIN = "min"
+SUN = 0
+MON = 1
+TUE = 2
+WED = 3
+THU = 4
+FRI = 5
+SAT = 6
+NUM_DAYS = 7
+DAYS = [SUN, MON, TUE, WED, THU, FRI, SAT]
+DAYS_TEXT = {SUN:"Sunday", MON:"Monday", TUE:"Tuesday", WED:"Wednesday", THU:"Thursday", FRI:"Friday", SAT:"Saturday"}
+ROOM_TEMP = "room temp"
+
+# Heating schedule - must be sequential within a particular day
+temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:13},
+                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:10, MIN:0, ROOM_TEMP:8},
+                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:16, MIN:0, ROOM_TEMP:13},
+                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:19, MIN:0, ROOM_TEMP:8}]
 
 #
 # If using updated otb-iot MQTT API for pump controller, tweak this section
@@ -91,7 +111,51 @@ temp_sub = temp_topic + '#'
 pump_sub = pump_topic
 
 # Set last temps to be safeish values
-last_temps = {FLOOR:min_floor_temp, WALL:target_room_temp}
+last_temps = {FLOOR:min_floor_temp, WALL:backup_target_room_temp}
+
+def get_day_time():
+  now = datetime.datetime.now()
+  day = int(now.strftime("%w"))
+  hour = int(now.strftime("%H"))
+  min = int(now.strftime("%M"))
+  return {DAY:day, HOUR:hour, MIN:min}
+  
+def calc_target_temp(temp, now=None):
+  assert(temp == ROOM_TEMP)
+  if now == None:
+    now = get_day_time()
+  day = now[DAY]
+  hour = now[HOUR]
+  min = now[MIN]
+  output = "It's " + DAYS_TEXT[day] + " %2.2d:%2.2d" % (hour, min) + "."
+  
+  lines = []
+  target_temp = None
+  done_days = 0
+  while target_temp == None:
+    for line in temp_schedule:
+      if day in line[DAY]:
+        lines.append(line)
+    for line in reversed(lines):
+      #print "Looking at line " + str(line)
+      if hour > line[HOUR]:
+        target_temp = line[temp]
+        break
+      if hour == line[HOUR]:
+        if min >= line[MIN]:
+          target_temp = line[temp]
+          break
+    day -= 1
+    day %= NUM_DAYS
+    hour = 23
+    min = 59
+    done_days += 1
+    if done_days >= NUM_DAYS:
+      break
+  if target_temp == None:
+    target_temp = backup_target_room_temp
+  print output + " Target %s = %.2fC." % (temp, target_temp)
+  return target_temp
 
 def turn_pump(requested_state):
   global pump_state, requested_pump_state, client, last_temps
@@ -127,8 +191,9 @@ def check_pump_state():
 def make_pump_decision():
   global last_temps, temp_updates_received, pump_state, requested_pump_state
   target_pump_state = pump_state
-  print "Making pump decision based on floor: %fC wall: %fC" % (last_temps[FLOOR], last_temps[WALL])
-  print "min_floor_temp: %f target_room_temp: %f max_floor_temp: %f min_room_temp: %f" % (min_floor_temp, target_room_temp, max_floor_temp, min_room_temp)
+  print "Making pump decision based on floor: %.2fC wall: %.2fC" % (last_temps[FLOOR], last_temps[WALL])
+  target_room_temp = calc_target_temp(ROOM_TEMP)
+  print "min_floor_temp: %.2f target_room_temp: %.2f max_floor_temp: %.2f min_room_temp: %.2f" % (min_floor_temp, target_room_temp, max_floor_temp, min_room_temp)
   # If pump is already on, then only turn off if either:
   # - floor is too hot (hotter than max), and temp is not below min_room_temp 
   # - both wall and floor above target temps
@@ -230,34 +295,40 @@ def on_disconnect(client, userdata, rc):
   syslog.syslog(syslog.LOG_INFO, "heating: disconnected from broker")
   run = False
 
-syslog.syslog(syslog.LOG_INFO, "heating: starting")
+def main():  
+  syslog.syslog(syslog.LOG_INFO, "heating: starting")
+  global client, connected, temp_updates_received
 
-client = mqtt.Client(protocol=mqtt.MQTTv31)
-client.on_connect = on_connect
-client.on_message = on_message
-client.on_disconnect = on_disconnect
+  client = mqtt.Client(protocol=mqtt.MQTTv31)
+  client.on_connect = on_connect
+  client.on_message = on_message
+  client.on_disconnect = on_disconnect
 
-connected = False
-temp_updates_received = 0
-client.connect_async(mqtt_addr, mqtt_port, 60)
-client.loop_start()
+  connected = False
+  temp_updates_received = 0
+  client.connect_async(mqtt_addr, mqtt_port, 60)
+  client.loop_start()
 
-run = True
-old_temp_updates_received = 0
-while run:
-  time.sleep(sleep_time)
-  if not connected:
-    run = False
-    break
-  if old_temp_updates_received != temp_updates_received:
-    old_temp_updates_received = temp_updates_received
-    print ("Still connected")
-    check_pump_state()
-  else:
-    print("No temp updates received in %ds!!!" % sleep_time)
-    syslog.syslog(syslog.LOG_INFO, "heating: no temp updates received in %ds" % sleep_time)
-    run = False
-  print ""
+  run = True
+  old_temp_updates_received = 0
+  while run:
+    time.sleep(sleep_time)
+    if not connected:
+      run = False
+      break
+    if old_temp_updates_received != temp_updates_received:
+      old_temp_updates_received = temp_updates_received
+      print ("Still connected")
+      check_pump_state()
+    else:
+      print("No temp updates received in %ds!!!" % sleep_time)
+      syslog.syslog(syslog.LOG_INFO, "heating: no temp updates received in %ds" % sleep_time)
+      run = False
+    print ""
     
-print ("Exiting!!!")
-syslog.syslog("heating: exiting")
+  print ("Exiting!!!")
+  syslog.syslog("heating: exiting")
+  
+if __name__ == "__main__":
+  main()
+
