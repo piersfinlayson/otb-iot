@@ -1,0 +1,4 @@
+A list of #defines which can be used when building OTB-IOT (may in future be detected from flashed values):
+
+ - OTB_IOT_V0_3 - V0.3 rev of otb-iot board
+ - OTB_IOT_ESP12 - An ESP12 based module
