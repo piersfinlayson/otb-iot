@@ -177,6 +177,55 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
   return;
 }
 
+int8_t ICACHE_FLASH_ATTR otb_gpio_get_pin(unsigned char *to_match)
+{
+  int8_t pin = -1;
+
+  DEBUG("GPIO: otb_gpio_get_pin entry");
+  
+  pin = atoi(to_match);
+  DEBUG("GPIO: Pin %d", pin);
+  if ((pin < 0) ||
+      (pin >= GPIO_PIN_NUM) ||
+      ((pin == 0) && (to_match[0] != '0')))
+  {
+    pin = -1;
+  }
+
+  DEBUG("GPIO: otb_gpio_get_pin exit");
+
+  return pin;
+}
+
+// Unlike "otb_gpio_is_valid" this method is called from the cmd handling function to 
+// check whether this gpio can be get or set - so both whether a valid pin and whether
+// reserved.
+bool ICACHE_FLASH_ATTR otb_gpio_valid_pin(unsigned char *to_match)
+{
+  bool rc = FALSE;
+  int8_t pin;
+  char *text;
+  
+  DEBUG("GPIO: otb_gpio_valid_pin entry");
+
+  pin = otb_gpio_get_pin(to_match);
+  
+  // (Note passing in int8_t into uint8_t method - this is OK as only have 0-16 GPIOs,
+  // and error value of -1 is 255 when unsigned, so will return invalid
+  rc = otb_gpio_is_valid(pin);
+  
+  if (rc)
+  {
+    rc = otb_gpio_is_reserved(pin, &text);
+    // Flip sense of rc
+    rc = rc ? FALSE : TRUE;
+  }
+
+  DEBUG("GPIO: otb_gpio_valid_pin exit");
+
+ return rc;
+}
+
 bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
 {
   bool rc = TRUE;
@@ -265,6 +314,93 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_gpio_cmd(unsigned char *next_cmd,
+                                    void *arg,
+                                    unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int cmd;
+  otb_conf_ads *ads = NULL;
+  char *pin_t;
+  int8_t pin;
+  int8_t value;
+  bool store_conf = FALSE;
+    
+  DEBUG("GPIO: otb_gpio_cmd entry");
+  
+  // Double check what we're being asked to do is valid
+  cmd = (int)arg;
+  OTB_ASSERT((cmd >= OTB_CMD_GPIO_MIN) && (cmd < OTB_CMD_GPIO_NUM));
+  
+  // No need to check whether the pin is valid or reserved - this has already been done
+  pin = otb_gpio_get_pin(prev_cmd);
+  
+  // If a set command, get value to set
+  if ((cmd == OTB_CMD_GPIO_SET) || (cmd == OTB_CMD_GPIO_SET_CONFIG))
+  {
+    if (next_cmd == NULL)
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("No value provided");
+      goto EXIT_LABEL;
+    }
+    value = atoi(next_cmd);
+    if ((value < 0) ||
+        (value > 1) ||
+        ((value == 0) && (next_cmd[0] != '0')))
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("Invalid value provided");
+      goto EXIT_LABEL;
+    }
+  }
+  
+  switch(cmd)
+  {
+    case OTB_CMD_GPIO_GET:
+      value = otb_gpio_get(pin, FALSE);
+      otb_cmd_rsp_append("%d", value);
+      break;
+      
+    case OTB_CMD_GPIO_GET_CONFIG:
+      value = otb_conf->gpio_boot_state[pin];
+      otb_cmd_rsp_append("%d", value);
+      break;
+    
+    case OTB_CMD_GPIO_SET:
+      rc = otb_gpio_set(pin, value, FALSE);
+      break;
+      
+    case OTB_CMD_GPIO_SET_CONFIG:
+      if (otb_conf->gpio_boot_state[pin] != value)
+      {
+        otb_conf->gpio_boot_state[pin] = value;
+        store_conf = TRUE;
+      }
+      break;
+      
+    default:
+      OTB_ASSERT(FALSE);
+      break;
+  }
+
+EXIT_LABEL:
+
+  // If successful store off new config
+  if (store_conf)
+  {
+    rc = otb_conf_update(otb_conf);
+    if (!rc)
+    {
+      otb_cmd_rsp_append("failed to store new config");
+    }
+  }
+
+  DEBUG("GPIO: otb_gpio_cmd exit");
+  
+  return rc;
+}
+
 sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin, bool override_reserved)
 {
   bool special;
@@ -285,6 +421,7 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin, bool override_reserved)
     goto EXIT_LABEL;
   }
   
+  // Should this be INPUT or OUTPUT?
   input = GPIO_INPUT_GET(pin);
   
   DEBUG("GPIO: Pin %d state %d", pin, input);

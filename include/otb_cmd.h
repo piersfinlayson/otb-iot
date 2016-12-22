@@ -65,6 +65,9 @@ extern otb_cmd_match_fn otb_ds18b20_configured_addr;
 extern otb_cmd_match_fn otb_i2c_ads_valid_addr;
 extern otb_cmd_match_fn otb_i2c_ads_configured_addr;
 
+// Also defined in otb_gpio.h
+extern otb_cmd_match_fn otb_gpio_valid_pin;
+
 //
 // otb_cmd_handler_fn functon protoype
 // 
@@ -107,6 +110,17 @@ extern otb_cmd_handler_fn otb_conf_set_loc;
 extern otb_cmd_handler_fn otb_conf_delete_loc;
 extern otb_cmd_handler_fn otb_i2c_ads_conf_delete;
 extern otb_cmd_handler_fn otb_ds18b20_conf_delete;
+extern otb_cmd_handler_fn otb_gpio_cmd_get;
+extern otb_cmd_handler_fn otb_gpio_cmd_get_config;
+extern otb_cmd_handler_fn otb_gpio_cmd_set;
+extern otb_cmd_handler_fn otb_gpio_cmd_set_config;
+
+#define OTB_CMD_GPIO_MIN         0
+#define OTB_CMD_GPIO_GET         0
+#define OTB_CMD_GPIO_GET_CONFIG  1
+#define OTB_CMD_GPIO_SET         2
+#define OTB_CMD_GPIO_SET_CONFIG  3
+#define OTB_CMD_GPIO_NUM         4
 
 // otb_cmd_control struct
 // 
@@ -158,14 +172,17 @@ typedef struct otb_cmd_control
 //         addr    // Index 0 to 7 
 //     adc
 //       ads     // ADS1115 family
-//     gpio
-//       native
-//       pcf     // PCF8574  family
-//       mcp     // MCP23017 family
-//       pca     // PCA9685  family
+//   gpio
+//     pin // Must be unreserved
+//     pcf     // PCF8574  family - need to figure out how to implement - perhaps not a "GPIO"
+//     mcp     // MCP23017 family - need to figure out how to implement - perhaps not a "GPIO"
+//     pca     // PCA9685  family - need to figure out how to implement - perhaps not a "GPIO"
 //   config
 //     all
 //     ??
+//     gpio
+//       pin  // Must be an unreserved GPIO
+//         state  // Must be 0 or 1
 //   info
 //     version
 //     compile_date
@@ -209,6 +226,9 @@ typedef struct otb_cmd_control
 //           <value>
 //         loc
 //           <value>
+//     gpio
+//       pin  // Must be an unreserved GPIO
+//         state  // Must be 0 or 1
 //   boot_slot
 // delete
 //   config
@@ -251,11 +271,11 @@ extern otb_cmd_control otb_cmd_control_get_sensor_temp[];
 extern otb_cmd_control otb_cmd_control_get_sensor_temp_ds18b20[];
 extern otb_cmd_control otb_cmd_control_get_sensor_adc[];
 extern otb_cmd_control otb_cmd_control_get_sensor_adc_ads[];
-extern otb_cmd_control otb_cmd_control_get_sensor_gpio[];
-extern otb_cmd_control otb_cmd_control_get_gpio_native[];
-extern otb_cmd_control otb_cmd_control_get_gpio_pcf[];
-extern otb_cmd_control otb_cmd_control_get_gpio_mcp[];
-extern otb_cmd_control otb_cmd_control_get_gpio_pca[];
+// extern otb_cmd_control otb_cmd_control_get_sensor_gpio[];
+// extern otb_cmd_control otb_cmd_control_get_gpio_native[];
+// extern otb_cmd_control otb_cmd_control_get_gpio_pcf[];
+// extern otb_cmd_control otb_cmd_control_get_gpio_mcp[];
+// extern otb_cmd_control otb_cmd_control_get_gpio_pca[];
 extern otb_cmd_control otb_cmd_control_get_config[];
 extern otb_cmd_control otb_cmd_control_get_info[];
 extern otb_cmd_control otb_cmd_control_get_reason[];
@@ -277,6 +297,11 @@ extern otb_cmd_control otb_cmd_control_trigger_ow[];
 extern otb_cmd_control otb_cmd_control_trigger_i2c[];
 extern otb_cmd_control otb_cmd_control_trigger_test[];
 extern otb_cmd_control otb_cmd_control_trigger_test_led[];
+extern otb_cmd_control otb_cmd_control_get_gpio[];
+extern otb_cmd_control otb_cmd_control_get_config_gpio[];
+extern otb_cmd_control otb_cmd_control_set_config_gpio[];
+extern otb_cmd_control otb_cmd_control_set_gpio[];
+
 #ifdef OTB_CMD_C
 
 otb_cmd_control otb_cmd_control_topic_top[] = 
@@ -310,6 +335,7 @@ otb_cmd_control otb_cmd_control_get[] =
   {"sensor",           NULL, otb_cmd_control_get_sensor,     OTB_CMD_NO_FN},
   {"config",           NULL, otb_cmd_control_get_config,     OTB_CMD_NO_FN},
   {"info",             NULL, otb_cmd_control_get_info,       OTB_CMD_NO_FN},
+  {"gpio",             otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
   {OTB_CMD_FINISH}    
 };
 
@@ -318,7 +344,6 @@ otb_cmd_control otb_cmd_control_get_sensor[] =
 {
   {"temp",             NULL, otb_cmd_control_get_sensor_temp,       OTB_CMD_NO_FN},
   {"adc",              NULL, otb_cmd_control_get_sensor_adc,        OTB_CMD_NO_FN},
-  {"gpio",             NULL, otb_cmd_control_get_sensor_gpio,       OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -353,22 +378,16 @@ otb_cmd_control otb_cmd_control_get_sensor_adc_ads[] =
 };
 
 // get->sensor->gpio commands
-otb_cmd_control otb_cmd_control_get_sensor_gpio[] = 
+otb_cmd_control otb_cmd_control_get_gpio[] = 
 {
-  {"native",           NULL, otb_cmd_control_get_gpio_native,  OTB_CMD_NO_FN},
-  {"pcf",              NULL, otb_cmd_control_get_gpio_pcf,     OTB_CMD_NO_FN},
-  {"mcp",              NULL, otb_cmd_control_get_gpio_mcp,     OTB_CMD_NO_FN},
-  {"pca",              NULL, otb_cmd_control_get_gpio_pca,     OTB_CMD_NO_FN},
+//  {"native",           NULL, otb_cmd_control_get_gpio_native,  OTB_CMD_NO_FN},
+//  {"pcf",              NULL, otb_cmd_control_get_gpio_pcf,     OTB_CMD_NO_FN},
+//  {"mcp",              NULL, otb_cmd_control_get__mcp,     OTB_CMD_NO_FN},
+//  {"pca",              NULL, otb_cmd_control_get_gpio_pca,     OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
-// get->sensor->gpio->native commands
-otb_cmd_control otb_cmd_control_get_gpio_native[] =
-{
-  // XXX TBC
-  {OTB_CMD_FINISH}    
-};
-
+#if 0
 // get->sensor->gpio->pcf commands
 otb_cmd_control otb_cmd_control_get_gpio_pcf[] =
 {
@@ -389,13 +408,22 @@ otb_cmd_control otb_cmd_control_get_gpio_pca[] =
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
+#endif
 
 // get->config commands
 otb_cmd_control otb_cmd_control_get_config[] =
 {
   {"all",              NULL, NULL,      otb_cmd_get_config_all,    NULL},
+  {"gpio",             NULL, otb_cmd_control_get_config_gpio,    OTB_CMD_NO_FN},
   // XXX TBC
   {OTB_CMD_FINISH}    
+};
+
+// get->config->gpio
+otb_cmd_control otb_cmd_control_get_config_gpio[] =
+{
+  {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
+  {OTB_CMD_FINISH}
 };
 
 // get->info commands
@@ -433,6 +461,7 @@ otb_cmd_control otb_cmd_control_get_info_logs[] =
 otb_cmd_control otb_cmd_control_set[] =
 {
   {"config",           NULL, otb_cmd_control_set_config,        OTB_CMD_NO_FN},
+  {"gpio",             NULL, otb_cmd_control_set_gpio,          OTB_CMD_NO_FN},
   {"boot_slot",        NULL, NULL,      otb_cmd_set_boot_slot,     NULL},
   {OTB_CMD_FINISH}    
 };
@@ -444,6 +473,7 @@ otb_cmd_control otb_cmd_control_set_config[] =
   {"loc",              NULL, otb_cmd_control_set_config_loc,             OTB_CMD_NO_FN},
   {"ds18b20",          NULL, otb_cmd_control_set_config_ds18b20,         OTB_CMD_NO_FN},
   {"ads",              NULL, otb_cmd_control_set_config_ads,             OTB_CMD_NO_FN},
+  {"gpio",             NULL, otb_cmd_control_set_config_gpio,             OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -492,6 +522,20 @@ otb_cmd_control otb_cmd_control_set_config_ads_valid[] =
   {"period",   NULL, NULL, otb_i2c_ads_conf_set, (void *)OTB_CMD_ADS_PERIOD}, 
   {"samples",  NULL, NULL, otb_i2c_ads_conf_set, (void *)OTB_CMD_ADS_SAMPLES}, 
   {"loc",      NULL, NULL, otb_i2c_ads_conf_set, (void *)OTB_CMD_ADS_LOC}, 
+  {OTB_CMD_FINISH}
+};
+
+// set->config->gpio
+otb_cmd_control otb_cmd_control_set_config_gpio[] =
+{
+  {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_SET_CONFIG},
+  {OTB_CMD_FINISH}
+};
+
+// set->gpio
+otb_cmd_control otb_cmd_control_set_gpio[] =
+{
+  {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_SET},
   {OTB_CMD_FINISH}
 };
 

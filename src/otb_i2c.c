@@ -1649,7 +1649,9 @@ EXIT_LABEL:
   
 }
 
-bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_delete(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_delete(unsigned char *next_cmd,
+                                               void *arg,
+                                               unsigned char *prev_cmd)
 {
   bool rc = FALSE;
   int cmd;

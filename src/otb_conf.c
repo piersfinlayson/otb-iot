@@ -235,6 +235,10 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       {
         WARN("CONF: gpio_boot_state %d invalid 0x2.2x", ii, conf->gpio_boot_state[ii]);
         conf->gpio_boot_state[ii] = 0;
+#ifdef OTB_IOT_ESP12
+        // For ESP12 modules set GPIO2 to 1 on boot to turn on board LED off
+        conf->gpio_boot_state[2] = 1;
+#endif
         modified = TRUE;
       } 
     }
@@ -284,6 +288,10 @@ void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
   DEBUG("CONF: otb_conf_init_config entry");
   
   os_memset(conf, 0, sizeof(otb_conf_struct));
+#ifdef OTB_IOT_ESP12
+  // For ESP12 modules set GPIO2 to 1 on boot to turn on board LED off
+  conf->gpio_boot_state[2] = 1;
+#endif
   conf->magic = OTB_CONF_MAGIC;
   conf->version = OTB_CONF_VERSION_CURRENT;
   conf->mqtt.port = OTB_MQTT_DEFAULT_PORT;
