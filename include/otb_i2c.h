@@ -75,6 +75,7 @@ void i2c_master_send_nack(void);
 #define OTB_I2C_MQTT_ERROR_LEN 256
 #ifdef OTB_I2C_C
 char otb_i2c_mqtt_error[OTB_I2C_MQTT_ERROR_LEN];
+uint8_t otb_i2c_ads_last_addr;
 #else
 extern char otb_i2c_mqtt_error[];
 #endif // OTB_I2C_C
@@ -162,9 +163,8 @@ typedef struct otb_i2c_ads_conf_entry
 #define OTB_I2C_ADS_CONF_VAL_TYPE_NUM     3
   uint8_t type;
   int offset;
-  int max;
   int min;
- 
+  int max;
 } otb_i2c_ads_conf_entry;
 
 #define OTB_CMD_ADS_ADD      0

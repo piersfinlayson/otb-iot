@@ -68,6 +68,9 @@ extern otb_cmd_match_fn otb_i2c_ads_configured_addr;
 // Also defined in otb_gpio.h
 extern otb_cmd_match_fn otb_gpio_valid_pin;
 
+// Also defined in otb_relay.h
+extern otb_cmd_match_fn otb_relay_valid_id;
+
 //
 // otb_cmd_handler_fn functon protoype
 // 
@@ -114,13 +117,24 @@ extern otb_cmd_handler_fn otb_gpio_cmd_get;
 extern otb_cmd_handler_fn otb_gpio_cmd_get_config;
 extern otb_cmd_handler_fn otb_gpio_cmd_set;
 extern otb_cmd_handler_fn otb_gpio_cmd_set_config;
+extern otb_cmd_handler_fn otb_relay_conf_set;
+extern otb_cmd_handler_fn otb_relay_trigger;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
 #define OTB_CMD_GPIO_GET_CONFIG  1
-#define OTB_CMD_GPIO_SET         2
+#define OTB_CMD_GPIO_TRIGGER     2
 #define OTB_CMD_GPIO_SET_CONFIG  3
 #define OTB_CMD_GPIO_NUM         4
+
+#define OTB_CMD_RELAY_MIN      0
+#define OTB_CMD_RELAY_LOC      0
+#define OTB_CMD_RELAY_TYPE     1
+#define OTB_CMD_RELAY_ADDR     2
+#define OTB_CMD_RELAY_NUM      3
+#define OTB_CMD_RELAY_STATUS   4
+#define OTB_CMD_RELAY_PWR_ON   5
+#define OTB_CMD_RELAY_TOTAL    6
 
 // otb_cmd_control struct
 // 
@@ -209,7 +223,8 @@ typedef struct otb_cmd_control
 //       <addr>  // xx-yyyyyyyyyyyy format
 //         <name>
 //     ads
-//       <addr>  // Should be submitted on its own to initialize an ADS
+//       <addr>
+//         add - used to initialize this one
 //         mux
 //           <value>
 //         rate
@@ -226,6 +241,18 @@ typedef struct otb_cmd_control
 //           <value>
 //         loc
 //           <value>
+//     relay (external relay module)
+//       <id> (1-8)
+//         loc (location, 31 chars max)
+//         type (otb, pca, pcf, mcp - only otb = otb-relay v0.4 and pca currently supported = pca9685)
+//         addr (address, 2 hex digits if pca, pcf or mcp, 3 binary digits if otb, defaults 000 for otb, 40 for pca)
+//         num (defaults to 8 for otb, 8 for pca)
+//         status (invalid for otb, status led, pin num of driver connected to status led, -1 means no status led)
+//         pwr_on
+//           <num>
+//             <state> (0 or 1)
+//           all
+//             <state> (string of 0s and 1s - lowest numbered pin last)
 //     gpio
 //       pin  // Must be an unreserved GPIO
 //         state  // Must be 0 or 1
@@ -256,6 +283,15 @@ typedef struct otb_cmd_control
 //       once   // led name    
 //       go     // led name
 //       stop   // led name
+//   gpio
+//     pin  // Must be an unreserved GPIO
+//       state  // Must be 0 or 1
+//   relay
+//     <id>
+//       <num>
+//         <state> (0 or 1)
+//       all
+//         <state> (string of 0s and 1s - lowest numbered pin last)
 //  
 
 // Some macros to simplify command structure definition
@@ -300,7 +336,11 @@ extern otb_cmd_control otb_cmd_control_trigger_test_led[];
 extern otb_cmd_control otb_cmd_control_get_gpio[];
 extern otb_cmd_control otb_cmd_control_get_config_gpio[];
 extern otb_cmd_control otb_cmd_control_set_config_gpio[];
-extern otb_cmd_control otb_cmd_control_set_gpio[];
+extern otb_cmd_control otb_cmd_control_trigger_gpio[];
+extern otb_cmd_control otb_cmd_control_set_config_relay[];
+extern otb_cmd_control otb_cmd_control_set_config_relay_valid[];
+extern otb_cmd_control otb_cmd_control_trigger_relay[];
+
 
 #ifdef OTB_CMD_C
 
@@ -461,7 +501,6 @@ otb_cmd_control otb_cmd_control_get_info_logs[] =
 otb_cmd_control otb_cmd_control_set[] =
 {
   {"config",           NULL, otb_cmd_control_set_config,        OTB_CMD_NO_FN},
-  {"gpio",             NULL, otb_cmd_control_set_gpio,          OTB_CMD_NO_FN},
   {"boot_slot",        NULL, NULL,      otb_cmd_set_boot_slot,     NULL},
   {OTB_CMD_FINISH}    
 };
@@ -473,7 +512,8 @@ otb_cmd_control otb_cmd_control_set_config[] =
   {"loc",              NULL, otb_cmd_control_set_config_loc,             OTB_CMD_NO_FN},
   {"ds18b20",          NULL, otb_cmd_control_set_config_ds18b20,         OTB_CMD_NO_FN},
   {"ads",              NULL, otb_cmd_control_set_config_ads,             OTB_CMD_NO_FN},
-  {"gpio",             NULL, otb_cmd_control_set_config_gpio,             OTB_CMD_NO_FN},
+  {"gpio",             NULL, otb_cmd_control_set_config_gpio,            OTB_CMD_NO_FN},
+  {"relay",            NULL, otb_cmd_control_set_config_relay,           OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -493,7 +533,7 @@ otb_cmd_control otb_cmd_control_set_config_loc[] =
   {"1",                 NULL, NULL, otb_conf_set_loc, (void *)1},
   {"2",                 NULL, NULL, otb_conf_set_loc, (void *)2},
   {"3",                 NULL, NULL, otb_conf_set_loc, (void *)3},
-  {OTB_CMD_FINISH}    
+  {OTB_CMD_FINISH}
 };
 
 // set->config->ds18b20
@@ -532,10 +572,33 @@ otb_cmd_control otb_cmd_control_set_config_gpio[] =
   {OTB_CMD_FINISH}
 };
 
-// set->gpio
-otb_cmd_control otb_cmd_control_set_gpio[] =
+// set->config->relay
+//     relay (external relay module)
+//       <id> (1-8)
+//         loc (location, 31 chars max)
+//         type (otb, pca, pcf, mcp - only otb = otb-relay v0.4 and pca currently supported = pca9685)
+//         addr (address, 2 hex digits if pca, pcf or mcp, 3 binary digits if otb, defaults 000 for otb, 40 for pca)
+//         num (defaults to 8 for otb, 8 for pca)
+//         status (invalid for otb, status led, pin num of driver connected to status led, -1 means no status led)
+//         pwr_on
+//           <num>
+//             <state> (0 or 1)
+//           all
+//             <state> (string of 0s and 1s - lowest numbered pin last)
+otb_cmd_control otb_cmd_control_set_config_relay[] = 
 {
-  {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_SET},
+  {NULL, otb_relay_valid_id, otb_cmd_control_set_config_relay_valid, OTB_CMD_NO_FN},
+  {OTB_CMD_FINISH}
+};
+
+otb_cmd_control otb_cmd_control_set_config_relay_valid[] =
+{
+  {"loc",          NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_LOC},
+  {"type",         NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_TYPE},
+  {"addr",         NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_ADDR},
+  {"num",          NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_NUM},
+  {"status",       NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_STATUS},
+  {"pwr_on",       NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_PWR_ON},
   {OTB_CMD_FINISH}
 };
 
@@ -602,6 +665,8 @@ otb_cmd_control otb_cmd_control_trigger[] =
   {"ow",                NULL, otb_cmd_control_trigger_ow,      OTB_CMD_NO_FN},
   {"i2c",               NULL, otb_cmd_control_trigger_i2c,     OTB_CMD_NO_FN},
   {"test",              NULL, otb_cmd_control_trigger_test,    OTB_CMD_NO_FN},
+  {"gpio",              NULL, otb_cmd_control_trigger_gpio,    OTB_CMD_NO_FN},
+  {"relay",             NULL, otb_cmd_control_trigger_relay,   OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -636,6 +701,20 @@ otb_cmd_control otb_cmd_control_trigger_test_led[] =
   {"once",              NULL, NULL,     otb_cmd_trigger_test_led_fn,  (void *)OTB_CMD_TRIGGER_TEST_LED_ONCE},
   {"go",                NULL, NULL,     otb_cmd_trigger_test_led_fn,  (void *)OTB_CMD_TRIGGER_TEST_LED_GO},
   {"stop",              NULL, NULL,     otb_cmd_trigger_test_led_fn,  (void *)OTB_CMD_TRIGGER_TEST_LED_STOP},
+  {OTB_CMD_FINISH}
+};
+
+// trigger->gpio
+otb_cmd_control otb_cmd_control_trigger_gpio[] =
+{
+  {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_TRIGGER},
+  {OTB_CMD_FINISH}
+};
+
+// trigger->relay
+otb_cmd_control otb_cmd_control_trigger_relay[] =
+{
+  {NULL, otb_relay_valid_id, NULL, otb_relay_trigger, NULL},
   {OTB_CMD_FINISH}
 };
 

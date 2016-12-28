@@ -135,28 +135,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_httpd.o \
              $(OTB_OBJ_DIR)/otb_cmd.o \
              $(OTB_OBJ_DIR)/otb_flash.o \
-             $(RBOOT_OBJ_DIR)/rboot_ota.o \
-             $(RBOOT_OBJ_DIR)/rboot-api.o \
-             $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
-             $(OTB_OBJ_DIR)/strcasecmp.o \
-             $(OTB_OBJ_DIR)/pin_map.o 
-
-otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
-             $(OTB_OBJ_DIR)/otb_mqtt.o \
-             $(OTB_OBJ_DIR)/otb_i2c.o \
-             $(OTB_OBJ_DIR)/otb_i2c_pca9685.o \
-             $(OTB_OBJ_DIR)/otb_i2c_mcp23017.o \
-             $(OTB_OBJ_DIR)/otb_i2c_24xxyy.o \
-             $(OTB_OBJ_DIR)/otb_led.o \
-             $(OTB_OBJ_DIR)/otb_wifi.o \
-             $(OTB_OBJ_DIR)/otb_main.o \
-             $(OTB_OBJ_DIR)/otb_util.o \
-             $(OTB_OBJ_DIR)/otb_rboot.o \
-             $(OTB_OBJ_DIR)/otb_gpio.o \
-             $(OTB_OBJ_DIR)/otb_conf.o \
-             $(OTB_OBJ_DIR)/otb_httpd.o \
-             $(OTB_OBJ_DIR)/otb_cmd.o \
-             $(OTB_OBJ_DIR)/otb_flash.o \
+             $(OTB_OBJ_DIR)/otb_relay.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \

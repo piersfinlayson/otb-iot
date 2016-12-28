@@ -108,6 +108,7 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
   int ii;
   otb_conf_ads *ads;
   otb_i2c_ads_samples *samples;
+  bool do_init = FALSE;
 
   DEBUG("I2C: otb_ads_initialize entry");
 
@@ -115,13 +116,33 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
 
   if (otb_conf->adss > 0)
   {
+    do_init = TRUE;
+  }
+  else
+  {
+    do_init = otb_relay_configured();
+  }
+  
+  if (do_init)
+  {
+    INFO("I2C: Initialize I2C bus");
     // Initialize the I2C bus
     rc = otb_i2c_init();
     if (!rc)
     {
       goto EXIT_LABEL;
     }
+  }
+  else
+  {
+    INFO("I2C: No I2C initialization required (no ADS/ADC or relay devices)");
+    rc = TRUE;
+    goto EXIT_LABEL;
+  }
 
+  if (otb_conf->adss > 0)
+  {
+    INFO("I2C: Initialize ADS ADC(s)");
     // Configure each ADS    
     for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
     {
@@ -171,16 +192,9 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
         otb_i2c_ads_state[ii] = FALSE;
       }
     }
-    
-    // XXX Temporary
-    //otb_i2c_24xxyy_test_init();
-    otb_i2c_pcf8574_test_init();
   }
-  else
-  {
-    INFO("I2C: No ADS/I2C initialization required (no devices)");
-    rc = TRUE;
-  }
+  
+  otb_relay_init();
   
 EXIT_LABEL:
   if (!rc)
@@ -725,6 +739,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
   *num=0;
   if (byte != NULL)
   {
+    INFO("I2C: byte value: %s", byte);
     for (ii = 0; ii < 8; ii++)
     {
       digit = 0;
@@ -751,6 +766,11 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
       }
     }
     rc = TRUE;
+  }
+  else
+  {
+    INFO("I2C: Null string passed in");
+    rc = FALSE;
   }
   
 EXIT_LABEL:  
@@ -1452,6 +1472,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_valid_addr(unsigned char *to_match)
   }
   
   rc = TRUE;
+  otb_i2c_ads_last_addr = addr_b;
   
 EXIT_LABEL:
 
@@ -1521,9 +1542,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
   OTB_ASSERT((cmd >= 0) && (cmd < OTB_CMD_ADS_NUM));
   
   // We've tested the address is valid already
-  addr = prev_cmd;
-  if (!otb_i2c_mqtt_get_addr(addr, &addr_b) ||
-      (addr_b < 0x48) ||
+  addr_b = otb_i2c_ads_last_addr;
+  if ((addr_b < 0x48) ||
       (addr_b > 0x4b))
   {
     // Shouldn't happen as already tested!
@@ -1564,6 +1584,8 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
     goto EXIT_LABEL;
   }
   
+  value = next_cmd;
+
   // Now we're here we can assume we have a slot pointer stored off in ads
   switch(cmd)
   {
@@ -1608,6 +1630,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
       
       if (!rc || (val < min) || (val > max))
       {
+        INFO("I2C: rc: %d min: %d max: %d val: %d", rc, min, max, val);
         otb_cmd_rsp_append("invalid value");
         rc = FALSE;
         goto EXIT_LABEL;

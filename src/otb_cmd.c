@@ -416,7 +416,7 @@ unsigned char *otb_cmd_get_next_cmd(unsigned char *cmd)
   // While cur_cmd is not a null terminated string
   while ((cur_cmd[0] != 0) && (depth < OTB_CMD_MAX_CMDS))
   {
-    if (!os_strcmp(cur_cmd, cmd))
+    if (cur_cmd == cmd)
     {
       next = TRUE;
     }

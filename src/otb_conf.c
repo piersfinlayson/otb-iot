@@ -213,6 +213,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
           ((conf->ads[ii].samples < 0) || (conf->ads[ii].samples >= 1024)))
       {
         WARN("CONF: ADS index %d something invalid", ii);
+        conf->ads[ii].loc[OTB_CONF_ADS_LOCATION_MAX_LEN-1] = 0; // Null terminate just in case!
         INFO("CONF: ADS %d index:     %d", ii, conf->ads[ii].index);
         INFO("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
         INFO("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
@@ -252,6 +253,43 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
         modified = TRUE;
       }
     }
+    
+    for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
+    {
+      if ((os_strnlen(conf->relay[ii].loc, OTB_CONF_RELAY_LOC_LEN) >=
+                                                                OTB_CONF_RELAY_LOC_LEN) ||
+          (conf->relay[ii].index != ii) ||
+          ((conf->relay[ii].type < OTB_CONF_RELAY_TYPE_MIN) || (conf->relay[ii].type >= OTB_CONF_RELAY_TYPE_NUM)) ||
+          ((conf->relay[ii].num_relays < 0) || (conf->relay[ii].num_relays > OTB_CONF_RELAY_MAX_PER_MODULE)) ||
+          (conf->relay[ii].pad1[0] != 0) ||
+          (conf->relay[ii].pad1[1] != 0) ||
+          (conf->relay[ii].pad1[2] != 0) ||
+          ((conf->relay[ii].type == OTB_CONF_RELAY_TYPE_OTB_0_4) &&
+           ((conf->relay[ii].addr < 0) || (conf->relay[ii].addr > 7)) ||
+           (conf->relay[ii].num_relays > 8) ||
+           (conf->relay[ii].status_led != 0) ||
+           (conf->relay[ii].relay_pwr_on[1] != 0)) ||
+          ((conf->relay[ii].type == OTB_CONF_RELAY_TYPE_PCA) &&
+           ((conf->relay[ii].addr < 0x40) || (conf->relay[ii].addr > 0x3f)) ||
+           (conf->relay[ii].num_relays > 16) ||
+           ((conf->relay[ii].status_led < -1) || (conf->relay[ii].status_led > 16))))
+      {
+        WARN("CONF: Relay index %d something invalid", ii);
+        conf->relay[ii].loc[OTB_CONF_RELAY_LOC_LEN-1] = 0; // Null terminate just in case!
+        INFO("CONF: Relay %d location:    %s", ii, conf->relay[ii].loc);
+        INFO("CONF: Relay %d index:       %d", ii, conf->relay[ii].index);
+        INFO("CONF: Relay %d type:        %d", ii, conf->relay[ii].type);
+        INFO("CONF: Relay %d addr:        0x%02x", ii, conf->relay[ii].addr);
+        INFO("CONF: Relay %d num_relays:  0x%02x", ii, conf->relay[ii].num_relays);
+        INFO("CONF: Relay %d status_led:  0x%02x", ii, conf->relay[ii].status_led);
+        INFO("CONF: Relay %d pad1[0]:     0x%02x", ii, conf->relay[ii].pad1[0]);
+        INFO("CONF: Relay %d pad1[1]:     0x%02x", ii, conf->relay[ii].pad1[1]);
+        INFO("CONF: Relay %d pad1[2]:     0x%02x", ii, conf->relay[ii].pad1[2]);
+        os_memset(&(conf->relay[ii]), 0, sizeof(otb_conf_relay));
+        conf->relay[ii].index = ii;
+        modified = TRUE;
+      }
+    }    
   }
   
   if (otb_conf->version > 1)

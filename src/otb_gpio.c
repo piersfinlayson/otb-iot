@@ -336,7 +336,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_cmd(unsigned char *next_cmd,
   pin = otb_gpio_get_pin(prev_cmd);
   
   // If a set command, get value to set
-  if ((cmd == OTB_CMD_GPIO_SET) || (cmd == OTB_CMD_GPIO_SET_CONFIG))
+  if ((cmd == OTB_CMD_GPIO_TRIGGER) || (cmd == OTB_CMD_GPIO_SET_CONFIG))
   {
     if (next_cmd == NULL)
     {
@@ -367,7 +367,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_cmd(unsigned char *next_cmd,
       otb_cmd_rsp_append("%d", value);
       break;
     
-    case OTB_CMD_GPIO_SET:
+    case OTB_CMD_GPIO_TRIGGER:
       rc = otb_gpio_set(pin, value, FALSE);
       break;
       

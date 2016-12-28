@@ -19,6 +19,7 @@
 
 #define OTB_I2C_PCA9685_C
 #include "otb.h"
+#include "brzo_i2c.h"
 
 void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
 {
@@ -30,7 +31,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
   {
     // Off
     INFO("PCA9685: LED on - turn it off");
-    rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 0, 0, OTB_I2C_PCA9685_IO_FULL_OFF);
+    rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, 0, OTB_I2C_PCA9685_IO_FULL_OFF);
     if (!rc)
     {
       WARN("PCA9685: Failed to communicate with PCA9685");
@@ -41,7 +42,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
   {
     // On
     INFO("PCA9685: LED off - turn it on");
-    rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 0, OTB_I2C_PCA9685_IO_FULL_ON, 0);
+    rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, OTB_I2C_PCA9685_IO_FULL_ON, 0);
     if (!rc)
     {
       WARN("PCA9685: Failed to communicate with PCA9685");
@@ -108,16 +109,34 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   OTB_ASSERT(!((on & OTB_I2C_PCA9685_IO_FULL_ON) && (off & 0b111111111111))); 
   OTB_ASSERT(!((off & OTB_I2C_PCA9685_IO_FULL_ON) && (on & 0b111111111111))); 
   
+#if 0  
   byte[0] = on & 0xff;
   byte[1] = on >> 8;
   byte[2] = off & 0xff;
   byte[3] = off >> 8;
-  
+
   OTB_ASSERT((led >= 0) && (led < OTB_I2C_PCA9685_REG_IO_NUM)); 
-  reg = OTB_I2C_PCA9685_REG_IO0_ON_L + (led * 4);
+  //reg = OTB_I2C_PCA9685_REG_IO0_ON_L + (led * 4);
+  reg = 0xfa;
   rc = otb_i2c_write_reg_seq(addr, reg, 4, byte);
   if (!rc)
   {
+    goto EXIT_LABEL;
+  }
+#endif
+  unsigned char bytes[5];
+  bytes[0] = 0xfa;
+  bytes[1] = on & 0xff;
+  bytes[2] = on >> 8;
+  bytes[3] = off & 0xff;
+  bytes[4] = off >> 8;
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_write(bytes, 5, FALSE);
+  rc = brzo_i2c_end_transaction(); 
+  if (rc)
+  {
+    INFO("Failed %d", rc);
+    rc = FALSE;
     goto EXIT_LABEL;
   }
 
@@ -149,6 +168,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   mode = read_mode[0] & (read_mode[1] << 8);
   INFO("PCA9685: Read mode 0x%04x", mode);
   
+#if 0  
   // Set prescale (to default for now)
   rc = otb_i2c_write_one_reg(addr,
                              OTB_I2C_PCA9685_REG_PRE_SCALE,
@@ -157,16 +177,49 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   {
     goto EXIT_LABEL;
   }
+#endif
   
   // Set the mode.  Key thing to change is that auto-incrementing of registers is
   // defaulted - this allows us to write more than one register with successive writes
   // without restarting comms for each one (speeding things up).
-  mode = 0;
-  mode |= OTB_I2C_PCA9685_MODE_AI_REG | OTB_I2C_PCA9685_MODE_INVERT;
-  mode &= ~OTB_I2C_PCA9685_MODE_TOTEM;
-  rc = otb_i2c_pca9685_set_mode(addr, mode);
+  mode = 0b00100001;
+  unsigned char bytes[2];
+#if 0  
+  //mode |= OTB_I2C_PCA9685_MODE_AI_REG;
+  //mode |= OTB_I2C_PCA9685_MODE_AI_REG | OTB_I2C_PCA9685_MODE_INVERT;
+  //mode &= ~OTB_I2C_PCA9685_MODE_TOTEM;
+  //rc = otb_i2c_pca9685_set_mode(addr, mode);
+  rc = otb_i2c_write_reg_seq(addr,
+                             OTB_I2C_PCA9685_REG_MODE1,
+                             1,
+                             &mode);
   if (!rc)
   {
+    goto EXIT_LABEL;
+  }
+#endif
+
+  bytes[0] = 0;  // general call address
+  bytes[1] = 0b00000110; // SWRST data
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_write(bytes, 2, FALSE);
+  rc = brzo_i2c_end_transaction();
+  if (rc)
+  {
+    INFO("sqrst failed: %d", rc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+  bytes[0] = 0x00; // MODE1 register
+  bytes[1] = 0b00100001; // reset = 1, AI = 1, sleep = 0, allcall = 1
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_write(bytes, 2, FALSE);
+  rc = brzo_i2c_end_transaction();
+  if (rc)
+  {
+    INFO("Failed: %d", rc);
+    rc = FALSE;
     goto EXIT_LABEL;
   }
 

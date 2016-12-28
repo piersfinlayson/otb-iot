@@ -154,6 +154,51 @@ typedef struct otb_conf_mqtt
   char pass[OTB_MQTT_MAX_PASS_LEN];
 } otb_conf_mqtt;
 
+typedef struct otb_conf_relay
+{
+  // 56 bytes
+  
+#define OTB_CONF_RELAY_LOC_LEN  32
+  unsigned char loc[OTB_CONF_RELAY_LOC_LEN];
+
+  // Index into array of relay boards
+  char index;
+  
+  // Type of relay module - takes integer value
+#define OTB_CONF_RELAY_TYPE_MIN      0
+#define OTB_CONF_RELAY_TYPE_NONE     0
+#define OTB_CONF_RELAY_TYPE_OTB_0_4  1
+#define OTB_CONF_RELAY_TYPE_PCA      2
+#define OTB_CONF_RELAY_TYPE_PCF      3
+#define OTB_CONF_RELAY_TYPE_MCP      4
+#define OTB_CONF_RELAY_TYPE_NUM      5
+#define OTB_CONF_RELAY_TYPE_NONE_STR     "none"
+#define OTB_CONF_RELAY_TYPE_OTB_0_4_STR  "otb"
+#define OTB_CONF_RELAY_TYPE_PCA_STR      "pca"
+#define OTB_CONF_RELAY_TYPE_PCF_STR      "pcf"
+#define OTB_CONF_RELAY_TYPE_MCP_STR      "mcp"
+  unsigned char type;
+  
+  // Address - for pca, pcf and mcp is the I2c address of the driver.  For otb is
+  // the value of the jumper pins (0-7 - the code then maps this to I2C address)
+  unsigned char addr;
+  
+  // Number of relays connected to this module.  Defaults to 8 for OTB and PCA.  0 and
+  // > 16 are invalid.
+  unsigned char num_relays;
+  
+  // Status LED - invalid for OTB (has status LED), -1 = no status led, otherwise pin
+  // number of status LED.
+  signed char status_led;
+  
+  unsigned char pad1[3];
+  
+  // Desired power on state of each relay for this module
+#define OTB_CONF_RELAY_MAX_PER_MODULE  16
+  unsigned char relay_pwr_on[OTB_CONF_RELAY_MAX_PER_MODULE/8];
+  
+} otb_conf_relay;
+
 typedef struct otb_conf_struct
 {
   // Following fields are in version 1
@@ -217,6 +262,9 @@ typedef struct otb_conf_struct
   
   // Must be set to zero
   char pad3[3];
+  
+#define OTB_CONF_RELAY_MAX_MODULES 8
+  otb_conf_relay relay[OTB_CONF_RELAY_MAX_MODULES];
   
   // Adding any configuration past this point needs to be supported by a different
   // version
