@@ -262,7 +262,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
 
   INFO("RELAY: Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
 
-  bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + ((num-1) * 4);
+  bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (((9-num)-1) * 4);
   bytes[1] = 0b0;
   bytes[2] = state ? 0b00010000 : 0;
   bytes[3] = 0b0;
