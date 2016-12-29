@@ -490,6 +490,11 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink(uint8 times)
   DEBUG("LED: otb_led_wifi_blink entry");
   
   otb_led_wifi_blink_times += times;
+  // Only store a max number of blinks!
+  if (otb_led_wifi_blink_times > OTB_LED_WIFI_BLINK_MAX)
+  {
+    otb_led_wifi_blink_times = OTB_LED_WIFI_BLINK_MAX;
+  }
   otb_led_wifi_disable_blink_timer();
   otb_led_wifi_init_blink_timer();
   

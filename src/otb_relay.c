@@ -104,6 +104,27 @@ EXIT_LABEL:
   return rc;
 }
 
+otb_relay ICACHE_FLASH_ATTR *otb_relay_find_status(uint8_t id)
+{
+  otb_relay *relay_status = NULL;
+  int ii;
+  
+  DEBUG("RELAY: otb_relay_find_status entry");
+  
+  for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
+  {
+    if (id == otb_relay_status[ii].index)
+    {
+      relay_status = &(otb_relay_status[ii]);
+      break;
+    }
+  }
+  
+  DEBUG("RELAY: otb_relay_find_status exit");
+  
+  return relay_status;
+}
+
 bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
                                          void *arg,
                                          unsigned char *prev_cmd)
@@ -118,6 +139,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
   uint8_t bvalue;
   uint8_t type;
   unsigned char *next_next_cmd;
+  otb_relay *relay_status;
     
   DEBUG("RELAY: otb_relay_trigger entry");
   
@@ -125,6 +147,16 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
   index = otb_relay_id;
   OTB_ASSERT((index > 0) && (index <= OTB_CONF_RELAY_MAX_MODULES));
   id = index-1;
+  relay = &(otb_conf->relay[id]);
+  relay_status = otb_relay_find_status(id);
+  OTB_ASSERT(relay_status != NULL);
+  
+  if (!relay_status->connected)
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("Not yet connected to relay: %s", prev_cmd);
+    goto EXIT_LABEL;
+  }
   
   if (next_cmd == NULL)
   {
@@ -133,7 +165,6 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
     goto EXIT_LABEL;
   }
   
-  relay = &(otb_conf->relay[id]);
   type = relay->type;
   if (type != OTB_CONF_RELAY_TYPE_OTB_0_4)
   {
@@ -188,7 +219,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
         // Phew - now have a relay module (relay), relay itself (ivalue), and desired
         // binary state (bvalue)
         // Note otb-relay has pins 1 to 8 reversed - hence 9-ivalue!
-        rc = otb_relay_trigger_relay(relay, (uint8_t)(9-ivalue), bvalue);
+        rc = otb_relay_trigger_relay(relay_status, (uint8_t)ivalue, bvalue);
         if (!rc)
         {
           rc = FALSE;
@@ -214,17 +245,20 @@ EXIT_LABEL:
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_conf_relay *relay, uint8_t num, uint8_t state)
+bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t num, uint8_t state)
 {
   bool rc;
+  otb_conf_relay *relay;
   uint8_t brzo_rc;
   uint8_t i2c_addr;
   uint8_t bytes[5];
+  uint8_t pin;
   
   DEBUG("RELAY: otb_relay_trigger_relay entry");
   
-
+  relay = &(otb_conf->relay[relay_status->index]);
   i2c_addr = OTB_I2C_PCA9685_BASE_ADDR + relay->addr;
+  pin = 9-num;
 
   INFO("RELAY: Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
 
@@ -244,6 +278,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_conf_relay *relay, uint8_t nu
   }
   
   rc = TRUE;
+  relay_status->known_state[num-1] = state ? TRUE : FALSE;
   
 EXIT_LABEL:
 
@@ -468,6 +503,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
   {
     otb_relay_status[ii].index = -1;
     otb_relay_status[ii].connected = FALSE;
+    os_memset(otb_relay_status[ii].known_state, -1, 16);
   }
 
   // Now set up internal relay module state based on config
@@ -581,7 +617,9 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
           rc = FALSE;
           goto EXIT_LABEL;
         }
-
+        // Only set first 8 bytes to 0, as last 8 bytes are unused (8 relay module)
+        os_memset(relay->known_state, 0, 8);
+        
         // Now set status LED to on (was turned off with previous step
         bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (OTB_RELAY_STATUS_LED_OTB_0_4 * 4);
         bytes[2] = 0b00010000;

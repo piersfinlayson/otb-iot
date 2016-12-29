@@ -212,6 +212,8 @@ otb_led_type_info OTB_LED_TYPE_INFO[OTB_LED_TYPE_NUM] =
 };
 #endif // OTB_LED_C
 
+#define OTB_LED_WIFI_BLINK_MAX  10
+
 bool otb_led_test(unsigned char *name, bool repeat, unsigned char **error_text);
 bool otb_led_test_stop(unsigned char *name, unsigned char **error_text);
 void otb_led_get_colours(uint32_t colour,

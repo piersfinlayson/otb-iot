@@ -26,9 +26,15 @@ typedef struct otb_relay
 {
   sint8_t index; // Index into otb_conf->relay[x]
   
+  // Whether connected to this module
   bool connected; 
   
+  // Timer used to connect to relay module, and then apply any updates made via MQTT - 
+  // these are only done periodically to avoid too many operations
   os_timer_t timer;
+  
+  // Expected state of the relays on this module
+  sint8_t known_state[16];
 
 } otb_relay;
  
@@ -42,10 +48,11 @@ otb_relay otb_relay_status[OTB_CONF_RELAY_MAX_MODULES];
 bool otb_relay_valid_id(unsigned char *to_match);  
 int8_t otb_relay_get_index(unsigned char *text);
 bool otb_relay_check_index(int8_t index); 
+otb_relay *otb_relay_find_status(uint8_t id);
 bool otb_relay_trigger(unsigned char *next_cmd,
                        void *arg,
                        unsigned char *prev_cmd);
-bool otb_relay_trigger_relay(otb_conf_relay *relay, uint8_t num, uint8_t state);
+bool otb_relay_trigger_relay(otb_relay *relay_status, uint8_t num, uint8_t state);
 bool otb_relay_conf_set(unsigned char *next_cmd,
                         void *arg,
                         unsigned char *prev_cmd);
