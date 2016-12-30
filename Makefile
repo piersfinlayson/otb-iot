@@ -31,13 +31,13 @@ CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 AR = $(XTENSA_DIR)/xtensa-lx106-elf-ar
 ESPTOOL2 = /usr/bin/esptool2
-ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
+ESPTOOL_PY = python2 $(XTENSA_DIR)/esptool.py
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM 
-MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
+MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
 I2C_CFLAGS = -Ilib/i2c
 
@@ -245,11 +245,8 @@ flash_factory: bin/app_image.bin
 
 flash: flash_boot flash_app
 
-create_ff: directories
-	dd if=/dev/zero ibs=1k count=4 | tr "\000" "\377" > bin/ff.bin
-
-flash_sdk: create_ff
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 bin/ff.bin
+flash_sdk:
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin
 
 flash_initial: erase_flash flash_sdk flash_boot flash_app flash_factory
 
