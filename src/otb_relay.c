@@ -614,103 +614,102 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
   
   os_timer_disarm((os_timer_t*)&(relay->timer));
 
-  if (!relay->connected)
+  DEBUG("RELAY: Connect to and set up relay module %d", relay->index);
+  
+  switch(relay_conf->type)
   {
-    DEBUG("RELAY: Connect to relay module %d", relay->index);
+    case OTB_CONF_RELAY_TYPE_OTB_0_4:
+      // Figure out I2C address
+      i2c_addr = OTB_I2C_PCA9685_BASE_ADDR + relay_conf->addr;
     
-    switch(relay_conf->type)
-    {
-      case OTB_CONF_RELAY_TYPE_OTB_0_4:
-        // Figure out I2C address
-        i2c_addr = OTB_I2C_PCA9685_BASE_ADDR + relay_conf->addr;
-      
-        // Set the mode
-        bytes[0] = 0x00; // MODE1 register
-        bytes[1] = 0b00100001; // reset = 1, AI = 1, sleep = 0, allcall = 1
-        brzo_i2c_start_transaction(i2c_addr, 100);
-        brzo_i2c_write(bytes, 2, FALSE);
-        brzo_rc = brzo_i2c_end_transaction();
-        if (brzo_rc)
-        {
-          INFO("RELAY: Failed to set otb-relay PCA9685 mode: %d", rc);
-          rc = FALSE;
-          goto EXIT_LABEL;
-        }
+      // Set the mode
+      bytes[0] = 0x00; // MODE1 register
+      bytes[1] = 0b00100001; // reset = 1, AI = 1, sleep = 0, allcall = 1
+      brzo_i2c_start_transaction(i2c_addr, 100);
+      brzo_i2c_write(bytes, 2, FALSE);
+      brzo_rc = brzo_i2c_end_transaction();
+      if (brzo_rc)
+      {
+        INFO("RELAY: Failed to set otb-relay PCA9685 mode: %d", rc);
+        rc = FALSE;
+        goto EXIT_LABEL;
+      }
 
-        // Now set status LED to on (was turned off with previous step
-        bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (OTB_RELAY_STATUS_LED_OTB_0_4 * 4);
-        bytes[1] = 0b0;
-        bytes[2] = 0b00010000;
-        bytes[3] = 0b0;
+      // Now set status LED to on
+      bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (OTB_RELAY_STATUS_LED_OTB_0_4 * 4);
+      bytes[1] = 0b0;
+      bytes[2] = 0b00010000;
+      bytes[3] = 0b0;
+      bytes[4] = 0b0;
+      brzo_i2c_start_transaction(i2c_addr, 100);
+      brzo_i2c_write(bytes, 5, FALSE);
+      brzo_rc = brzo_i2c_end_transaction();
+      if (brzo_rc)
+      {
+        INFO("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
+        rc = FALSE;
+        goto EXIT_LABEL;
+      }
+
+      // Now set pins to desired state
+      bytes[1] = 0b0;
+      bytes[3] = 0b0;
+      for (ii = 0; ii < 8; ii++)
+      {
+        // Use known state rather than power on state if known
+        if (relay->known_state[ii] >= 0)
+        {
+          desired_state = relay->known_state[ii];
+        }
+        else
+        {
+          desired_state = relay_conf->relay_pwr_on[1] & (1 << ii);
+        }
+        desired_state = desired_state ? 1 : 0;
+        bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + ((7-ii) * 4);
+        bytes[2] = 0b0;
         bytes[4] = 0b0;
+        if (desired_state)
+        {
+          bytes[2]= 0b00010000;
+        }
+        else
+        {
+          bytes[4]= 0b00010000;
+        }
         brzo_i2c_start_transaction(i2c_addr, 100);
         brzo_i2c_write(bytes, 5, FALSE);
         brzo_rc = brzo_i2c_end_transaction();
         if (brzo_rc)
         {
-          INFO("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
+          INFO("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
           rc = FALSE;
           goto EXIT_LABEL;
         }
-
-        // Now set pins to desired state
-        bytes[1] = 0b0;
-        bytes[3] = 0b0;
-        for (ii = 0; ii < 8; ii++)
-        {
-          desired_state = relay_conf->relay_pwr_on[1] & (1 << ii);
-          desired_state = desired_state ? 1 : 0;
-          bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + ((7-ii) * 4);
-          bytes[2] = 0b0;
-          bytes[4] = 0b0;
-          if (desired_state)
-          {
-            bytes[2]= 0b00010000;
-          }
-          else
-          {
-            bytes[4]= 0b00010000;
-          }
-          brzo_i2c_start_transaction(i2c_addr, 100);
-          brzo_i2c_write(bytes, 5, FALSE);
-          brzo_rc = brzo_i2c_end_transaction();
-          if (brzo_rc)
-          {
-            INFO("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
-            rc = FALSE;
-            goto EXIT_LABEL;
-          }
-          relay->known_state[ii] = desired_state;
-          bytes[2] = 0b0;
-          bytes[4] = 0b0;
-        }
-        
-        relay->connected = TRUE;
-        rc = TRUE;
-        goto EXIT_LABEL;
-        break;
-    
-      default:
-        OTB_ASSERT(FALSE);
-        break;
-    }
-  }
-  else
-  {
-    rc = TRUE;
+        relay->known_state[ii] = desired_state;
+        bytes[2] = 0b0;
+        bytes[4] = 0b0;
+      }
+      
+      relay->connected = TRUE;
+      rc = TRUE;
+      goto EXIT_LABEL;
+      break;
+  
+    default:
+      OTB_ASSERT(FALSE);
+      break;
   }
   
 EXIT_LABEL:
 
-  // If failed, try again in 1s
-  if (!rc)
-  {
-    INFO("RELAY: Failed to connect to relay module %d", relay->index);
-    os_timer_setfn((os_timer_t*)&(relay->timer),
-                   (os_timer_func_t *)otb_relay_on_timer,
-                   relay);
-    os_timer_arm((os_timer_t*)&(relay->timer), 1000, 0);
-  }
+  // If failed, ho hum, we'll try again later
+  os_timer_disarm((os_timer_t*)&(relay->timer));
+  os_timer_setfn((os_timer_t*)&(relay->timer),
+                 (os_timer_func_t *)otb_relay_on_timer,
+                 relay);
+  os_timer_arm((os_timer_t*)&(relay->timer), 60000, 1);
+
   DEBUG("RELAY: otb_relay_on_timer exit");
   
   return;
