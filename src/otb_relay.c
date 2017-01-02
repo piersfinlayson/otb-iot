@@ -278,7 +278,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   }
   
   rc = TRUE;
-  relay_status->known_state[num-1] = state ? TRUE : FALSE;
+  relay_status->known_state[num-1] = state ? 1 : 0;
   
 EXIT_LABEL:
 
@@ -300,6 +300,10 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
   int ivalue;
   bool store_conf = FALSE;
   uint8_t type;
+  unsigned char *next_next_cmd;
+  int ii;
+  uint8_t current_state;
+  otb_relay *relay_status;
     
   DEBUG("RELAY: otb_relay_conf_set entry");
   
@@ -308,9 +312,13 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
   OTB_ASSERT((cmd >= OTB_CMD_RELAY_MIN) && (cmd < OTB_CMD_RELAY_TOTAL));
   
   // No need to check whether the pin is valid or reserved - this has already been done
+  // No need to check whether the pin is valid or reserved - this has already been done
   index = otb_relay_id;
   OTB_ASSERT((index > 0) && (index <= OTB_CONF_RELAY_MAX_MODULES));
   id = index-1;
+  relay = &(otb_conf->relay[id]);
+  relay_status = otb_relay_find_status(id);
+  OTB_ASSERT(relay_status != NULL);
   
   if (next_cmd == NULL)
   {
@@ -434,9 +442,35 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
       break;
       
     case OTB_CMD_RELAY_PWR_ON:
-      rc = FALSE;
-      otb_cmd_rsp_append("Not implemented");
-      goto EXIT_LABEL;
+      if (!os_strcmp("current", next_cmd))
+      {
+        current_state = 0;
+        relay->relay_pwr_on[0] = 0;
+        for (ii = 0; ii < 8; ii++)
+        {
+          if (relay_status->known_state >= 0)
+          {
+            current_state |= (relay_status->known_state[ii] << ii);
+          }
+          else
+          {
+            otb_cmd_rsp_append("Current state unknown");
+            rc = FALSE;
+            goto EXIT_LABEL;
+          }
+        }
+        
+        relay->relay_pwr_on[1] = current_state;
+        INFO("Store off state: 0x%2x", relay->relay_pwr_on[1]);
+        store_conf = TRUE;
+        rc = TRUE;
+      }
+      else
+      {
+        otb_cmd_rsp_append("Unsupported value - only current supported");
+        rc = FALSE;
+        goto EXIT_LABEL;
+      }
       break;
       
     default:
@@ -561,6 +595,8 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
   uint8_t brzo_rc;
   uint8_t bytes[5];
   uint8_t i2c_addr;
+  int ii;
+  uint8_t desired_state;
   
   otb_relay *relay;
   otb_conf_relay *relay_conf;
@@ -601,10 +637,10 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
           goto EXIT_LABEL;
         }
 
-        // Set everything to off - should replace this with power on function
-        bytes[0] = 0xfa;
+        // Now set status LED to on (was turned off with previous step
+        bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (OTB_RELAY_STATUS_LED_OTB_0_4 * 4);
         bytes[1] = 0b0;
-        bytes[2] = 0b0;
+        bytes[2] = 0b00010000;
         bytes[3] = 0b0;
         bytes[4] = 0b0;
         brzo_i2c_start_transaction(i2c_addr, 100);
@@ -616,22 +652,39 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
           rc = FALSE;
           goto EXIT_LABEL;
         }
-        // Only set first 8 bytes to 0, as last 8 bytes are unused (8 relay module)
-        os_memset(relay->known_state, 0, 8);
-        
-        // Now set status LED to on (was turned off with previous step
-        bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (OTB_RELAY_STATUS_LED_OTB_0_4 * 4);
-        bytes[2] = 0b00010000;
-        brzo_i2c_start_transaction(i2c_addr, 100);
-        brzo_i2c_write(bytes, 5, FALSE);
-        brzo_rc = brzo_i2c_end_transaction();
-        if (brzo_rc)
-        {
-          INFO("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
-          rc = FALSE;
-          goto EXIT_LABEL;
-        }
 
+        // Now set pins to desired state
+        bytes[1] = 0b0;
+        bytes[3] = 0b0;
+        for (ii = 0; ii < 8; ii++)
+        {
+          desired_state = relay_conf->relay_pwr_on[1] & (1 << ii);
+          desired_state = desired_state ? 1 : 0;
+          bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + ((7-ii) * 4);
+          bytes[2] = 0b0;
+          bytes[4] = 0b0;
+          if (desired_state)
+          {
+            bytes[2]= 0b00010000;
+          }
+          else
+          {
+            bytes[4]= 0b00010000;
+          }
+          brzo_i2c_start_transaction(i2c_addr, 100);
+          brzo_i2c_write(bytes, 5, FALSE);
+          brzo_rc = brzo_i2c_end_transaction();
+          if (brzo_rc)
+          {
+            INFO("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
+            rc = FALSE;
+            goto EXIT_LABEL;
+          }
+          relay->known_state[ii] = desired_state;
+          bytes[2] = 0b0;
+          bytes[4] = 0b0;
+        }
+        
         relay->connected = TRUE;
         rc = TRUE;
         goto EXIT_LABEL;

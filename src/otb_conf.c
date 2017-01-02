@@ -268,7 +268,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
            ((conf->relay[ii].addr < 0) || (conf->relay[ii].addr > 7)) ||
            (conf->relay[ii].num_relays > 8) ||
            (conf->relay[ii].status_led != 0) ||
-           (conf->relay[ii].relay_pwr_on[1] != 0)) ||
+           (conf->relay[ii].relay_pwr_on[0] != 0)) ||
           ((conf->relay[ii].type == OTB_CONF_RELAY_TYPE_PCA) &&
            ((conf->relay[ii].addr < 0x40) || (conf->relay[ii].addr > 0x3f)) ||
            (conf->relay[ii].num_relays > 16) ||

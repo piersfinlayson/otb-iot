@@ -193,7 +193,8 @@ typedef struct otb_conf_relay
   
   unsigned char pad1[3];
   
-  // Desired power on state of each relay for this module
+  // Desired power on state of each relay for this module - lsb is lowest numbered relay
+  
 #define OTB_CONF_RELAY_MAX_PER_MODULE  16
   unsigned char relay_pwr_on[OTB_CONF_RELAY_MAX_PER_MODULE/8];
   

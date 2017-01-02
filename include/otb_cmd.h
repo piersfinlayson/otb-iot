@@ -249,10 +249,11 @@ typedef struct otb_cmd_control
 //         num (defaults to 8 for otb, 8 for pca)
 //         status (invalid for otb, status led, pin num of driver connected to status led, -1 means no status led)
 //         pwr_on
-//           <num>
-//             <state> (0 or 1)
-//           all
-//             <state> (string of 0s and 1s - lowest numbered pin last)
+//           <num> // not yet implemented
+//             <state> (0 or 1) // not yet implemented
+//           all // not yet implemented
+//             <state> (string of 0s and 1s - lowest numbered pin last) // not yet implemented
+//           current (stores current state)
 //     gpio
 //       pin  // Must be an unreserved GPIO
 //         state  // Must be 0 or 1
