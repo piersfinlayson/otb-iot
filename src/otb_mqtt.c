@@ -834,7 +834,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   int byte;
   int port_int;
 
-  DEBUG("MQTT: otb_mqtt_set_svr enty");
+  DEBUG("MQTT: otb_mqtt_set_svr entry");
 
   // First of all check the validity of the stuff passed in.
   

@@ -478,11 +478,10 @@ bool ICACHE_FLASH_ATTR otb_relay_configured(void)
     if (otb_conf->relay[ii].type != OTB_CONF_RELAY_TYPE_NONE)
     {
       rc = TRUE;
+      INFO("RELAY: Have one or more relay modules configured");
       break;
     }
   }
-  
-  INFO("RELAY: Have one or more relay modules configured");
 
   DEBUG("RELAY: otb_relay_configured exit");
   

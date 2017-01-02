@@ -263,15 +263,22 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
       httpdStartResponse(connData, 200);
       httpdHeader(connData, "Content-Type", "text/html");
       httpdEndHeaders(connData);
+      
+      DEBUG("HTTP: Provide HTML response");
 
+      DEBUG("HTTP: Add body");
       len = os_snprintf(otb_httpd_scratch,
                         OTB_HTTP_SCRATCH_LEN,
                         "<body>");
+                        
       
+      
+      INFO("HTTP: Add wifi");
+
       if (wifi_rc == OTB_CONF_RC_CHANGED)
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>Wifi credentials changed to SSID: %s Password: %s</p>",
                            ssid,
                            "********");
@@ -279,28 +286,31 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
       else
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>Wifi details not changed</p>");
       }
       
+      DEBUG("HTTP: Add MQTT svr");
+
       if (mqtt_svr_rc == OTB_CONF_RC_CHANGED)
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>MQTT server changed to: %s</p>",
                            mqtt_svr);
       }
       else
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>MQTT server not changed</p>");
       }
       
-      if (mqtt_svr_rc == OTB_CONF_RC_CHANGED)
+      DEBUG("HTTP: Add MQTT user");
+      if (mqtt_user_rc == OTB_CONF_RC_CHANGED)
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>MQTT username/password changed to "
                            "Username: %s Password: %s</p>",
                            mqtt_user,
@@ -309,10 +319,12 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
       else
       {
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>MQTT username/password not changed</p>");
       }
       
+      DEBUG("HTTP: Update config");
+
       if ((wifi_rc == OTB_CONF_RC_CHANGED) ||
           (mqtt_svr_rc == OTB_CONF_RC_CHANGED) ||
           (mqtt_user_rc == OTB_CONF_RC_CHANGED))
@@ -321,21 +333,26 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
         if (!conf_rc)
         {
           len += os_snprintf(otb_httpd_scratch + len,
-                             OTB_HTTP_SCRATCH_LEN,
+                             OTB_HTTP_SCRATCH_LEN-len,
                              "<p><b>Failed to commit new config to flash!</b></p>");
           ERROR("CONF: Failed to update config");
         }
         // Will cause device to reboot
         len += os_snprintf(otb_httpd_scratch + len,
-                           OTB_HTTP_SCRATCH_LEN,
+                           OTB_HTTP_SCRATCH_LEN-len,
                            "<p>Rebooting shortly ... </p>");
+                           
+        INFO("HTTP: Terminate AP mode");
         otb_wifi_ap_mode_done_fn();          
       }
 
+      DEBUG("HTTP: Finish body");
 
       len += os_snprintf(otb_httpd_scratch + len,
-                         OTB_HTTP_SCRATCH_LEN,
+                         OTB_HTTP_SCRATCH_LEN-len,
                          "</body>");
+
+      DEBUG("HTTP: Send response");
 
       httpdSend(connData, otb_httpd_scratch, len);
       rc = HTTPD_CGI_DONE;
