@@ -18,6 +18,7 @@
  */
 
 #define OTB_I2C_PCA9685_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 #include "brzo_i2c.h"
 

@@ -20,6 +20,7 @@
  */
 
 #define OTB_WIFI_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_wifi_init(void)

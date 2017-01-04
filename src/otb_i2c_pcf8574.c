@@ -18,6 +18,7 @@
  */
 
 #define OTB_I2C_PCF8574_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_timerfunc(void)

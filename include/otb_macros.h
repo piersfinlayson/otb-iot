@@ -34,13 +34,18 @@
                                               ##__VA_ARGS__)
 #endif
 
-#define INFO(...)  LOG(FALSE, __VA_ARGS__);
-#define WARN(...)  LOG(FALSE, __VA_ARGS__);
-#define ERROR(...)  LOG(TRUE, __VA_ARGS__);
+#define INFO(...)  LOG(FALSE, __VA_ARGS__)
+#define WARN(...)  LOG(FALSE, __VA_ARGS__)
+#define ERROR(...)  LOG(TRUE, __VA_ARGS__)
+
+#ifdef OTB_DEBUG_DISABLE
+#undef OTB_DEBUG
+#define OTB_DEBUG 0
+#endif
 
 #ifndef ESPUT
-#ifdef OTB_DEBUG
-  #define DEBUG(...)  LOG(FALSE, __VA_ARGS__);
+#if (OTB_DEBUG > 0)
+  #define DEBUG(...)  LOG(FALSE, __VA_ARGS__)
 #else // OTB_DEBUG
   #define DEBUG(...)
 #endif // OTB_DEBUG

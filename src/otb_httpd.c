@@ -20,6 +20,7 @@
  */
 
 #define OTB_HTTPD_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_httpd_start(void)

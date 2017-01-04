@@ -19,6 +19,7 @@
  */
 
 #define OTB_LED_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned char **error_text)

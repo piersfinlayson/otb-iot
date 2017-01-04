@@ -18,6 +18,7 @@
  */
 
 #define OTB_UTIL_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 #include <stdarg.h>
 #include <limits.h>
