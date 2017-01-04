@@ -54,6 +54,7 @@
 #include <Arduino.h>
 #endif
 #include <string.h>
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 #include "mqtt_msg.h"
 #include "mqtt_user_config.h"

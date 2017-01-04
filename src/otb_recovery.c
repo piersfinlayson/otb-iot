@@ -18,6 +18,7 @@
  */
 
 #define OTB_RECOVERY_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR user_init(void)

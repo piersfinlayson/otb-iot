@@ -27,8 +27,12 @@
 
 #define USE_US_TIMER
 
-// #define OTB_DEBUG 1
 // #define OTB_ARDUINO 1
+
+// To disable DEBUG in a single source file
+// add #define OTB_DEBUG_DISABLE
+// before #include "otb.h"
+#define OTB_DEBUG 0     // 0 = disabled, 1 = enabled
 
 #ifdef OTB_ARDUINO
 #include <Arduino.h>

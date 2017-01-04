@@ -34,6 +34,7 @@
  */
 
 #define OTB_DS18B20_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)

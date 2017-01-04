@@ -18,6 +18,7 @@
  */
 
 #define OTB_I2C_24XXYY_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 #include "brzo_i2c.h"
 
@@ -41,7 +42,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     }
     else
     {
-      INFO("24XXYY: Read byte 0x%02x", buf[0])
+      INFO("24XXYY: Read byte 0x%02x", buf[0]);
     }
     
     // Now toggle back

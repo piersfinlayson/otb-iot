@@ -50,6 +50,7 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 #define MQTT_TASK_PRIO        		0

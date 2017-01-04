@@ -18,6 +18,7 @@
  */
 
 #define OTB_I2C_MCP23017_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_i2c_mcp23017_test_timerfunc(void)

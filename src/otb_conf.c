@@ -18,6 +18,7 @@
  */
 
 #define OTB_CONF_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_conf_init(void)

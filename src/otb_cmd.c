@@ -20,6 +20,7 @@
  */
 
 #define OTB_CMD_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 #include <stdarg.h>
 

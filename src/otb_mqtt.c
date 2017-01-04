@@ -18,6 +18,7 @@
  */
 
 #define OTB_MQTT_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,

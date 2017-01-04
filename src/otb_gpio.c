@@ -18,6 +18,7 @@
  */
 
 #define OTB_GPIO_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
@@ -438,7 +439,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
   bool rc = FALSE;
   bool special;
   uint8 input;
-  char *error_text
+  char *error_text;
   
   DEBUG("GPIO: otb_gpio_set entry");
 

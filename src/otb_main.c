@@ -18,6 +18,7 @@
  */
 
 #define OTB_MAIN_C
+// #define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 void configModeCallback();

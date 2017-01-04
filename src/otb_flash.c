@@ -19,5 +19,6 @@
 
 #define OTB_FLASH_C
 #define OTB_FLASH_INC_FUNCS
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 

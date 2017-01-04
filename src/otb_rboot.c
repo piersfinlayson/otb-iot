@@ -17,6 +17,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 volatile rboot_ota otb_rboot_ota;

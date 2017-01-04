@@ -20,6 +20,7 @@
  */
 
 #define OTB_RELAY_C
+#define OTB_DEBUG_DISABLE
 #include "otb.h"
 
 int8_t otb_relay_id;
