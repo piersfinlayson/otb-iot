@@ -139,6 +139,17 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
     rc = TRUE;
     goto EXIT_LABEL;
   }
+  
+  uint8_t addr = 0x57;
+  rc = otb_i2c_24xxyy_init(addr);
+  if (rc)
+  {
+    INFO("I2C: 24XXYY init at address 0x%02x successful", addr);
+  }
+  else
+  {
+    INFO("I2C: 24XXYY init at address 0x%02x failed", addr);
+  }
 
   if (otb_conf->adss > 0)
   {
@@ -544,7 +555,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_init()
   DEBUG("I2C: otb_i2c_init entry");
 
   //i2c_master_gpio_init();
-  brzo_i2c_setup(0);
+  otb_brzo_i2c_setup(0);
   otb_i2c_initialized = TRUE;
   rc = TRUE;
 

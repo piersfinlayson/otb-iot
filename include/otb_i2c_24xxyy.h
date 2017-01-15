@@ -120,5 +120,6 @@ void otb_i2c_24xxyy_test_init(void);
 bool otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes);
 bool otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes);
 bool otb_i2c_24xxyy_init(uint8_t addr);
+bool otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf);
 
 #endif // OTB_I2C_24XXYY_H

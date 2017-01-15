@@ -50,26 +50,26 @@ typedef struct{
 //
 // Note everything should be on a 4KB (0x1000) boundary, as sector length is
 // 0x1000, and the flash has to be erased in sectors before being rewritten
-#define OTB_BOOT_BOOT_LOCATION            0x0  // length 0x1000  = 4KB
-#define OTB_BOOT_BOOT_CONFIG_LOCATION  0x1000  // length 0x1000  = 4KB
-#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
+#define OTB_BOOT_BOOT_LOCATION            0x0  // length 0x1000  = 24KB
+#define OTB_BOOT_BOOT_CONFIG_LOCATION  0x6000  // length 0x1000  = 8KB
+#define OTB_BOOT_ROM_0_LOCATION        0x8000  // length 0xF8000 = 992KB
+#define OTB_BOOT_ROM_0_LEN            0xf4000
 #define OTB_BOOT_LOG_LOCATION        0x100000  // length 0x0400  = 1KB
 #define OTB_BOOT_LAST_REBOOT_REASON  0x101000  // length 0x0200  = 0.5KB
 #define OTB_BOOT_LAST_REBOOT_LEN       0x1000
 #define OTB_BOOT_RESERVED2           0x101000  // length 0x1000  = 4KB
-#define OTB_BOOT_RESERVED3           0x102000  // length 0xFE000 = 896KB
+#define OTB_BOOT_RESERVED3           0x102000  // length 0xFE000 = 1016KB
 #define OTB_BOOT_CONF_LOCATION       0x200000  // length 0x1000  = 4KB
 #define OTB_BOOT_CONF_LEN              0x1000
-#define OTB_BOOT_RESERVED5           0x201000  // length 0x1000  = 4KB
-#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
+#define OTB_BOOT_RESERVED5           0x201000  // length 0x7000  = 28KB
+#define OTB_BOOT_ROM_1_LOCATION      0x208000  // length 0xF8000 = 992KB
+#define OTB_BOOT_ROM_1_LEN            0xf4000
 #define OTB_BOOT_RESERVED6           0x300000  // length 0x1000  = 4KB
-#define OTB_BOOT_RESERVED7           0x301000  // length 0x1000  = 4KB
-#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
+#define OTB_BOOT_RESERVED7           0x301000  // length 0x1000  = 28KB
+#define OTB_BOOT_ROM_2_LOCATION      0x308000  // length 0xF4000 = 976KB
+#define OTB_BOOT_ROM_2_LEN            0xf4000
 #define OTB_BOOT_SDK_RESERVED        0x3fc000  // length 0x4000  = 16KB
 #define OTB_BOOT_ESP_USER_BIN        0x3fc000  // length ??? ESP SDK user bin
-#define OTB_BOOT_ROM_0_LEN            0xfe000
-#define OTB_BOOT_ROM_1_LEN            0xfe000
-#define OTB_BOOT_ROM_2_LEN            0xfa000
 
 void otb_flash_init(void);
 

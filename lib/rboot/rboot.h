@@ -32,7 +32,7 @@ extern "C" {
 #define CHKSUM_INIT 0xef
 
 #define SECTOR_SIZE 0x1000
-#define BOOT_CONFIG_SECTOR 1
+#define BOOT_CONFIG_SECTOR (OTB_BOOT_BOOT_CONFIG_LOCATION/SECTOR_SIZE)
 
 // Changed from rboot value for OTA-BOOT
 #define BOOT_CONFIG_MAGIC 0xe2

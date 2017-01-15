@@ -34,9 +34,11 @@
                                               ##__VA_ARGS__)
 #endif
 
-#define INFO(...)  LOG(FALSE, __VA_ARGS__);
-#define WARN(...)  LOG(FALSE, __VA_ARGS__);
-#define ERROR(...)  LOG(TRUE, __VA_ARGS__);
+#ifndef OTB_RBOOT_BOOTLOADER
+
+#define INFO(...)  LOG(FALSE, __VA_ARGS__)
+#define WARN(...)  LOG(FALSE, __VA_ARGS__)
+#define ERROR(...)  LOG(TRUE, __VA_ARGS__)
 
 #ifndef ESPUT
 #ifdef OTB_DEBUG
@@ -56,14 +58,39 @@
 {                                                                         \
   esput_printf("ASSERTION", "%s\n", #X);                                  \
   esput_printf("         ", "%s\n", (X) ? "passed" : "failed");           \
-  if (!X)                                                                 \
+  if (!(X))                                                               \
   {                                                                       \
     esput_assertion_failed = TRUE;                                        \
   }                                                                       \
 }
 
-
 #endif // ESPUT
+
+#else // OTB_RBOOT_BOOTLOADER
+
+// Definitely don't want DEBUG (would make bootloader very large.  Probably do want other
+// logs - but we need to call ets_printf directly, and add in CRLF.
+#define INFO(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define WARN(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define ERROR(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define DEBUG(FORMAT, ...)  
+
+#undef OTB_ASSERT
+#define OTB_ASSERT(X)                                                         \
+{                                                                             \
+  if (!(X))                                                                   \
+  {                                                                           \
+    ets_printf("BOOT: Assertion failed!: %s\r\n",                             \
+               #X);                                                           \
+    ets_printf("                   File: %s\r\n",                             \
+               __FILE__);                                                     \
+    ets_printf("                   Line: %d\r\n",                             \
+               __LINE__);                                                     \
+    ets_printf("BOOT: Continuing ...\r\n");                                   \
+  }                                                                           \
+}
+
+#endif // OTB_RBOOT_BOOTLOADER
 
 #ifndef ESPUT
 #define os_vsnprintf(A, B, ...)  ets_vsnprintf(A, B, __VA_ARGS__)
@@ -83,4 +110,5 @@
 
 #define OTB_MAX(A, B)  ((A > B) ? A : B)
 #define OTB_MIN(A, B)  ((A < B) ? A : B)
+
 

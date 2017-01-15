@@ -12,6 +12,7 @@
 #include "rboot-private.h"
 #include <rboot-hex2a.h>
 #include "otb_flash.h"
+#include "otb_eeprom.h"
 
 static uint32 check_image(uint32 readpos) {
 	
@@ -457,8 +458,10 @@ uint32 NOINLINE find_image() {
 
 }
 
+extern uint8 i2c_error;
 void NOINLINE start_otb_boot(void)
 {
+
 	// delay to slow boot (help see messages when debugging)
 	ets_delay_us(2000000);
 	
@@ -470,12 +473,6 @@ void NOINLINE start_otb_boot(void)
 
 // otb-iot factory reset function
 #define FACTORY_RESET_LEN  15  // seconds
-#define OTB_BOOT_ROM_0_LEN            0xfe000
-#define OTB_BOOT_ROM_1_LEN            0xfe000
-#define OTB_BOOT_ROM_2_LEN            0xfa000
-#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
 
 void do_factory_reset(void)
 {
@@ -509,6 +506,42 @@ void do_factory_reset(void)
   ets_printf("BOOT: Factory image written into slot 0\r\n");
 
   return;
+}
+
+#define OTB_EEPROM_BOOT_DATA_SIZE    1024
+void NOINLINE read_eeprom(void)
+{
+  char rc;
+
+  rc = otb_eeprom_init();
+  if (!rc)
+  {
+    // Failed - bail
+    goto EXIT_LABEL;
+  }
+
+ rc = otb_eeprom_read_all();
+  if (!rc)
+  {
+    // Failed - bail
+    goto EXIT_LABEL;
+  }
+
+  // Now do something useful with this hardware info  
+  // XXX
+
+EXIT_LABEL:
+
+  return;
+}
+
+// Required for brzo_i2c, as the SDK isn't present
+uint8 ets_get_cpu_frequency(void);
+uint8 system_get_cpu_freq(void)
+{
+  uint8 ticks_per_us;
+  ticks_per_us = ets_get_cpu_frequency();
+  return ticks_per_us;
 }
 
 void NOINLINE factory_reset(void)
@@ -557,7 +590,9 @@ void call_user_start() {
 	uint32 addr;
 	stage2a *loader;
 	
+	start_otb_boot();
 	factory_reset();
+	read_eeprom();
 	addr = find_image();
 	if (addr != 0) {
 		loader = (stage2a*)entry_addr;
@@ -575,6 +610,8 @@ void call_user_start() {
 		"call0 start_otb_boot\n" // output some otb-iot info
 		"mov a0, a15\n"          // restore return addr
 		"call0 factory_reset\n"  // See whether to reset to factory defaults
+		"mov a0, a15\n"          // restore return addr
+		"call0 read_eeprom\n"  // See whether to reset to factory defaults
 		"mov a0, a15\n"          // restore return addr
 		"call0 find_image\n"     // find a good rom to boot
 		"mov a0, a15\n"          // restore return addr

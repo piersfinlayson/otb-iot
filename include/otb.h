@@ -105,6 +105,8 @@
 #include "otb_cmd.h"
 #include "otb_flash.h"
 #include "otb_relay.h"
+#include "otb_brzo_i2c.h"
+#include "otb_eeprom.h"
 
 // brzo_i2c
 #include "brzo_i2c.h"

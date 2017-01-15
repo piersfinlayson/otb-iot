@@ -15,6 +15,8 @@
 #include <spi_flash.h>
 
 #include "rboot-api.h"
+#include "otb_flash.h"
+#include "otb_eeprom.h"
 
 extern void ets_printf(char*, ...);
 

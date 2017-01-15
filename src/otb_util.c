@@ -23,6 +23,30 @@
 #include <limits.h>
 #include <errno.h>
 
+void ICACHE_FLASH_ATTR otb_util_read_eeprom(void)
+{
+  DEBUG("UTIL: otb_util_read_eeprom entry");
+
+  char rc;
+
+  otb_eeprom_init();
+  rc = otb_eeprom_read_all();
+  if (!rc)
+  {
+    // Failed - bail
+    goto EXIT_LABEL;
+  }
+
+  // Now do something useful with this hardware info  
+  // XXX
+
+EXIT_LABEL:
+
+  DEBUG("UTIL: otb_util_read_eeprom exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 {
 

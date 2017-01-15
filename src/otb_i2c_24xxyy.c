@@ -21,6 +21,11 @@
 #include "otb.h"
 #include "brzo_i2c.h"
 
+#ifdef OTB_RBOOT_BOOTLOADER
+#undef ICACHE_FLASH_ATTR
+#define ICACHE_FLASH_ATTR
+#endif // OTB_RBOOT_BOOTLOADER
+
 void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
 {
   bool rc;
@@ -41,7 +46,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     }
     else
     {
-      INFO("24XXYY: Read byte 0x%02x", buf[0])
+      INFO("24XXYY: Read byte 0x%02x", buf[0]);
     }
     
     // Now toggle back
@@ -69,6 +74,8 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
 
   return;
 }
+
+#ifndef OTB_RBOOT_BOOTLOADER
 
 void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
 {
@@ -102,10 +109,14 @@ EXIT_LABEL:
   return;
 }
 
+#endif // OTB_RBOOT_BOOTLOADER
+
 bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes)
 {
   bool rc = FALSE;
+  uint8_t brzo_rc;
   int ii;
+  uint8_t reg;
   
   DEBUG("24XXYY: otb_i2c_24xxyy_read_bytes entry");
 
@@ -113,14 +124,27 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
   for (ii = 0; ii < num_bytes; ii++)
   {
     // First of all write the address 
-    rc = otb_i2c_write_one_val(addr, word_addr + ii);
+    brzo_i2c_start_transaction(addr, 100);
+    reg = word_addr+ii;
+    brzo_i2c_write(&reg, 1, FALSE);
+    brzo_rc = brzo_i2c_end_transaction();
+    if (!brzo_rc)
+    {
+      rc = TRUE;
+    }
     if (!rc)
     {
       INFO("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
   
-    rc = otb_i2c_read_one_val(addr, bytes + ii);
+    brzo_i2c_start_transaction(addr, 100);
+    brzo_i2c_read(bytes+ii, 1, FALSE);
+    brzo_rc = brzo_i2c_end_transaction();
+    if (!brzo_rc)
+    {
+      rc = TRUE;
+    }
     if (!rc)
     {
       INFO("24XXYY: Failed to read addr: 0x%02x", word_addr + ii);
@@ -144,6 +168,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
   int jj;
   uint8_t brzo_rc;
   uint8_t buf[2];
+  uint8_t reg;
   
   DEBUG("24XXYY: otb_i2c_24xxyy_write_bytes entry");
 
@@ -152,7 +177,13 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
   {
     buf[0] = word_addr;
     buf[1] = bytes[ii];
-    rc = otb_i2c_write_seq_vals(addr, 2, buf);
+    brzo_i2c_start_transaction(addr, 100);
+    brzo_i2c_write(buf, 2, FALSE);
+    brzo_rc = brzo_i2c_end_transaction();
+    if (!brzo_rc)
+    {
+      rc = TRUE;
+    }
     if (!rc)
     {
       INFO("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
@@ -164,7 +195,14 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     jj = 0;
     while (!rc & jj < 100)
     {
-      rc = otb_i2c_write_one_val(addr, word_addr + ii);
+      brzo_i2c_start_transaction(addr, 100);
+      reg = word_addr+ii;
+      brzo_i2c_write(&reg, 1, FALSE);
+      brzo_rc = brzo_i2c_end_transaction();
+      if (!brzo_rc)
+      {
+        rc = TRUE;
+      }
       jj++;
     }
     if (!rc)
@@ -186,15 +224,31 @@ EXIT_LABEL:
 
   return rc;
 }
+
+#ifdef OTB_RBOOT_BOOTLOADER
+bool otb_i2c_24xxyy_init(uint8_t addr)
+#else
 bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr)
+#endif // OTB_RBOOT_BOOTLOADER
 {
+  uint8_t brzo_rc;
   bool rc = FALSE;
   uint8_t val;
 
   DEBUG("24XXYY: otb_i2c_24xxyy_init entry");
 
   // Just try and read the current word (0x0?)
-  rc = otb_i2c_read_one_val(addr, &val);
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_read(&val, 1, FALSE);
+  brzo_rc = brzo_i2c_end_transaction();
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+  else
+  {
+    INFO("24XXYY: Failed: %d", brzo_rc);
+  }
   
 EXIT_LABEL:
 
@@ -203,3 +257,46 @@ EXIT_LABEL:
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf)
+{
+  bool rc = FALSE;
+  uint8_t brzo_rc;
+  uint8_t start_addr_b[2];
+
+  // Reading is achieved as follows:
+  // Perform a write operation, with the MSB folllowed by LSB of start_addr
+  // Perform read operations, for the total number of bytes required
+
+  DEBUG("24XXYY: otb_i2c_24xx128_read_data entry");
+  
+  // 16 KB (128kbit) eeprom
+  OTB_ASSERT(bytes <= (128*1024/8));
+
+  start_addr_b[0] = start_addr >> 8;
+  start_addr_b[1] = start_addr & 0xff;
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_write(start_addr_b, 2, FALSE);
+  brzo_rc = brzo_i2c_end_transaction();
+  if (brzo_rc)
+  {
+    DEBUG("24XXYY: write of address to read from failed: %d", brzo_rc);
+    goto EXIT_LABEL;
+  }
+  
+  brzo_i2c_start_transaction(addr, 100);
+  brzo_i2c_read(buf, bytes, FALSE);
+  brzo_rc = brzo_i2c_end_transaction();
+  if (brzo_rc)
+  {
+    DEBUG("24XXYY: read failed: %d", brzo_rc);
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+  
+EXIT_LABEL:
+  
+  DEBUG("24XXYY: otb_i2c_24xx128_read_data exit");
+  
+  return rc;
+}
