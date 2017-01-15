@@ -465,7 +465,7 @@ void NOINLINE start_otb_boot(void)
 	// delay to slow boot (help see messages when debugging)
 	ets_delay_us(2000000);
 	
-	ets_printf("\r\nBOOT: OTA-BOOT v0.1\r\n");
+	ets_printf("\r\nBOOT: OTA-BOOT v0.2\r\n");
 	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
 
   return;
