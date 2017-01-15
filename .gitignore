@@ -3,6 +3,9 @@
 *.bin
 *.elf
 *.swp
+*.dis
+*.sym
+*.out
 bin/*
 obj/rboot/rboot-hex2a.h
 obj/*
