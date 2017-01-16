@@ -21,5 +21,4 @@
 
 #ifndef MQTT_DEFINES
 #define MQTT_DEFINES
-#define PROTOCOL_NAMEv311
 #endif
