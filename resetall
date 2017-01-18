@@ -17,4 +17,4 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-mosquitto_pub -p 1880 -t /otb_iot/all/system -m reset
+mosquitto_pub -t /otb-iot/all -m trigger/reset
