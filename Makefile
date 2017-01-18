@@ -184,7 +184,7 @@ i2cObjects = $(I2C_OBJ_DIR)/brzo_i2c.o
 
 hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
 
-all: directories bin/app_image.bin bin/rboot.bin hwinfo
+all: directories bin/app_image.bin bin/rboot.bin hwinfo i2c-tools
 
 bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(NM) -n bin/app_image.elf > bin/app_image.sym
