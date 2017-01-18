@@ -34,6 +34,11 @@ ESPTOOL2 = bin/esptool2
 ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
 MAKE = make
 
+# Serial connection information
+SERIAL_PORT ?= /dev/ttyUSB0
+SERIAL_BAUD ?= 115200
+SERIAL = miniterm.py -p $(SERIAL_PORT) -b $(SERIAL_BAUD)
+
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
@@ -46,7 +51,7 @@ HWINFOFLAGS = -Iinclude -c
 
 # esptool.py options
 ESPBAUD = 230400
-ESPPORT = /dev/ttyUSB0
+ESPPORT = $(SERIAL_PORT)
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
 # esptool2 options
@@ -297,7 +302,7 @@ flash_initial: erase_flash flash_sdk flash_boot flash_app flash_factory
 flash_initial_40mhz: erase_flash flash_boot flash_app flash_factory flash_40mhz
 
 connect:
-	platformio serialports monitor -b 115200
+	$(SERIAL)
 
 clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
