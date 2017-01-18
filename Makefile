@@ -320,7 +320,7 @@ clean_i2c-tools:
 	$(MAKE) -C external/i2c-tools EXTRA=eeprog clean
 	@rm -f bin/eeprog
 
-i2c-tools:
+i2c-tools: directories
 	$(MAKE) -C external/i2c-tools EXTRA=eeprog USE_STATIC_LIB=1
 	cp external/i2c-tools/eeprog/eeprog bin/
 
