@@ -17,4 +17,4 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-platformio serialports monitor -b 74880
+miniterm.py /dev/ttyUSB0 74880
