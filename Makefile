@@ -37,7 +37,7 @@ MAKE = make
 # Serial connection information
 SERIAL_PORT ?= /dev/ttyUSB0
 SERIAL_BAUD ?= 115200
-SERIAL = miniterm.py -p $(SERIAL_PORT) -b $(SERIAL_BAUD)
+SERIAL = miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD)
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
