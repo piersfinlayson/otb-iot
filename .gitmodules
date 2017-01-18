@@ -1,3 +1,9 @@
 [submodule "lib/brzo_i2c"]
 	path = lib/brzo_i2c
 	url = https://github.com/piersfinlayson/brzo_i2c
+[submodule "external/libesphttpd"]
+	path = external/libesphttpd
+	url = https://github.com/piersfinlayson/libesphttpd
+[submodule "external/esptool2"]
+	path = external/esptool2
+	url = https://github.com/raburton/esptool2

@@ -19,7 +19,7 @@
 include hardware
 
 # SDK versions, etc
-SDK_BASE = /opt/esp-open-sdk
+SDK_BASE ?= /opt/esp-open-sdk
 ESP_SDK = sdk
 
 # Build tools
@@ -30,8 +30,9 @@ NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 AR = $(XTENSA_DIR)/xtensa-lx106-elf-ar
-ESPTOOL2 = /usr/bin/esptool2
+ESPTOOL2 = bin/esptool2
 ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
+MAKE = make
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
@@ -180,10 +181,10 @@ hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
 
 all: directories bin/app_image.bin bin/rboot.bin hwinfo
 
-bin/app_image.bin: bin/app_image.elf
-	$(NM) -n $^ > bin/app_image.sym
-	$(OBJDUMP) -d $^ > bin/app_image.dis
-	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
+bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
+	$(NM) -n bin/app_image.elf > bin/app_image.sym
+	$(OBJDUMP) -d bin/app_image.elf > bin/app_image.dis
+	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 bin/app_image.elf $@ .text .data .rodata 
 	@$(CHECK_APP_IMAGE_FILE_SIZE)
 
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
@@ -242,8 +243,8 @@ $(RBOOT_OBJ_DIR)/rboot-stage2a.o: $(RBOOT_SRC_DIR)/rboot-stage2a.c $(RBOOT_SRC_D
 bin/rboot-stage2a.elf: $(RBOOT_OBJ_DIR)/rboot-stage2a.o
 	$(LD) -T$(LD_DIR)/rboot-stage2a.ld $(RBOOT_LDFLAGS) -Wl,--start-group $^ -Wl,--end-group -o $@
 
-$(RBOOT_OBJ_DIR)/rboot-hex2a.h: bin/rboot-stage2a.elf
-	$(ESPTOOL2) -quiet -header $< $@ .text
+$(RBOOT_OBJ_DIR)/rboot-hex2a.h: bin/rboot-stage2a.elf $(ESPTOOL2)
+	$(ESPTOOL2) -quiet -header bin/rboot-stage2a.elf $@ .text
 
 $(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h $(RBOOT_OBJ_DIR)/rboot-hex2a.h 
 	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -I$(RBOOT_OBJ_DIR) -c $< -o $@
@@ -251,13 +252,19 @@ $(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-privat
 bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o $(RBOOT_OBJ_DIR)/otb_eeprom.o $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o $(RBOOT_OBJ_DIR)/brzo_i2c.o $(RBOOT_OBJ_DIR)/otb_i2c_24xxyy.o
 	$(LD) -T$(LD_SCRIPT) $(RBOOT_LDFLAGS) -Wl,--start-group $^ -Wl,--end-group -o $@
 
-bin/rboot.bin: bin/rboot.elf
-	$(NM) -n $^ > bin/rboot.sym
-	$(OBJDUMP) -d $^ > bin/rboot.dis
-	$(ESPTOOL2) $(E2_OPTS) $< $@ .text .rodata .bss .data
+bin/rboot.bin: bin/rboot.elf $(ESPTOOL2)
+	$(NM) -n bin/rboot.elf > bin/rboot.sym
+	$(OBJDUMP) -d bin/rboot.elf > bin/rboot.dis
+	$(ESPTOOL2) $(E2_OPTS) bin/rboot.elf $@ .text .rodata .bss .data
 
-webpages.espfs:
-	cd html; find . | ../tools/mkespfsimage > ../obj/html/webpages.espfs; cd ..
+$(ESPTOOL2):
+	$(MAKE) -C external/esptool2; cp external/esptool2/esptool2 $(ESPTOOL2)
+
+webpages.espfs: mkespfsimage
+	cd html; find . | ../bin/mkespfsimage > ../obj/html/webpages.espfs; cd ..
+
+mkespfsimage:
+	$(MAKE) -C external/libesphttpd/espfs/mkespfsimage; cp external/libesphttpd/espfs/mkespfsimage/mkespfsimage bin/
 
 obj/html/libwebpages-espfs.a: webpages.espfs
 	$(OBJCOPY) -I binary -O elf32-xtensa-le -B xtensa --rename-section .data=.irom0.literal \
@@ -295,8 +302,14 @@ connect:
 clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: 
-	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o $(I2C_OBJ_DIR)/*.o $(HWINFO_OBJ_DIR)/*.o obj/html/*
+clean: clean_esptool2 clean_mkespfsimage
+	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o $(I2C_OBJ_DIR)/*.o $(HWINFO_OBJ_DIR)/*.o obj/html/* 
+
+clean_esptool2:
+	@rm -f external/esptool2/*.o esptool2
+
+clean_mkespfsimage:
+	@rm -f external/libesphttpd/espfs/mkespfsimage/*.o external/libesphttpd/espfs/mkespfsimage/mkespfsimage
 
 erase_flash:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash
