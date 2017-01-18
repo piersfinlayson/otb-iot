@@ -307,7 +307,7 @@ connect:
 clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage
+clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools
 	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o $(I2C_OBJ_DIR)/*.o $(HWINFO_OBJ_DIR)/*.o obj/html/* 
 
 clean_esptool2:
@@ -315,6 +315,14 @@ clean_esptool2:
 
 clean_mkespfsimage:
 	@rm -f external/libesphttpd/espfs/mkespfsimage/*.o external/libesphttpd/espfs/mkespfsimage/mkespfsimage
+
+clean_i2c-tools:
+	$(MAKE) -C external/i2c-tools EXTRA=eeprog clean
+	@rm -f bin/eeprog
+
+i2c-tools:
+	$(MAKE) -C external/i2c-tools EXTRA=eeprog USE_STATIC_LIB=1
+	cp external/i2c-tools/eeprog/eeprog bin/
 
 erase_flash:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash

@@ -7,3 +7,6 @@
 [submodule "external/esptool2"]
 	path = external/esptool2
 	url = https://github.com/raburton/esptool2
+[submodule "external/i2c-tools"]
+	path = external/i2c-tools
+	url = https://github.com/piersfinlayson/i2c-tools
