@@ -17,6 +17,11 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This is a linker symbol, the address of which is actually the build number.
+// As a result don't attempt to access the contents of this address!
+extern char otb_build_num;
+#define OTB_BUILD_NUM (unsigned long)&otb_build_num
+
 #define OTB_UTIL_LOG_BUFFER_LEN 1024 // 1024
 #define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
 #define OTB_UTIL_NS_PER_CYCLE 12.5

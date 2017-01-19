@@ -31,7 +31,7 @@ CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 AR = $(XTENSA_DIR)/xtensa-lx106-elf-ar
 ESPTOOL2 = bin/esptool2
-ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
+ESPTOOL_PY = python2 $(XTENSA_DIR)/esptool.py
 MAKE = make
 
 # Serial connection information
@@ -109,7 +109,9 @@ CHECK_APP_IMAGE_FILE_SIZE = \
 # Link options
 LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -lssl -Wl,--end-group
+BUILD_NUM_FILE = include/otb_build_num.txt
 LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
+LDFLAGS += -Xlinker --defsym -Xlinker otb_build_num=$$(cat $(BUILD_NUM_FILE))
 RBOOT_LDFLAGS = -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 LD_SCRIPT = $(LD_DIR)/eagle.app.v6.ld
 
@@ -198,7 +200,12 @@ bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 bin/app_image.elf $@ .text .data .rodata 
 	@$(CHECK_APP_IMAGE_FILE_SIZE)
 
-bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
+# Increment build number
+build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
+	@if ! test -f $(BUILD_NUM_FILE); then echo 0 > $(BUILD_NUM_FILE); fi
+	@echo $$(($$(cat $(BUILD_NUM_FILE))+1)) > $(BUILD_NUM_FILE)
+
+bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
 
 -include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(hwinfoDep)
@@ -299,11 +306,8 @@ flash_factory: bin/app_image.bin
 
 flash: flash_boot flash_app
 
-create_ff: directories
-	dd if=/dev/zero ibs=1k count=4 | tr "\000" "\377" > bin/ff.bin
-
-flash_sdk: create_ff
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 bin/ff.bin
+flash_sdk:
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin
 
 flash_initial: erase_flash flash_sdk flash_boot flash_app flash_factory
 
