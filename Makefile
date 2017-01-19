@@ -153,6 +153,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
              $(OTB_OBJ_DIR)/strcasecmp.o \
              $(OTB_OBJ_DIR)/pin_map.o 
+otbDep = $(otbObjects:%.o=%.d)
 
 mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
               $(MQTT_OBJ_DIR)/proto.o \
@@ -160,6 +161,7 @@ mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
               $(MQTT_OBJ_DIR)/mqtt_msg.o \
               $(MQTT_OBJ_DIR)/queue.o \
               $(MQTT_OBJ_DIR)/utils.o
+mqttDep = $(mqttObjects:%.o=%.d)
 
 httpdObjects = $(HTTPD_OBJ_DIR)/auth.o \
                $(HTTPD_OBJ_DIR)/captdns.o \
@@ -170,6 +172,7 @@ httpdObjects = $(HTTPD_OBJ_DIR)/auth.o \
                $(HTTPD_OBJ_DIR)/httpdespfs.o \
                $(HTTPD_OBJ_DIR)/sha1.o \
                $(HTTPD_OBJ_DIR)/stdout.o
+httpdDep = $(httpdObjects:%.o=%.d)
 
 rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/rboot-stage2a.o \
@@ -179,10 +182,13 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/otb_eeprom.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
+rbootDep = $(rbootObjects:%.o=%.d)
 
 i2cObjects = $(I2C_OBJ_DIR)/brzo_i2c.o
+i2cDep = $(i2cObjects:%.o=%.d)
 
 hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
+hwinfoDep = $(hwinfoObjects:%.o=%.d)
 
 all: directories bin/app_image.bin bin/rboot.bin
 
@@ -194,6 +200,8 @@ bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
+
+-include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(hwinfoDep)
 
 hwinfo: $(hwinfoObjects)
 	gcc $(hwinfoObjects) -lc -o bin/$@
@@ -213,28 +221,28 @@ i2c_objects: $(i2cObjects)
 hwinfoObjects: $(hwinfoObjects)
 
 $(HWINFO_OBJ_DIR)/%.o: $(HWINFO_SRC_DIR)/%.c
-	gcc $(HWINFOFLAGS) $^ -o $@
+	gcc $(HWINFOFLAGS) -MMD -c $< -o $@
 
 $(OTB_OBJ_DIR)/%.o: $(OTB_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(OTB_CFLAGS) $^ -o $@ 
+	$(CC) $(CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@ 
 
 $(HTTPD_OBJ_DIR)/%.o: $(HTTPD_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(HTTPD_CFLAGS) $^ -o $@ 
+	$(CC) $(CFLAGS) $(HTTPD_CFLAGS) -MMD -c $< -o $@ 
 
 $(MQTT_OBJ_DIR)/%.o: $(MQTT_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(OTB_CFLAGS) $^ -o $@ 
+	$(CC) $(CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@ 
 
 $(I2C_OBJ_DIR)/%.o: $(I2C_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(I2C_CFLAGS) $^ -o $@ 
+	$(CC) $(CFLAGS) $(I2C_CFLAGS) -MMD -c $< -o $@ 
 
 $(RBOOT_OBJ_DIR)/%.o: $(RBOOT_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $(OTB_CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@
 
 $(RBOOT_OBJ_DIR)/otb_i2c_24xxyy.o: $(OTB_SRC_DIR)/otb_i2c_24xxyy.c
 	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
 
 $(RBOOT_OBJ_DIR)/brzo_i2c.o: $(I2C_SRC_DIR)/brzo_i2c.c
-	$(CC) $(RBOOT_OTHER_CFLAGS) $(I2C_CFLAGS) $(RBOOT_CFLAGS) -c $< -o $@
+	$(CC) $(RBOOT_OTHER_CFLAGS) $(I2C_CFLAGS) $(RBOOT_CFLAGS) -MMD -c $< -o $@
 
 $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o: $(OTB_SRC_DIR)/otb_brzo_i2c.c
 	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
@@ -308,7 +316,7 @@ clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
 clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools
-	@rm -f bin/* $(OTB_OBJ_DIR)/*.o $(HTTPD_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/appcode/*.o $(RBOOT_OBJ_DIR)/*.o $(RBOOT_OBJ_DIR)/*.h $(MQTT_OBJ_DIR)/*.o $(I2C_OBJ_DIR)/*.o $(HWINFO_OBJ_DIR)/*.o obj/html/* 
+	@rm -fr bin obj 
 
 clean_esptool2:
 	@rm -f external/esptool2/*.o esptool2
