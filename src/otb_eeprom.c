@@ -112,7 +112,7 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_sdk_init_data(otb_eeprom_glob_conf *glob_
   rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_sdk_init_data, glob_conf->loc_sdk_init_data_len, (uint8_t *)buf);
 if (rc)
   {
-    DEBUG("EEPROM: Read %d bytes from eeprom successfully (sdk init data)", glob_conf->loc_sdk_init_data_len);
+    DEBUG("EEPROM: Read %d bytes from eeprom successfully (sdk init data) from 0x%x", glob_conf->loc_sdk_init_data_len, glob_conf->loc_sdk_init_data);
   }
   else
   {
@@ -122,7 +122,7 @@ if (rc)
 
   sdk = (otb_eeprom_sdk_init_data *)buf;
   // Check magic number - can't continue if this is wrong
-  if (glob_conf->hdr.magic != OTB_EEPROM_SDK_INIT_DATA_MAGIC)
+  if (sdk->hdr.magic != OTB_EEPROM_SDK_INIT_DATA_MAGIC)
   {
     WARN("EEPROM: Invalid magic value in sdk init data: 0x%08x", sdk->hdr.magic);
     rc = 0;

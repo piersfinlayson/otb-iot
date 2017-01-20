@@ -376,7 +376,7 @@ void otb_hwinfo_checksums(void)
 {
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_hw);
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_glob);
-  OTB_HWINFO_CHECKSUM_DO(sdk_init_data);
+  OTB_HWINFO_CHECKSUM_DO_EXTRA(sdk_init_data, sdk_init_data.hdr.struct_size);
 
   return;
 }

@@ -51,7 +51,7 @@
   }                                                                          \
 }
 
-#define OTB_HWINFO_CHECKSUM_DO(S)                                            \
+#define OTB_HWINFO_CHECKSUM_DO_EXTRA(S, Z)                                   \
 {                                                                            \
   int checksum_loc;                                                          \
   size_t checksum_size;                                                      \
@@ -61,6 +61,9 @@
   total_size = sizeof(S);                                                    \
   otb_hwinfo_checksum_store(&S, total_size, checksum_loc, checksum_size);    \
 }
+
+#define OTB_HWINFO_CHECKSUM_DO(S)                                            \
+  OTB_HWINFO_CHECKSUM_DO_EXTRA(S, sizeof(S.hdr.checksum))
 
 // Globals
 uint8 otb_hwinfo_host_endian;
