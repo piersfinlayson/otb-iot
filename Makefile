@@ -221,7 +221,7 @@ hwinfo: otb_hwinfo_sdk_init_data.h $(hwinfoObjects)
 	gcc $(hwinfoObjects) -lc -o bin/$@
 
 # can replace with our own version (from rboot-bigflash.c)
-libmain2:
+libmain2: directories
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
 #otb_objects: clean_otb_util_o $(otbObjects)
