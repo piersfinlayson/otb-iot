@@ -645,6 +645,8 @@ void otb_hwinfo_output(void)
   printf("    Hw sign len: 0x%08x\n", otb_eeprom_glob.loc_hw_struct_sign_len);
   printf("    Hash algorithm: 0x%08x\n", otb_eeprom_glob.hash_algorithm);
   printf("    Sign key len: 0x%08x\n", otb_eeprom_glob.sign_key_len_bytes);
+  printf("    SDK init data loc: 0x%08x\n", otb_eeprom_glob.loc_sdk_init_data);
+  printf("    SDK init data len: 0x%08x\n", otb_eeprom_glob.loc_sdk_init_data_len);
   
   printf("  Hardware\n");
   printf("    Header\n");
@@ -666,6 +668,14 @@ void otb_hwinfo_output(void)
   printf("    Internal SCL pin: 0x%02x\n", otb_eeprom_hw.i2c_int_scl_pin);
   printf("    External SDA pin: 0x%02x\n", otb_eeprom_hw.i2c_ext_sda_pin);
   printf("    External SCL pin: 0x%02x\n", otb_eeprom_hw.i2c_ext_scl_pin);
+
+  printf("  SDK Init Data\n");
+  printf("    Header\n");
+  printf("      Magic: 0x%08x\n", sdk_init_data.hdr.magic);
+  printf("      Struct_size: 0x%08x\n", sdk_init_data.hdr.struct_size);
+  printf("      Version: 0x%08x\n", sdk_init_data.hdr.version);
+  printf("      Checksum: 0x%08x\n", sdk_init_data.hdr.checksum);
+
   
 EXIT_LABEL:
 
