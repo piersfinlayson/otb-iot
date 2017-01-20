@@ -70,7 +70,7 @@ uint8 otb_hwinfo_host_endian;
 uint8 otb_hwinfo_target_endian;
 otb_eeprom_glob_conf otb_eeprom_glob;
 otb_eeprom_hw_conf otb_eeprom_hw;
-otb_eeprom_sdk_init_data sdk_init_data;
+otb_eeprom_sdk_init_data *sdk_init_data;
 bool otb_hwinfo_verbose;
 char otb_hwinfo_fn_glob[] = "glob.out";
 char otb_hwinfo_fn_hw[] = "hw.out";
@@ -80,7 +80,7 @@ char otb_hwinfo_fn_sdk_init_data[] = "sdk_init_data.out";
 // Function prototypes
 int main(int argc, char **argv);
 static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state);
-void otb_hwinfo_setup(void);
+bool otb_hwinfo_setup(void);
 void otb_hwinfo_postprocess(void);
 void otb_hwinfo_checksums(void);
 void otb_hwinfo_checksum_store(void *data, size_t total_size, int checksum_loc, size_t checksum_size);

@@ -49,7 +49,12 @@ int main(int argc, char **argv)
   otb_hwinfo_setup_endian();
 
   // Set up the hardware info structures
-  otb_hwinfo_setup();
+  bool_rc = otb_hwinfo_setup();
+  if (!bool_rc)
+  {
+    rc = -1;
+    goto EXIT_LABEL;
+  }
 
   // Process the args - copy straight into structures
   argp_rc = argp_parse(&otb_hwinfo_argp, argc, argv, 0, 0, NULL);
@@ -305,18 +310,18 @@ static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state
 
 uint32 sdk_size;
 
-void otb_hwinfo_setup(void)
+bool otb_hwinfo_setup(void)
 {
   uint32 magic;
   uint32 hw_size;
   uint32 glob_size;
   uint32 version;
+  bool rc = TRUE;
 
 #if 0
   // Actually unnecessary as these are globals so inited to 0 anyway
   memset(&otb_eeprom_glob, 0, sizeof(otb_eeprom_glob));
   memset(&otb_eeprom_hw, 0, sizeof(otb_eeprom_hw));
-  memset(&sdk_init_data, 0, sizeof(sdk_init_data));
 #endif
   
   //  Global config header
@@ -337,13 +342,24 @@ void otb_hwinfo_setup(void)
 
   // SDK init data header
   magic = OTB_EEPROM_SDK_INIT_DATA_MAGIC;
-  sdk_size = sizeof(sdk_init_data) + OTB_SDK_INIT_DATA_LEN;
-  version = OTB_EEPROM_SDK_INIT_DATA_VERSION_1;
-  OTB_HWINFO_STORE(magic, sdk_init_data.hdr.magic);
-  OTB_HWINFO_STORE(sdk_size, sdk_init_data.hdr.struct_size);
-  OTB_HWINFO_STORE(version, sdk_init_data.hdr.version);
+  sdk_size = sizeof(*sdk_init_data) + OTB_SDK_INIT_DATA_LEN;
+  sdk_init_data = malloc(sdk_size);
+  if (sdk_init_data == NULL)
+  {
+    rc = FALSE;
+    printf("Failed to allocate memory for SDK init data\n");
+    goto EXIT_LABEL;
+  }
+  memset(sdk_init_data, 0, sizeof(*sdk_init_data));
 
-  return;
+  version = OTB_EEPROM_SDK_INIT_DATA_VERSION_1;
+  OTB_HWINFO_STORE(magic, sdk_init_data->hdr.magic);
+  OTB_HWINFO_STORE(sdk_size, sdk_init_data->hdr.struct_size);
+  OTB_HWINFO_STORE(version, sdk_init_data->hdr.version);
+
+EXIT_LABEL:
+
+  return rc;
 }
 
 void otb_hwinfo_postprocess(void)
@@ -377,7 +393,7 @@ void otb_hwinfo_checksums(void)
 {
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_hw);
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_glob);
-  OTB_HWINFO_CHECKSUM_DO_EXTRA(sdk_init_data, sdk_size);
+  OTB_HWINFO_CHECKSUM_DO_EXTRA((*sdk_init_data), sdk_size);
 
   return;
 }
@@ -494,8 +510,8 @@ bool otb_hwinfo_store(void)
     rc = FALSE;
     goto EXIT_LABEL;
   }
-  write = (char *)&sdk_init_data;
-  for (ii = 0; ii < sizeof(sdk_init_data); ii++)
+  write = (char *)sdk_init_data;
+  for (ii = 0; ii < sizeof(*sdk_init_data); ii++)
   {
     irc = fputc(*(write+ii), fp);
     if (irc == EOF)
@@ -672,10 +688,10 @@ void otb_hwinfo_output(void)
 
   printf("  SDK Init Data\n");
   printf("    Header\n");
-  printf("      Magic: 0x%08x\n", sdk_init_data.hdr.magic);
-  printf("      Struct_size: 0x%08x\n", sdk_init_data.hdr.struct_size);
-  printf("      Version: 0x%08x\n", sdk_init_data.hdr.version);
-  printf("      Checksum: 0x%08x\n", sdk_init_data.hdr.checksum);
+  printf("      Magic: 0x%08x\n", sdk_init_data->hdr.magic);
+  printf("      Struct_size: 0x%08x\n", sdk_init_data->hdr.struct_size);
+  printf("      Version: 0x%08x\n", sdk_init_data->hdr.version);
+  printf("      Checksum: 0x%08x\n", sdk_init_data->hdr.checksum);
 
   
 EXIT_LABEL:
