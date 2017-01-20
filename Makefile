@@ -210,7 +210,7 @@ bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c
 
 -include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(hwinfoDep)
 
-sdk_init_data.bin:
+sdk_init_data.bin: directories
 	ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin
 
 otb_hwinfo_sdk_init_data.h: sdk_init_data.bin
