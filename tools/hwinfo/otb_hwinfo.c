@@ -303,12 +303,13 @@ static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state
   return rc;
 }
 
+uint32 sdk_size;
+
 void otb_hwinfo_setup(void)
 {
   uint32 magic;
   uint32 hw_size;
   uint32 glob_size;
-  uint32 sdk_size;
   uint32 version;
 
 #if 0
@@ -360,7 +361,7 @@ void otb_hwinfo_postprocess(void)
 
   loc = OTB_EEPROM_SDK_INIT_DATA_LOC_DEFAULT;
   OTB_HWINFO_STORE(loc, otb_eeprom_glob.loc_sdk_init_data);
-  OTB_HWINFO_STORE(sdk_init_data.hdr.struct_size, otb_eeprom_glob.loc_sdk_init_data_len);
+  OTB_HWINFO_STORE(sdk_size, otb_eeprom_glob.loc_sdk_init_data_len);
 
   // Fill in last 3 bytes of MAC addresses as chip ID
   for (ii = 3; ii < 6; ii++)
@@ -376,7 +377,7 @@ void otb_hwinfo_checksums(void)
 {
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_hw);
   OTB_HWINFO_CHECKSUM_DO(otb_eeprom_glob);
-  OTB_HWINFO_CHECKSUM_DO_EXTRA(sdk_init_data, otb_eeprom_glob.loc_sdk_init_data_len);
+  OTB_HWINFO_CHECKSUM_DO_EXTRA(sdk_init_data, sdk_size);
 
   return;
 }
