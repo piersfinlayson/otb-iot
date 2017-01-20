@@ -25,9 +25,11 @@
 
 void ICACHE_FLASH_ATTR otb_util_read_eeprom(void)
 {
-  DEBUG("UTIL: otb_util_read_eeprom entry");
-
   char rc;
+#define TEMP_BUF_LEN 256
+  unsigned char buf[TEMP_BUF_LEN];
+
+  DEBUG("UTIL: otb_util_read_eeprom entry");
 
   otb_eeprom_init();
   rc = otb_eeprom_read_all();
@@ -36,6 +38,13 @@ void ICACHE_FLASH_ATTR otb_util_read_eeprom(void)
     // Failed - bail
     goto EXIT_LABEL;
   }
+
+  rc = otb_eeprom_read_sdk_init_data(&otb_eeprom_glob, buf, TEMP_BUF_LEN);
+  if (!rc)
+  {
+    // Failed - bail
+    goto EXIT_LABEL;
+  } 
 
   // Now do something useful with this hardware info  
   // XXX
@@ -285,7 +294,7 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   otb_util_convert_colon_to_period(otb_compile_time);
   os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s:%s:%u:%s:%s",
+              "%s:%s:Build_%u:%s:%s",
               OTB_MAIN_OTB_IOT,
               OTB_MAIN_FW_VERSION,
               OTB_BUILD_NUM,

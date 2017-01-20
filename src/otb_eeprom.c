@@ -56,6 +56,8 @@ EXIT_LABEL:
   return rc;
 }
 
+// Reads global data and hw info.  Doesn't read hw signature or sdk data -
+// these are done separately.
 char ICACHE_FLASH_ATTR otb_eeprom_read_all(void)
 {
   char rc = 0;
@@ -79,6 +81,91 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_all(void)
 EXIT_LABEL:
 
   DEBUG("EEPROM: otb_eeprom_read_all exit");
+  
+  return rc;
+}
+
+char ICACHE_FLASH_ATTR otb_eeprom_read_sdk_init_data(otb_eeprom_glob_conf *glob_conf, unsigned char *buf, uint32 buf_len)
+{
+  char rc = 0;
+  uint32 sdk_end;
+  otb_eeprom_sdk_init_data *sdk;
+  int ii;
+
+  DEBUG("EEPROM: otb_eeprom_read_sdk_init_data entry");
+
+  // Check we can safely access the sdk init data
+  sdk_end = glob_conf->loc_sdk_init_data + glob_conf->loc_sdk_init_data_len;
+  if ((sdk_end > OTB_EEPROM_SIZE_128) || (sdk_end > otb_eeprom_size))
+  {
+    WARN("EEPROM: Invalid SDK init data location on eeprom: %u %u", glob_conf->loc_sdk_init_data, glob_conf->loc_sdk_init_data_len);
+    goto EXIT_LABEL;
+  }
+
+  if (glob_conf->loc_sdk_init_data_len > buf_len)
+  {
+    WARN("EEPROM: Buffer not big enough for sdk data: %u %u:", glob_conf->loc_sdk_init_data_len, buf_len);
+    goto EXIT_LABEL;
+  }
+  
+  // Read the data
+  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_sdk_init_data, glob_conf->loc_sdk_init_data_len, (uint8_t *)buf);
+if (rc)
+  {
+    DEBUG("EEPROM: Read %d bytes from eeprom successfully (sdk init data) from 0x%x", glob_conf->loc_sdk_init_data_len, glob_conf->loc_sdk_init_data);
+  }
+  else
+  {
+    WARN("EEPROM: Failed to read %d bytes from eeprom (sdk init data) %d", glob_conf->loc_sdk_init_data_len, rc);
+    goto EXIT_LABEL;
+  }
+
+  sdk = (otb_eeprom_sdk_init_data *)buf;
+  // Check magic number - can't continue if this is wrong
+  if (sdk->hdr.magic != OTB_EEPROM_SDK_INIT_DATA_MAGIC)
+  {
+    WARN("EEPROM: Invalid magic value in sdk init data: 0x%08x", sdk->hdr.magic);
+    rc = 0;
+    goto EXIT_LABEL;
+  }
+
+  INFO("EEPROM: SDK Init data format:   V%d", sdk->hdr.version);
+  INFO("EEPROM: SDK Init data checksum: 0x%08x", sdk->hdr.checksum);
+
+  rc = otb_eeprom_check_checksum((char*)sdk,
+                                 glob_conf->loc_sdk_init_data_len,
+                                 (char*)&(sdk->hdr.checksum) - (char*)sdk,
+                                 sizeof(sdk->hdr.checksum));
+  if (!rc)
+  {
+    WARN("EEPROM: SDK Init data checksum: Invalid");
+    goto EXIT_LABEL;
+  }
+  else
+  {
+    INFO("EEPROM: SDK Init data checksum: Valid");
+  }
+
+  // We've loaded the SDK init data now - the actual data should succeed this
+  // structure. Finally check len is loc_sdk_init_data_len - the structure
+  if (sdk->hdr.struct_size != glob_conf->loc_sdk_init_data_len)
+  {
+    WARN("EEPROM: Invalid SDK Init data len: %u %u", sdk->hdr.struct_size, glob_conf->loc_sdk_init_data_len);
+    goto EXIT_LABEL;
+  }
+
+  // Done.  Copy the data to the start of buf.  Better do this a byte at a time
+  // as memcpy doesn't work on overlapping ranges, and I can't remember if
+  // memmove might try and allocate memory.
+  for (ii = 0; ii < (glob_conf->loc_sdk_init_data_len); ii++)
+  {
+    buf[ii] = buf[sizeof(*sdk) + ii];
+  } 
+  rc = 1;
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_read_sdk_init_data exit");
   
   return rc;
 }
