@@ -56,7 +56,7 @@
   int checksum_loc;                                                          \
   size_t checksum_size;                                                      \
   size_t total_size;                                                         \
-  checksum_size = sizeof(S.hdr.checksum);                                    \
+  checksum_size = Z;                                                         \
   checksum_loc = (char *)&(S.hdr.checksum) - (char *)&(S);                   \
   total_size = Z;                                                            \
   otb_hwinfo_checksum_store(&S, total_size, checksum_loc, checksum_size);    \
