@@ -148,7 +148,7 @@ if (rc)
 
   // We've loaded the SDK init data now - the actual data should succeed this
   // structure. Finally check len is loc_sdk_init_data_len - the structure
-  if (sdk->hdr.struct_size != (glob_conf->loc_sdk_init_data_len - sizeof(*sdk)))
+  if (sdk->hdr.struct_size != glob_conf->loc_sdk_init_data_len)
   {
     WARN("EEPROM: Invalid SDK Init data len: %u %u", sdk->hdr.struct_size, glob_conf->loc_sdk_init_data_len);
     goto EXIT_LABEL;

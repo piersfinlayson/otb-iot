@@ -351,6 +351,7 @@ bool otb_hwinfo_setup(void)
     goto EXIT_LABEL;
   }
   memset(sdk_init_data, 0, sizeof(*sdk_init_data));
+  memcpy(sdk_init_data+1, OTB_SDK_INIT_DATA, OTB_SDK_INIT_DATA_LEN);
 
   version = OTB_EEPROM_SDK_INIT_DATA_VERSION_1;
   OTB_HWINFO_STORE(magic, sdk_init_data->hdr.magic);
@@ -511,18 +512,9 @@ bool otb_hwinfo_store(void)
     goto EXIT_LABEL;
   }
   write = (char *)sdk_init_data;
-  for (ii = 0; ii < sizeof(*sdk_init_data); ii++)
+  for (ii = 0; ii < sdk_size; ii++)
   {
     irc = fputc(*(write+ii), fp);
-    if (irc == EOF)
-    {
-      rc = FALSE;
-      goto EXIT_LABEL;
-    }
-  }
-  for (ii = 0; ii < OTB_SDK_INIT_DATA_LEN; ii++)
-  {
-    irc = fputc(*(OTB_SDK_INIT_DATA+ii), fp);
     if (irc == EOF)
     {
       rc = FALSE;
