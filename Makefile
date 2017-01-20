@@ -47,7 +47,7 @@ MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
 I2C_CFLAGS = -Ilib/i2c
 RBOOT_OTHER_CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls
-HWINFOFLAGS = -Iinclude -c
+HWINFO_CFLAGS = -Iinclude -Iobj/hwinfo -c
 
 # esptool.py options
 ESPBAUD = 230400
@@ -210,14 +210,21 @@ bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c
 
 -include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(hwinfoDep)
 
-hwinfo: $(hwinfoObjects)
+sdk_init_data.bin:
+	ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin
+
+otb_hwinfo_sdk_init_data.h: sdk_init_data.bin
+	xxd -i $(HWINFO_OBJ_DIR)/sdk_init_data.bin $(HWINFO_OBJ_DIR)/otb_hwinfo_sdk_init_data.h
+
+hwinfo: otb_hwinfo_sdk_init_data.h $(hwinfoObjects)
 	gcc $(hwinfoObjects) -lc -o bin/$@
 
 # can replace with our own version (from rboot-bigflash.c)
 libmain2:
 	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
 
-otb_objects: clean_otb_util_o $(otbObjects)
+#otb_objects: clean_otb_util_o $(otbObjects)
+otb_objects: $(otbObjects)
 
 httpd_objects: $(httpdObjects)
 
@@ -228,7 +235,7 @@ i2c_objects: $(i2cObjects)
 hwinfoObjects: $(hwinfoObjects)
 
 $(HWINFO_OBJ_DIR)/%.o: $(HWINFO_SRC_DIR)/%.c
-	gcc $(HWINFOFLAGS) -MMD -c $< -o $@
+	gcc $(HWINFO_CFLAGS) -MMD -c $< -o $@
 
 $(OTB_OBJ_DIR)/%.o: $(OTB_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@ 
@@ -319,8 +326,11 @@ connect:
 clean_otb_util_o:
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools
+clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo
 	@rm -fr bin obj 
+
+clean_hwinfo:
+	@rm -f $(HWINFO_OBJ_DIR)/*
 
 clean_esptool2:
 	@rm -f external/esptool2/*.o esptool2

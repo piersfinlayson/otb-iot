@@ -18,9 +18,12 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
+
  
 #ifndef OTB_HWINFO_H_INCLUDED
 #define OTB_HWINFO_H_INCLUDED
+
+#include "otb_hwinfo_sdk_init_data.h"
 
 // Endianess #defines
 #define OTB_HWINFO_ENDIAN_TEST_UINT32               0x01020304
@@ -64,10 +67,12 @@ uint8 otb_hwinfo_host_endian;
 uint8 otb_hwinfo_target_endian;
 otb_eeprom_glob_conf otb_eeprom_glob;
 otb_eeprom_hw_conf otb_eeprom_hw;
+otb_eeprom_sdk_init_data sdk_init_data;
 bool otb_hwinfo_verbose;
 char otb_hwinfo_fn_glob[] = "glob.out";
 char otb_hwinfo_fn_hw[] = "hw.out";
 char otb_hwinfo_fn_sign[] = "sign.out";
+char otb_hwinfo_fn_sdk_init_data[] = "sdk_init_data.out";
 
 // Function prototypes
 int main(int argc, char **argv);
@@ -127,5 +132,8 @@ static struct argp_option otb_hwinfo_options[] =
   {0}
 };
 static struct argp otb_hwinfo_argp = {otb_hwinfo_options, otb_hwinfo_parse_opt, otb_hwinfo_args_doc, otb_hwinfo_doc};
+
+#define OTB_SDK_INIT_DATA obj_hwinfo_sdk_init_data_bin
+#define OTB_SDK_INIT_DATA_LEN obj_hwinfo_sdk_init_data_bin_len
 
 #endif // OTB_HWINFO_H_INCLUDED

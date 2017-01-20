@@ -64,9 +64,16 @@ typedef struct otb_eeprom_glob_conf
   
   // Location of hardware structure signature in bytes from start of eeprom
 #define OTB_EEPROM_HW_STRUCT_SIGN_LOC_DEFAULT 0x800 // Located at 2K
-#define OTB_EEPROM_HW_STRUCT_SIGN_MAX_LEN     0x800 // 1K - note this is max len - actual len is stored in loc_hw_struct_sign_len below
+#define OTB_EEPROM_HW_STRUCT_SIGN_MAX_LEN     0x400 // 1K - note this is max len - actual len is stored in loc_hw_struct_sign_len below
   uint32 loc_hw_struct_sign;
   uint32 loc_hw_struct_sign_len;
+
+  // Location of esp_init_data_default.bin.  This is used to reset the SDK
+  // data on factory reset.  Location is in bytes from start of eeprom
+#define OTB_EEPROM_SDK_INIT_DATA_LOC_DEFAULT  0xc00 // Located at 3K
+#define OTB_EEPROM_SDK_INIT_DATA_MAX_LEN      0x400 // 1K - note this is max len - actual len is stored in loc_sdk_init_data_len below
+  uint32 loc_sdk_init_data;
+  uint32 loc_sdk_init_data_len;
   
   // Hashing, padding and signing algorithm for hw structure signing process
 #define OTB_EEPROM_SIGN_ALGORITHM_NONE  0 // No signed structure provided
@@ -155,6 +162,17 @@ typedef struct otb_eeprom_hw_conf
 
 } otb_eeprom_hw_conf;
 
+typedef struct otb_eeprom_sdk_init_data
+{
+ // Version 1 fields
+#define OTB_EEPROM_SDK_INIT_DATA_MAGIC    0xab690a1f
+#define OTB_EEPROM_SDK_INIT_DATA_VERSION_1  1
+  otb_eeprom_hdr_conf hdr;
+
+  // Note size in hdr is struct + data which follows
+
+} otb_eeprom_sdk_init_data;
+
 #ifndef OTB_EEPROM_C
 
 extern otb_eeprom_glob_conf otb_eeprom_glob;
@@ -173,6 +191,7 @@ otb_eeprom_hw_conf otb_eeprom_hw;
 
 char otb_eeprom_init(void);
 char otb_eeprom_read_all(void);
+char otb_eeprom_read_sdk_init_data(otb_eeprom_glob_conf *glob_conf, unsigned char *buf, uint32 buf_len);
 char otb_eeprom_read_glob_conf(otb_eeprom_glob_conf *glob_conf);
 char otb_eeprom_check_checksum(char *data, int size, int checksum_loc, int checksum_size);
 char otb_eeprom_read_hw_conf(otb_eeprom_glob_conf *glob_conf, otb_eeprom_hw_conf *hw_conf);

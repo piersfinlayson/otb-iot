@@ -285,7 +285,7 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   otb_util_convert_colon_to_period(otb_compile_time);
   os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s:%s:%u:%s:%s",
+              "%s:%s:Build_%u:%s:%s",
               OTB_MAIN_OTB_IOT,
               OTB_MAIN_FW_VERSION,
               OTB_BUILD_NUM,
