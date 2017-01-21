@@ -7,24 +7,16 @@
 otb-iot
 =======
 
+Contents
+--------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-  features
-  building
-  first_steps
-  blank
-
-Features
---------
-
-TBC
-
-Building
---------
-
-TBC
+   features
+   building
+   first_steps
+   blank
 
 Contribute
 ----------
