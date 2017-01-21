@@ -32,6 +32,8 @@ Get the code from: https://github.com/piersfinlayson/otb-iot
 
   git clone https://github.com/piersfinlayson/otb-iot --recursive
 
+  cd otb-iot
+
 Configuring the Makefile
 ------------------------
 
