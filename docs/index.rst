@@ -1,8 +1,6 @@
 ..
-.. OTB-IOT - Out of The Box Internet Of Things
-..
-.. Copyright (C) 2017 Piers Finlayson
-..
+ OTB-IOT - Out of The Box Internet Of Things
+ Copyright (C) 2017 Piers Finlayson
 
 otb-iot
 =======
@@ -16,7 +14,9 @@ Contents
    features
    building
    first_steps
-   blank
+   hardware_reqs
+   gpio_pins
+   serial
 
 Contribute
 ----------
