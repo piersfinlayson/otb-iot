@@ -20,6 +20,7 @@ Contents
    logs
    mqtt
    flash
+   raspberry
 
 Contribute
 ----------
