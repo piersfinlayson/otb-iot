@@ -10,4 +10,6 @@ bin/*
 obj/rboot/rboot-hex2a.h
 obj/*
 include/otb_build_num.txt
-docs/_build/*
+docs/_build
+docs/_templates
+docs/_static
