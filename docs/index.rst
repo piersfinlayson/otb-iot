@@ -24,8 +24,8 @@ TBC
 Contribute
 ----------
 
-- Issues: https://github.com/piersfinlayson/$project/issues
-- Code: https://github.com/piersfinlayson/$project
+- Issues: https://github.com/piersfinlayson/otb-iot/issues
+- Code: https://github.com/piersfinlayson/otb-iot
 
 Support
 -------
