@@ -11,6 +11,11 @@ otb-iot
    :maxdepth: 2
    :caption: Contents:
 
+  features
+  building
+  first_steps
+  blank
+
 Features
 --------
 
