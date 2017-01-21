@@ -192,7 +192,7 @@ i2cDep = $(i2cObjects:%.o=%.d)
 hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
 hwinfoDep = $(hwinfoObjects:%.o=%.d)
 
-all: directories bin/app_image.bin bin/rboot.bin
+all: directories docs bin/app_image.bin bin/rboot.bin
 
 bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(NM) -n bin/app_image.elf > bin/app_image.sym
@@ -324,22 +324,22 @@ flash_initial_40mhz: erase_flash flash_boot flash_app flash_factory flash_40mhz
 connect:
 	$(SERIAL)
 
-clean_otb_util_o:
+clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo
+clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs
 	@rm -fr bin obj 
 
-clean_hwinfo:
+clean_hwinfo: FORCE
 	@rm -f $(HWINFO_OBJ_DIR)/*
 
-clean_esptool2:
+clean_esptool2: FORCE
 	@rm -f external/esptool2/*.o esptool2
 
-clean_mkespfsimage:
+clean_mkespfsimage: FORCE
 	@rm -f external/libesphttpd/espfs/mkespfsimage/*.o external/libesphttpd/espfs/mkespfsimage/mkespfsimage
 
-clean_i2c-tools:
+clean_i2c-tools: FORCE
 	$(MAKE) -C external/i2c-tools EXTRA=eeprog clean
 	@rm -f bin/eeprog
 
@@ -355,3 +355,12 @@ flash_40mhz:
 
 directories:
 	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) $(HWINFO_OBJ_DIR) obj/html
+
+docs: FORCE
+	$(MAKE) -C docs html
+
+clean_docs: FORCE
+	$(MAKE) -C docs clean
+
+FORCE:
+
