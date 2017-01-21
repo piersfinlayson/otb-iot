@@ -12,11 +12,14 @@ Contents
    :maxdepth: 2
 
    features
+   hardware_reqs
    building
    first_steps
-   hardware_reqs
    gpio_pins
    serial
+   logs
+   mqtt
+   flash
 
 Contribute
 ----------
@@ -36,9 +39,7 @@ The project is licensed under the GPLv3 license.
 
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Indices and tables
-------------------
+Search
+------
 
-* :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

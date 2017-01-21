@@ -50,8 +50,8 @@ typedef struct{
 //
 // Note everything should be on a 4KB (0x1000) boundary, as sector length is
 // 0x1000, and the flash has to be erased in sectors before being rewritten
-#define OTB_BOOT_BOOT_LOCATION            0x0  // length 0x1000  = 24KB
-#define OTB_BOOT_BOOT_CONFIG_LOCATION  0x6000  // length 0x1000  = 8KB
+#define OTB_BOOT_BOOT_LOCATION            0x0  // length 0x6000  = 24KB
+#define OTB_BOOT_BOOT_CONFIG_LOCATION  0x6000  // length 0x2000  = 8KB
 #define OTB_BOOT_ROM_0_LOCATION        0x8000  // length 0xF8000 = 992KB
 #define OTB_BOOT_ROM_0_LEN            0xf4000
 #define OTB_BOOT_LOG_LOCATION        0x100000  // length 0x0400  = 1KB
