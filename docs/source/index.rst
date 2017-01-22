@@ -5,6 +5,11 @@
 otb-iot
 =======
 
+.. image:: images/otb_iot_v_0_3_full.jpg
+   :height: 300px
+   :width: 450px
+   :alt: otb-iot v0.3 full board powered on
+
 Contents
 --------
 
