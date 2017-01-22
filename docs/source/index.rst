@@ -8,6 +8,8 @@ otb-iot
 Contents
 --------
 
+otb-iot docs are hosted at: https://otb-iot.readthedocs.io/en/latest/
+
 .. toctree::
    :maxdepth: 1
 
@@ -21,8 +23,6 @@ Contents
    mqtt
    flash
    raspberry
-
-otb-iot docs are hosted at: https://otb-iot.readthedocs.io/en/latest/
 
 Contribute
 ----------
