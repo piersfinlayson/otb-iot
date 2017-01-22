@@ -22,6 +22,8 @@ Contents
    flash
    raspberry
 
+otb-iot docs are hosted at: https://otb-iot.readthedocs.io/en/latest/
+
 Contribute
 ----------
 
