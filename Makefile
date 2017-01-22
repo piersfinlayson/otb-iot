@@ -362,5 +362,11 @@ docs: FORCE
 clean_docs: FORCE
 	$(MAKE) -C docs clean
 
+clean_nweb: FORCE
+	@rm -f bin/nweb
+
+nweb: FORCE directories
+	gcc external/nweb/nweb23.c -o bin/nweb
+
 FORCE:
 

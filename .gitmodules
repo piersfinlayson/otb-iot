@@ -10,3 +10,6 @@
 [submodule "external/i2c-tools"]
 	path = external/i2c-tools
 	url = https://github.com/piersfinlayson/i2c-tools
+[submodule "external/nweb"]
+	path = external/nweb
+	url = https://github.com/piersfinlayson/nweb
