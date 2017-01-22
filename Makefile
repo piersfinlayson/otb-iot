@@ -30,24 +30,28 @@ NM = $(XTENSA_DIR)/xtensa-lx106-elf-nm
 CC = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 LD = $(XTENSA_DIR)/xtensa-lx106-elf-gcc
 AR = $(XTENSA_DIR)/xtensa-lx106-elf-ar
-ESPTOOL2 = /usr/bin/esptool2
-ESPTOOL_PY = $(XTENSA_DIR)/esptool.py
+ESPTOOL2 = ../esptool2/esptool2
+#ESPTOOL_PY = $(XTENSA_DIR)/esptool.new.py
+ESPTOOL_PY = ../esptool.py
+#ESPTOOL_PY = $(SDK_BASE)/esptool/esptool.py
 
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES)
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
-RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM 
+RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Iinclude -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_SUPER_BIG_FLASH_8266
+#RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Iinclude -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 
 I2C_CFLAGS = -Ilib/i2c
 
 # esptool.py options
 ESPBAUD = 230400
+#ESPBAUD = 115200
 ESPPORT = /dev/ttyUSB0
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
 # esptool2 options
-E2_OPTS = -quiet -bin -boot0
+E2_OPTS = -bin -boot0
 SPI_SIZE = 4M
 SPI_SPEED = 40
 
@@ -85,6 +89,16 @@ else ifeq ($(SPI_SPEED), 80)
         E2_OPTS += -80
 endif
 
+# Check image size
+CHECK_APP_IMAGE_FILE_SIZE = \
+	if [ ! -f "bin/app_image.bin" ]; then \
+		echo "bin/app_image.bin does not exist" ; exit 1 ; \
+	fi; \
+	FILE_SIZE=$$(du -b "bin/app_image.bin" | cut -f 1) ; \
+	if [ $$FILE_SIZE -gt 983040 ]; then \
+		echo "bin/app_image.bin too large" ; exit 1 ; \
+	fi
+
 # Link options
 LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -lssl -Wl,--end-group
@@ -120,6 +134,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
              $(OTB_OBJ_DIR)/otb_httpd.o \
+             $(OTB_OBJ_DIR)/otb_flash.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -140,6 +155,7 @@ otbRecoveryObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
              $(OTB_OBJ_DIR)/otb_conf.o \
              $(OTB_OBJ_DIR)/otb_httpd.o \
+             $(OTB_OBJ_DIR)/otb_flash.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
@@ -175,7 +191,8 @@ all: directories bin/app_image.bin bin/rboot.bin
 bin/app_image.bin: bin/app_image.elf
 	$(NM) -n $^ > bin/symbols
 	$(OBJDUMP) -d $^ > bin/disassembly
-	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 $^ $@ .text .data .rodata 
+	$(ESPTOOL2) -bin -iromchksum -boot2 -4096 $^ $@ .text .data .rodata 
+	@$(CHECK_APP_IMAGE_FILE_SIZE)
 
 bin/app_image.elf: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
@@ -238,13 +255,13 @@ flash_boot: bin/rboot.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x2000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x100000 bin/app_image.bin
 
 flash_app2: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x202000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x200000 bin/app_image.bin
 
 flash_factory: bin/app_image.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x302000 bin/app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x300000 bin/app_image.bin
 
 flash: flash_boot flash_app
 

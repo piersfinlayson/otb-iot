@@ -11,6 +11,43 @@
 
 #include "rboot-private.h"
 #include <rboot-hex2a.h>
+#define OTB_RBOOT
+#define OTB_FLASH_INC_FUNCS
+#include "otb_flash.h"
+
+static int8 copy_img(uint32 src, uint32 dst, uint16 sectors)
+{
+  uint8 buffer[4096];
+  int ii;
+  int8 rc = 0;
+  
+  for (ii = 0; ii < sectors; ii++)
+  {
+    rc = SPI_FLASH_READ(src + (4096*ii), buffer, 4096);
+    if (rc)
+    {
+      goto EXIT_LABEL;
+    }
+    
+    rc = SPI_FLASH_ERASE_SECTOR(ii + (dst/4096));
+    if (rc)
+    {
+      goto EXIT_LABEL;
+    }
+
+    rc = SPI_FLASH_WRITE(dst + (4096*ii), buffer, 4096);   
+    if (rc)
+    {
+      goto EXIT_LABEL;
+    }
+  }
+  
+
+EXIT_LABEL:
+
+  return rc;
+
+}
 
 static uint32 check_image(uint32 readpos) {
 	
@@ -27,13 +64,24 @@ static uint32 check_image(uint32 readpos) {
 	section_header *section = (section_header*)buffer;
 	
 	if (readpos == 0 || readpos == 0xffffffff) {
+			ets_printf("invalid read pos\r\n");
 		return 0;
 	}
 	
 	// read rom header
-	if (SPIRead(readpos, header, sizeof(rom_header_new)) != 0) {
+	ets_printf("readpos 0x%x\r\n", readpos);
+	if (SPI_FLASH_READ(readpos, header, sizeof(rom_header_new)) != 0) {
+		ets_printf("read 0 failed\r\n");
 		return 0;
 	}
+	
+	ets_printf("magic:  0x%x\r\n", header->magic);
+	ets_printf("count:  %d\r\n", header->count);
+	ets_printf("flags1: 0x%x\r\n", header->flags1);
+	ets_printf("flags2: 0x%x\r\n", header->flags2);
+	ets_printf("entry:  0x%x\r\n", header->entry);
+	ets_printf("add:    0x%x\r\n", header->add);
+	ets_printf("len:    0x%x\r\n", header->len);
 	
 	// check header type
 	if (header->magic == ROM_MAGIC) {
@@ -54,13 +102,15 @@ static uint32 check_image(uint32 readpos) {
 		// skip the extra header and irom section
 		readpos = romaddr;
 		// read the normal header that follows
-		if (SPIRead(readpos, header, sizeof(rom_header)) != 0) {
+		if (SPI_FLASH_READ(readpos, header, sizeof(rom_header)) != 0) {
+			ets_printf("read failed 1\r\n");
 			return 0;
 		}
 		sectcount = header->count;
 		readpos += sizeof(rom_header);
 #endif
 	} else {
+		ets_printf("bad magic number\r\n");
 		return 0;
 	}
 	
@@ -68,7 +118,8 @@ static uint32 check_image(uint32 readpos) {
 	for (sectcurrent = 0; sectcurrent < sectcount; sectcurrent++) {
 		
 		// read section header
-		if (SPIRead(readpos, section, sizeof(section_header)) != 0) {
+		if (SPI_FLASH_READ(readpos, section, sizeof(section_header)) != 0) {
+			ets_printf("read failed 3\r\n");
 			return 0;
 		}
 		readpos += sizeof(section_header);
@@ -81,7 +132,8 @@ static uint32 check_image(uint32 readpos) {
 			// work out how much to read, up to BUFFER_SIZE
 			uint32 readlen = (remaining < BUFFER_SIZE) ? remaining : BUFFER_SIZE;
 			// read the block
-			if (SPIRead(readpos, buffer, readlen) != 0) {
+			if (SPI_FLASH_READ(readpos, buffer, readlen) != 0) {
+			ets_printf("read failed 4\r\n");
 				return 0;
 			}
 			// increment next read and write positions
@@ -99,7 +151,8 @@ static uint32 check_image(uint32 readpos) {
 		if (sectcount == 0xff) {
 			// just processed the irom section, now
 			// read the normal header that follows
-			if (SPIRead(readpos, header, sizeof(rom_header)) != 0) {
+			if (SPI_FLASH_READ(readpos, header, sizeof(rom_header)) != 0) {
+			ets_printf("read failed 5\r\n");
 				return 0;
 			}
 			sectcount = header->count + 1;
@@ -110,15 +163,18 @@ static uint32 check_image(uint32 readpos) {
 	
 	// round up to next 16 and get checksum
 	readpos = readpos | 0x0f;
-	if (SPIRead(readpos, buffer, 1) != 0) {
+	if (SPI_FLASH_READ(readpos, buffer, 1) != 0) {
+			ets_printf("read failed 6\r\n");
 		return 0;
 	}
 	
 	// compare calculated and stored checksums
 	if (buffer[0] != chksum) {
+			ets_printf("read failed 7\r\n");
 		return 0;
 	}
 	
+	ets_printf("returning 0x%x\r\n", romaddr);
 	return romaddr;
 }
 
@@ -244,15 +300,15 @@ uint32 NOINLINE find_image() {
 	
 	if (BOOT_CONFIG_SECTOR * SECTOR_SIZE != OTB_BOOT_BOOT_CONFIG_LOCATION)
 	{
-		ets_printf("BOOT: !!! Inconsistent build !!!");
-		ets_printf("BOOT: !!! Inconsistent build !!!");
-		ets_printf("BOOT: !!! Inconsistent build !!!");
-		ets_printf("BOOT: !!! Inconsistent build !!!");
-		ets_printf("BOOT: !!! Inconsistent build !!!");
+		ets_printf("BOOT: !!! Inconsistent build !!!\r\n");
+		ets_printf("BOOT: !!! Inconsistent build !!!\r\n");
+		ets_printf("BOOT: !!! Inconsistent build !!!\r\n");
+		ets_printf("BOOT: !!! Inconsistent build !!!\r\n");
+		ets_printf("BOOT: !!! Inconsistent build !!!\r\n");
 	}
 	
 	// read rom header
-	SPIRead(0, header, sizeof(rom_header));
+	SPI_FLASH_READ(0, header, sizeof(rom_header));
 	
 	// print and get flash size
 	ets_printf("BOOT: Flash Size:   ");
@@ -297,8 +353,10 @@ uint32 NOINLINE find_image() {
 	} else {
 		ets_printf("unknown\r\n");
 		// assume at least 4mbit
-		flashsize = 0x80000;
+		flashsize = 0x1000000;
 	}
+	
+	otb_flash_init(6);
 	
 	// print spi mode
 	ets_printf("BOOT: Flash Mode:   ");
@@ -335,7 +393,7 @@ uint32 NOINLINE find_image() {
 #endif
 	
 	// read boot config
-	SPIRead(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
+	SPI_FLASH_READ(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	// fresh install or old version?
 	if (romconf->magic != BOOT_CONFIG_MAGIC || romconf->version != BOOT_CONFIG_VERSION
 #ifdef BOOT_CONFIG_CHKSUM
@@ -359,8 +417,8 @@ uint32 NOINLINE find_image() {
 		romconf->chksum = calc_chksum((uint8*)romconf, (uint8*)&romconf->chksum);
 #endif
 		// write new config sector
-		SPIEraseSector(BOOT_CONFIG_SECTOR);
-		SPIWrite(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
+		SPI_FLASH_ERASE_SECTOR(BOOT_CONFIG_SECTOR);
+		SPI_FLASH_WRITE(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	}
 	
 	// if gpio mode enabled check status of the gpio
@@ -421,7 +479,7 @@ uint32 NOINLINE find_image() {
 				//  if (romToBoot == romconf->current_rom) {
 				{
 					// tried them all and all are bad!
-					ets_printf("BOOT: No good ROM available.\r\n");
+					ets_printf("BOOT: No good application image available.\r\n");
 					updateConfig = FALSE;
 					ets_printf("BOOT: Rebooting in 5s ");
 					for (ii=0; ii < 5; ii++)
@@ -444,14 +502,20 @@ uint32 NOINLINE find_image() {
 #ifdef BOOT_CONFIG_CHKSUM
 		romconf->chksum = calc_chksum((uint8*)romconf, (uint8*)&romconf->chksum);
 #endif
-		SPIEraseSector(BOOT_CONFIG_SECTOR);
-		SPIWrite(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
+		SPI_FLASH_ERASE_SECTOR(BOOT_CONFIG_SECTOR);
+		SPI_FLASH_WRITE(BOOT_CONFIG_SECTOR * SECTOR_SIZE, buffer, SECTOR_SIZE);
 	}
 	
 	ets_printf("BOOT: Booting rom %d at 0x%08x\r\n", romToBoot, runAddr);
 	// copy the loader to top of iram
 	ets_memcpy((void*)_text_addr, _text_data, _text_len);
 	// return address to load from
+	
+	if (runAddr >= 0x400000)
+	{
+    flashchip->chip_size = 16 * 1024 * 1024;
+    ets_printf("BOOT: Change chip size to %d\r\n", flashchip->chip_size);
+	}
 	return runAddr;
 
 }
@@ -464,17 +528,27 @@ void NOINLINE start_otb_boot(void)
 	ets_printf("\r\nBOOT: OTA-BOOT v0.1\r\n");
 	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
 
+	// Init flash (when super big > 4MB flash used)
+	//otb_flash_init(-1);
+	otb_flash_init(6);
+	
+#if 0
+	ets_printf("BOOT: Copy image from 0x200000 to 0xf00000 ... ");
+	if (copy_img(0x200000, 0xf00000, 128))
+	{
+    ets_printf("failed\r\n");
+	}
+	else
+	{
+    ets_printf("succeeded\r\n");
+  }
+#endif
+
   return;
 }
 
 // otb-iot factory reset function
 #define FACTORY_RESET_LEN  15  // seconds
-#define OTB_BOOT_ROM_0_LEN            0xfe000
-#define OTB_BOOT_ROM_1_LEN            0xfe000
-#define OTB_BOOT_ROM_2_LEN            0xfa000
-#define OTB_BOOT_ROM_0_LOCATION        0x2000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_1_LOCATION      0x202000  // length 0xFE000 = 896KB
-#define OTB_BOOT_ROM_2_LOCATION      0x302000  // length 0xFA000 = 880KB
 
 void do_factory_reset(void)
 {
@@ -487,7 +561,7 @@ void do_factory_reset(void)
   ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
   
   // Erase config sector - that's all we need to do to clear config
-  SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
+  SPI_FLASH_ERASE_SECTOR(OTB_BOOT_CONF_LOCATION/0x1000);
   ets_printf("BOOT: Config cleared\r\n");
 
   for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
@@ -495,14 +569,14 @@ void do_factory_reset(void)
        written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
   {
     // Dubious this will work as from_loc is on differnet 1MB segment of flash
-    SPIRead(from_loc, buffer, 0x1000);
-    SPIEraseSector(to_loc/0x1000);
-    SPIWrite(to_loc, buffer, 0x1000);
+    SPI_FLASH_READ(from_loc, buffer, 0x1000);
+    SPI_FLASH_ERASE_SECTOR(to_loc/0x1000);
+    SPI_FLASH_WRITE(to_loc, buffer, 0x1000);
   }
   while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
   {
     // Zero out spare space on end of slot 0 (recovery slot is smaller)
-    SPIEraseSector(to_loc/0x1000);
+    SPI_FLASH_ERASE_SECTOR(to_loc/0x1000);
     to_loc += 0x1000;
   }
   ets_printf("BOOT: Factory image written into slot 0\r\n");
@@ -528,7 +602,7 @@ void NOINLINE factory_reset(void)
     else
     {
       ets_printf("x");
-      ets_delay_us(1000000);
+      ets_delay_us( 000);
     }
   }
   ets_printf("\r\n");

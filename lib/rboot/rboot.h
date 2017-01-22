@@ -12,8 +12,6 @@
 extern "C" {
 #endif
 
-#include "otb_flash.h"
-
 // uncomment to use only c code
 // if you aren't using gcc you may need to do this
 //#define BOOT_NO_ASM
@@ -34,7 +32,7 @@ extern "C" {
 #define CHKSUM_INIT 0xef
 
 #define SECTOR_SIZE 0x1000
-#define BOOT_CONFIG_SECTOR 1
+#define BOOT_CONFIG_SECTOR 2
 
 // Changed from rboot value for OTA-BOOT
 #define BOOT_CONFIG_MAGIC 0xe2

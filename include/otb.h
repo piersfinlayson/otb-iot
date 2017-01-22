@@ -38,6 +38,7 @@
 #include "stdio.h"
 #include "stdarg.h"
 
+#ifndef ESPUT
 // ESP SDK
 #include "osapi.h"
 #include "c_types.h"
@@ -49,9 +50,16 @@
 #include "smartconfig.h"
 #include "esp_systemapi.h"
 #include "uart.h"
+#else
+#include "esput.h"
+#endif // ESPUT
 
 // MQTT
+#ifndef ESPUT
 #include "espconn.h"
+#else
+// XXX
+#endif // ESPUT
 #include "mqtt_msg.h"
 #include "mqtt_user_config.h"
 #include "mqtt.h"
@@ -94,5 +102,7 @@
 #include "otb_gpio.h"
 #include "otb_httpd.h"
 #include "otb_led.h"
+//#include "otb_cmd.h"
+#include "otb_flash.h"
 
 #endif

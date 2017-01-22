@@ -6,7 +6,8 @@ MEMORY
   dram0_0_seg :                         org = 0x3FFE8000, len = 0x14000
   iram1_0_seg :                         org = 0x40100000, len = 0x8000 /* 0x8000 */
 /*  irom0_0_seg :                         org = 0x40240000, len = 0x3C000 */
-  irom0_0_seg :                         org = 0x40202010, len = 0x7C000
+/*  irom0_0_seg :                         org = 0x40202010, len = 0x7C000 */
+  irom0_0_seg :                         org = 0x40200010, len = 0x7C000 /* supports images at 0x100000, 0x200000, 0x300000 (...) */
   /* Should have more than 0x7c000 available - worst case is 3rd ROM as SDK
      reserves last 4 sectors for its own use */
 }
