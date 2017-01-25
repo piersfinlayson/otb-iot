@@ -92,8 +92,8 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
 #ifndef ESPUT
 #ifdef OTB_DEBUG
-  #define DEBUG(...)      LOG(FALSE, __VA_ARGS__);
-  #define DEBUG_VAR(...)  LOG_VAR(FALSE, __VA_ARGS__);
+  #define DEBUG(...)      LOG(FALSE, __VA_ARGS__)
+  #define DEBUG_VAR(...)  LOG_VAR(FALSE, __VA_ARGS__)
 #else // OTB_DEBUG
   #define DEBUG(...)
   #define DEBUG_VAR(...)

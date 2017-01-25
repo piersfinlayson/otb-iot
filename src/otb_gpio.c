@@ -438,7 +438,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
   bool rc = FALSE;
   bool special;
   uint8 input;
-  char *error_text
+  char *error_text;
   
   DEBUG("GPIO: otb_gpio_set entry");
 

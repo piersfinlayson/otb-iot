@@ -1981,7 +1981,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t 
 
   DEBUG("I2C: otb_i2c_write_one_reg entry");
   
-  rc = otb_i2c_write_reg_seq(addr, reg, 1, &val)
+  rc = otb_i2c_write_reg_seq(addr, reg, 1, &val);
   
   DEBUG("I2C: otb_i2c_write_one_reg exit");
   
