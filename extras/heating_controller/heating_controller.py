@@ -223,7 +223,7 @@ def make_pump_decision():
       target_pump_state = ON
       print "Turning pump on as wall temp min room temp (even though max floor temp might have been exceed"
       if (last_temps[FLOOR] > max_floor_temp):
-        syslog.syslog(syslog.LOG_WARN, "heating: turning pump on even though max floor temp exceeded, as room temp below minimum")
+        syslog.syslog(syslog.LOG_WARNING, "heating: turning pump on even though max floor temp exceeded, as room temp below minimum")
       
   # Pump state is invalid, meaning we haven't set it yet - this will be set after sleep_time (60s default)
   else:
