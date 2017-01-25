@@ -613,7 +613,7 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
   {
     otb_util_asserting = TRUE;
     ERROR("------------- ASSERTION FAILED -------------");
-    ERROR(value_s);
+    ERROR_VAR(value_s);
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
     otb_reset_error(otb_util_assert_error_string);
@@ -697,7 +697,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
     ERROR(OTB_UTIL_REBOOT_TEXT);
     if (text != NULL)
     {
-      ERROR(text);
+      ERROR_VAR(text);
     }
     if (!same)
     {
@@ -711,7 +711,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
     INFO(OTB_UTIL_REBOOT_TEXT);
     if (text != NULL)
     {
-      INFO(text);
+      INFO_VAR(text);
     }    
   }
   
@@ -1164,7 +1164,7 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
 
 void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              uint16_t max_log_string_len,
-                                             char *format,
+                                             const char *format,
                                              va_list args)
 {
   // DEBUG("UTIL: otb_util_log_snprintf entry");
@@ -1180,7 +1180,7 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
 void ICACHE_FLASH_ATTR otb_util_log(bool error,
                                     char *log_string,
                                     uint16_t max_log_string_len,
-                                    char *format,
+                                    const char *format,
                                     ...)
 {
   va_list args;

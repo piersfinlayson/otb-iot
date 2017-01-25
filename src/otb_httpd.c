@@ -389,8 +389,8 @@ int ICACHE_FLASH_ATTR otb_httpd_station_config(HttpdConnData *connData)
     }
     
   }
-  
-EXIT_LABEL:  
+
+EXIT_LABEL:
   
   DEBUG("HTTPD: otb_httpd_station_config exit");
   

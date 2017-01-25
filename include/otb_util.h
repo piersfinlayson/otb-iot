@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+#ifndef OTB_UTIL_H_INCLUDED
+#define OTB_UTIL_H_INCLUDED
 
 // This is a linker symbol, the address of which is actually the build number.
 // As a result don't attempt to access the contents of this address!
@@ -88,12 +91,12 @@ extern void otb_util_delay_ms(uint32_t value);
 extern void otb_util_check_defs(void);
 extern void otb_util_log_snprintf(char *log_string,
                                   uint16_t max_log_string_len,
-                                  char *format,
+                                  const char *format,
                                   va_list args);
 extern void otb_util_log(bool error,
                          char *log_string,
                          uint16_t max_log_string_len,
-                         char *format,
+                         const char *format,
                          ...);
 extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
@@ -133,6 +136,7 @@ char otb_hw_info[10];
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 
+char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 // Force log buffer to be 4 byte aligned
 uint32 otb_util_log_buf_int32[OTB_UTIL_LOG_BUFFER_LEN/4];
 char *otb_util_log_buf;
@@ -142,3 +146,4 @@ bool otb_util_asserting;
 
 #endif // OTB_UTIL_C
 
+#endif // OTB_UTIL_H_INCLUDED
