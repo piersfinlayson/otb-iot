@@ -220,6 +220,7 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   bool dhcpc_rc = FALSE;
   uint8_t rc = OTB_WIFI_STATUS_NOT_CONNECTED;
   bool mac_rc;
+  bool hostname_rc;
   char mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH];
 
   DEBUG("WIFI: otb_wifi_try_sta entry");
@@ -252,6 +253,16 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
     INFO("WIFI:      AP MAC: %s", mac);
   }
   
+  hostname_rc = wifi_station_set_hostname(OTB_MAIN_DEVICE_ID);
+  if (hostname_rc)
+  {
+    INFO("WIFI: Set wifi station hostname to: %s", OTB_MAIN_DEVICE_ID);
+  }
+  else
+  {
+    WARN("WIFI: Failed to set station hostname to: %s", OTB_MAIN_DEVICE_ID);
+  }
+
   INFO("WIFI: Trying to connect ...", ssid);
   wifi_station_connect();
   ETS_UART_INTR_ENABLE();
@@ -284,6 +295,10 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_PURPLE, TRUE);
   
   rc = wifi_set_opmode_current(STATION_MODE);
+  if (!rc)
+  {
+    ERROR("WIFI: Failed to put device into station mode");
+  }
   rc1 = otb_wifi_try_sta(otb_conf->ssid,
                          otb_conf->password,
                          FALSE,
