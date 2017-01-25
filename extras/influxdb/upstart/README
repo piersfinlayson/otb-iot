@@ -1,0 +1,2 @@
+install in /etc/init
+run start otbiot_mqtt_influxdb

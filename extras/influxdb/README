@@ -1,0 +1,5 @@
+Script that takes temp and power data from otb-iot devices and injects into an influxdb instance.
+
+Create your own user_config.py from the sample provided.
+
+Upstart configuration is provided.
