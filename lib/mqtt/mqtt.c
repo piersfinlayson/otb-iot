@@ -643,7 +643,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 	else {
 		DEBUG("TCP: Connect to domain %s:%d", mqttClient->host, mqttClient->port);
 		error = espconn_gethostbyname(mqttClient->pCon, mqttClient->host, &mqttClient->ip, mqtt_dns_found);
-		if (error == ESPCONN_ARG) ERROR("MQTT esp: Failed to lookup host");
+		if (error == ESPCONN_ARG) ERROR("MQTT esp: Failed to lookup MQTT hostname: %s", mqttClient->host);
 	}
 	mqttClient->connState = TCP_CONNECTING;
 }

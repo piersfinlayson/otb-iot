@@ -395,7 +395,9 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
   int chars;
   int ii;
 
-	DEBUG("MQTT: otb_mqtt_initialize entry");
+  DEBUG("MQTT: otb_mqtt_initialize entry");
+
+  INFO("MQTT: Connect to %s:%d username:%s", hostname, port, mqtt_username);
 
   otb_mqtt_connected = FALSE;
   
@@ -837,39 +839,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   DEBUG("MQTT: otb_mqtt_set_svr entry");
 
   // First of all check the validity of the stuff passed in.
-  
-  if (svr != NULL)
-  {
-    bytes = 0;
-    ptr = svr;
-    while (bytes < 4)
-    {
-      byte = atoi(ptr);
-      if ((byte < 0) || (byte > 0xff))
-      {
-        INFO("MQTT: Invalid IP address, byte = %d", byte);
-        rc = OTB_CONF_RC_ERROR;
-        goto EXIT_LABEL;
-        break;
-      }
-      ptr = os_strstr(ptr, OTB_MQTT_PERIOD);
-      if (ptr != NULL)
-      {
-        ptr++;
-      }
-      else
-      {
-        break;
-      }
-      bytes++;
-    }  
-    if (bytes < 3)
-    {
-      INFO("MQTT: Invalid IP address");
-      rc = OTB_CONF_RC_ERROR;
-      goto EXIT_LABEL;
-    }
-  }
+  // Don't bother checking the address as can be a DN, FQDN or IP address
   
   if (port != NULL)
   {
