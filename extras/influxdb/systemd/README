@@ -1,0 +1,4 @@
+sudo cp otbiot_mqtt_influxdb.service /usr/lib/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable otbiot_mqtt_influxdb.service
+sudo systemctl start otbiot_mqtt_influxdb.service
