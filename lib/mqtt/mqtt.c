@@ -92,7 +92,7 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 		client->connState = TCP_RECONNECT_REQ;
 		return;
 	}
-	INFO("DNS: found ip %d.%d.%d.%d\n",
+	INFO("DNS: found ip %d.%d.%d.%d",
 			*((uint8 *) &ipaddr->addr),
 			*((uint8 *) &ipaddr->addr + 1),
 			*((uint8 *) &ipaddr->addr + 2),
