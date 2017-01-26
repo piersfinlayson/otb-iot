@@ -37,6 +37,8 @@ MAKE = make
 # Serial connection information
 SERIAL_PORT ?= /dev/ttyUSB0
 SERIAL_BAUD ?= 115200
+SERIAL_BAUD_230 = 230400
+SERIAL_BAUD_74 = 74880
 SERIAL = miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD)
 
 # Compile options
@@ -321,8 +323,16 @@ flash_initial: directories erase_flash flash_sdk flash_boot flash_app flash_fact
 
 flash_initial_40mhz: directories erase_flash flash_boot flash_app flash_factory flash_40mhz
 
+con: connect
+
 connect:
-	$(SERIAL)
+	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD)
+
+con230:
+	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD_230)
+
+con74:
+	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD_74)
 
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
