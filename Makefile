@@ -317,9 +317,9 @@ flash: flash_boot flash_app
 flash_sdk:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin
 
-flash_initial: erase_flash flash_sdk flash_boot flash_app flash_factory
+flash_initial: directories erase_flash flash_sdk flash_boot flash_app flash_factory
 
-flash_initial_40mhz: erase_flash flash_boot flash_app flash_factory flash_40mhz
+flash_initial_40mhz: directories erase_flash flash_boot flash_app flash_factory flash_40mhz
 
 connect:
 	$(SERIAL)
