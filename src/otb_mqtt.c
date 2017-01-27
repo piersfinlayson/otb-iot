@@ -48,7 +48,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                         message,
                         extra_message);
   }
-  otb_util_convert_ws_to_(otb_mqtt_msg_s);
+  otb_util_convert_char_to_char(otb_mqtt_msg_s, ' ', '_');
   for (ii = 0; ii < os_strlen(otb_mqtt_msg_s); ii++)
   {
     otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
@@ -532,8 +532,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
   
   if ((val2 != NULL) && (os_strlen(val2) > 0))
   {
-    otb_util_convert_ws_to_(val2);
-    otb_util_convert_colon_to_period(val2);
+    otb_util_convert_char_to_char(val2, ' ', '_');
+    otb_util_convert_char_to_char(val2, ':', '.');
     len = os_snprintf(otb_mqtt_scratch,
                       max_len,
                       "%s",
@@ -541,8 +541,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
     max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
     if ((val3 != NULL) && (os_strlen(val3) > 0))
     {
-      otb_util_convert_ws_to_(val3);
-      otb_util_convert_colon_to_period(val3);
+      otb_util_convert_char_to_char(val3, ' ', '_');
+      otb_util_convert_char_to_char(val3, ':', '.');
       len += os_snprintf(otb_mqtt_scratch + len,
                          max_len,
                          ":%s",
@@ -550,8 +550,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
       max_len = OTB_MQTT_MAX_MSG_LENGTH - len;
       if ((val4 != NULL) && (os_strlen(val4) > 0))
       {
-        otb_util_convert_ws_to_(val4);
-        otb_util_convert_colon_to_period(val4);
+        otb_util_convert_char_to_char(val4, ' ', '_');
+        otb_util_convert_char_to_char(val4, ':', '.');
         len += os_snprintf(otb_mqtt_scratch + len,
                            max_len,
                            ":%s",

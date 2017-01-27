@@ -347,7 +347,7 @@ extern otb_cmd_control otb_cmd_control_trigger_relay[];
 
 otb_cmd_control otb_cmd_control_topic_top[] = 
 {
-  {"otb-iot",          NULL, otb_cmd_control_topic_2nd,      OTB_CMD_NO_FN},
+  {OTB_MQTT_OTBIOT_TOPIC, NULL, otb_cmd_control_topic_2nd,      OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
 

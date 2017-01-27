@@ -444,6 +444,10 @@ bool ICACHE_FLASH_ATTR otb_cmd_match_chipid(unsigned char *to_match)
   {
     rc = TRUE;
   }
+  else if (!os_strcmp(OTB_MQTT_MATCH_ALL, to_match))
+  {
+    rc = TRUE;
+  }
 
   DEBUG("CMD: otb_cmd_match_chipid exit");
 

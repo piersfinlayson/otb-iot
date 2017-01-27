@@ -215,6 +215,11 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_glob_conf(otb_eeprom_glob_conf *glob_conf
   otb_eeprom_size = glob_conf->eeprom_size;
   
 EXIT_LABEL:  
+
+  if (!rc)
+  {
+    os_memset(glob_conf, 0, sizeof(*glob_conf));
+  }
   
   DEBUG("EEPROM: otb_eeprom_read_glob_conf exit");
   
@@ -336,6 +341,11 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_hw_conf(otb_eeprom_glob_conf *glob_conf, 
   rc = 1;
   
 EXIT_LABEL:  
+
+  if (!rc)
+  {
+    os_memset(hw_conf, 0, sizeof(*hw_conf));
+  }
   
   DEBUG("EEPROM: otb_eeprom_read_hw_conf exit");
   

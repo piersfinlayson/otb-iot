@@ -52,7 +52,11 @@ typedef struct otb_util_timeout
 
 void otb_util_read_eeprom(void);
 extern size_t otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size);
-extern void otb_util_convert_ws_to_(char *text);
+void otb_util_convert_char_to_char(char *text, int from, int to);
+int isdigit(int c);
+int isalpha(int c);
+int isalnum(int c);
+void otb_util_get_chip_id(void);
 void otb_util_convert_colon_to_period(char *text);
 extern void otb_util_log_useful_info(bool recovery);
 extern void otb_util_init_logging(void);

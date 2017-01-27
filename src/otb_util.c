@@ -51,6 +51,13 @@ void ICACHE_FLASH_ATTR otb_util_read_eeprom(void)
 
 EXIT_LABEL:
 
+  // Now we've read the eeprom get the chip ID
+  otb_util_get_chip_id();
+  OTB_ASSERT((os_strlen(OTB_MAIN_OTBIOT_PREFIX) +
+              os_strlen(OTB_MAIN_CHIPID)) <
+             sizeof(OTB_MAIN_DEVICE_ID));
+  os_sprintf(OTB_MAIN_DEVICE_ID, "%s.%s", OTB_MAIN_OTBIOT_PREFIX, OTB_MAIN_CHIPID);
+
   DEBUG("UTIL: otb_util_read_eeprom exit");
 
   return;
@@ -236,40 +243,170 @@ done:
         return(to);
 }
 
-void ICACHE_FLASH_ATTR otb_util_convert_ws_to_(char *text)
+void ICACHE_FLASH_ATTR otb_util_convert_char_to_char(char *text, int from, int to)
 {
-  char *ws;
+  char froms[2];
+  char *match;
   
-  // DEBUG("UTIL: otb_util_convert_ws_to_ entry");
+  DEBUG("UTIL: otb_util_convert_char_to_char entry");
   
-  ws = os_strstr(text, " ");
-  while (ws)
+  OTB_ASSERT(from != to);
+  
+  froms[0] = (char)from;
+  froms[1] = 0;
+  match = os_strstr(text, froms);
+  while (match)
   {
-    *ws = '_';
-    ws = os_strstr(ws, " ");
+    *match = to;
+    match = os_strstr(match, froms);
   }
 
-  // DEBUG("UTIL: otb_util_convert_ws_to_ exit");
+  DEBUG("UTIL: otb_util_convert_char_to_char exit");
 
   return;  
 }
 
-void ICACHE_FLASH_ATTR otb_util_convert_colon_to_period(char *text)
+// 3 options:
+// - if have serial number (from eeprom) use it
+// - otherwise if can get station mac use it
+// - otherwise use device chip id
+// Note ap MAC uses invalid vendor ID, which is why we use the station mac
+void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
 {
-  char *ws;
+  bool mac_rc;
+  char mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH];
+  char mac_bit[3];
+  int ii, jj, kk, offset;
+  bool trailing;
+  bool rc = TRUE;
+
+  DEBUG("UTIL: otb_util_get_chip_id entry");
+
+  OTB_ASSERT(OTB_MAIN_CHIPID_STR_LENGTH >= (OTB_EEPROM_HW_SERIAL_LEN+1));
+  os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
   
-  // DEBUG("UTIL: otb_util_convert_ws_to_ entry");
-  
-  ws = os_strstr(text, ":");
-  while (ws)
+  if ((otb_eeprom_hw.hdr.magic == OTB_EEPROM_HW_MAGIC) &&
+      (os_strnlen(otb_eeprom_hw.serial, OTB_EEPROM_HW_SERIAL_LEN+1) <=
+                                                    OTB_EEPROM_HW_SERIAL_LEN))
   {
-    *ws = '.';
-    ws = os_strstr(ws, ":");
+    INFO("UTIL: Using serial number as chipid");
+    // Use serial number
+    
+    // Get rid of any spaces
+    trailing = TRUE;
+    for (ii = 0, jj = 0; ii < OTB_EEPROM_HW_SERIAL_LEN; ii++)
+    {
+      if (isalnum(otb_eeprom_hw.serial[ii]))
+      {
+        trailing = FALSE;
+        OTB_MAIN_CHIPID[jj] = otb_eeprom_hw.serial[ii];
+        jj++;
+      }
+      else if (!trailing)
+      {
+        OTB_MAIN_CHIPID[jj] = '_';
+        jj++;
+      }
+      
+      if (otb_eeprom_hw.serial[ii] == 0)
+      {
+        break;
+      }
+    }
   }
+  else
+  {
+#ifdef OTB_DEBUG
+    mac[0] = 0;
+#endif
+    mac_rc = otb_wifi_get_mac_addr(STATION_IF, mac);
+    DEBUG("UTIL: Result of MAC addr query: %d", mac_rc);
+    DEBUG("UTIL: MAC address string: %s", mac);
+    // Check MAC address is exactly format (length) we expect which is:
+    // aa:bb:cc:dd:ee:ff (17 bytes)
+    if (mac_rc &&
+        (os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH) <=
+                                      (OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1)))
+    {
+      // Use STA MAC address
+      INFO("UTIL: Using station MAC address as chipid");
+      for (ii = 0, jj = 0, kk = 0;
+           ii < os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH);
+           ii++)
+      {
+        if (isalnum(mac[ii]))
+        {
+          if (kk < 2)
+          {
+            mac_bit[kk] = mac[ii];
+            kk++;
+          }
+          else
+          {
+            WARN("UTIL: Unexpected MAC address format: %c %s", mac[ii], mac);
+            rc = FALSE;
+            mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1] = 0;
+            goto EXIT_LABEL;
+          }
+        }
+        else if (mac[ii] == 0)
+        {
+          if (kk == 1)
+          {
+            OTB_MAIN_CHIPID[jj] = mac_bit[0];
+          }
+          if (os_strnlen(OTB_MAIN_CHIPID, OTB_EEPROM_HW_SERIAL_LEN+1) < 6)
+          {
+            WARN("UTIL: Unexpected MAC address format: %s", mac);
+            rc = 0;
+          }
+          break;
+        }
+        else if (mac[ii] != ':')
+        {
+          WARN("UTIL: Unexpected MAC address format: %c %s", mac[ii], mac);
+          rc = FALSE;
+          mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1] = 0;
+          goto EXIT_LABEL;
+        }
+        
+        if (kk == 2)
+        {
+          OTB_MAIN_CHIPID[jj] = mac_bit[0];
+          OTB_MAIN_CHIPID[jj+1] = mac_bit[1];
+          jj += 2;
+          kk = 0;
+        }
+        else if ((kk == 1) && (mac[ii] == ':'))
+        {
+          OTB_MAIN_CHIPID[jj] = '0';
+          OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
+          jj += 2;
+          kk = 0;
+        }
+      }
+    }
+    else
+    {
+      rc = FALSE;
+    }
+  }
+  
+EXIT_LABEL:
 
-  // DEBUG("UTIL: otb_util_convert_ws_to_ exit");
-
-  return;  
+  if (!rc)
+  {  
+    // Use ESP chip id
+    INFO("UTIL: Using ESP chipid as chipid");
+    os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
+    os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
+  }
+  
+  INFO("UTIL: Chip ID: %s", OTB_MAIN_CHIPID);  
+  
+  DEBUG("UTIL: otb_util_get_chip_id exit");
+  
+  return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
@@ -287,11 +424,12 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
 
   // Set up and log some useful info
   os_sprintf(otb_compile_date, "%s", __DATE__);
-  otb_util_convert_ws_to_(otb_compile_date);
-  otb_util_convert_colon_to_period(otb_compile_date);
+  otb_util_convert_char_to_char(otb_compile_date, ' ', '_');
+  otb_util_convert_char_to_char(otb_compile_date, '.', '_');
+  otb_util_convert_char_to_char(otb_compile_date, ':', '.');
   os_sprintf(otb_compile_time, "%s", __TIME__);
-  otb_util_convert_ws_to_(otb_compile_time);
-  otb_util_convert_colon_to_period(otb_compile_time);
+  otb_util_convert_char_to_char(otb_compile_time, ' ', '_');
+  otb_util_convert_char_to_char(otb_compile_time, ':', '_');
   os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
               "%s:%s:Build_%u:%s:%s",
@@ -303,9 +441,6 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   // First log needs a line break!
   INFO("\nOTB: %s%s", otb_version_id, recovery_str);
   INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
-  INFO("OTB: ESP device: %s", OTB_MAIN_CHIPID);
-  os_sprintf(OTB_MAIN_DEVICE_ID, "OTB-IOT.%s", OTB_MAIN_CHIPID);
   INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
   
   // Need to read this!

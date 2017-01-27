@@ -22,6 +22,10 @@
 
 #define OTB_MQTT_MAX_CMDS  6
 
+#define OTB_MQTT_OTBIOT_TOPIC OTB_MAIN_OTBIOT_PREFIX
+
+#define OTB_MQTT_MATCH_ALL "all"
+
 #define OTB_MQTT_EMPTY   otb_mqtt_string_empty
 #define OTB_MQTT_SLASH   otb_mqtt_string_slash
 #define OTB_MQTT_COLON   otb_mqtt_string_colon

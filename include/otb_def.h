@@ -18,15 +18,16 @@
  */
 
 // Configurable stuff
+#define OTB_MAIN_OTBIOT_PREFIX "otb-iot"
 #define OTB_MAIN_BAUD_RATE 115200
 #define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
-#define OTB_MAIN_FW_VERSION "v0.1e" //max 8 chars
+#define OTB_MAIN_FW_VERSION "v0_1e" //max 8 chars
 #define OTB_MAIN_MAX_VERSION_LENGTH 64 // Enough space for root, version, build number, compile data and compile time
 #define OTB_MAIN_GPIO_RESET 16
 #define OTB_MAIN_MAX_LOG_LENGTH 1024
 #define OTB_WIFI_DEFAULT_DISCONNECTED_TIMEOUT 300000 // 5 minutes
-#define OTB_WIFI_DEFAULT_SSID_PREFIX "OTB-IOT"
+#define OTB_WIFI_DEFAULT_SSID_PREFIX OTB_MAIN_OTBIOT_PREFIX
 #define OTB_WIFI_DEFAULT_DUMMY_SSID "otb-iot-dummy"
 #define OTB_WIFI_MAC_ADDRESS_STRING_LENGTH 18 // 6 * 2 + 5 + 1
 #define OTB_DS18B20_MAX_DS18B20S 8
@@ -60,7 +61,7 @@
 #define OTB_MAIN_COMPILE_DATE otb_compile_date
 #define OTB_MAIN_COMPILE_TIME otb_compile_time
 #define OTB_MAIN_VERSION_ID otb_version_id
-#define OTB_MAIN_CHIPID_STR_LENGTH 7
+#define OTB_MAIN_CHIPID_STR_LENGTH 16
 #define OTB_MAIN_CHIPID otb_chipid
 #define OTB_WIFI_MAX_IPV4_STRING_LEN 16 // 3+1+3+1+3+1+3+1
 #define OTB_DS18B20_DEVICE_ADDRESS_LENGTH 8
