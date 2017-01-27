@@ -134,6 +134,10 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
           rc = cur_control[ii].handler_fn(cur_cmd,
                                           cur_control[ii].arg,
                                           prev_cmd);
+          if (!rc)
+          {
+            goto EXIT_LABEL;
+          }
         }
         else
         {
