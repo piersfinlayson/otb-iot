@@ -26,14 +26,10 @@ An example of a series of MQTT commands to set up serial communication are as fo
 ::
 
   topic: /otb-iot/chipid message: set/config/serial/tx/15
-
   topic: /otb-iot/chipid message: set/config/serial/rx/13
-
   topic: /otb-iot/chipid message: set/config/serial/speed/2400
-
   topic: /otb-iot/chipid message: set/config/serial/enable
 
-::
 
 Sending and Receiving Data
 --------------------------
@@ -46,15 +42,11 @@ Sent:
 
   topic: /otb-iot/chipid message: trigger/serial/buffer/dump
 
-::
-
 Received:
 
 ::
 
   topic: /otb-iot/chipid/status message: ok:xx
-
-::
 
 xx indicates the buffer is empty.  A maximum of 25 bytes will be returned in each status message - multiple messages will be sent if the buffer contains more than 25 bytes.
 
@@ -63,8 +55,6 @@ To send serial data:
 ::
 
   topic: /otb-iot/chipid message: trigger/serial/send/105b015c16
-
-::
 
 Here 0x10 0x5b 0x01 0x5c 0x16 will be sent.
 
@@ -75,8 +65,6 @@ Data is returned as hex bytes:
   topic: /otb-iot/chipid message: trigger/serial/buffer/dump
   topic: /otb-iot/chipid/status   message: ok:01/02/03/04/xx
 
-::
-
 Here 0x01, 0x02, 0x03, 0x04 were received in that order.
 
 The buffer is cleared as bytes are read.  If the buffer is read again immediately:
@@ -85,8 +73,6 @@ The buffer is cleared as bytes are read.  If the buffer is read again immediatel
 
   topic: /otb-iot/chipid message: trigger/serial/buffer/dump
   topic: /otb-iot/chipid/status   message: ok:xx
-
-::
 
 More Details
 ------------
