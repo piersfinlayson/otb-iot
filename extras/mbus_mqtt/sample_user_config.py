@@ -48,5 +48,5 @@ mbus_sensors = [{CHIPID:"123456",
                ]
 
 # location of mbus_process_hex_dump
-mbus_process_hex_dump_cmd = './mbus_process_hex_dump'
+mbus_process_hex_dump_cmd = '../mbus_tools/mbus_process_hex_dump'
 
