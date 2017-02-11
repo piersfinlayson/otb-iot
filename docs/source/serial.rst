@@ -5,11 +5,13 @@
 Serial
 ======
 
-The serial port is used for two main purposes in otb-iot:
+The ESP8266's serial port is used for two main purposes in otb-iot:
 
 * To flash the otb-iot binaries.
 
 * To output logs from the otb-iot device.
+
+otb-iot also supports :doc:`Serial over MQTT <serial_over_mqtt>`.
 
 Pins
 ----

@@ -28,6 +28,7 @@ otb-iot docs are hosted at: https://otb-iot.readthedocs.io/en/latest/
    mqtt
    flash
    raspberry
+   serial_over_mqtt
 
 Contribute
 ----------
