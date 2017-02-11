@@ -163,7 +163,7 @@ This would return:
       </DataRecord>
   </MBusData>
 
-(Note SlaveInformation->Id and Fabrication number have been redacted.
+(Note SlaveInformation->Id and Fabrication number have been redacted.)
 
 Automated Reading 
 -----------------
