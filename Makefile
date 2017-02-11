@@ -208,7 +208,7 @@ i2cDep = $(i2cObjects:%.o=%.d)
 hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
 hwinfoDep = $(hwinfoObjects:%.o=%.d)
 
-all: directories docs bin/app_image.bin bin/rboot.bin
+all: directories bin/app_image.bin bin/rboot.bin docs
 
 bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(NM) -n bin/app_image.elf > bin/app_image.sym
@@ -391,10 +391,10 @@ directories:
 	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) $(HWINFO_OBJ_DIR) $(SOFTUART_OBJ_DIR) $(LIBB64_OBJ_DIR) obj/html
 
 docs: FORCE
-	$(MAKE) -C docs html
+	-$(MAKE) -C docs html
 
 clean_docs: FORCE
-	$(MAKE) -C docs clean
+	-$(MAKE) -C docs clean
 
 clean_nweb: FORCE
 	@rm -f bin/nweb
