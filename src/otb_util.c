@@ -1690,3 +1690,13 @@ int* __errno(void) {
     return &errno_var;
 }
 
+char *os_strdup(const char *s)
+{
+  char *new;
+  new = (char *)os_malloc(os_strlen(s)+1);
+  if (new != NULL)
+  {
+    os_strcpy(new, s);
+  }
+  return new;
+}

@@ -590,6 +590,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mqtt_get_addr(char *byte, uint8 *addr)
 
   DEBUG("I2C: otb_i2c_mqtt_get_addr entry");
   
+  DEBUG("I2C: Decode bytes: %c %c", byte[0], byte[1]);
   if (byte != NULL)
   {
     if ((byte[0] != 0) && (byte[1] != 0))

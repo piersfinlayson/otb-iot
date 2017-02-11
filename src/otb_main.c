@@ -22,6 +22,7 @@
 
 void configModeCallback();
 char ssid[32];
+void mbus_init();
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
@@ -49,6 +50,9 @@ void ICACHE_FLASH_ATTR user_init(void)
   
   // Reset GPIO - pull pin 16 high
   otb_util_clear_reset();
+  
+  // Initialize serial
+  otb_serial_init();
 
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   otb_wifi_init();
@@ -85,6 +89,7 @@ void ICACHE_FLASH_ATTR user_init(void)
     system_init_done_cb((init_done_cb_t)otb_gpio_reset_kick_off);
   }
 #endif
+//  system_init_done_cb((init_done_cb_t)mbus_init);
   
   DEBUG("OTB: user_init exit");
 

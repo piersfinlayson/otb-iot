@@ -1,8 +1,7 @@
 /*
- *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2017 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -119,6 +118,7 @@ extern otb_cmd_handler_fn otb_gpio_cmd_set;
 extern otb_cmd_handler_fn otb_gpio_cmd_set_config;
 extern otb_cmd_handler_fn otb_relay_conf_set;
 extern otb_cmd_handler_fn otb_relay_trigger;
+extern otb_cmd_handler_fn otb_serial_config_handler;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -197,6 +197,13 @@ typedef struct otb_cmd_control
 //     gpio
 //       pin  // Must be an unreserved GPIO
 //         state  // Must be 0 or 1
+//     serial
+//       enable
+//       rx|rx_pin|rxpin
+//       tx|tx_pin|txpin
+//       baud|baudrate|baud_rate|bit_rate|bitrate|speed
+//       stopbit|stop_bit
+//       parity
 //   info
 //     version
 //     compile_date
@@ -257,6 +264,15 @@ typedef struct otb_cmd_control
 //     gpio
 //       pin  // Must be an unreserved GPIO
 //         state  // Must be 0 or 1
+//     serial
+//       enable                                          // no, yes, false, true, or no value   (no = default)
+//       disable                                         // no value
+//       rx|rx_pin|rxpin                                 // GPIO pin to use for RX (no default, cannot be enabled until set)
+//       tx|tx_pin|txpin                                 // GPIO pin to use for TX (no default, cannot be enabled until set)
+//       baud|baudrate|baud_rate|bit_rate|bitrate|speed  // standard baudrate from 300 to 57600 (9600 = default)
+//       stopbit|stop_bit                                // 1, one, 2, two, 0, none (0 = default)
+//       parity                                          // none, even or odd      (none = default
+//       commit                                          // no argument required
 //   boot_slot
 // delete
 //   config
@@ -293,6 +309,11 @@ typedef struct otb_cmd_control
 //         <state> (0 or 1)
 //       all
 //         <state> (string of 0s and 1s - lowest numbered pin last)
+//   serial
+//     send|transmit|tx
+//     buffer
+//       dump <empty>|all|<bytes>
+//       clear|empty
 //  
 
 // Some macros to simplify command structure definition
@@ -341,6 +362,9 @@ extern otb_cmd_control otb_cmd_control_trigger_gpio[];
 extern otb_cmd_control otb_cmd_control_set_config_relay[];
 extern otb_cmd_control otb_cmd_control_set_config_relay_valid[];
 extern otb_cmd_control otb_cmd_control_trigger_relay[];
+extern otb_cmd_control otb_cmd_control_get_config_serial[];
+extern otb_cmd_control otb_cmd_control_set_config_serial[];
+extern otb_cmd_control otb_cmd_control_trigger_serial[];
 
 
 #ifdef OTB_CMD_C
@@ -456,6 +480,7 @@ otb_cmd_control otb_cmd_control_get_config[] =
 {
   {"all",              NULL, NULL,      otb_cmd_get_config_all,    NULL},
   {"gpio",             NULL, otb_cmd_control_get_config_gpio,    OTB_CMD_NO_FN},
+  {"serial",           NULL, otb_cmd_control_get_config_serial,    OTB_CMD_NO_FN},
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
@@ -464,6 +489,28 @@ otb_cmd_control otb_cmd_control_get_config[] =
 otb_cmd_control otb_cmd_control_get_config_gpio[] =
 {
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
+  {OTB_CMD_FINISH}
+};
+
+// get->config->Serial
+otb_cmd_control otb_cmd_control_get_config_serial[] =
+{
+  {"enable",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_ENABLE  | OTB_SERIAL_CMD_GET)},
+  {"rx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_GET)},
+  {"rx_pin",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_GET)},
+  {"rxpin",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_GET)},
+  {"tx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_GET)},
+  {"tx_pin",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_GET)},
+  {"txpin",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_GET)},
+  {"baud",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"baudrate",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"baud_rate", NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"bit_rate",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"bitrate",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"speed",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"stopbit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_GET)},
+  {"stop_bit",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_GET)},
+  {"parity",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_PARITY  | OTB_SERIAL_CMD_GET)},
   {OTB_CMD_FINISH}
 };
 
@@ -515,6 +562,7 @@ otb_cmd_control otb_cmd_control_set_config[] =
   {"ads",              NULL, otb_cmd_control_set_config_ads,             OTB_CMD_NO_FN},
   {"gpio",             NULL, otb_cmd_control_set_config_gpio,            OTB_CMD_NO_FN},
   {"relay",            NULL, otb_cmd_control_set_config_relay,           OTB_CMD_NO_FN},
+  {"serial",           NULL, otb_cmd_control_set_config_serial,          OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -603,6 +651,30 @@ otb_cmd_control otb_cmd_control_set_config_relay_valid[] =
   {OTB_CMD_FINISH}
 };
 
+// get->config->Serial
+otb_cmd_control otb_cmd_control_set_config_serial[] =
+{
+  {"enable",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_ENABLE  | OTB_SERIAL_CMD_SET)},
+  {"disable",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_DISABLE | OTB_SERIAL_CMD_SET)},
+  {"rx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_SET)},
+  {"rx_pin",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_SET)},
+  {"rxpin",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_SET)},
+  {"tx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_SET)},
+  {"tx_pin",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_SET)},
+  {"txpin",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TX      | OTB_SERIAL_CMD_SET)},
+  {"baud",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"baudrate",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"baud_rate", NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"bit_rate",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"bitrate",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"speed",     NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"stopbit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_SET)},
+  {"stop_bit",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_SET)},
+  {"parity",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_PARITY  | OTB_SERIAL_CMD_SET)},
+  {"commit",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_COMMIT  | OTB_SERIAL_CMD_SET)},
+  {OTB_CMD_FINISH}
+};
+
 // delete commands
 otb_cmd_control otb_cmd_control_delete[] = 
 {
@@ -668,6 +740,7 @@ otb_cmd_control otb_cmd_control_trigger[] =
   {"test",              NULL, otb_cmd_control_trigger_test,    OTB_CMD_NO_FN},
   {"gpio",              NULL, otb_cmd_control_trigger_gpio,    OTB_CMD_NO_FN},
   {"relay",             NULL, otb_cmd_control_trigger_relay,   OTB_CMD_NO_FN},
+  {"serial",            NULL, otb_cmd_control_trigger_serial,   OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -718,6 +791,17 @@ otb_cmd_control otb_cmd_control_trigger_relay[] =
   {NULL, otb_relay_valid_id, NULL, otb_relay_trigger, NULL},
   {OTB_CMD_FINISH}
 };
+
+// trigger->serial
+otb_cmd_control otb_cmd_control_trigger_serial[] =
+{
+  {"send",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
+  {"trasmit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
+  {"tx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
+  {"buffer",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BUFFER   | OTB_SERIAL_CMD_TRIGGER)},
+  {OTB_CMD_FINISH}
+};
+
 
 #endif // OTB_CMD_C
 

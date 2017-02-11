@@ -107,6 +107,12 @@ extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
 void otb_init_ads(void *arg);
+
+int toupper(int c);
+int isxdigit(int c);
+int iscntrl(int c);
+char *os_strdup(const char *s);
+
 static inline uint32_t otb_util_get_cycle_count(void) __attribute__((always_inline));
 static inline uint32_t otb_util_get_cycle_count(void)
 {

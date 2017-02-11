@@ -259,6 +259,8 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_all(const char *topic,
   DEBUG("I2C: otb_cmd_populate_all entry");
   
   // Two things to populate - topics and cmds.  Do both, into same array.
+  
+  os_memset(otb_cmd_incoming_cmd, 0, sizeof(otb_cmd_incoming_cmd));
 
   rc = otb_cmd_populate_one(otb_cmd_incoming_cmd,
                             OTB_CMD_MAX_CMDS,

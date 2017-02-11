@@ -83,6 +83,9 @@
 // RBOOT
 #include "rboot_ota.h"
 
+// Softuart
+#include "softuart.h"
+
 // OTB
 #include "otb_def.h"
 #include "otb_globals.h"
@@ -102,6 +105,7 @@
 #include "otb_gpio.h"
 #include "otb_httpd.h"
 #include "otb_led.h"
+#include "otb_serial.h"
 #include "otb_cmd.h"
 #include "otb_flash.h"
 #include "otb_relay.h"
