@@ -353,7 +353,10 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         {
           if (kk == 1)
           {
-            OTB_MAIN_CHIPID[jj] = mac_bit[0];
+            OTB_MAIN_CHIPID[jj] = '0';
+            OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
+            jj += 2;
+            kk = 0;
           }
           if (os_strnlen(OTB_MAIN_CHIPID, OTB_EEPROM_HW_SERIAL_LEN+1) < 6)
           {

@@ -54,7 +54,7 @@ SOFTUART_CFLAGS = $(OTB_CFLAGS) -Ilib/esp8266-software-uart/softuart/include
 LIBB64_CFLAGS = $(OTB_CFLAGS) -I lib/libb64/include
 
 # esptool.py options
-ESPBAUD = 230400
+ESPBAUD = 115200
 ESPPORT = $(SERIAL_PORT)
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
