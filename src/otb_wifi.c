@@ -93,15 +93,15 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       
     case EVENT_SOFTAPMODE_STACONNECTED:
       INFO("WIFI: Event - AP mode - station connected");
-      goto EXIT_LABEL;
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_PINK, TRUE);
+      goto EXIT_LABEL;
       break;
       
     case EVENT_SOFTAPMODE_STADISCONNECTED: 
       // Assume SDK will be retrying
       INFO("WIFI: Event - AP mode - station disconnected");
-      goto EXIT_LABEL;
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED, TRUE);
+      goto EXIT_LABEL;
       break;
       
     case EVENT_SOFTAPMODE_PROBEREQRECVED:
