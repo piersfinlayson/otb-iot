@@ -543,15 +543,6 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_wifi_store_station_connect_error()
-{
-  DEBUG("WIFI: otb_wifi_store_station_connect_error entry");
-  
-  /// XXX
-  
-  DEBUG("WIFI: otb_wifi_store_station_connect_error exit");
-}
-
 void ICACHE_FLASH_ATTR otb_wifi_get_ip_string(uint32_t addr, char *addr_s)
 {
   uint8_t byte[4];
