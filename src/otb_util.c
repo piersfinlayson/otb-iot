@@ -336,8 +336,10 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
       {
         if (isalnum(mac[ii]))
         {
+          DEBUG("UTIL: Is alnum: %x", mac[ii]);
           if (kk < 2)
           {
+            DEBUG("UTIL: kk < 2: %d", kk);
             mac_bit[kk] = mac[ii];
             kk++;
           }
@@ -351,8 +353,10 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         }
         else if (mac[ii] == 0)
         {
+          DEBUG("UTIL: 0");
           if (kk == 1)
           {
+            DEBUG("UTIL: kk = 1");
             OTB_MAIN_CHIPID[jj] = '0';
             OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
             jj += 2;
@@ -375,6 +379,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         
         if (kk == 2)
         {
+          DEBUG("UTIL: kk=2");
           OTB_MAIN_CHIPID[jj] = mac_bit[0];
           OTB_MAIN_CHIPID[jj+1] = mac_bit[1];
           jj += 2;
@@ -382,11 +387,31 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         }
         else if ((kk == 1) && (mac[ii] == ':'))
         {
+          DEBUG("UTIL: kk=1 && mac=:");
           OTB_MAIN_CHIPID[jj] = '0';
           OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
           jj += 2;
           kk = 0;
         }
+      }
+      // If we get here and kk is non zero we still have some bits to write.
+      // This happens if the last byte begins 0.  E.g 0a - this is read as
+      // xx:xx:xx:xx:xx:a - so we don't realise we've finished until the for
+      // loop ends
+      if (kk > 0)
+      {
+        if (kk == 1)
+        {
+          OTB_MAIN_CHIPID[jj] = '0';
+          OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
+        }
+        else
+        {
+          OTB_MAIN_CHIPID[jj] = mac_bit[0];
+          OTB_MAIN_CHIPID[jj+1] = mac_bit[1];
+        }
+        jj += 2;
+        kk = 0;
       }
     }
     else
