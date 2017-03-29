@@ -29,6 +29,8 @@
 #define OTB_WIFI_STATUS_AP_DONE             6
 #define OTB_WIFI_STATUS_AP_TIMED_OUT        7
 
+#define OTB_WIFI_STA_MAX_SECOND_COUNT       30
+
 typedef struct station_config OTB_WIFI_STATION_CONFIG;
 
 typedef void (otb_wifi_ap_otb_callback)(void *);
@@ -78,6 +80,7 @@ extern uint8_t otb_wifi_try_sta(char *ssid,
 void otb_wifi_kick_off(void);
 uint8_t otb_wifi_process_test(uint8_t rc);
 extern void otb_wifi_timerfunc(void *arg);
+void otb_wifi_station_connect(void);
 void otb_wifi_ap_mode_done_fn(void);
 void otb_wifi_ap_done_timerfunc(void *arg);
 uint8 otb_wifi_set_station_config(char *ssid, char *password, bool commit);
@@ -100,8 +103,12 @@ extern bool otb_wifi_ap_running;
 
 #ifdef OTB_WIFI_C
 
+static volatile uint8_t otb_wifi_sta_second_count;
+static volatile int8_t otb_wifi_ap_sta_con_count;
 static volatile os_timer_t otb_wifi_timer;
 static volatile os_timer_t otb_wifi_timeout_timer;
+static volatile os_timer_t otb_wifi_timeout_timer;
+static volatile bool otb_wifi_sta_connected;
 bool otb_wifi_ap_mode_done;
 static uint8_t otb_wifi_status;
 struct otb_wifi_ap_list otb_wifi_ap_list_struct;
