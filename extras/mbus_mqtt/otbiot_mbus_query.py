@@ -70,6 +70,9 @@ status = {}
 # timer for general alive loop in main method
 sleep_time = 5
 
+# timer to catch this script hanging - exit after total_time seconds
+total_time = 120
+
 def create_mbus_set_config(type, value):
   ret = "set/config/serial/%s" % type
   if value != None:
@@ -392,6 +395,7 @@ def main():
 
   run = True
   graceful = False
+  start_time = time.time()
   while run:
     time.sleep(sleep_time)
     if not connected and was_once_connected:
@@ -402,6 +406,9 @@ def main():
       syslog.syslog(syslog.LOG_INFO, "Exiting as done")
       graceful = True
       break
+    if (time.time() - start_time) > total_time:
+      syslog.syslog(syslog.LOG_ERR, "Exiting as taken too long")
+      run = False
   if graceful:
     for chipId in status:
       for addr in status[chipId][ADDRS]:
