@@ -22,7 +22,7 @@
 
 #define OTB_LED_H
 
-#define OTB_LED_NEO_PIN  13
+#define OTB_LED_NEO_PIN  15
 
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
 #define OTB_LED_NEO_COLOUR_RED     0x200000

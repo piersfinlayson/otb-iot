@@ -48,7 +48,8 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   otb_gpio_set(5, 0, FALSE);
   otb_gpio_set(12, 0, FALSE);
   otb_gpio_set(13, 0, TRUE);
-  otb_gpio_set(15, 0, FALSE);
+  //otb_gpio_set(15, 0, FALSE);
+  otb_gpio_set(15, 0, TRUE);
   
   // Register GPIO14 interrupt
   ETS_GPIO_INTR_DISABLE();
