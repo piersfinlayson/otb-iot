@@ -86,6 +86,8 @@ typedef struct otb_eeprom_glob_conf
 
   // Version 2 fields follow
 
+  // Version 3 fields follow
+
 } otb_eeprom_glob_conf;
 
 // Structure of data on the eeprom containing hardware configuration
@@ -94,6 +96,7 @@ typedef struct otb_eeprom_hw_conf
  // Version 1 fields
 #define OTB_EEPROM_HW_MAGIC    0xa140c5ad
 #define OTB_EEPROM_HW_VERSION_1  1
+#define OTB_EEPROM_HW_VERSION_2  2  // otb-iot v0.5
   otb_eeprom_hdr_conf hdr;
   
   // Serial number of this unit, as a string, NULL terminated
@@ -108,6 +111,7 @@ typedef struct otb_eeprom_hw_conf
   // otb-iot hardware subcode
 #define OTB_EEPROM_HW_SUBCODE_NONE         0x0
 #define OTB_EEPROM_HW_SUBCODE_OTB_IOT_0_4  0x1 // otb-iot v0.4
+#define OTB_EEPROM_HW_SUBCODE_OTB_IOT_0_5  0x2 // otb-iot v0.5 April 2017
   uint32 subcode;
 
   // The ESP8266 chip ID
@@ -142,23 +146,41 @@ typedef struct otb_eeprom_hw_conf
 #define OTB_EEPROM_I2C_INT_SDA_PIN_NONE   -1
 #define OTB_EEPROM_I2C_INT_SDA_PIN_GPIO4  4
 #define OTB_EEPROM_I2C_INT_SDA_PIN_GPIO5  5
+#define OTB_EEPROM_I2C_INT_SDA_PIN_GPIO0  0  // otb-iot v0.5
 #define OTB_EEPROM_I2C_INT_SCL_PIN_NONE   -1
 #define OTB_EEPROM_I2C_INT_SCL_PIN_GPIO5  5
 #define OTB_EEPROM_I2C_INT_SCL_PIN_GPIO4  4
+#define OTB_EEPROM_I2C_INT_SCL_PIN_GPIO2  2  // otb-iot v0.5
   signed char i2c_int_sda_pin;
   signed char i2c_int_scl_pin;
   
   // External I2C pin information
-#define OTB_EEPROM_I2C_EXT_SDA_PIN_NONE   -1
-#define OTB_EEPROM_I2C_EXT_SDA_PIN_GPIO4  4
-#define OTB_EEPROM_I2C_EXT_SDA_PIN_GPIO5  5
-#define OTB_EEPROM_I2C_EXT_SCL_PIN_NONE   -1
-#define OTB_EEPROM_I2C_EXT_SCL_PIN_GPIO5  5
-#define OTB_EEPROM_I2C_EXT_SCL_PIN_GPIO4  4
+#define OTB_EEPROM_I2C_EXT_SDA_PIN_NONE    -1
+#define OTB_EEPROM_I2C_EXT_SDA_PIN_GPIO4   4
+#define OTB_EEPROM_I2C_EXT_SDA_PIN_GPIO5   5
+#define OTB_EEPROM_I2C_EXT_SDA_PIN_CONFIG  -2  // Configurable/multiple as of otb-iot v0.5
+#define OTB_EEPROM_I2C_EXT_SCL_PIN_NONE    -1
+#define OTB_EEPROM_I2C_EXT_SCL_PIN_GPIO5   5
+#define OTB_EEPROM_I2C_EXT_SCL_PIN_GPIO4   4
+#define OTB_EEPROM_I2C_EXT_SCL_PIN_CONFIG  -2  // Configurable/multiple as of otb-iot v0.5
   signed char i2c_ext_sda_pin;
   signed char i2c_ext_scl_pin;
   
   // Version 2 fields follow
+
+  // Status LED information
+  #define OTB_EEPROM_STATUS_LED_TYPE_NONE  0
+  #define OTB_EEPROM_STATUS_LED_TYPE_NEO   1  // Up to and including otb-iot v0.5
+  uint32 status_led_type;
+
+  // Status led pin
+  #define OTB_EEPROM_STATUS_LED_PIN_NONE    -1
+  #define OTB_EEPROM_STATUS_LED_PIN_GPIO13  13  // pre otb-iot v0.5
+  #define OTB_EEPROM_STATUS_LED_PIN_GPIO15  14  // otb-iot v0.5
+  signed char status_led_pin;
+
+  // Version 3 fields follow
+
 
 } otb_eeprom_hw_conf;
 
