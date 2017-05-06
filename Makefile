@@ -327,7 +327,7 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
 flash_boot: bin/rboot.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fm dio -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x8000 bin/app_image.bin
