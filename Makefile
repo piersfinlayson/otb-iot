@@ -47,7 +47,7 @@ HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
-I2C_CFLAGS = -Ilib/i2c
+I2C_CFLAGS = -Ilib/i2c -DOTB_TEST
 RBOOT_OTHER_CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls
 HWINFO_CFLAGS = -Iinclude -Iobj/hwinfo -c
 SOFTUART_CFLAGS = $(OTB_CFLAGS) -Ilib/esp8266-software-uart/softuart/include
@@ -327,7 +327,7 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
 flash_boot: bin/rboot.bin
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -ff 40m -fs 32m 0x0 bin/rboot.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fm dio -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x8000 bin/app_image.bin
