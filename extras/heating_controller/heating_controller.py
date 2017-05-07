@@ -92,10 +92,18 @@ DAYS_TEXT = {SUN:"Sunday", MON:"Monday", TUE:"Tuesday", WED:"Wednesday", THU:"Th
 ROOM_TEMP = "room temp"
 
 # Heating schedule - must be sequential within a particular day
+
+# WINTER
+#temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:19},
+#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:19},
+#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:19},
+#                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:19}]
+
+# SUMMER
 temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:13},
-                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:10, MIN:0, ROOM_TEMP:8},
-                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:16, MIN:0, ROOM_TEMP:13},
-                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:19, MIN:0, ROOM_TEMP:8}]
+                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:13},
+                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:13},
+                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:13}]
 
 #
 # If using updated otb-iot MQTT API for pump controller, tweak this section
