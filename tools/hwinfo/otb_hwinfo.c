@@ -525,9 +525,17 @@ void otb_hwinfo_setup(void)
       OTB_HWINFO_STORE(hdr->length, len);
 
       // Now do the checksums
-      OTB_HWINFO_CHECKSUM_DO(hdr);
+      // Can't do for otb_eeprom_info yet, as need info comps first.
+      if (ii != OTB_EEPROM_INFO_TYPE_INFO)
+      {
+        OTB_HWINFO_CHECKSUM_DO(hdr);
+      }
     }
   }
+
+  // Now do otb_eeprom_info checksum
+  hdr = (otb_eeprom_hdr*)ptr;
+  OTB_HWINFO_CHECKSUM_DO(hdr);
 
   hwinfo.output = ptr;
 

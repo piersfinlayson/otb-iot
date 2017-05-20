@@ -247,7 +247,9 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
   
   if ((otb_eeprom_main_board_g != NULL) &&
       (os_strnlen(otb_eeprom_main_board_g->common.serial,
-                  OTB_EEPROM_HW_SERIAL_LEN+1) <= OTB_EEPROM_HW_SERIAL_LEN))
+                  OTB_EEPROM_HW_SERIAL_LEN+1) <= OTB_EEPROM_HW_SERIAL_LEN) &&
+      (os_strnlen(otb_eeprom_main_board_g->common.serial,
+                  OTB_EEPROM_HW_SERIAL_LEN+1) > 0))
   {
     INFO("UTIL: Using serial number as chipid");
     // Use serial number
@@ -256,7 +258,11 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
     trailing = TRUE;
     for (ii = 0, jj = 0; ii < OTB_EEPROM_HW_SERIAL_LEN; ii++)
     {
-      if (isalnum(otb_eeprom_main_board_g->common.serial[ii]))
+      if (otb_eeprom_main_board_g->common.serial[ii] == 0)
+      {
+        break;
+      }
+      else if (isalnum(otb_eeprom_main_board_g->common.serial[ii]))
       {
         trailing = FALSE;
         OTB_MAIN_CHIPID[jj] = otb_eeprom_main_board_g->common.serial[ii];
@@ -266,11 +272,6 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
       {
         OTB_MAIN_CHIPID[jj] = '_';
         jj++;
-      }
-      
-      if (otb_eeprom_main_board_g->common.serial[ii] == 0)
-      {
-        break;
       }
     }
   }

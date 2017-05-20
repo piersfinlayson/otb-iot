@@ -578,7 +578,8 @@ bool otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
 bool otb_eeprom_process_hdr(otb_eeprom_hdr *hdr,
                             uint32_t type,
                             uint32_t buf_len,
-                            uint32_t *rc);
+                            uint32_t *rc,
+                            bool checksum);
 uint32_t otb_eeprom_read_main_comp(uint8_t addr,
                                    brzo_i2c_info *i2c_info,
                                    otb_eeprom_info *eeprom_info,

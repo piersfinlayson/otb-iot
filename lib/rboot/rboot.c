@@ -20,6 +20,8 @@
 #include "brzo_i2c.h"
 #include "otb_eeprom.h"
 
+char __attribute__((aligned(4))) rboot_eeprom_info[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
+
 static uint32 check_image(uint32 readpos) {
 	
 	uint8 buffer[BUFFER_SIZE];
@@ -521,6 +523,11 @@ void NOINLINE read_eeprom(void)
 
   // Initial internal I2C bus (must be done before try and read eeprom)
   otb_i2c_initialize_bus_internal();
+
+  // Setup memory to read eeprom info into
+  otb_eeprom_info_g = (otb_eeprom_info *)rboot_eeprom_info;
+
+  // Read the eeprom
   otb_eeprom_read();
 
   // Now do something useful with this hardware info  
