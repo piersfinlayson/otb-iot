@@ -479,8 +479,9 @@ typedef struct otb_eeprom_main_module_pins
 
 extern otb_eeprom_info *otb_eeprom_info_g;
 extern otb_eeprom_main_board *otb_eeprom_main_board_g;
-extern otb_eeprom_main_board_module *otb_eeprom_main_board_module_g;
-extern otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g[OTB_EEPROM_MAX_MODULES];
+extern otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_MAX_MODULES];
+extern otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
+extern otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
 #else // OTB_EEPROM_C
 
 otb_eeprom_info *otb_eeprom_info_g;
@@ -489,6 +490,7 @@ uint32_t otb_eeprom_size = OTB_EEPROM_SIZE_128;
 otb_eeprom_main_board *otb_eeprom_main_board_g;
 otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_MAX_MODULES];
 otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
+otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
 #endif // OTB_EEPROM_C
 
 #ifndef OTB_EEPROM_C
@@ -539,7 +541,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    0x3000,
    OTB_EEPROM_COMP_0_OR_MORE,
    1,
-   NULL},
+   (void**)&otb_eeprom_main_board_sdk_init_data_g},
   {"otb_eeprom_main_board_gpio_pins",
    OTB_EEPROM_GPIO_PIN_INFO_MAGIC,
    sizeof(otb_eeprom_main_board_gpio_pins),

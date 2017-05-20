@@ -21,7 +21,12 @@
 #include "otb_eeprom.h"
 #include "pin_map.h"
 
+// Statically allocated buffers for eeprom info - will be blown away when bootloader is finished
 char __attribute__((aligned(4))) rboot_eeprom_info[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
+char __attribute__((aligned(4))) rboot_gpio_pins[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
+char __attribute__((aligned(4))) rboot_sdk_init_data[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
+
+#define OTB_RBOOT_DEFAULT_SOFT_RESET_PIN  14
 
 static uint32 check_image(uint32 readpos) {
 	
@@ -461,7 +466,7 @@ void NOINLINE start_otb_boot(void)
 	// delay to slow boot (help see messages when debugging)
 	ets_delay_us(2000000);
 	
-	ets_printf("\r\nBOOT: OTA-BOOT v0.2\r\n");
+	ets_printf("\r\nBOOT: OTA-BOOT v0.3\r\n");
 	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
 
   return;
@@ -482,7 +487,7 @@ void do_factory_reset(void)
   
   // Erase config sector - that's all we need to do to clear config
   SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
-  ets_printf("BOOT: Config cleared\r\n");
+  ets_printf("BOOT: otb-iot onfig cleared\r\n");
 
   for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
        written < OTB_BOOT_ROM_2_LEN;
@@ -501,6 +506,16 @@ void do_factory_reset(void)
   }
   ets_printf("BOOT: Factory image written into slot 0\r\n");
 
+	// Now rewrite SDK init data if have it
+	if (otb_eeprom_main_board_sdk_init_data_g->hdr.magic == OTB_EEPROM_MAIN_BOARD_SDK_INIT_DATA_MAGIC)
+	{
+    SPIEraseSector(OTB_BOOT_ESP_USER_BIN/0x1000);
+		SPIWrite(OTB_BOOT_ESP_USER_BIN,
+		         otb_eeprom_main_board_sdk_init_data_g->sdk_init_data, 
+						 otb_eeprom_main_board_sdk_init_data_g->hdr.length-otb_eeprom_main_board_sdk_init_data_g->hdr.struct_size);
+	}
+  ets_printf("BOOT: SDK init data rewritten\r\n");
+
   return;
 }
 
@@ -514,12 +529,16 @@ void NOINLINE read_eeprom(void)
 
   // Setup memory to read eeprom info into
   otb_eeprom_info_g = (otb_eeprom_info *)rboot_eeprom_info;
+  otb_eeprom_main_board_gpio_pins_g = (otb_eeprom_main_board_gpio_pins *)rboot_gpio_pins;
+	otb_eeprom_main_board_sdk_init_data_g = (otb_eeprom_main_board_sdk_init_data *)rboot_sdk_init_data;
+
+  // rboot uses the following information from the eeprom:
+	// - which pin is used for soft reset (reset to factory defaults)
+	// - loads sdk_init_data (in case factory reset is called)
+	// - reads flash structure from eeprom XXX Not yet implemented
 
   // Read the eeprom
   otb_eeprom_read();
-
-  // Now do something useful with this hardware info  
-  // XXX
 
 EXIT_LABEL:
 
@@ -538,14 +557,28 @@ uint8 system_get_cpu_freq(void)
 void NOINLINE factory_reset(void)
 {
   uint32 ii;
-  uint32 gpio14;
+  uint32 gpio_state;
+	uint32 gpio = OTB_RBOOT_DEFAULT_SOFT_RESET_PIN;
+
+	// Figure out which GPIO is used for soft reset
+	if (otb_eeprom_main_board_gpio_pins_g->hdr.magic == OTB_EEPROM_GPIO_PIN_INFO_MAGIC)
+	{
+		for (ii = 0;  ii < otb_eeprom_main_board_gpio_pins_g->num_pins; ii++)
+		{
+			if (otb_eeprom_main_board_gpio_pins_g->pin_info[ii].use == OTB_EEPROM_PIN_USE_RESET_SOFT)
+			{
+				gpio = otb_eeprom_main_board_gpio_pins_g->pin_info[ii].num;
+				break;
+			}
+		}
+	}
   
   // Check if GPIO14 is depressed
-	ets_printf("BOOT: Checking GPIO14 ");
+	ets_printf("BOOT: Checking GPIO%d ", gpio);
   for (ii = 0; ii <= FACTORY_RESET_LEN; ii++)
   {
-    gpio14 = get_gpio(14);
-    if (gpio14)
+    gpio_state = get_gpio(gpio);
+    if (gpio_state)
     {
       ets_printf("o");
       break;
@@ -562,7 +595,7 @@ void NOINLINE factory_reset(void)
   // abilities - as we would need to speak I2C to do so!
   
   // If gpio14 is zero we have looped 15 times ...
-  if (!gpio14)
+  if (!gpio_state)
   {
     do_factory_reset();
     ets_delay_us(2000000);
@@ -582,8 +615,8 @@ void call_user_start() {
 	stage2a *loader;
 	
 	start_otb_boot();
-	factory_reset();
 	read_eeprom();
+	factory_reset();
 	addr = find_image();
 	if (addr != 0) {
 		loader = (stage2a*)entry_addr;
@@ -600,9 +633,9 @@ void call_user_start() {
 		"mov a15, a0\n"          // store return addr, hope nobody wanted a15!
 		"call0 start_otb_boot\n" // output some otb-iot info
 		"mov a0, a15\n"          // restore return addr
-		"call0 factory_reset\n"  // See whether to reset to factory defaults
-		"mov a0, a15\n"          // restore return addr
 		"call0 read_eeprom\n"  // See whether to reset to factory defaults
+		"mov a0, a15\n"          // restore return addr
+		"call0 factory_reset\n"  // See whether to reset to factory defaults
 		"mov a0, a15\n"          // restore return addr
 		"call0 find_image\n"     // find a good rom to boot
 		"mov a0, a15\n"          // restore return addr

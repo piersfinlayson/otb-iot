@@ -103,8 +103,10 @@ void ICACHE_FLASH_ATTR otb_eeprom_read_all(uint8_t addr,
                       OTB_EEPROM_INFO_TYPE_GPIO_PINS};
   uint32_t types_num = 4;
 #else // OTB_RBOOT_BOOTLOADER
-  uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO};
-  uint32_t types_num = 1;
+  uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO,
+                      OTB_EEPROM_INFO_TYPE_GPIO_PINS,
+                      OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA};
+  uint32_t types_num = 3;
 #endif // OTB_RBOOT_BOOTLOADER
   
   DEBUG("EEPROM: otb_eeprom_read_all entry");
@@ -267,7 +269,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
 #ifndef OTB_RBOOT_BOOTLOADER    
     local_buf = os_malloc(hdr->length);
 #else // OTB_RBOOT_BOOTLOADER
-    OTB_ASSERT(type == OTB_EEPROM_INFO_TYPE_INFO);  // Haven't implemented rest yet!
+    OTB_ASSERT((type == OTB_EEPROM_INFO_TYPE_INFO) ||
+               (type == OTB_EEPROM_INFO_TYPE_GPIO_PINS) ||
+               (type == OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA));
     local_buf = *(otb_eeprom_main_comp_types[type].global);
 #endif // OTB_RBOOT_BOOTLOADER
     if (local_buf == NULL)
@@ -293,6 +297,8 @@ EXIT_LABEL:
 //
 // Given an otb_eeprom_info structure, finds other components.
 // If otb_eeprom_info is NULL can only "find" OTB_EEPROM_INFO_TYPE_INFO (at 0x0)
+//
+// Only finds the first instance of a particular type (so not good for modules!)
 //
 
 bool ICACHE_FLASH_ATTR otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
