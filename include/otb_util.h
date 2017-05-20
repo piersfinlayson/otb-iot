@@ -50,7 +50,6 @@ typedef struct otb_util_timeout
   uint32_t end_time;
 } otb_util_timeout;
 
-void otb_util_read_eeprom(void);
 extern size_t otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size);
 void otb_util_convert_char_to_char(char *text, int from, int to);
 int isdigit(int c);

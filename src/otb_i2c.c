@@ -21,6 +21,15 @@
 #include "otb.h"
 #include "brzo_i2c.h"
 
+#ifdef OTB_RBOOT_BOOTLOADER
+#undef ICACHE_FLASH_ATTR
+#define ICACHE_FLASH_ATTR
+#endif // OTB_RBOOT_BOOTLOADER
+
+// Internal I2C bus
+// Must be declared here so rboot.c doesn't include otb_i2c.h
+brzo_i2c_info otb_i2c_bus_internal;
+
 char OTB_FLASH_ATTR *otb_str_i2c_invalid_cmd = "invalid I2C command";    
 char OTB_FLASH_ATTR *otb_str_i2c_ads_invalid_cmd = "invalid ADS command";    
 char OTB_FLASH_ATTR *otb_str_i2c_ok = "OK";    
@@ -37,6 +46,51 @@ volatile os_timer_t otb_ads_timer[OTB_CONF_ADS_MAX_ADSS];
 bool otb_i2c_ads_state[OTB_CONF_ADS_MAX_ADSS];
 
 otb_i2c_ads_samples *otb_i2c_ads_samples_array[OTB_CONF_ADS_MAX_ADSS] = { 0 };
+
+void ICACHE_FLASH_ATTR otb_i2c_initialize_bus_internal()
+{
+  
+  DEBUG("I2C: otb_i2c_initialize_bus_internal entry");
+
+  otb_i2c_initialize_bus(&otb_i2c_bus_internal,
+                         OTB_I2C_BUS_INTERNAL_SDA_PIN,
+                         OTB_I2C_BUS_INTERNAL_SCL_PIN);
+
+  DEBUG("I2C: otb_i2c_initialize_bus_internal exit");
+  
+}
+
+void ICACHE_FLASH_ATTR otb_i2c_initialize_bus(brzo_i2c_info *info,
+                                              uint8_t sda_pin,
+                                              uint8_t scl_pin)
+{
+
+  DEBUG("I2C: otb_i2c_initialize_bus entry");
+  
+  OTB_ASSERT(info != NULL);
+
+  os_memset(info, 0, sizeof(*info));
+
+  info->sda_pin = sda_pin;
+  info->scl_pin = scl_pin;
+
+#ifndef ARDUINO
+  info->sda_pin_func = pin_func[sda_pin];
+  info->scl_pin_func = pin_func[scl_pin];
+  info->sda_pin_mux = pin_mux[sda_pin];
+  info->scl_pin_mux = pin_mux[scl_pin];
+#endif
+
+  info->clock_stretch_time_out_usec = 0;
+
+  brzo_i2c_setup_info(info);
+
+  DEBUG("I2C: otb_i2c_initialize_bus exit");
+
+  return;
+}
+
+#ifndef OTB_RBOOT_BOOTLOADER
 
 void ICACHE_FLASH_ATTR otb_i2c_ads_disable_all_timers(void)
 {
@@ -101,6 +155,7 @@ bool ICACHE_FLASH_ATTR otb_ads_configure(otb_conf_ads *ads)
   return rc;
 }
 
+#if 0
 // Called from main initialization serialization
 void ICACHE_FLASH_ATTR otb_ads_initialize(void)
 {
@@ -140,8 +195,8 @@ void ICACHE_FLASH_ATTR otb_ads_initialize(void)
     goto EXIT_LABEL;
   }
   
-  uint8_t addr = 0x57;
-  rc = otb_i2c_24xxyy_init(addr);
+  //uint8_t addr = 0x57;
+  //rc = otb_i2c_24xxyy_init(addr);
   if (rc)
   {
     INFO("I2C: 24XXYY init at address 0x%02x successful", addr);
@@ -217,6 +272,7 @@ EXIT_LABEL:
 
   return;
 }
+#endif
 
 void ICACHE_FLASH_ATTR otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_samples *samples)
 {
@@ -2251,4 +2307,4 @@ EXIT_LABEL:
   return rc;
 }
 
-
+#endif // OTB_RBOOT_BOOTLOADER

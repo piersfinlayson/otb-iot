@@ -20,6 +20,9 @@
 #ifndef OTB_I2C_H
 #define OTB_I2C_H
 
+#define OTB_I2C_BUS_INTERNAL_SDA_PIN  0
+#define OTB_I2C_BUS_INTERNAL_SCL_PIN  2
+
 typedef struct otb_i2c_ads_samples
 {
   otb_conf_ads *ads;
@@ -80,6 +83,10 @@ uint8_t otb_i2c_ads_last_addr;
 extern char otb_i2c_mqtt_error[];
 #endif // OTB_I2C_C
 
+void otb_i2c_initialize_bus_internal();
+void otb_i2c_initialize_bus(brzo_i2c_info *info,
+                            uint8_t sda_pin,
+                            uint8_t scl_pin);
 void otb_i2c_ads_disable_all_timers(void);
 void otb_i2c_ads_on_timer(void *arg);
 void otb_ads_build_msb_lsb_conf(otb_conf_ads *ads, uint8 *msb, uint8 *lsb);
@@ -200,5 +207,9 @@ extern bool otb_i2c_initialized;
 bool otb_i2c_initialized = FALSE;
 #endif // OTB_I2C_C
 
+// Internal I2C bus
+#ifndef OTB_I2C_C
+extern brzo_i2c_info otb_i2c_bus_internal;
+#endif // OTB_I2C_C
 
 #endif // OTB_I2C_H

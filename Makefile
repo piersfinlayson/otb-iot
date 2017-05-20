@@ -44,7 +44,7 @@ SERIAL = miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 # Compile options
 CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
-RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
+RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
 I2C_CFLAGS = -Ilib/i2c -DOTB_TEST
@@ -194,6 +194,7 @@ rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
                $(RBOOT_OBJ_DIR)/brzo_i2c.o \
                $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o \
                $(RBOOT_OBJ_DIR)/otb_eeprom.o \
+               $(RBOOT_OBJ_DIR)/otb_i2c.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-api.o \
                $(RBOOT_OBJ_DIR)/appcode/rboot-bigflash.o
 rbootDep = $(rbootObjects:%.o=%.d)
@@ -288,6 +289,12 @@ $(RBOOT_OBJ_DIR)/brzo_i2c.o: $(I2C_SRC_DIR)/brzo_i2c.c
 $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o: $(OTB_SRC_DIR)/otb_brzo_i2c.c
 	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
 
+$(RBOOT_OBJ_DIR)/otb_i2c.o: $(OTB_SRC_DIR)/otb_i2c.c
+	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
+
+$(RBOOT_OBJ_DIR)/pin_map.o: $(OTB_SRC_DIR)/pin_map.c
+	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
+
 $(RBOOT_OBJ_DIR)/otb_eeprom.o: $(OTB_SRC_DIR)/otb_eeprom.c
 	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
 
@@ -303,7 +310,7 @@ $(RBOOT_OBJ_DIR)/rboot-hex2a.h: bin/rboot-stage2a.elf $(ESPTOOL2)
 $(RBOOT_OBJ_DIR)/rboot.o: $(RBOOT_SRC_DIR)/rboot.c $(RBOOT_SRC_DIR)/rboot-private.h $(RBOOT_SRC_DIR)/rboot.h $(RBOOT_OBJ_DIR)/rboot-hex2a.h 
 	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) -I$(RBOOT_OBJ_DIR) -c $< -o $@
 
-bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o $(RBOOT_OBJ_DIR)/otb_eeprom.o $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o $(RBOOT_OBJ_DIR)/brzo_i2c.o $(RBOOT_OBJ_DIR)/otb_i2c_24xxyy.o
+bin/rboot.elf: $(RBOOT_OBJ_DIR)/rboot.o $(RBOOT_OBJ_DIR)/pin_map.o $(RBOOT_OBJ_DIR)/otb_i2c.o $(RBOOT_OBJ_DIR)/otb_eeprom.o $(RBOOT_OBJ_DIR)/otb_brzo_i2c.o $(RBOOT_OBJ_DIR)/brzo_i2c.o $(RBOOT_OBJ_DIR)/otb_i2c_24xxyy.o
 	$(LD) -T$(LD_SCRIPT) $(RBOOT_LDFLAGS) -Wl,--start-group $^ -Wl,--end-group -o $@
 
 bin/rboot.bin: bin/rboot.elf $(ESPTOOL2)

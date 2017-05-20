@@ -14,6 +14,7 @@ typedef unsigned char uint8;
 
 #include <rboot.h>
 #include "otb_flash.h"
+#include "brzo_i2c.h"
 #include "otb_eeprom.h"
 
 #ifdef BOOT_BIG_FLASH

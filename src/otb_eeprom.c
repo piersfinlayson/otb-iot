@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2017 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -26,24 +26,55 @@
 #define ICACHE_FLASH_ATTR
 #endif
 
-char ICACHE_FLASH_ATTR otb_eeprom_init(void)
+void ICACHE_FLASH_ATTR otb_eeprom_read(void)
+{
+#define TEMP_BUF_LEN 256
+  unsigned char buf[TEMP_BUF_LEN];
+  char fn_rc;
+
+  DEBUG("EEPROM: otb_eeprom_read entry");
+
+  fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, &otb_i2c_bus_internal);
+  if (!fn_rc)
+  {
+    // Failed - bail
+    goto EXIT_LABEL;
+  }
+
+  otb_eeprom_read_all(otb_eeprom_main_board_addr, &otb_i2c_bus_internal);
+
+EXIT_LABEL:
+
+  // Now do something with the info read from the eeprom
+  otb_eeprom_process_all();
+
+  DEBUG("EEPROM: otb_eeprom_read exit");
+
+  return;
+}
+
+//
+// otb_eeprom_init
+//
+// Tries to connect to the eeprom at the address and bus requested
+//
+char ICACHE_FLASH_ATTR otb_eeprom_init(uint8_t addr, brzo_i2c_info *i2c_info)
 {
   char rc = 0;
   
   DEBUG("EEPROM: otb_eeprom_init entry");
-  
-  // Initialize the I2C stack
-  otb_brzo_i2c_setup(0);
-  
+
+  // Must have already initialized the internal I2C bus (otb_main.c or rboot.c)
+
   // Connect to the eeprom
-  rc = otb_i2c_24xxyy_init(otb_eeprom_addr);
+  rc = otb_i2c_24xxyy_init(addr, i2c_info);
   if (rc)
   {
-    DEBUG("EEPROM: Connected to eeprom at 0x%02x successfully", otb_eeprom_addr);
+    DEBUG("EEPROM: Connected to eeprom at 0x%02x successfully", addr);
   }
   else
   {
-    WARN("EEPROM: Failed to connect to eeprom at 0x%02x %d", otb_eeprom_addr, rc);
+    WARN("EEPROM: Failed to connect to eeprom at 0x%02x %d", addr, rc);
     goto EXIT_LABEL;
   }
   
@@ -56,34 +87,545 @@ EXIT_LABEL:
   return rc;
 }
 
-// Reads global data and hw info.  Doesn't read hw signature or sdk data -
-// these are done separately.
-char ICACHE_FLASH_ATTR otb_eeprom_read_all(void)
+//
+// Reads the main components from eeprom
+//
+// Behaves differently when invoked from bootloader.
+// Places pointers to comps in locations pointed to by otb_eeprom_main_comp_types.
+//
+void ICACHE_FLASH_ATTR otb_eeprom_read_all(uint8_t addr,
+                                           brzo_i2c_info *i2c_info)
 {
-  char rc = 0;
+#ifndef OTB_RBOOT_BOOTLOADER
+  uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO,
+                      OTB_EEPROM_INFO_TYPE_MAIN_BOARD,
+                      OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE,
+                      OTB_EEPROM_INFO_TYPE_GPIO_PINS};
+  uint32_t types_num = 3;
+#else // OTB_RBOOT_BOOTLOADER
+  uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO};
+  uint32_t types_num = 1;
+#endif // OTB_RBOOT_BOOTLOADER
   
   DEBUG("EEPROM: otb_eeprom_read_all entry");
 
-  rc = otb_eeprom_read_glob_conf(&otb_eeprom_glob);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  rc = otb_eeprom_read_hw_conf(&otb_eeprom_glob, &otb_eeprom_hw);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-
-  rc = 1;
-    
-EXIT_LABEL:
+  otb_eeprom_read_main_types(addr,
+                             i2c_info,
+                             NULL,
+                             types,
+                             types_num);
 
   DEBUG("EEPROM: otb_eeprom_read_all exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_eeprom_process_all(void)
+{
+
+  DEBUG("EEPROM: otb_eeprom_process_all entry");
+
+#ifndef OTB_RBOOT_BOOTLOADER
+  // Note this function needs to be able to handle the information _not_
+  // having been read successfully
+
+  // Get the chip ID
+  otb_util_get_chip_id();
+  OTB_ASSERT((os_strlen(OTB_MAIN_OTBIOT_PREFIX) +
+              os_strlen(OTB_MAIN_CHIPID)) <
+             sizeof(OTB_MAIN_DEVICE_ID));
+  os_sprintf(OTB_MAIN_DEVICE_ID, "%s.%s", OTB_MAIN_OTBIOT_PREFIX, OTB_MAIN_CHIPID);
+
+#endif // OTB_RBOOT_BOOTLOADER
+
+  DEBUG("EEPROM: otb_eeprom_process_all exit");
+
+  return;
+}
+
+//
+// Reads a list of eeprom main comp types
+//
+// Array of types must start with OTB_EEPROM_INFO_TYPE_INFO, or 
+// eeprom_info must be passed in.  If OTB_EEPROM_INFO_TYPE_INFO is the first
+// type, and eeprom_info is non-NULL, eeprom_info is ignored (most recently
+// read version if used).
+void ICACHE_FLASH_ATTR otb_eeprom_read_main_types(uint8_t addr,
+                                                  brzo_i2c_info *i2c_info,
+                                                  otb_eeprom_info *eeprom_info,
+                                                  uint32_t types[],
+                                                  uint32_t types_num)
+{
+  otb_eeprom_info *eeprom_info_v = NULL;
+  int ii;
+
+  DEBUG("EEPROM: otb_eeprom_read_main_types entry");
+
+  OTB_ASSERT(types_num > 0);
+  OTB_ASSERT((types[0] == OTB_EEPROM_INFO_TYPE_INFO) ||
+            (eeprom_info != NULL));
+
+  for (ii = 0; ii < types_num; ii++)
+  {
+    *(otb_eeprom_main_comp_types[types[ii]].global) = 
+                          otb_eeprom_load_main_comp(addr,
+                                                    i2c_info,
+                                                    eeprom_info_v,
+                                                    OTB_EEPROM_INFO_TYPE_INFO,
+                                                    NULL,
+                                                    0);
+    if ((*(otb_eeprom_main_comp_types[types[ii]].global)) == NULL)
+    {
+      goto EXIT_LABEL;
+    }
+    if (ii = 0 && (types[ii] == OTB_EEPROM_INFO_TYPE_INFO))
+    {
+      eeprom_info_v = *(otb_eeprom_main_comp_types[types[ii]].global);
+    }
+  }
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_read_main_types exit");
+
+  return;
+}
+
+//
+// Read a main comp of the appropriate type.
+//
+// If successful either:
+// - copy it into the buf (if buf_len long enough)
+// - allocate a buffer and copy into that (if otb_eeprom_main_comp_types contains
+//   an address to store pointer to buffer in, and if can malloc memory)
+//
+// Return NULL on failure, pointer to buffer info read to if successful
+void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
+                                                  brzo_i2c_info *i2c_info,
+                                                  otb_eeprom_info *eeprom_info,
+                                                  uint32_t type,
+                                                  void *buf,
+                                                  uint32_t buf_len)
+{
+  unsigned char *temp_buf[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
+  void *local_buf = NULL;
+  char *struct_name;
+  bool fn_rc;
+
+  DEBUG("EEPROM: otb_eeprom_read_all_otbiot entry");
+
+  // Check valid type
+  OTB_ASSERT(type < OTB_EEPROM_INFO_TYPE_NUM);
+
+  // Read in the eeprom info to a variable on the stack, to get the length required
+  // for the overal buffer, 
+  struct_name = otb_eeprom_main_comp_types[type].name;
+  fn_rc = otb_eeprom_read_main_comp(addr,
+                                    i2c_info,
+                                    eeprom_info,
+                                    type,
+                                    temp_buf,
+                                    OTB_EEPROM_MAX_MAIN_COMP_LENGTH);
+
+  // Can continue for now even if main comp was too long
+  if (fn_rc != (OTB_EEPROM_ERR | OTB_EEPROM_ERR_BUF_LEN_COMP))
+  {
+    // Errors have already been logged
+    goto EXIT_LABEL;
+  }
+
+  // Log interesting (common) information
+  INFO("EEPROM: %s:", struct_name);
+  INFO("EEPROM:   hdr.magic = 0x%08x", otb_eeprom_info_g->hdr.magic);
+  INFO("EEPROM:   hdr.struct_size = %d", otb_eeprom_info_g->hdr.struct_size);
+  INFO("EEPROM:   hdr.version = %d", otb_eeprom_info_g->hdr.version);
+  INFO("EEPROM:   hdr.length = %d", otb_eeprom_info_g->hdr.length);
+  INFO("EEPROM:   hdr.checksum = %d", otb_eeprom_info_g->hdr.checksum);
+  INFO("EEPROM:   eeprom_size = 0x08x", otb_eeprom_info_g->eeprom_size);
+  INFO("EEPROM:   comp_num = %d", otb_eeprom_info_g->comp_num);
+  INFO("EEPROM:   write_date = 0x%08x", otb_eeprom_info_g->write_date);
+
+  if (fn_rc != OTB_EEPROM_ERR_OK)
+  {
+    // Now have to bail out - if main comp was too long
+    goto EXIT_LABEL;
+  }
+
+  if (buf != NULL)
+  {
+    if (buf_len >= otb_eeprom_info_g->hdr.length)
+    {
+      local_buf = buf;
+    }
+  }
+  else
+  {
+    // Can assert this as read_main_comp checks length not too long
+    OTB_ASSERT(otb_eeprom_info_g->hdr.length <= OTB_EEPROM_MAX_MAIN_COMP_LENGTH);
+    local_buf = os_malloc(otb_eeprom_info_g->hdr.length);
+    if (local_buf == NULL)
+    {
+      WARN("EEPROM: Failed to allocate memory for otb_eeprom_info_g %d",
+           otb_eeprom_info_g->hdr.length);
+      goto EXIT_LABEL;
+    }
+  }
+
+  OTB_ASSERT(local_buf != NULL);
+  os_memcpy(buf, temp_buf, otb_eeprom_info_g->hdr.length);
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_load_main_comp exit");
+
+  return (local_buf);
+  
+}
+//
+// otb_eeprom_find_main_comp
+//
+// Given an otb_eeprom_info structure, finds other components.
+// If otb_eeprom_info is NULL can only "find" OTB_EEPROM_INFO_TYPE_INFO (at 0x0)
+//
+
+bool ICACHE_FLASH_ATTR otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
+                                                 uint32_t type, 
+                                                 uint32_t *loc,
+                                                 uint32_t *length)
+{
+  otb_eeprom_info_comp *info_comp;
+  int ii;
+  bool found = FALSE;
+
+  DEBUG("EEPROM: otb_eeprom_find_comp entry");
+
+  // Unless reading otb_eeprom_info, otb_eeprom_info must be passed in
+  OTB_ASSERT((eeprom_info != NULL) ||
+             (type == OTB_EEPROM_INFO_TYPE_INFO));
+
+  OTB_ASSERT(loc != NULL);
+
+  if (type == OTB_EEPROM_INFO_TYPE_INFO)
+  {
+    // Note length will be larger than this - but need to read the struct off the
+    // eeprom to know the exact length
+    *loc = 0;
+    *length = sizeof(otb_eeprom_info);
+    DEBUG("EEPROM: \"Found\" comp type %d at 0x%x length 0x%x", type, loc, len);
+    found = TRUE;
+    goto EXIT_LABEL;
+  }
+
+  if (eeprom_info == NULL)
+
+  // Find the component
+  for (info_comp = eeprom_info->comp, ii = 0;
+       ii < eeprom_info->comp_num;
+       info_comp++, ii++)
+  {
+    if (info_comp->type == type)
+    {
+      *loc = info_comp->location;
+      *length = info_comp->length;
+      DEBUG("EEPROM: Found comp type %d at 0x%x length 0x%x", type, loc, len);
+      found = TRUE;
+    }
+  }
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_find_comp exit");
+
+  return found;
+}
+
+//
+// otb_eeprom_process_hdr
+//
+// Process the hdr strucf#tt in an main comp struct
+// Returns FALSE if any errors, rc clarifies these
+//
+bool ICACHE_FLASH_ATTR otb_eeprom_process_hdr(otb_eeprom_hdr *hdr,
+                                              uint32_t type,
+                                              uint32_t buf_len,
+                                              uint32_t *rc)
+{
+  bool fn_rc = TRUE;
+  uint32_t magic;
+  uint32_t version_min;
+  uint32_t version_max;
+  uint32_t struct_size_min;
+  uint32_t struct_size_max;
+  unsigned char *struct_type;
+
+  DEBUG("EEPROM: otb_eeprom_process_hdr entry");
+
+  OTB_ASSERT(hdr != NULL);
+  OTB_ASSERT(type < OTB_EEPROM_INFO_TYPE_NUM);
+  OTB_ASSERT(buf_len >= sizeof(otb_eeprom_main_comp_types[type].struct_size_min));
+
+  struct_type = otb_eeprom_main_comp_types[type].name;
+  magic = otb_eeprom_main_comp_types[type].magic;
+  version_min = otb_eeprom_main_comp_types[type].version_min;
+  version_max = otb_eeprom_main_comp_types[type].version_max;
+  struct_size_min = otb_eeprom_main_comp_types[type].struct_size_min;
+  struct_size_max = otb_eeprom_main_comp_types[type].struct_size_max;
+
+  if (hdr->magic != magic)
+  {
+    // Can keep going
+    WARN("EEPROM: Bad magic number %s 0x%08x vs 0x%08x", struct_type, hdr->magic, magic);
+    fn_rc = FALSE;
+    *rc |= OTB_EEPROM_ERR_MAGIC;
+  }
+
+  if ((hdr->version < version_min) ||
+      (hdr->version > version_max))
+  {
+    // Can keep going
+    WARN("EEPROM: Bad version %s %d vs %d/%d",
+         struct_type,
+         hdr->version,
+         version_min,
+         version_max);
+    fn_rc = FALSE;
+    *rc |= OTB_EEPROM_ERR_VERSION;
+  }
+
+  // Should also test not smaller than size of smallest version
+  if ((hdr->struct_size < struct_size_min) || (hdr->struct_size > struct_size_max))
+  {
+    // Can keep going
+    WARN("EEPROM: Bad struct_size %s %d vs %d/%d",
+         struct_type,
+         hdr->struct_size,
+         struct_size_min,
+         struct_size_max);
+    fn_rc = FALSE;
+    *rc |= OTB_EEPROM_ERR_MAGIC;
+  }
+
+  fn_rc = otb_eeprom_check_checksum((char*)hdr,
+                                    buf_len,
+                                    (char*)&(hdr->checksum) - (char*)hdr,
+                                    sizeof(hdr->checksum));
+  if (!fn_rc)
+  {
+    // Can keep going
+    WARN("EEPROM: Bad checksum %s 0x%08x", struct_type, hdr->checksum);
+    fn_rc = FALSE;
+    *rc |= OTB_EEPROM_ERR_CHECKSUM;
+  }                                    
+
+  DEBUG("EEPROM: otb_eeprom_process_hdr exit");
+
+  return fn_rc;
+}
+
+//
+// otb_eeprom_read_main_comp
+//
+// Reads a main component from the eeprom, one of OTB_EEPROM_INFO_TYPE_...
+// Checks the header values are sensible
+//
+uint32_t ICACHE_FLASH_ATTR otb_eeprom_read_main_comp(uint8_t addr,
+                                                     brzo_i2c_info *i2c_info,
+                                                     otb_eeprom_info *eeprom_info,
+                                                     uint32_t type,
+                                                     void *read_buf,
+                                                     uint32_t buf_len)
+{
+  uint32_t rc = OTB_EEPROM_ERR;
+  int eeprom_info_len;
+  uint32_t loc = 0, len = 0;
+  uint32_t read_len, new_read_len;
+  bool partial_read = FALSE;
+  bool fn_rc;
+  unsigned char *struct_type;
+  otb_eeprom_hdr *buf = (otb_eeprom_hdr *)read_buf;
+
+  DEBUG("EEPROM: otb_eeprom_read_main_board entry");
+
+  OTB_ASSERT(type < OTB_EEPROM_INFO_TYPE_NUM);
+  OTB_ASSERT(buf_len >= sizeof(otb_eeprom_main_comp_types[type].struct_size_min));
+
+  struct_type = otb_eeprom_main_comp_types[type].name;
+
+  fn_rc = otb_eeprom_find_main_comp(eeprom_info, type, &loc, &len);
+  if (!fn_rc)
+  {
+    // Couldn't find any record of this structure on the eeprom - exit
+    WARN("EEPROM: %s not found on eeprom", struct_type);
+    rc |= OTB_EEPROM_ERR_NOT_FOUND;
+    goto EXIT_LABEL;
+  }
+
+  if (len > buf_len)
+  {
+    // Not enough space for everything but (based on assert at beginning) enough for
+    // main struct, so carry on
+    WARN("EEPROM: Buffer not large enough to read %s: %d vs %d",
+         struct_type,
+         len,
+         buf_len);
+    rc |= OTB_EEPROM_ERR_BUF_LEN_COMP;
+    read_len = buf_len;
+    partial_read = TRUE;
+  }
+  else
+  {
+    // Don't read more data than is on the eeprom
+    read_len = len;
+  }
+
+  // Only read in buf_len - don't want to read in too much for buffer, or more
+  // than actually on the eeprom
+  fn_rc = otb_i2c_24xx128_read_data(addr,
+                                    loc,
+                                    read_len,
+                                    (uint8_t *)buf,
+                                    i2c_info);
+  if (!fn_rc)
+  {
+    // Error reading or reading to I2C bus
+    WARN("EEPROM: Failed to read data from I2C bus %s", struct_type);
+    rc |= OTB_EEPROM_ERR_I2C;
+    goto EXIT_LABEL;
+  }
+
+  // Update loc (may be used later)
+  loc += read_len;
+
+  //
+  // Deal with header information
+  //
+  fn_rc = otb_eeprom_process_hdr((otb_eeprom_hdr *)buf,
+                                 type,
+                                 buf_len,
+                                 &rc);
+  if (!fn_rc)
+  {
+    // That's all we can do if we hit an error - we don't want to continue.  Errors
+    // are logged in otb_eeprom_process_hdr.
+    partial_read = TRUE;
+    goto EXIT_LABEL;
+  }
+
+  // For otb_eeprom_info we now need to read any info components - we couldn't
+  // do this earlier as we didn't know how long the struct including these was
+  if (type == OTB_EEPROM_INFO_TYPE_INFO)
+  {
+    new_read_len = buf->length;
+    if (new_read_len > buf_len)
+    {
+      // Going to bail out now - and not attempt a partial read
+      WARN("EEPROM: Unable to read otb_eeprom_info info_comps");
+      goto EXIT_LABEL;
+    }
+
+    // Optimise to avoid rereading what we already read
+    new_read_len = buf->length - read_len;
+  }
+
+  // Must read into a 4 byte aligned boundary
+  OTB_ASSERT(((uint32_t)(((uint8_t *)buf)+read_len) % 4) == 0);
+  fn_rc = otb_i2c_24xx128_read_data(addr,
+                                    loc,
+                                    new_read_len,
+                                    ((uint8_t *)buf)+read_len,
+                                    i2c_info);
+  if (!fn_rc)
+  {
+    // Error reading or reading to I2C bus
+    // Arguably could return something more helpful as did read some informatio
+    // but sadly nothing terribly useful - as the interesting stuff are the info
+    // comps.  Going to treat the whole eeprom as bad.
+    WARN("EEPROM: Failed to read data from I2C bus %s", struct_type);
+    rc |= OTB_EEPROM_ERR_I2C;
+    goto EXIT_LABEL;
+  }
+
+  //
+  // No additional components to read so stop here
+  //
+  if (rc == OTB_EEPROM_ERR)
+  {
+    // Haven't hit any errors so set rc to OK
+    rc = OTB_EEPROM_ERR_OK; 
+  }
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_read_main_board exit");
+
+  return rc;
+}
+
+char ICACHE_FLASH_ATTR otb_eeprom_check_checksum(char *data, int size, int checksum_loc, int checksum_size)
+{
+  char rc = 0;
+  int ii;
+  uint32 *checksum;
+  uint32 calc_check;
+  
+  DEBUG("EEPROM: otb_eeprom_check_checksum entry");
+  
+  OTB_ASSERT(checksum_size == sizeof(uint32));
+  
+  checksum = (uint32*)(data + checksum_loc);
+  DEBUG("EEPROM: Stored checksum: 0x%08x", *checksum);
+  
+  calc_check = OTB_EEPROM_CHECKSUM_INITIAL;
+  for (ii = 0; ii < size; ii++)
+  {
+    if ((ii < checksum_loc) || (ii >= (checksum_loc + checksum_size)))
+    {
+      calc_check += (*(data+ii) << ((ii%4) * 8));
+    }
+  }  
+  
+  DEBUG("EEPROM: Calculated checksum: 0x%08x", calc_check);
+
+  rc = (*checksum == calc_check);
+  
+  DEBUG("EEPROM: otb_eeprom_check_checksum exit");
   
   return rc;
 }
+
+#if 0
+
+TESTING
+- Quick way to test would be a standalone app running the appropriate bits of code
+
+Defensive code for checking info comps!
+
+  for (ii = 0; ii < eeprom_info->comp_num; ii)
+  {
+    info_comp = eeprom_info->comp[ii];
+    next_info_comp = eeprom_info->comp[ii+1];
+    if ((next_info_comp - eeprom_info) < 
+  }
+
+Check info_comp locs are all in eeprom itself given its size
+
+Need to build functions to log each of main info comps and link to from otb_eeprom_main_comp_types
+
+  // Now we have loaded the entire otb_eeprom_info from eeprom we can log the info
+  // comp locations.
+  for (ii = 0;  ii < OTB_MAX(OTB_EEPROM_INFO_MAX_COMP, otb_eeprom_info_g.comp_num), ii++)
+  {
+    INFO("EEPROM:   otb_info_comp %d:", ii);
+    INFO("EEPROM:     type = %d", otb_eeprom_info_g.comp[ii].type);
+    INFO("EEPROM:     type = %d", otb_eeprom_info_g.comp[ii].location);
+    INFO("EEPROM:     type = %d", otb_eeprom_info_g.comp[ii].length);
+  }
+  if (otb_eeprom_info_g.comp_num > OTB_EEPROM_INFO_MAX_COMP)
+  {
+    WARN("EEPROM: otb_eeprom_info.comp_num is invalid: %d vs %d",
+         otb_eeprom_info_g.comp_num,
+         OTB_EEPROM_INFO_MAX_COMP);
+  }
 
 char ICACHE_FLASH_ATTR otb_eeprom_read_sdk_init_data(otb_eeprom_glob_conf *glob_conf, unsigned char *buf, uint32 buf_len)
 {
@@ -109,7 +651,7 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_sdk_init_data(otb_eeprom_glob_conf *glob_
   }
   
   // Read the data
-  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_sdk_init_data, glob_conf->loc_sdk_init_data_len, (uint8_t *)buf);
+  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_sdk_init_data, glob_conf->loc_sdk_init_data_len, (uint8_t *)buf, &otb_i2c_bus_internal);
 if (rc)
   {
     DEBUG("EEPROM: Read %d bytes from eeprom successfully (sdk init data) from 0x%x", glob_conf->loc_sdk_init_data_len, glob_conf->loc_sdk_init_data);
@@ -176,7 +718,7 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_glob_conf(otb_eeprom_glob_conf *glob_conf
   
   DEBUG("EEPROM: otb_eeprom_read_glob_conf entry");
   
-  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, OTB_EEPROM_GLOB_CONFIG_LOC, sizeof(otb_eeprom_glob_conf), (uint8_t *)glob_conf);
+  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, OTB_EEPROM_GLOB_CONFIG_LOC, sizeof(otb_eeprom_glob_conf), (uint8_t *)glob_conf, &otb_i2c_bus_internal);
   if (rc)
   {
     DEBUG("EEPROM: Read %d bytes from eeprom successfully (glob conf)", sizeof(otb_eeprom_glob_conf));
@@ -226,38 +768,6 @@ EXIT_LABEL:
   return rc;
 }
 
-char ICACHE_FLASH_ATTR otb_eeprom_check_checksum(char *data, int size, int checksum_loc, int checksum_size)
-{
-  char rc = 0;
-  int ii;
-  uint32 *checksum;
-  uint32 calc_check;
-  
-  DEBUG("EEPROM: otb_eeprom_check_checksum entry");
-  
-  OTB_ASSERT(checksum_size == sizeof(uint32));
-  
-  checksum = (uint32*)(data + checksum_loc);
-  DEBUG("EEPROM: Stored checksum: 0x%08x", *checksum);
-  
-  calc_check = OTB_EEPROM_CHECKSUM_INITIAL;
-  for (ii = 0; ii < size; ii++)
-  {
-    if ((ii < checksum_loc) || (ii >= (checksum_loc + checksum_size)))
-    {
-      calc_check += (*(data+ii) << ((ii%4) * 8));
-    }
-  }  
-  
-  DEBUG("EEPROM: Calculated checksum: 0x%08x", calc_check);
-
-  rc = (*checksum == calc_check);
-  
-  DEBUG("EEPROM: otb_eeprom_check_checksum exit");
-  
-  return rc;
-}
-
 char ICACHE_FLASH_ATTR otb_eeprom_read_hw_conf(otb_eeprom_glob_conf *glob_conf, otb_eeprom_hw_conf *hw_conf)
 {
   char rc = 0;
@@ -283,7 +793,7 @@ char ICACHE_FLASH_ATTR otb_eeprom_read_hw_conf(otb_eeprom_glob_conf *glob_conf, 
     goto EXIT_LABEL;
   }
 
-  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_hw_struct, sizeof(otb_eeprom_hw_conf), (uint8_t *)hw_conf);
+  rc = otb_i2c_24xx128_read_data(otb_eeprom_addr, glob_conf->loc_hw_struct, sizeof(otb_eeprom_hw_conf), (uint8_t *)hw_conf, &otb_i2c_bus_internal);
   if (rc)
   {
     DEBUG("EEPROM: Read %d bytes from eeprom successfully (hw structure)", sizeof(otb_eeprom_hw_conf));
@@ -351,5 +861,7 @@ EXIT_LABEL:
   
   return rc;
 }
+
+#endif
 
 

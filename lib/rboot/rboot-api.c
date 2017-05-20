@@ -16,6 +16,7 @@
 
 #include "rboot-api.h"
 #include "otb_flash.h"
+#include "brzo_i2c.h"
 #include "otb_eeprom.h"
 
 extern void ets_printf(char*, ...);

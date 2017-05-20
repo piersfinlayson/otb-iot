@@ -38,9 +38,12 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   // Do some sanity checking
   otb_util_check_defs();
+
+  // Initial internal I2C bus (must be done before try and read eeprom)
+  otb_i2c_initialize_bus_internal();
   
-  // Read the eeprom (if present)
-  otb_util_read_eeprom();
+  // Read the eeprom (if present) - this initializes the chip ID
+  otb_eeprom_read();
   
   // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
   otb_flash_init();

@@ -117,9 +117,9 @@ uint8_t otb_i2c_24xxyy_next_byte;
 
 void otb_i2c_24xxyy_test_timerfunc(void);
 void otb_i2c_24xxyy_test_init(void);
-bool otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes);
-bool otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes);
-bool otb_i2c_24xxyy_init(uint8_t addr);
-bool otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf);
+bool otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info);
+bool otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info);
+bool otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info);
+bool otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf, brzo_i2c_info *info);
 
 #endif // OTB_I2C_24XXYY_H

@@ -18,7 +18,6 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
-
  
 #ifndef OTB_HWINFO_H_INCLUDED
 #define OTB_HWINFO_H_INCLUDED
@@ -35,7 +34,7 @@
 
 #define OTB_HWINFO_ENDIAN_ESP8266 OTB_HWINFO_ENDIAN_LITTLE
 
-#define OTB_HWINFO_STORE(S, D)                                               \
+#define OTB_HWINFO_STORE(D, S)                                               \
 {                                                                            \
   size_t ss = sizeof(S);                                                     \
   size_t sd = sizeof(D);                                                     \
@@ -51,48 +50,91 @@
   }                                                                          \
 }
 
-#define OTB_HWINFO_CHECKSUM_DO_EXTRA(S, Z)                                   \
+#define OTB_HWINFO_CHECKSUM_DO(S)                                            \
 {                                                                            \
   int checksum_loc;                                                          \
   size_t checksum_size;                                                      \
   size_t total_size;                                                         \
-  checksum_size = sizeof(S.hdr.checksum);                                    \
-  checksum_loc = (char *)&(S.hdr.checksum) - (char *)&(S);                   \
-  total_size = Z;                                                            \
-  otb_hwinfo_checksum_store(&S, total_size, checksum_loc, checksum_size);    \
+  checksum_size = sizeof(S->checksum);                                       \
+  checksum_loc = (char *)&(S->checksum) - (char *)(S);                       \
+  total_size = S->length;                                                    \
+  otb_hwinfo_checksum_store(S, total_size, checksum_loc, checksum_size);     \
 }
 
-#define OTB_HWINFO_CHECKSUM_DO(S)                                            \
-  OTB_HWINFO_CHECKSUM_DO_EXTRA(S, sizeof(S))
+// Used to record main board module information in board specific header files
+typedef struct otb_hwinfo_main_board_module_info
+{
+  uint32 num;
+  uint32 socket_type;
+  uint32 num_headers;
+  uint32 num_pins;
+  uint8 address;
+
+  // Pointer to an array of pin_infos (not an array of pointers!)
+  const otb_eeprom_pin_info (*pin_info)[];
+} otb_hwinfo_main_board_module_info;
+
+// Used to record board specific information in board specific header files
+typedef struct otb_hwinfo_main_board_info
+{
+  uint32 pin_count;
+  uint32 mod_count;
+
+  // Pointer to an array of pin_infos (not an array of pointers!)
+  const otb_eeprom_pin_info (*pin_info)[];
+
+  // Pointer to an array of module infos (not an array of pointers!)
+  const otb_hwinfo_main_board_module_info (*module_info)[];
+} otb_hwinfo_main_board_info;
+
+// Used by hwinfo to store information to write to flash
+typedef struct otb_hwinfo_info
+{
+  uint8 chipid[3];
+  uint8 mac1[3];  // Only the header
+  uint8 mac2[3];  // Only the header
+  uint32 code;
+  uint32 subcode;
+  uint8 serial[16];
+  uint32 eeprom_size;
+  uint32 esp_module;
+  uint32 flash_size_bytes;
+  uint32 i2c_adc;
+  uint32 internal_adc_type;
+  const otb_hwinfo_main_board_info *board_info;
+  uint8 *output;
+  uint32 output_len;
+} otb_hwinfo_info;
 
 // Globals
+#ifdef OTB_HWINFO_C
 uint8 otb_hwinfo_host_endian;
 uint8 otb_hwinfo_target_endian;
-otb_eeprom_glob_conf otb_eeprom_glob;
-otb_eeprom_hw_conf otb_eeprom_hw;
-otb_eeprom_sdk_init_data *sdk_init_data;
 bool otb_hwinfo_verbose;
-char otb_hwinfo_fn_glob[] = "glob.out";
-char otb_hwinfo_fn_hw[] = "hw.out";
-char otb_hwinfo_fn_sign[] = "sign.out";
-char otb_hwinfo_fn_sdk_init_data[] = "sdk_init_data.out";
+char otb_hwinfo_fn[] = "hwinfo.out";
+otb_hwinfo_info hwinfo;
+#endif
 
 // Function prototypes
 int main(int argc, char **argv);
 static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state);
-bool otb_hwinfo_setup(void);
-void otb_hwinfo_postprocess(void);
-void otb_hwinfo_checksums(void);
+void otb_hwinfo_setup(void);
 void otb_hwinfo_checksum_store(void *data, size_t total_size, int checksum_loc, size_t checksum_size);
 bool otb_hwinfo_store(void);
 bool otb_hwinfo_test_sizes(void);
 void otb_hwinfo_setup_endian(void);
 void otb_hwinfo_store_field(char *s, char *d, uint8 b);
 void otb_hwinfo_check_endian_set(void);
+void otb_hwinfo_output_hdr(char *prefix, char* type, otb_eeprom_hdr *hdr);
+otb_eeprom_hdr *otb_hwinfo_get_next_hdr(otb_eeprom_hdr *hdr);
+void otb_hwinfo_output_eeprom_info(char *prefix, otb_eeprom_hdr *hdr);
+void otb_hwinfo_output_pin_info(char *prefix, uint32 num_pins, otb_eeprom_pin_info *pin_info);
+void otb_hwinfo_output_mac(char *prefix, char *name, unsigned char *mac);
+void otb_hwinfo_output_comps(char *prefix, otb_eeprom_hdr *hdr);
 void otb_hwinfo_output(void);
 
 // Command line argument stuff
-const char *argp_program_version = "otb-iot hwinfo V0.1\nCopyright (c) 2017 Piers Finlayson";
+const char *argp_program_version = "otb-iot hwinfo v0.2\nCopyright (c) 2017 Piers Finlayson";
 const char *argp_program_bug_address = "piers@piersandkatie.com";
 static char otb_hwinfo_doc[] =
   "\n"
@@ -111,7 +153,6 @@ static char otb_hwinfo_args_doc[] = "";
 static struct argp_option otb_hwinfo_options[] = 
 {
   {"eeprom_size", 'e', "SIZE", 0, "SIZE in kbit, e.g. 128"},
-  {"hw_loc", 'h', "HWLOC", 0, "Hardware struct location in bytes offset from 0, e.g. 1024"},
   {"sign", 'g', 0, 0, "Whether to sign the hw struct - NOT SUPPORTED"},
   {"sign_alg", 'a', "ALGORITHM", 0, "Signing ALGORITHM to use, numeric ID - NOT SUPPORTED"},
   {"sign_len", 'l', "SIGN_LEN", 0, "Length of signature in bits e.g. 4096 - NOT SUPPORTED"},
@@ -127,10 +168,6 @@ static struct argp_option otb_hwinfo_options[] =
   {"flash_size", 'f', "SIZE", 0, "ESP flash size in Kbyte e.g. 512, 4096"},
   {"adc_type", 'd', "TYPE", 0, "I2C type supported by this module, 0=None, 1=ADS1115"},
   {"adc_config", 't', "TYPE", 0, "Internal ADC configuration, 0=None, 1=3V3_10K_2K49"},
-  {"sda_int", 'A', "PIN", 0, "Internal I2C bus SDA pin number, may be -1=NONE"},
-  {"scl_int", 'L', "PIN", 0, "Internal I2C bus SCL pin number, may be -1=NONE"},
-  {"sda_ext", 'B', "PIN", 0, "External I2C bus SDA pin number, may be -1=NONE"},
-  {"scl_ext", 'M', "PIN", 0, "External I2C bus SCL pin number, may be -1=NONE"},
   {"verbose", 'v', 0, 0, "Verbose output"},
   {0}
 };

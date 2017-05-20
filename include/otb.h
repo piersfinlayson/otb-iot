@@ -86,6 +86,9 @@
 // Softuart
 #include "softuart.h"
 
+// brzo_i2c
+#include "brzo_i2c.h"
+
 // OTB
 #include "otb_def.h"
 #include "otb_globals.h"
@@ -111,8 +114,5 @@
 #include "otb_relay.h"
 #include "otb_brzo_i2c.h"
 #include "otb_eeprom.h"
-
-// brzo_i2c
-#include "brzo_i2c.h"
 
 #endif

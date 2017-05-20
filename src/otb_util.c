@@ -23,46 +23,6 @@
 #include <limits.h>
 #include <errno.h>
 
-void ICACHE_FLASH_ATTR otb_util_read_eeprom(void)
-{
-  char rc;
-#define TEMP_BUF_LEN 256
-  unsigned char buf[TEMP_BUF_LEN];
-
-  DEBUG("UTIL: otb_util_read_eeprom entry");
-
-  otb_eeprom_init();
-  rc = otb_eeprom_read_all();
-  if (!rc)
-  {
-    // Failed - bail
-    goto EXIT_LABEL;
-  }
-
-  rc = otb_eeprom_read_sdk_init_data(&otb_eeprom_glob, buf, TEMP_BUF_LEN);
-  if (!rc)
-  {
-    // Failed - bail
-    goto EXIT_LABEL;
-  } 
-
-  // Now do something useful with this hardware info  
-  // XXX
-
-EXIT_LABEL:
-
-  // Now we've read the eeprom get the chip ID
-  otb_util_get_chip_id();
-  OTB_ASSERT((os_strlen(OTB_MAIN_OTBIOT_PREFIX) +
-              os_strlen(OTB_MAIN_CHIPID)) <
-             sizeof(OTB_MAIN_DEVICE_ID));
-  os_sprintf(OTB_MAIN_DEVICE_ID, "%s.%s", OTB_MAIN_OTBIOT_PREFIX, OTB_MAIN_CHIPID);
-
-  DEBUG("UTIL: otb_util_read_eeprom exit");
-
-  return;
-}
-
 void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 {
 
@@ -285,9 +245,9 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
   OTB_ASSERT(OTB_MAIN_CHIPID_STR_LENGTH >= (OTB_EEPROM_HW_SERIAL_LEN+1));
   os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
   
-  if ((otb_eeprom_hw.hdr.magic == OTB_EEPROM_HW_MAGIC) &&
-      (os_strnlen(otb_eeprom_hw.serial, OTB_EEPROM_HW_SERIAL_LEN+1) <=
-                                                    OTB_EEPROM_HW_SERIAL_LEN))
+  if ((otb_eeprom_main_board_g != NULL) &&
+      (os_strnlen(otb_eeprom_main_board_g->common.serial,
+                  OTB_EEPROM_HW_SERIAL_LEN+1) <= OTB_EEPROM_HW_SERIAL_LEN))
   {
     INFO("UTIL: Using serial number as chipid");
     // Use serial number
@@ -296,10 +256,10 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
     trailing = TRUE;
     for (ii = 0, jj = 0; ii < OTB_EEPROM_HW_SERIAL_LEN; ii++)
     {
-      if (isalnum(otb_eeprom_hw.serial[ii]))
+      if (isalnum(otb_eeprom_main_board_g->common.serial[ii]))
       {
         trailing = FALSE;
-        OTB_MAIN_CHIPID[jj] = otb_eeprom_hw.serial[ii];
+        OTB_MAIN_CHIPID[jj] = otb_eeprom_main_board_g->common.serial[ii];
         jj++;
       }
       else if (!trailing)
@@ -308,7 +268,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         jj++;
       }
       
-      if (otb_eeprom_hw.serial[ii] == 0)
+      if (otb_eeprom_main_board_g->common.serial[ii] == 0)
       {
         break;
       }
@@ -1425,7 +1385,6 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
   os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ads, NULL);
   os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
 
-
   DEBUG("OTB: otb_init_ds18b20 exit");
 
   return;
@@ -1436,7 +1395,9 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   DEBUG("OTB: otb_init_ads entry");
 
   INFO("OTB: Set up ADS (+I2C bus)");
+#if 0  
   otb_ads_initialize();
+#endif
 
   // Now set up ADS init
   os_timer_disarm((os_timer_t*)&init_timer);

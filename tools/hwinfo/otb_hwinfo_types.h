@@ -30,6 +30,11 @@ typedef signed short int16;
 typedef unsigned char uint8;
 typedef char int8;
 typedef char bool;
+typedef uint32 uint32_t;
+typedef int32 int32_t;
+typedef uint16 uint16_t;
+typedef int16 int16_t;
+typedef uint8 uint8_t;
 #define TRUE   1
 #define FALSE  0
 

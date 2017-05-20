@@ -39,7 +39,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     // Off
     INFO("24XXYY: Time to read");
     buf[0] = 0;
-    rc = otb_i2c_24xxyy_read_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1);
+    rc = otb_i2c_24xxyy_read_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
     {
       WARN("24XXYY: Failed to communicate with 24XXYY");
@@ -57,7 +57,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     // On
     INFO("24XXYY: Time to write");
     buf[0] = otb_i2c_24xxyy_next_byte;
-    rc = otb_i2c_24xxyy_write_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1);
+    rc = otb_i2c_24xxyy_write_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
     {
       WARN("24XXYY: Failed to communicate with 24XXYY");
@@ -87,7 +87,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
   otb_i2c_24xxyy_written = TRUE;
   otb_i2c_24xxyy_next_byte = 0;
   otb_i2c_24xxyy_test_addr = OTB_I2C_24XXYY_BASE_ADDR;
-  rc = otb_i2c_24xxyy_init(otb_i2c_24xxyy_test_addr);
+  rc = otb_i2c_24xxyy_init(otb_i2c_24xxyy_test_addr, &otb_i2c_bus_internal);
   if (!rc)
   {
     WARN("24XXYY: Failed to init 24XXYY at address 0x%02x", otb_i2c_24xxyy_test_addr);
@@ -111,7 +111,7 @@ EXIT_LABEL:
 
 #endif // OTB_RBOOT_BOOTLOADER
 
-bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes)
+bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info)
 {
   bool rc = FALSE;
   uint8_t brzo_rc;
@@ -124,10 +124,10 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
   for (ii = 0; ii < num_bytes; ii++)
   {
     // First of all write the address 
-    brzo_i2c_start_transaction(addr, 100);
+    brzo_i2c_start_transaction_info(addr, 100, info);
     reg = word_addr+ii;
-    brzo_i2c_write(&reg, 1, FALSE);
-    brzo_rc = brzo_i2c_end_transaction();
+    brzo_i2c_write_info(&reg, 1, FALSE, info);
+    brzo_rc = brzo_i2c_end_transaction_info(info);
     if (!brzo_rc)
     {
       rc = TRUE;
@@ -138,9 +138,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
       goto EXIT_LABEL;
     }
   
-    brzo_i2c_start_transaction(addr, 100);
-    brzo_i2c_read(bytes+ii, 1, FALSE);
-    brzo_rc = brzo_i2c_end_transaction();
+    brzo_i2c_start_transaction_info(addr, 100, info);
+    brzo_i2c_read_info(bytes+ii, 1, FALSE, info);
+    brzo_rc = brzo_i2c_end_transaction_info(info);
     if (!brzo_rc)
     {
       rc = TRUE;
@@ -161,7 +161,7 @@ EXIT_LABEL:
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes)
+bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info)
 {
   bool rc = FALSE;
   int ii;
@@ -177,9 +177,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
   {
     buf[0] = word_addr;
     buf[1] = bytes[ii];
-    brzo_i2c_start_transaction(addr, 100);
-    brzo_i2c_write(buf, 2, FALSE);
-    brzo_rc = brzo_i2c_end_transaction();
+    brzo_i2c_start_transaction_info(addr, 100, info);
+    brzo_i2c_write_info(buf, 2, FALSE, info);
+    brzo_rc = brzo_i2c_end_transaction_info(info);
     if (!brzo_rc)
     {
       rc = TRUE;
@@ -195,10 +195,10 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     jj = 0;
     while (!rc & jj < 100)
     {
-      brzo_i2c_start_transaction(addr, 100);
+      brzo_i2c_start_transaction_info(addr, 100, info);
       reg = word_addr+ii;
-      brzo_i2c_write(&reg, 1, FALSE);
-      brzo_rc = brzo_i2c_end_transaction();
+      brzo_i2c_write_info(&reg, 1, FALSE, info);
+      brzo_rc = brzo_i2c_end_transaction_info(info);
       if (!brzo_rc)
       {
         rc = TRUE;
@@ -226,9 +226,9 @@ EXIT_LABEL:
 }
 
 #ifdef OTB_RBOOT_BOOTLOADER
-bool otb_i2c_24xxyy_init(uint8_t addr)
+bool otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info)
 #else
-bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr)
+bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info)
 #endif // OTB_RBOOT_BOOTLOADER
 {
   uint8_t brzo_rc;
@@ -238,9 +238,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr)
   DEBUG("24XXYY: otb_i2c_24xxyy_init entry");
 
   // Just try and read the current word (0x0?)
-  brzo_i2c_start_transaction(addr, 100);
-  brzo_i2c_read(&val, 1, FALSE);
-  brzo_rc = brzo_i2c_end_transaction();
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_read_info(&val, 1, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
   if (!brzo_rc)
   {
     rc = TRUE;
@@ -257,7 +257,7 @@ EXIT_LABEL:
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf)
+bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf, brzo_i2c_info *info)
 {
   bool rc = FALSE;
   uint8_t brzo_rc;
@@ -274,18 +274,18 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_ad
 
   start_addr_b[0] = start_addr >> 8;
   start_addr_b[1] = start_addr & 0xff;
-  brzo_i2c_start_transaction(addr, 100);
-  brzo_i2c_write(start_addr_b, 2, FALSE);
-  brzo_rc = brzo_i2c_end_transaction();
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_write_info(start_addr_b, 2, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
   if (brzo_rc)
   {
     DEBUG("24XXYY: write of address to read from failed: %d", brzo_rc);
     goto EXIT_LABEL;
   }
   
-  brzo_i2c_start_transaction(addr, 100);
-  brzo_i2c_read(buf, bytes, FALSE);
-  brzo_rc = brzo_i2c_end_transaction();
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_read_info(buf, bytes, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
   if (brzo_rc)
   {
     DEBUG("24XXYY: read failed: %d", brzo_rc);

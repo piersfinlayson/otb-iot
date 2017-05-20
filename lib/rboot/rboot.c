@@ -9,9 +9,15 @@
 #include <rboot-integration.h>
 #endif
 
+// Pretend to be otb_eeprom.c so globals are defined
+//#define OTB_EEPROM_C
+
 #include "rboot-private.h"
 #include <rboot-hex2a.h>
 #include "otb_flash.h"
+#undef TRUE // XXX Hack
+#undef FALSE // XXX Hack
+#include "brzo_i2c.h"
 #include "otb_eeprom.h"
 
 static uint32 check_image(uint32 readpos) {
@@ -513,19 +519,9 @@ void NOINLINE read_eeprom(void)
 {
   char rc;
 
-  rc = otb_eeprom_init();
-  if (!rc)
-  {
-    // Failed - bail
-    goto EXIT_LABEL;
-  }
-
- rc = otb_eeprom_read_all();
-  if (!rc)
-  {
-    // Failed - bail
-    goto EXIT_LABEL;
-  }
+  // Initial internal I2C bus (must be done before try and read eeprom)
+  otb_i2c_initialize_bus_internal();
+  otb_eeprom_read();
 
   // Now do something useful with this hardware info  
   // XXX
