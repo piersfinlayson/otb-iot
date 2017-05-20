@@ -391,6 +391,9 @@ void otb_hwinfo_setup(void)
       case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
         ;
         otb_eeprom_main_board *main_board = (otb_eeprom_main_board *)hdr;
+        memcpy(main_board->common.serial, hwinfo.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
+        OTB_HWINFO_STORE(main_board->common.code, hwinfo.code);
+        OTB_HWINFO_STORE(main_board->common.subcode, hwinfo.subcode);
         memcpy(main_board->chipid, hwinfo.chipid, 3);
         memcpy(main_board->mac1, hwinfo.mac1, 3);
         memcpy(main_board->mac1+3, hwinfo.chipid, 3);

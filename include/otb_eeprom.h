@@ -275,6 +275,7 @@ typedef struct otb_eeprom_main_board
   // Internal ADC configuration
 #define OTB_EEPROM_HW_INT_ADC_NONE          0  // Not connected
 #define OTB_EEPROM_HW_INT_ADC_3V3_10K_2K49  1  // Connected to 3.3V supply voltage via 10K, 2.49K voltage divider
+#define OTB_EEPROM_HW_INT_ADC_MODULE        2  // Routed to a module
   uint32 internal_adc_type;
   
   // Number of modules
