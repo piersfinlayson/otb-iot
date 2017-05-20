@@ -19,6 +19,7 @@
 #undef FALSE // XXX Hack
 #include "brzo_i2c.h"
 #include "otb_eeprom.h"
+#include "pin_map.h"
 
 char __attribute__((aligned(4))) rboot_eeprom_info[OTB_EEPROM_MAX_MAIN_COMP_LENGTH];
 
@@ -172,34 +173,21 @@ static uint32 get_gpio16() {
 	
 	return x;
 }
-
-static uint32 get_gpio14() {
-  uint32 x;
+static uint32 get_gpio(uint8 pin)
+{
+  uint32 rc = 1;
   uint32 *pin_in = (uint32 *)0x60000318;
-#if 0  
-  uint32 *pin_dir_input = (uint32 *)0x60000314;
-  uint32 *pin_out_set = (uint32 *)0x60000304;
-  uint32 *pin_out = (uint32 *)0x60000300;
-#endif  
-#define GPIO14_MASK  (1 << 14)
 
-  //ets_printf("BOOT: Reading GPIO14 ... ");
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
-#if 0  
-  // uint32 x = (READ_PERI_REG(GPIO14) & 1); 
-  ets_printf("BOOT: GPIO14 via macro: 0x%08x\n", READ_PERI_REG(GPIO14));
+  if (pin > 16)
+  {
+    goto EXIT_LABEL;
+  }
+  PIN_FUNC_SELECT(pin_mux[pin], pin_func[pin]);
+	rc = (*pin_in & (1 << pin)) >> pin;
 
-  ets_printf("BOOT: before all pins output: 0x%08x input: 0x%08x\n", *pin_out, *pin_in);
-  *pin_out_set = GPIO14_MASK;
-  *pin_dir_input = GPIO14_MASK;
-#endif  
-  x = (*pin_in & GPIO14_MASK) >> 14;
-#if 0
-  ets_printf("BOOT:  after all pins output: 0x%08x input: 0x%08x\n", *pin_out, *pin_in);
-#endif
-  //ets_printf("%d\r\n", x);
-	
-	return x;
+EXIT_LABEL:
+  
+	return rc;
 }
 
 static void reset(void)
@@ -556,7 +544,7 @@ void NOINLINE factory_reset(void)
 	ets_printf("BOOT: Checking GPIO14 ");
   for (ii = 0; ii <= FACTORY_RESET_LEN; ii++)
   {
-    gpio14 = get_gpio14();
+    gpio14 = get_gpio(14);
     if (gpio14)
     {
       ets_printf("o");

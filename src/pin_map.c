@@ -17,7 +17,6 @@ uint8_t pin_func[GPIO_PIN_NUM] = {
 	-1
 };
 
-
 bool ICACHE_FLASH_ATTR is_valid_gpio_pin(uint8 gpiopin)
 {
 	if(gpiopin >= GPIO_PIN_NUM) return false;
