@@ -159,7 +159,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read_main_types(uint8_t addr,
                                                   uint32_t types_num)
 {
   otb_eeprom_info *eeprom_info_v = NULL;
-  int ii;
+  int ii, jj;
 
   DEBUG("EEPROM: otb_eeprom_read_main_types entry");
 
@@ -170,17 +170,33 @@ void ICACHE_FLASH_ATTR otb_eeprom_read_main_types(uint8_t addr,
   for (ii = 0; ii < types_num; ii++)
   {
     INFO("EEPROM: Reading %s", otb_eeprom_main_comp_types[types[ii]].name);
-    *(otb_eeprom_main_comp_types[types[ii]].global) = 
-                          otb_eeprom_load_main_comp(addr,
-                                                    i2c_info,
-                                                    eeprom_info_v,
-                                                    types[ii],
-                                                    NULL,
-                                                    0);
-    if ((*(otb_eeprom_main_comp_types[types[ii]].global)) == NULL)
+
+    // Support reading multiple if the type warrants it
+    jj = 0;
+    do
+    {
+      *(otb_eeprom_main_comp_types[types[ii]].global+jj) = 
+                            otb_eeprom_load_main_comp(addr,
+                                                      i2c_info,
+                                                      eeprom_info_v,
+                                                      types[ii],
+                                                      jj,
+                                                      NULL,
+                                                      0);
+      jj++;
+    } while ((otb_eeprom_main_comp_types[types[ii]].max_num != OTB_EEPROM_COMP_1) &&
+             (*(otb_eeprom_main_comp_types[types[ii]].global+jj-1) != NULL) &&
+             ((otb_eeprom_main_comp_types[types[ii]].quantity > jj)));
+    
+    // Check we actually got a comp or the right type
+    if (((*(otb_eeprom_main_comp_types[types[ii]].global)) == NULL) &&
+        (otb_eeprom_main_comp_types[types[ii]].max_num != OTB_EEPROM_COMP_0_OR_MORE))
     {
       goto EXIT_LABEL;
     }
+    
+    // If we have an otb_eeprom_info store it off in eeprom_info_v for use in 
+    // subsequent queries - should be first element queried
     if ((ii == 0) && (types[ii] == OTB_EEPROM_INFO_TYPE_INFO))
     {
       eeprom_info_v = *(otb_eeprom_main_comp_types[types[ii]].global);
@@ -207,6 +223,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
                                                   brzo_i2c_info *i2c_info,
                                                   otb_eeprom_info *eeprom_info,
                                                   uint32_t type,
+                                                  uint32_t num,
                                                   void *buf,
                                                   uint32_t buf_len)
 {
@@ -228,6 +245,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
                                     i2c_info,
                                     eeprom_info,
                                     type,
+                                    num,
                                     temp_buf,
                                     OTB_EEPROM_MAX_MAIN_COMP_LENGTH);
 
@@ -298,16 +316,20 @@ EXIT_LABEL:
 // Given an otb_eeprom_info structure, finds other components.
 // If otb_eeprom_info is NULL can only "find" OTB_EEPROM_INFO_TYPE_INFO (at 0x0)
 //
-// Only finds the first instance of a particular type (so not good for modules!)
+// Use num to indicate which instance should be found (0, 1, ...) - ignored if
+// max_num is OTB_EEPROM_COMP_1
+// 
 //
 
 bool ICACHE_FLASH_ATTR otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
                                                  uint32_t type, 
+                                                 uint32_t num,
                                                  uint32_t *loc,
                                                  uint32_t *length)
 {
   int ii;
   bool found = FALSE;
+  int jj = 0;
 
   DEBUG("EEPROM: otb_eeprom_find_comp entry");
 
@@ -336,8 +358,13 @@ bool ICACHE_FLASH_ATTR otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
       *loc = eeprom_info->comp[ii].location;
       *length = eeprom_info->comp[ii].length;
       DEBUG("EEPROM: Found comp type %d at 0x%x length 0x%x", type, loc, len);
-      found = TRUE;
-      break;
+      jj++;
+      if ((otb_eeprom_main_comp_types[type].max_num == OTB_EEPROM_COMP_1) ||
+          (num < jj))
+      {
+        found = TRUE;
+        break;
+      }
     }
   }
 
@@ -460,6 +487,7 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_read_main_comp(uint8_t addr,
                                                      brzo_i2c_info *i2c_info,
                                                      otb_eeprom_info *eeprom_info,
                                                      uint32_t type,
+                                                     uint32_t num,
                                                      void *read_buf,
                                                      uint32_t buf_len)
 {
@@ -483,7 +511,7 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_read_main_comp(uint8_t addr,
   // First of all read in just the struct - will read in the read shortly
   //
 
-  fn_rc = otb_eeprom_find_main_comp(eeprom_info, type, &loc, &len);
+  fn_rc = otb_eeprom_find_main_comp(eeprom_info, type, num, &loc, &len);
   if (!fn_rc)
   {
     // Couldn't find any record of this structure on the eeprom - exit

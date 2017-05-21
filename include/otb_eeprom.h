@@ -135,10 +135,13 @@ typedef struct otb_eeprom_main_comp_type
 
   uint32_t version_max;
 
+  // 0xFFFFFFFF means no defualt location
   uint32_t default_loc;
 
+  // One of OTB_EEPROM_COMP_...
   uint32_t max_num;
 
+  // Actual max number
   uint32_t quantity;
 
   void **global;
@@ -516,7 +519,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    0,
    1,
    1,
-   0x400,
+   0xFFFFFFFF,
    OTB_EEPROM_COMP_1,
    1,
    (void**)&otb_eeprom_main_board_g},
@@ -527,7 +530,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    0,
    1,
    1,
-   0x800,
+   0xFFFFFFFF,
    OTB_EEPROM_COMP_1_OR_MORE,
    OTB_EEPROM_MAX_MODULES,
    (void**)&otb_eeprom_main_board_module_g},
@@ -538,7 +541,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    0,
    1,
    1,
-   0x3000,
+   0xFFFFFFFF,
    OTB_EEPROM_COMP_0_OR_MORE,
    1,
    (void**)&otb_eeprom_main_board_sdk_init_data_g},
@@ -549,7 +552,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    0,
    1,
    1,
-   0xc00,
+   0xFFFFFFFF,
    OTB_EEPROM_COMP_1,
    1,
    (void**)&otb_eeprom_main_board_gpio_pins_g},
@@ -571,10 +574,12 @@ void *otb_eeprom_load_main_comp(uint8_t addr,
                                 brzo_i2c_info *i2c_info,
                                 otb_eeprom_info *eeprom_info,
                                 uint32_t type,
+                                uint32_t num,
                                 void *buf,
                                 uint32_t buf_len);
 bool otb_eeprom_find_main_comp(otb_eeprom_info *eeprom_info,
                                uint32_t type, 
+                               uint32_t num,
                                uint32_t *loc,
                                uint32_t *length);
 bool otb_eeprom_process_hdr(otb_eeprom_hdr *hdr,
@@ -586,6 +591,7 @@ uint32_t otb_eeprom_read_main_comp(uint8_t addr,
                                    brzo_i2c_info *i2c_info,
                                    otb_eeprom_info *eeprom_info,
                                    uint32_t type,
+                                   uint32_t num,
                                    void *read_buf,
                                    uint32_t buf_len);
 char otb_eeprom_check_checksum(char *data,
