@@ -310,9 +310,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
     case OTB_EEPROM_INFO_TYPE_INFO:
       ;
       otb_eeprom_info *eeprom_info = (otb_eeprom_info *)local_buf;
-      INFO("EEPROM:       eeprom_size: 0x%08x", eeprom_info->eeprom_size);
-      INFO("EEPROM:       comp_num:    %d", eeprom_info->comp_num);
-      INFO("EEPROM:       write_date:  0x%08x", eeprom_info->write_date);
+      INFO("EEPROM:   eeprom_size:     0x%08x", eeprom_info->eeprom_size);
+      INFO("EEPROM:   comp_num:        %d", eeprom_info->comp_num);
+      INFO("EEPROM:   write_date:      0x%08x", eeprom_info->write_date);
       break;
 
     case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
