@@ -44,7 +44,10 @@ void ICACHE_FLASH_ATTR user_init(void)
   
   // Read the eeprom (if present) - this initializes the chip ID
   otb_eeprom_read();
-  
+
+  // Relog heap size (now have read into eeprom)
+  INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
+
   // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
   otb_flash_init();
   
