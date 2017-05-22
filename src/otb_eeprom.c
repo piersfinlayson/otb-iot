@@ -285,6 +285,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
   hdr = (otb_eeprom_hdr *)temp_buf;
   INFO("EEPROM: %s:", struct_name, hdr);
   INFO("EEPROM:   hdr.magic:       0x%08x", hdr->magic);
+  INFO("EEPROM:   hdr.type:        %d", hdr->type);
   INFO("EEPROM:   hdr.struct_size: 0x%08x", hdr->struct_size);
   INFO("EEPROM:   hdr.version:     0x%08x", hdr->version);
   INFO("EEPROM:   hdr.length:      0x%08x", hdr->length);
@@ -519,6 +520,14 @@ bool ICACHE_FLASH_ATTR otb_eeprom_process_hdr(otb_eeprom_hdr *hdr,
       WARN("EEPROM: Bad magic number %s 0x%08x vs 0x%08x", struct_type, hdr->magic, magic);
       fn_rc = FALSE;
       *rc |= OTB_EEPROM_ERR_MAGIC;
+    }
+
+    if (hdr->type != type)
+    {
+      // Can keep going
+      WARN("EEPROM: Bad type %s %d vs %d", struct_type, hdr->type, type);
+      fn_rc = FALSE;
+      *rc |= OTB_EEPROM_ERR_TYPE;
     }
 
     if ((hdr->version < version_min) ||

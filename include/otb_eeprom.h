@@ -43,6 +43,7 @@
 #define OTB_EEPROM_ERR_NOT_FOUND      0x80   // Not found on eeprom
 #define OTB_EEPROM_ERR_STRUCT_SIZE    0x100  // struct_size wrong
 #define OTB_EEPROM_ERR_MAIN_COMP_TOO_BIG 0x200  // Main component bigger than OTB_EEPROM_MAX_MAIN_COMP_LENGTH
+#define OTB_EEPROM_ERR_TYPE      0x400  // Type is wrong
 
 // No main component can be longer than this
 #define OTB_EEPROM_MAX_MAIN_COMP_LENGTH 1024
@@ -153,6 +154,9 @@ typedef struct otb_eeprom_hdr
 {
   // Magic number
   uint32 magic;
+
+  // Type - one of OTB_EEPROM_INFO_TYPE_...
+  uint32 type;
   
   // Header struct size
   uint32 struct_size;

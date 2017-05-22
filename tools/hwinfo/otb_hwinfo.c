@@ -455,6 +455,7 @@ void otb_hwinfo_setup(void)
           // Fill in all header fields except checksum (which is last)
           // Note hdr is updated to point to new module so use module->hdr
           OTB_HWINFO_STORE(module->hdr.magic, magic);
+          OTB_HWINFO_STORE(module->hdr.type, ii);
           OTB_HWINFO_STORE(module->hdr.struct_size, struct_size);
           OTB_HWINFO_STORE(module->hdr.version, version);
           OTB_HWINFO_STORE(module->hdr.length, len);
@@ -520,6 +521,7 @@ void otb_hwinfo_setup(void)
     {
       // Fill in all header fields except checksum (which is last)
       OTB_HWINFO_STORE(hdr->magic, magic);
+      OTB_HWINFO_STORE(hdr->type, ii);
       OTB_HWINFO_STORE(hdr->struct_size, struct_size);
       OTB_HWINFO_STORE(hdr->version, version);
       OTB_HWINFO_STORE(hdr->length, len);
