@@ -378,9 +378,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       INFO("EEPROM:   num_headers:     %d", module->num_headers);
       INFO("EEPROM:   num_pins:        %d", module->num_pins);
       INFO("EEPROM:   address:         0x%02x", module->address);
-//#ifdef OTB_DEBUG      
+#ifdef OTB_DEBUG      
       otb_eeprom_output_pin_info(module->num_pins, module->pin_info);
-//#endif // OTB_DEBUG      
+#endif // OTB_DEBUG      
       break;
 
     case OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA:
@@ -393,9 +393,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       ;
       otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)local_buf;
       INFO("EEPROM:   num_pins:        %d", gpio_pins->num_pins);
-//#ifdef OTB_DEBUG      
+#ifdef OTB_DEBUG      
       otb_eeprom_output_pin_info(gpio_pins->num_pins, gpio_pins->pin_info);
-//#endif // OTB_DEBUG      
+#endif // OTB_DEBUG      
       break;
 
     default:
