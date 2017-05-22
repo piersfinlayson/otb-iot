@@ -34,7 +34,7 @@
 #include "otb_eeprom.h"
 
 #include "otb_hwinfo.h"
-#include "otb_hwinfo_board_info.h"
+#include "otb_board_info.h"
 
 int main(int argc, char **argv)
 {
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
   // Set up hardware information based on type of board
   // XXX Currently not type of board!
-  hwinfo.board_info = &otb_hwinfo_main_board_v0_4_board_info;
+  hwinfo.board_info = &otb_hwinfo_main_board_otbiot_v0_4_board_info;
 
   // Process the args - copy info into temporary structures
   argp_rc = argp_parse(&otb_hwinfo_argp, argc, argv, 0, 0, NULL);

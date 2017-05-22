@@ -19,10 +19,10 @@
  * 
  */
  
-#ifndef OTB_HWINFO_BOARD_INFO_H_INCLUDED
-#define OTB_HWINFO_BOARD_INFO_H_INCLUDED
+#ifndef OTB_BOARD_INFO_H_INCLUDED
+#define OTB_BOARD_INFO_H_INCLUDED
 
 // otbiot main board v0.4
-#include "otb_hwinfo_main_board_v0_4.h"
+#include "otb_main_board_otbiot_v0_4.h"
 
-#endif // OTB_HWINFO_BOARD_INFO_H_INCLUDED
+#endif // OTB_BOARD_INFO_H_INCLUDED

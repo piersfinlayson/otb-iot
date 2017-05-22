@@ -114,5 +114,6 @@
 #include "otb_relay.h"
 #include "otb_brzo_i2c.h"
 #include "otb_eeprom.h"
+#include "otb_board_info.h"
 
 #endif

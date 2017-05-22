@@ -19,23 +19,25 @@
  * 
  */
  
-#ifndef OTB_HWINFO_MAIN_BOARD_V0_4_H_INCLUDED
-#define OTB_HWINFO_MAIN_BOARD_V0_4_H_INCLUDED
+#ifndef OTB_MAIN_BOARD_OTBIOT_V0_4_H_INCLUDED
+#define OTB_MAIN_BOARD_OTBIOT_V0_4_H_INCLUDED
 
-#define OTB_HWINFO_MAIN_BOARD_V0_4_GPIO_PIN_NUM       17
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM         3
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_1  2
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_2  2
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_3  2
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_1  (16+8)
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_2  (10+10)
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_3  (10+10)
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_1      0x50  // XXX Double check
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_2      0x51  // XXX Double check
-#define OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_3      0x52  // XXX Double check
-
+// Only used by hwinfo - not used directly by otb-iot (otb-iot uses via eeprom)
 #ifdef OTB_HWINFO_C
-const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_main_board_pin_info[OTB_HWINFO_MAIN_BOARD_V0_4_GPIO_PIN_NUM] =
+
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_GPIO_PIN_NUM       17
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM         3
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_1  2
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_2  2
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_3  2
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_1  (16+8)
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_2  (10+10)
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_3  (10+10)
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_1      0x50  // XXX Double check
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_2      0x51  // XXX Double check
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_3      0x52  // XXX Double check
+
+const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_main_board_pin_info[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_GPIO_PIN_NUM] =
 {
   // GPIO 0
   {0,
@@ -174,7 +176,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_main_board_pin_info[OTB_HWI
    OTB_EEPROM_PIN_PULLED_V33},
 };
 
-const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_1[OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_1] =
+const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_1[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_1] =
 {
   // Module 1, Header 1, Pin 1
   {
@@ -417,7 +419,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_1[OTB_HWINF
   },
 };
 
-const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_2[OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_2] =
+const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_2[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_2] =
 {
   // Module 2, Header 1, Pin 1
   {
@@ -620,7 +622,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_2[OTB_HWINF
   },
 };
 
-const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_3[OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_3] =
+const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_3[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_3] =
 {
   // Module 3, Header 1, Pin 1
   {
@@ -823,46 +825,46 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_v0_4_module_pin_info_3[OTB_HWINF
   },
 };
 
-const otb_hwinfo_main_board_module_info otb_hwinfo_main_board_v0_4_module_info[OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM] =
+const otb_hwinfo_main_board_module_info otb_hwinfo_main_board_otbiot_v0_4_module_info[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM] =
 {
   // Module 1
   {
     1,
     OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ_PROG,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_1,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_1,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_1,
-    &otb_hwinfo_main_board_v0_4_module_pin_info_1
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_1,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_1,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_1,
+    &otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_1
   },
 
   // Module 2
   {
     2,
     OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_2,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_2,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_2,
-    &otb_hwinfo_main_board_v0_4_module_pin_info_2
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_2,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_2,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_2,
+    &otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_2
   },
 
   // Module 3
   {
     3,
     OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_HDRS_NUM_3,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM_PINS_3,
-    OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_ADDR_3,
-    &otb_hwinfo_main_board_v0_4_module_pin_info_3
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_HDRS_NUM_3,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM_PINS_3,
+    OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_ADDR_3,
+    &otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_3
   },
 };
 
-const otb_hwinfo_main_board_info otb_hwinfo_main_board_v0_4_board_info =
+const otb_hwinfo_main_board_info otb_hwinfo_main_board_otbiot_v0_4_board_info =
 {
-  OTB_HWINFO_MAIN_BOARD_V0_4_GPIO_PIN_NUM,
-  OTB_HWINFO_MAIN_BOARD_V0_4_MODULE_NUM,
-  &otb_hwinfo_main_board_v0_4_main_board_pin_info,
-  &otb_hwinfo_main_board_v0_4_module_info,
+  OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_GPIO_PIN_NUM,
+  OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM,
+  &otb_hwinfo_main_board_otbiot_v0_4_main_board_pin_info,
+  &otb_hwinfo_main_board_otbiot_v0_4_module_info,
 };
 #endif // OTB_HWINFO_C
 
-#endif // OTB_HWINFO_MAIN_BOARD_V0_4_H_INCLUDED
+#endif // OTB_MAIN_BOARD_OTBIOT_V0_4_H_INCLUDED

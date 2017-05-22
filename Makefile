@@ -42,14 +42,14 @@ SERIAL_BAUD_74 = 74880
 SERIAL = miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
-CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
+CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
 I2C_CFLAGS = -Ilib/i2c -DOTB_TEST
-RBOOT_OTHER_CFLAGS = -Os -Iinclude -I$(SDK_BASE)/sdk/include -mlongcalls
-HWINFO_CFLAGS = -Iinclude -Iobj/hwinfo -c
+RBOOT_OTHER_CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls
+HWINFO_CFLAGS = -Iinclude -Iinclude/boards -Iobj/hwinfo -c
 SOFTUART_CFLAGS = $(OTB_CFLAGS) -Ilib/esp8266-software-uart/softuart/include
 LIBB64_CFLAGS = $(OTB_CFLAGS) -I lib/libb64/include
 
