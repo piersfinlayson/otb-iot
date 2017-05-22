@@ -616,6 +616,8 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_read_main_comp(uint8_t addr,
   if (!fn_rc)
   {
     // Couldn't find any record of this structure on the eeprom - exit
+    // Note this may be expected - if we are reading multiple instances
+    // we'll hit this after we've read the last
     WARN("EEPROM: %s not found on eeprom", struct_type);
     rc |= OTB_EEPROM_ERR_NOT_FOUND;
     goto EXIT_LABEL;
