@@ -61,32 +61,6 @@
   otb_hwinfo_checksum_store(S, total_size, checksum_loc, checksum_size);     \
 }
 
-// Used to record main board module information in board specific header files
-typedef struct otb_hwinfo_main_board_module_info
-{
-  uint32 num;
-  uint32 socket_type;
-  uint32 num_headers;
-  uint32 num_pins;
-  uint8 address;
-
-  // Pointer to an array of pin_infos (not an array of pointers!)
-  const otb_eeprom_pin_info (*pin_info)[];
-} otb_hwinfo_main_board_module_info;
-
-// Used to record board specific information in board specific header files
-typedef struct otb_hwinfo_main_board_info
-{
-  uint32 pin_count;
-  uint32 mod_count;
-
-  // Pointer to an array of pin_infos (not an array of pointers!)
-  const otb_eeprom_pin_info (*pin_info)[];
-
-  // Pointer to an array of module infos (not an array of pointers!)
-  const otb_hwinfo_main_board_module_info (*module_info)[];
-} otb_hwinfo_main_board_info;
-
 // Used by hwinfo to store information to write to flash
 typedef struct otb_hwinfo_info
 {

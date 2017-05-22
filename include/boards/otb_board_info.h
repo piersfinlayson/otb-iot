@@ -22,7 +22,51 @@
 #ifndef OTB_BOARD_INFO_H_INCLUDED
 #define OTB_BOARD_INFO_H_INCLUDED
 
-// otbiot main board v0.4
-#include "otb_main_board_otbiot_v0_4.h"
+// Used to record main board module information in board specific header files
+typedef struct otb_hwinfo_main_board_module_info
+{
+  uint32 num;
+  uint32 socket_type;
+  uint32 num_headers;
+  uint32 num_pins;
+  uint8 address;
+
+  // Pointer to an array of pin_infos (not an array of pointers!)
+  const otb_eeprom_pin_info (*pin_info)[];
+} otb_hwinfo_main_board_module_info;
+
+// Used to record board specific information in board specific header files
+typedef struct otb_hwinfo_main_board_info
+{
+  uint32 pin_count;
+  uint32 mod_count;
+
+  // Pointer to an array of pin_infos (not an array of pointers!)
+  const otb_eeprom_pin_info (*pin_info)[];
+
+  // Pointer to an array of module infos (not an array of pointers!)
+  const otb_hwinfo_main_board_module_info (*module_info)[];
+
+} otb_hwinfo_main_board_info;
+
+// Some extra info only used by otbiot (not hwinfo or rboot)
+typedef struct otb_hwinfo_main_board_info_extra
+{
+  // See otb_eeprom_main_board for valid values and defaults
+
+  // What ESP module this unit is based on
+  uint32 esp_module;
+  
+  // Flash size in bytes - should match flash size encoded at beginning of esp8266 flash
+  uint32 flash_size_bytes;
+  
+  // I2C ADC included (values may be ORed together (support for up to 32 different
+  // ADC type/addresses
+  uint32 i2c_adc;
+  
+  // Internal ADC configuration
+  uint32 internal_adc_type;
+  
+} otb_hwinfo_main_board_info_extra;
 
 #endif // OTB_BOARD_INFO_H_INCLUDED

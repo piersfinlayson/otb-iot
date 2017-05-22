@@ -34,7 +34,7 @@
 #include "otb_eeprom.h"
 
 #include "otb_hwinfo.h"
-#include "otb_board_info.h"
+#include "otb_board.h"
 
 int main(int argc, char **argv)
 {

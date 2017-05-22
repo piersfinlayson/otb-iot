@@ -561,16 +561,24 @@ void NOINLINE factory_reset(void)
 	uint32 gpio = OTB_RBOOT_DEFAULT_SOFT_RESET_PIN;
 
 	// Figure out which GPIO is used for soft reset
-	if (otb_eeprom_main_board_gpio_pins_g->hdr.magic == OTB_EEPROM_GPIO_PIN_INFO_MAGIC)
+	if (otb_eeprom_main_board_gpio_pins_g != NULL)
 	{
-		for (ii = 0;  ii < otb_eeprom_main_board_gpio_pins_g->num_pins; ii++)
+		if (otb_eeprom_main_board_gpio_pins_g->hdr.magic == OTB_EEPROM_GPIO_PIN_INFO_MAGIC)
 		{
-			if (otb_eeprom_main_board_gpio_pins_g->pin_info[ii].use == OTB_EEPROM_PIN_USE_RESET_SOFT)
+			for (ii = 0;  ii < otb_eeprom_main_board_gpio_pins_g->num_pins; ii++)
 			{
-				gpio = otb_eeprom_main_board_gpio_pins_g->pin_info[ii].num;
-				break;
+				if (otb_eeprom_main_board_gpio_pins_g->pin_info[ii].use == OTB_EEPROM_PIN_USE_RESET_SOFT)
+				{
+					gpio = otb_eeprom_main_board_gpio_pins_g->pin_info[ii].num;
+					break;
+				}
 			}
 		}
+	}
+	else
+	{
+    ets_printf("BOOT: Unknown soft reset pin\r\n");
+		goto EXIT_LABEL;
 	}
   
   // Check if GPIO14 is depressed

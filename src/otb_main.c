@@ -48,10 +48,14 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Relog heap size (now have read into eeprom)
   INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
 
+  // Populate GPIO purposes now have read eeprom
+  otb_gpio_populate_purpose();
+
   // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
   otb_flash_init();
   
-  // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO)  
+  // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO), but
+  // after have populated them 
   otb_gpio_init();
   
   // Reset GPIO - pull pin 16 high

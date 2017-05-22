@@ -27,13 +27,35 @@
 #define OTB_GPIO_RESET_PIN              14
 #define OTB_GPIO_RESET_COUNT_MAX        15
 
-#ifdef OTB_GPIO_C
+#define OTB_GPIO_INVALID_PIN  0xffffffff
+
+typedef struct otb_gpio_pin_purpose
+{
+  // OTB_GPIO_INVALID_PIN/0xffffffff means unset
+
+  uint32_t soft_reset;
+
+  uint32_t status;
+
+} otb_gpio_pin_purpose;
+
+#ifndef OTB_GPIO_C
+extern otb_gpio_pin_purpose otb_gpio_pins;
+extern uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
+#else // OTB_GPIO_C
+otb_gpio_pin_purpose otb_gpio_pins =
+{
+  OTB_GPIO_INVALID_PIN,
+  OTB_GPIO_INVALID_PIN,
+};
+uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
 uint8_t otb_gpio_reset_count;
 os_timer_t otb_gpio_reset_timer;
 unsigned char ALIGN4 otb_gpio_reset_string[] = "Resetting to factory settings";
 unsigned char ALIGN4 otb_gpio_reset_reason_reset[] = "Reset button pressed";
 #endif // OTB_GPIO_C
 
+void otb_gpio_populate_purpose(void);
 void otb_gpio_init(void);
 void otb_gpio_reset_button_interrupt(void);
 void otb_gpio_reset_kick_off(void);

@@ -270,7 +270,8 @@ typedef struct otb_eeprom_main_board
   uint32 esp_module;
   
   // Flash size in bytes - should match flash size encoded at beginning of esp8266 flash
-#define OTB_EEPROM_HW_DEFAULT_FLASH_SIZE_BYTES  (4 * 1024 * 1024)
+#define OTB_EEPROM_HW_FLASH_SIZE_BYTES_4M       (4 * 1024 * 1024)
+#define OTB_EEPROM_HW_FLASH_SIZE_BYTES_DEFAULT  OTB_EEPROM_HW_FLASH_SIZE_BYTES_4M
   uint32 flash_size_bytes;
   
   // I2C ADC included (values may be ORed together (support for up to 32 different
@@ -280,9 +281,10 @@ typedef struct otb_eeprom_main_board
   uint32 i2c_adc;
   
   // Internal ADC configuration
-#define OTB_EEPROM_HW_INT_ADC_NONE          0  // Not connected
-#define OTB_EEPROM_HW_INT_ADC_3V3_10K_2K49  1  // Connected to 3.3V supply voltage via 10K, 2.49K voltage divider
-#define OTB_EEPROM_HW_INT_ADC_MODULE        2  // Routed to a module
+#define OTB_EEPROM_HW_INT_ADC_NONE           0  // Not connected
+#define OTB_EEPROM_HW_INT_ADC_3V3_10K_2K49   1  // Connected to 3.3V supply voltage via 10K, 2.49K voltage divider
+#define OTB_EEPROM_HW_INT_ADC_MODULE         2  // Routed to a module
+#define OTB_EEPROM_HW_INT_ADC_3V3_220K_100K  3  // Connected to 3.3V supply voltage via 220K, 100K voltage divider (d1 mini)
   uint32 internal_adc_type;
   
   // Number of modules

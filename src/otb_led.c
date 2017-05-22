@@ -398,7 +398,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
   {
     otb_led_wifi_colour = rgb;
   }
-  otb_led_neo_update(&rgb, 1, OTB_LED_NEO_PIN);
+  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status);
   if (rgb)
   {
     otb_led_wifi_on = TRUE;
@@ -413,7 +413,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin)
+void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin)
 {
   int ii, jj;
   uint32_t colour_mask;
@@ -424,6 +424,12 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin)
   uint32_t pin_mask;
 
   DEBUG("LED: otb_led_neo_update entry");
+
+  if (pin == OTB_GPIO_INVALID_PIN)
+  {
+    DEBUG("LED: Status LED is not configured - not updating");
+    goto EXIT_LABEL;
+  }
 
   pin_mask = 1 << pin;
 
@@ -461,6 +467,8 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint8_t pin)
   ETS_UART_INTR_ENABLE();
 
   os_delay_us(50);
+
+EXIT_LABEL:  
 
   DEBUG("LED: otb_led_neo_update exit");
 

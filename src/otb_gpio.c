@@ -20,10 +20,51 @@
 #define OTB_GPIO_C
 #include "otb.h"
 
-uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
+void ICACHE_FLASH_ATTR otb_gpio_populate_purpose(void)
+{
+  uint32_t num_pins;
+  const otb_eeprom_pin_info *pin_info;
+  int ii;
+
+  if (otb_eeprom_main_board_gpio_pins_g != NULL)
+  {
+    num_pins = otb_eeprom_main_board_gpio_pins_g->num_pins;
+    pin_info = otb_eeprom_main_board_gpio_pins_g->pin_info;
+  }
+  else
+  {
+    num_pins = otb_eeprom_def_main_board_info->pin_count;
+    pin_info = (*otb_eeprom_def_main_board_info->pin_info);
+  }
+
+  OTB_ASSERT(pin_info != NULL);
+
+  for (ii = 0; ii < num_pins; ii++)
+  {
+    switch (pin_info[ii].use)
+    {
+      case OTB_EEPROM_PIN_USE_RESET_SOFT:
+        INFO("GPIO: Soft reset pin: %d", pin_info[ii].num);
+        otb_gpio_pins.soft_reset = pin_info[ii].num;
+        break;
+
+      case OTB_EEPROM_PIN_USE_STATUS_LED:
+        INFO("GPIO: Status LED pin: %d", pin_info[ii].num);
+        otb_gpio_pins.status = pin_info[ii].num;
+        break;
+      
+      default:
+        break;
+    }
+  }
+
+  return;
+}
 
 void ICACHE_FLASH_ATTR otb_gpio_init(void)
 {
+  int ii;
+
   DEBUG("GPIO: otb_gpio_init entry");
 
   memset(otb_gpio_pin_io_status, 0, OTB_GPIO_ESP_GPIO_PINS);
@@ -42,20 +83,47 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
   // XXX Other reserved pins - need to set output manually!
-  otb_gpio_set(0, 0, FALSE);
-  otb_gpio_set(2, 0, FALSE);
-  otb_gpio_set(4, 0, FALSE);
-  otb_gpio_set(5, 0, FALSE);
-  otb_gpio_set(12, 0, FALSE);
-  otb_gpio_set(13, 0, TRUE);
-  otb_gpio_set(15, 0, FALSE);
-  
-  // Register GPIO14 interrupt
-  ETS_GPIO_INTR_DISABLE();
-  ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, OTB_GPIO_RESET_PIN);
-	GPIO_DIS_OUTPUT(OTB_GPIO_RESET_PIN);
-	gpio_pin_intr_state_set(GPIO_ID_PIN(OTB_GPIO_RESET_PIN), 1);
-	ETS_GPIO_INTR_ENABLE();
+
+  for (ii = 0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
+  {
+    switch (ii)
+    {
+      case 0:
+      case 2:
+      case 4:
+      case 5:
+      case 12:
+      case 13:
+      case 14:
+      case 15:
+        if (ii == otb_gpio_pins.soft_reset)
+        {
+          // Register GPIO14 interrupt
+          ETS_GPIO_INTR_DISABLE();
+          ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, otb_gpio_pins.soft_reset);
+          GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
+          gpio_pin_intr_state_set(GPIO_ID_PIN(otb_gpio_pins.soft_reset), 1);
+          ETS_GPIO_INTR_ENABLE();
+        }
+        else if (ii == otb_gpio_pins.status)
+        {
+          otb_gpio_set(ii, 1, FALSE);
+        }
+        else if (ii == 13)
+        {
+          // Why override?
+          otb_gpio_set(ii, 0, TRUE);
+        }
+        else
+        {
+          otb_gpio_set(ii, 0, FALSE);
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
 
   DEBUG("GPIO: otb_gpio_init exit");
   
@@ -71,7 +139,7 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void)
   ETS_GPIO_INTR_DISABLE();
   
   // Get and act on interrupt
-  get = otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE);
+  get = otb_gpio_get(otb_gpio_pins.soft_reset, TRUE);
   if (get)
   {
     WARN("GPIO: Reset button pressed");
