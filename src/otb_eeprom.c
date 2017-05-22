@@ -210,6 +210,28 @@ EXIT_LABEL:
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_eeprom_output_pin_info(uint32_t num_pins, otb_eeprom_pin_info *pin_info)
+{
+  int ii;
+
+  DEBUG("EEPROM: otb_eeprom_output_pin_info entry");
+
+  for (ii = 0; ii < num_pins; ii++)
+  {
+    INFO("EEPROM:   pin #%d:", ii);
+    INFO("EEPROM:     num:           %d", pin_info[ii].num);
+    INFO("EEPROM:     header_num:    %d", pin_info[ii].header_num);
+    INFO("EEPROM:     use:           %d", pin_info[ii].use);
+    INFO("EEPROM:     module:        0x%08x", pin_info[ii].module);
+    INFO("EEPROM:     further_info:  0x%08x", pin_info[ii].further_info);
+    INFO("EEPROM:     pulled:        %d", pin_info[ii].pulled);
+  }
+    
+  DEBUG("EEPROM: otb_eeprom_output_pin_info exit");
+
+  return;
+}
+
 //
 // Read a main comp of the appropriate type.
 //
@@ -232,6 +254,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
   char *struct_name;
   uint32_t fn_rc;
   otb_eeprom_hdr *hdr;
+  int ii;
 
   DEBUG("EEPROM: otb_eeprom_read_all_otbiot entry");
 
@@ -316,15 +339,63 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       break;
 
     case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
+      ;
+      otb_eeprom_main_board *main_board = (otb_eeprom_main_board *)local_buf;
+      // Guard against non NULL terminated serial!
+      unsigned char serial[OTB_EEPROM_HW_SERIAL_LEN+2];
+      os_memcpy(serial, main_board->common.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
+      serial[OTB_EEPROM_HW_SERIAL_LEN+1] = 0;
+      INFO("EEPROM:   common.serial:   %s", main_board->common.serial);
+      INFO("EEPROM:   common.code:     0x%08x", main_board->common.code);
+      INFO("EEPROM:   common.subcode:  0x%08x", main_board->common.subcode);
+      INFO("EEPROM:   chipid:          %02x%02x%02x", main_board->chipid[0], main_board->chipid[1], main_board->chipid[2]);
+      INFO("EEPROM:   mac1:            %02x%02x%02x%02x%02x%02x",
+           main_board->mac1[0],
+           main_board->mac1[1],
+           main_board->mac1[2],
+           main_board->mac1[3],
+           main_board->mac1[4],
+           main_board->mac1[5]);
+      INFO("EEPROM:   mac2:            %02x%02x%02x%02x%02x%02x",
+           main_board->mac2[0],
+           main_board->mac2[1],
+           main_board->mac2[2],
+           main_board->mac2[3],
+           main_board->mac2[4],
+           main_board->mac2[5]);
+      INFO("EEPROM:   esp_module:      %d", main_board->esp_module);
+      INFO("EEPROM:   flash_size:      0x%08x bytes", main_board->flash_size_bytes);
+      INFO("EEPROM:   i2c_adc:         %d", main_board->i2c_adc);
+      INFO("EEPROM:   internal_adc_type: %d", main_board->internal_adc_type);
+      INFO("EEPROM:   num_modules:     %d", main_board->num_modules);
       break;
 
     case OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE:
+      ;
+      otb_eeprom_main_board_module *module = (otb_eeprom_main_board_module *)local_buf;
+      INFO("EEPROM:   num:             %d", module->num);
+      INFO("EEPROM:   socket_type:     %d", module->socket_type);
+      INFO("EEPROM:   num_headers:     %d", module->num_headers);
+      INFO("EEPROM:   num_pins:        %d", module->num_pins);
+      INFO("EEPROM:   address:         0x%02x", module->address);
+//#ifdef OTB_DEBUG      
+      otb_eeprom_output_pin_info(module->num_pins, module->pin_info);
+//#endif // OTB_DEBUG      
       break;
 
     case OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA:
+      ;
+      otb_eeprom_main_board_sdk_init_data *sdk_init_data = (otb_eeprom_main_board_sdk_init_data *)local_buf;
+      INFO("EEPROM:   data_len:        %d bytes", sdk_init_data->data_len);
       break;
 
     case OTB_EEPROM_INFO_TYPE_GPIO_PINS:
+      ;
+      otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)local_buf;
+      INFO("EEPROM:   num_pins:        %d", gpio_pins->num_pins);
+//#ifdef OTB_DEBUG      
+      otb_eeprom_output_pin_info(gpio_pins->num_pins, gpio_pins->pin_info);
+//#endif // OTB_DEBUG      
       break;
 
     default:

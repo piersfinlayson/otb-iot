@@ -570,6 +570,7 @@ void otb_eeprom_read_main_types(uint8_t addr,
                                 otb_eeprom_info *eeprom_info,
                                 uint32_t types[],
                                 uint32_t types_num);
+void otb_eeprom_output_pin_info(uint32_t num_pins, otb_eeprom_pin_info *pin_info);
 void *otb_eeprom_load_main_comp(uint8_t addr,
                                 brzo_i2c_info *i2c_info,
                                 otb_eeprom_info *eeprom_info,
