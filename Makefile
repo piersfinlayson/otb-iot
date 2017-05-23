@@ -50,6 +50,7 @@ OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i
 I2C_CFLAGS = -Ilib/i2c -DOTB_TEST
 RBOOT_OTHER_CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls
 HWINFO_CFLAGS = -Iinclude -Iinclude/boards -Iobj/hwinfo -c
+STAGE_CFLAGS = -Itools/stage -c
 SOFTUART_CFLAGS = $(OTB_CFLAGS) -Ilib/esp8266-software-uart/softuart/include
 LIBB64_CFLAGS = $(OTB_CFLAGS) -I lib/libb64/include
 
@@ -110,6 +111,15 @@ CHECK_APP_IMAGE_FILE_SIZE = \
                 echo "bin/app_image.bin too large" ; exit 1 ; \
         fi
 
+CHECK_STAGE_APP_IMAGE_FILE_SIZE = \
+        if [ ! -f "bin/stage_app_image.bin" ]; then \
+                echo "bin/stage_app_image.bin does not exist" ; exit 1 ; \
+        fi; \
+        FILE_SIZE=$$(du -b "bin/stage_app_image.bin" | cut -f 1) ; \
+        if [ $$FILE_SIZE -gt 983040 ]; then \
+                echo "bin/stage_app_image.bin too large" ; exit 1 ; \
+        fi
+
 # Link options
 LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -Wl,--end-group
@@ -132,6 +142,8 @@ I2C_SRC_DIR = lib/brzo_i2c
 I2C_OBJ_DIR = obj/brzo_i2c
 HWINFO_SRC_DIR = tools/hwinfo
 HWINFO_OBJ_DIR = obj/hwinfo
+STAGE_SRC_DIR = tools/stage
+STAGE_OBJ_DIR = obj/stage
 SOFTUART_SRC_DIR = lib/esp8266-software-uart/softuart
 SOFTUART_OBJ_DIR = obj/softuart
 LIBB64_SRC_DIR = lib/libb64/src
@@ -210,6 +222,9 @@ i2cDep = $(i2cObjects:%.o=%.d)
 hwinfoObjects = $(HWINFO_OBJ_DIR)/otb_hwinfo.o
 hwinfoDep = $(hwinfoObjects:%.o=%.d)
 
+stageObjects = $(STAGE_OBJ_DIR)/otb_stage.o
+stageDep = $(stageObjects:%.o=%.d)
+
 all: directories bin/app_image.bin bin/rboot.bin docs
 
 bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
@@ -218,6 +233,12 @@ bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 bin/app_image.elf $@ .text .data .rodata 
 	@$(CHECK_APP_IMAGE_FILE_SIZE)
 
+bin/stage_app_image.bin: bin/stage_app_image.elf $(ESPTOOL2)
+	$(NM) -n bin/stage_app_image.elf > bin/stage_app_image.sym
+	$(OBJDUMP) -d bin/stage_app_image.elf > bin/stage_app_image.dis
+	$(ESPTOOL2) -bin -iromchksum -boot2 -1024 bin/stage_app_image.elf $@ .text .data .rodata 
+	@$(CHECK_STAGE_APP_IMAGE_FILE_SIZE)
+
 # Increment build number
 build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects obj/html/libwebpages-espfs.a
 	@if ! test -f $(BUILD_NUM_FILE); then echo 0 > $(BUILD_NUM_FILE); fi
@@ -225,6 +246,9 @@ build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_
 
 bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects obj/html/libwebpages-espfs.a
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(softuartObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
+
+bin/stage_app_image.elf: build_num libmain2 stage_objects
+	$(LD) $(LDFLAGS) -o bin/stage_app_image.elf $(stageObjects) $(LDLIBS) 
 
 -include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(softuartDep) $(libb64Dep) $(hwinfoDep)
 
@@ -237,6 +261,9 @@ otb_hwinfo_sdk_init_data.h: sdk_init_data.bin
 
 hwinfo: otb_hwinfo_sdk_init_data.h $(hwinfoObjects)
 	gcc $(hwinfoObjects) -lc -o bin/$@
+
+stage: $(stageObjects)
+	$(LD) $(LDFLAGS) -o bin/stage_image.elf $(stageObjects) $(LDLIBS)
 
 # can replace with our own version (from rboot-bigflash.c)
 libmain2: directories
@@ -253,12 +280,17 @@ i2c_objects: $(i2cObjects)
 
 hwinfo_objects: $(hwinfoObjects)
 
+stage_objects: $(stageObjects)
+
 softuart_objects: $(softuartObjects)
 
 libb64_objects: $(libb64Objects)
 
 $(HWINFO_OBJ_DIR)/%.o: $(HWINFO_SRC_DIR)/%.c
 	gcc $(HWINFO_CFLAGS) -MMD -c $< -o $@
+
+$(STAGE_OBJ_DIR)/%.o: $(STAGE_SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(STAGE_CFLAGS) -MMD -c $< -o $@ 
 
 $(OTB_OBJ_DIR)/%.o: $(OTB_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@ 
@@ -346,12 +378,19 @@ flash_app2: bin/app_image.bin
 flash_factory: bin/app_image.bin
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x308000 bin/app_image.bin
 
+flash_stage_app: bin/stage_app_image.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x8000 bin/stage_app_image.bin
+
 flash: flash_boot flash_app
 
 flash_sdk:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin
 
-flash_initial: directories erase_flash flash_sdk flash_boot flash_app flash_factory
+flash_initial: flash_otbiot
+
+flash_otbiot: directories erase_flash flash_sdk flash_boot flash_app flash_factory
+
+flash_stage: directories erase_flash flash_sdk flash_boot flash_stage_app
 
 flash_initial_40mhz: directories erase_flash flash_boot flash_app flash_factory flash_40mhz
 
@@ -369,11 +408,14 @@ con74:
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs
+clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs clean_stage
 	@rm -fr bin obj 
 
 clean_hwinfo: FORCE
 	@rm -f $(HWINFO_OBJ_DIR)/*
+
+clean_stage: FORCE
+	@rm -f $(STAGE_OBJ_DIR)/*
 
 clean_esptool2: FORCE
 	@rm -f external/esptool2/*.o esptool2
@@ -396,7 +438,7 @@ flash_40mhz:
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 flash/esp_init_data_40mhz_xtal.hex
 
 directories:
-	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) $(HWINFO_OBJ_DIR) $(SOFTUART_OBJ_DIR) $(LIBB64_OBJ_DIR) obj/html
+	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) $(HWINFO_OBJ_DIR) $(STAGE_OBJ_DIR) $(SOFTUART_OBJ_DIR) $(LIBB64_OBJ_DIR) obj/html
 
 docs: FORCE
 	-$(MAKE) -C docs html
