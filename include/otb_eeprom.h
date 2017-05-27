@@ -243,6 +243,7 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_SUBCODE_MAIN_BOARD_NONE         0x0
 #define OTB_EEPROM_HW_SUBCODE_MAIN_BOARD_OTB_IOT_0_4  0x001 // otb-iot v0.4
 #define OTB_EEPROM_HW_SUBCODE_MAIN_BOARD_OTB_IOT_0_5  0x002 // otb-iot v0.5 April 2017
+#define OTB_EEPROM_HW_SUBCODE_MAIN_BOARD_OTB_IOT_0_3  0x003 // otb-iot v0.3
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_MEZZ        0x101
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_PROG        0x201
   uint32 subcode;
