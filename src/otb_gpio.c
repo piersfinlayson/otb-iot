@@ -20,107 +20,113 @@
 #define OTB_GPIO_C
 #include "otb.h"
 
-void ICACHE_FLASH_ATTR otb_gpio_populate_purpose(void)
+const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info_det(uint32_t pin_num, uint32_t num_pins, const otb_eeprom_pin_info *pin_info)
 {
-  uint32_t num_pins;
-  const otb_eeprom_pin_info *pin_info;
   int ii;
+  const otb_eeprom_pin_info *rc_pin_info = NULL;
 
-  if (otb_eeprom_main_board_gpio_pins_g != NULL)
-  {
-    num_pins = otb_eeprom_main_board_gpio_pins_g->num_pins;
-    pin_info = otb_eeprom_main_board_gpio_pins_g->pin_info;
-  }
-  else
-  {
-    num_pins = otb_eeprom_def_main_board_info->pin_count;
-    pin_info = (*otb_eeprom_def_main_board_info->pin_info);
-  }
+  DEBUG("GPIO: otb_gpio_get_pin_info_det entry")
 
-  OTB_ASSERT(pin_info != NULL);
+  INFO("GPIO: info det %d, %p", pin_num, pin_info);
 
   for (ii = 0; ii < num_pins; ii++)
   {
-    switch (pin_info[ii].use)
+    if (pin_info[ii].num == pin_num)
     {
-      case OTB_EEPROM_PIN_USE_RESET_SOFT:
-        INFO("GPIO: Soft reset pin: %d", pin_info[ii].num);
-        otb_gpio_pins.soft_reset = pin_info[ii].num;
-        break;
-
-      case OTB_EEPROM_PIN_USE_STATUS_LED:
-        INFO("GPIO: Status LED pin: %d", pin_info[ii].num);
-        otb_gpio_pins.status = pin_info[ii].num;
-        break;
-      
-      default:
-        break;
+      rc_pin_info = pin_info + ii;
+      break;
     }
   }
 
-  return;
+EXIT_LABEL:
+
+  DEBUG("GPIO: otb_gpio_get_pin_info_det exit")
+
+  return rc_pin_info;
+}
+
+const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info(uint32_t pin_num)
+{
+  const otb_eeprom_pin_info *pin_info;
+
+  DEBUG("GPIO: otb_gpio_get_pin_info entry")
+
+  if (otb_eeprom_main_board_gpio_pins_g != NULL)
+  {
+    pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
+  }
+
+  if (pin_info == NULL)
+  {
+    pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_def_main_board_info->pin_count, *(otb_eeprom_def_main_board_info->pin_info));
+  }
+
+  DEBUG("GPIO: otb_gpio_get_pin_info exit")
+
+  return pin_info;
 }
 
 void ICACHE_FLASH_ATTR otb_gpio_init(void)
 {
-  int ii;
+  int ii, jj;
+  const otb_eeprom_pin_info *pin_info;
 
   DEBUG("GPIO: otb_gpio_init entry");
 
   memset(otb_gpio_pin_io_status, 0, OTB_GPIO_ESP_GPIO_PINS);
   gpio_init();
-  
+
   // Initialize all the pins we might use as GPIO.  Pins not included:
   // 1/3 (serial)
   // 6-11 (SPI flash)
   // 16 (reset)
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
-  PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
-  // XXX Other reserved pins - need to set output manually!
-
   for (ii = 0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
   {
-    switch (ii)
+    INFO("GPIO: pin %d", ii);
+    INFO("GPIO: pin %d", ii);
+    INFO("GPIO: pin %d", ii);
+    INFO("GPIO: pin %d", ii);
+    INFO("GPIO: pin %d", ii);
+    INFO("GPIO: pin %d", ii);
+  
+    // For each pin check whether have directions on eeprom about how to use
+    // it.  If not, use default pin information.
+    pin_info = otb_gpio_get_pin_info(ii);
+    OTB_ASSERT(pin_info != NULL);
+
+    // Initialize any non reserved pins
+    if (pin_info->use != OTB_EEPROM_PIN_USE_RESERVED)
     {
-      case 0:
-      case 2:
-      case 4:
-      case 5:
-      case 12:
-      case 13:
-      case 14:
-      case 15:
-        if (ii == otb_gpio_pins.soft_reset)
-        {
-          // Register GPIO14 interrupt
-          ETS_GPIO_INTR_DISABLE();
-          ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, otb_gpio_pins.soft_reset);
-          GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
-          gpio_pin_intr_state_set(GPIO_ID_PIN(otb_gpio_pins.soft_reset), 1);
-          ETS_GPIO_INTR_ENABLE();
-        }
-        else if (ii == otb_gpio_pins.status)
-        {
-          otb_gpio_set(ii, 1, FALSE);
-        }
-        else if (ii == 13)
-        {
-          // Why override?
-          otb_gpio_set(ii, 0, TRUE);
-        }
-        else
-        {
-          otb_gpio_set(ii, 0, FALSE);
-        }
+      PIN_FUNC_SELECT(pin_mux[ii], pin_func[ii]);
+    }
+
+    // Do special processing
+    switch (pin_info->use)
+    {
+      case OTB_EEPROM_PIN_USE_RESERVED:
+        break;
+
+      case OTB_EEPROM_PIN_USE_RESET_HARD:
+        break;
+
+      case OTB_EEPROM_PIN_USE_RESET_SOFT:
+        INFO("GPIO: Soft reset pin: %d", pin_info->num);
+        otb_gpio_pins.soft_reset = pin_info->num;
+        ETS_GPIO_INTR_DISABLE();
+        ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, otb_gpio_pins.soft_reset);
+        GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
+        gpio_pin_intr_state_set(GPIO_ID_PIN(otb_gpio_pins.soft_reset), 1);
+        ETS_GPIO_INTR_ENABLE();
+        break;
+
+      case OTB_EEPROM_PIN_USE_STATUS_LED:
+        INFO("GPIO: Status LED pin: %d", pin_info->num);
+        otb_gpio_pins.status = pin_info->num;
+        otb_gpio_set(ii, 1, TRUE);
         break;
 
       default:
+        otb_gpio_set(ii, 0, FALSE);
         break;
     }
   }
@@ -313,74 +319,59 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
 
 bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
 {
-  bool rc = FALSE;
+  bool rc = TRUE;
+  const otb_eeprom_pin_info *pin_info;
   
   DEBUG("GPIO: otb_gpio_is_reserved entry");
-  
+
   *reserved_text = "";
 
-  switch (pin)
+  pin_info = otb_gpio_get_pin_info(pin);
+  OTB_ASSERT(pin_info != NULL);
+
+  switch (pin_info->use)
   {
-    case OTB_MAIN_GPIO_RESET:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for reset";
-      rc = TRUE;
+    case OTB_EEPROM_PIN_USE_GPIO: 
+      rc = FALSE;
       break;
 
-    case OTB_DS18B20_DEFAULT_GPIO:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for One Wire protocol";
-      rc = TRUE;
-      break;
-      
-    case OTB_LED_NEO_PIN:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for neo pixels";
-      rc = TRUE;
-      break;
-      
-    case OTB_GPIO_RESET_PIN:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for reset";
-      rc = TRUE;
-      break;
-      
-    case 1:
-    case 3:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for serial";
-      rc = TRUE;
+    case OTB_EEPROM_PIN_USE_STATUS_LED:
+      *reserved_text = "status led";
       break;
 
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-    case 11:
-      DEBUG("GPIO: Pin is reserved");
-      *reserved_text = "GPIO pin is reserved for flash";
-      rc = TRUE;
+    case OTB_EEPROM_PIN_USE_RESET_HARD:
+      *reserved_text = "hard reset";
       break;
 
-    case 4:
-    case 5:
-      if (otb_i2c_initialized)
-      {
-        DEBUG("GPIO: Pin is reserved");
-        *reserved_text = "GPIO pin is reserved for I2C bus";
-        rc = TRUE;
-      }
+    case OTB_EEPROM_PIN_USE_RESET_SOFT:
+      *reserved_text = "soft reset";
       break;
-      
+
+    case OTB_EEPROM_PIN_USE_INT_SDA:
+      *reserved_text = "internal SDA";
+      break;
+
+    case OTB_EEPROM_PIN_USE_INT_SCL:
+      *reserved_text = "internal SCL";
+      break;
+
+    case OTB_EEPROM_PIN_USE_TX:
+      *reserved_text = "TX";
+      break;
+
+    case OTB_EEPROM_PIN_USE_RX:
+      *reserved_text = "RX";
+      break;
+
     default:
+      *reserved_text = "reserved other";
       break;
   }
 
   DEBUG("GPIO: otb_gpio_is_reserved exit");
-  
+
   return rc;
-}
+}  
 
 bool ICACHE_FLASH_ATTR otb_gpio_cmd(unsigned char *next_cmd,
                                     void *arg,
@@ -512,13 +503,13 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
 
   if (!otb_gpio_is_valid(pin))
   {
-    ERROR("GPIO: Can't get pin %d - invalid", pin);
+    ERROR("GPIO: Can't set pin %d - invalid", pin);
     goto EXIT_LABEL;
   }
   
   if (!override_reserved && otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - %s", pin, error_text);
+    ERROR("GPIO: Can't set pin %d - %s", pin, error_text);
     goto EXIT_LABEL;
   }
   

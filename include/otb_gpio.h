@@ -55,7 +55,8 @@ unsigned char ALIGN4 otb_gpio_reset_string[] = "Resetting to factory settings";
 unsigned char ALIGN4 otb_gpio_reset_reason_reset[] = "Reset button pressed";
 #endif // OTB_GPIO_C
 
-void otb_gpio_populate_purpose(void);
+const struct otb_eeprom_pin_info *otb_gpio_get_pin_info_det(uint32_t pin_num, uint32_t num_pins, const struct otb_eeprom_pin_info *pin_info);
+const struct otb_eeprom_pin_info *otb_gpio_get_pin_info(uint32_t pin_num);
 void otb_gpio_init(void);
 void otb_gpio_reset_button_interrupt(void);
 void otb_gpio_reset_kick_off(void);

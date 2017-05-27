@@ -188,7 +188,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read_main_types(uint8_t addr,
              (*(otb_eeprom_main_comp_types[types[ii]].global+jj-1) != NULL) &&
              ((otb_eeprom_main_comp_types[types[ii]].quantity > jj)));
     
-    // Check we actually got a comp or the right type
+    // Check we actually got a comp of the right type
     if (((*(otb_eeprom_main_comp_types[types[ii]].global)) == NULL) &&
         (otb_eeprom_main_comp_types[types[ii]].max_num != OTB_EEPROM_COMP_0_OR_MORE))
     {

@@ -30,6 +30,7 @@ otb-iot docs are hosted at: https://otb-iot.readthedocs.io/en/latest/
    raspberry
    serial_over_mqtt
    mbus
+   eeprom
 
 Contribute
 ----------
