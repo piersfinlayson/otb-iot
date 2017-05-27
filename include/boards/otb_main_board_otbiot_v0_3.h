@@ -19,17 +19,16 @@
  * 
  */
  
-#ifndef OTB_MAIN_BOARD_D1_MINI_V0_4_H_INCLUDED
-#define OTB_MAIN_BOARD_D1_MINI_V0_4_H_INCLUDED
+#ifndef OTB_MAIN_BOARD_OTBIOT_V0_3_H_INCLUDED
+#define OTB_MAIN_BOARD_OTBIOT_V0_3_H_INCLUDED
 
-// This is the default hardware configuration for otbiot if no eeprom info is
-// provided
-#if defined(OTB_EEPROM_C) || defined(OTB_HWINFO_C)
+// Only used by hwinfo - not used directly by otb-iot (otb-iot uses via eeprom)
+#ifdef OTB_HWINFO_C
 
-#define OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_GPIO_PIN_NUM       17
-#define OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_MODULE_NUM         0
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_GPIO_PIN_NUM       17
+#define OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_MODULE_NUM         0
 
-const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_info[OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_GPIO_PIN_NUM] =
+const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_3_main_board_pin_info[OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_GPIO_PIN_NUM] =
 {
   // GPIO 0
   {0,
@@ -43,7 +42,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
   {1,
    OTB_EEPROM_PIN_HEADER_NONE,
    OTB_EEPROM_PIN_USE_TX,
-   OTB_EEPROM_PIN_MODULE_1,
+   OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
    OTB_EEPROM_PIN_PULLED_FLOAT},
 
@@ -59,7 +58,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
   {3,
    OTB_EEPROM_PIN_HEADER_NONE,
    OTB_EEPROM_PIN_USE_RX,
-   OTB_EEPROM_PIN_MODULE_1,
+   OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
    OTB_EEPROM_PIN_PULLED_FLOAT},
 
@@ -69,7 +68,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
    OTB_EEPROM_PIN_USE_GPIO,
    OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_PULLED_V33},
 
   // GPIO 5
   {5,
@@ -77,7 +76,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
    OTB_EEPROM_PIN_USE_GPIO,
    OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_PULLED_V33},
 
   // GPIO 6
   {6,
@@ -133,23 +132,23 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
    OTB_EEPROM_PIN_USE_GPIO,
    OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_PULLED_V33},
 
   // GPIO 13
   {13,
    OTB_EEPROM_PIN_HEADER_NONE,
-   OTB_EEPROM_PIN_USE_GPIO,
+   OTB_EEPROM_PIN_USE_STATUS_LED,
    OTB_EEPROM_PIN_MODULE_NONE,
-   OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_FINFO_LED_TYPE_NEO,
+   OTB_EEPROM_PIN_PULLED_V33},
 
   // GPIO 14
   {14,
    OTB_EEPROM_PIN_HEADER_NONE,
-   OTB_EEPROM_PIN_USE_GPIO,
+   OTB_EEPROM_PIN_USE_RESET_SOFT,
    OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_PULLED_V33},
 
   // GPIO 15
   {15,
@@ -162,28 +161,20 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
   // GPIO 16
   {16,
    OTB_EEPROM_PIN_HEADER_NONE,
-   OTB_EEPROM_PIN_USE_GPIO,
+   OTB_EEPROM_PIN_USE_RESET_HARD,
    OTB_EEPROM_PIN_MODULE_NONE,
    OTB_EEPROM_PIN_FINFO_NONE,
-   OTB_EEPROM_PIN_PULLED_FLOAT},
+   OTB_EEPROM_PIN_PULLED_V33},
 };
 
-const otb_hwinfo_main_board_info otb_hwinfo_main_board_d1_mini_vanilla_board_info =
+const otb_hwinfo_main_board_info otb_hwinfo_main_board_otbiot_v0_3_board_info =
 {
-  "d1_mini",
-  OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_GPIO_PIN_NUM,
-  OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_MODULE_NUM,
-  &otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_info,
+  "otbiot_v0_3",
+  OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_GPIO_PIN_NUM,
+  OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_MODULE_NUM,
+  &otb_hwinfo_main_board_otbiot_v0_3_main_board_pin_info,
   NULL,
 };
+#endif // OTB_HWINFO_C
 
-const otb_hwinfo_main_board_info_extra otb_hwinfo_main_board_d1_mini_vanilla_board_info_extra = 
-{
-  OTB_EEPROM_HW_ESP12,
-  OTB_EEPROM_HW_FLASH_SIZE_BYTES_4M,
-  OTB_EEPROM_HW_I2C_ADC_NONE,
-  OTB_EEPROM_HW_INT_ADC_3V3_220K_100K
-};
-#endif // defined(OTB_EEPROM_C) || defined(OTB_HWINFO_C)
-
-#endif // OTB_MAIN_BOARD_D1_MINI_V0_4_H_INCLUDED
+#endif // OTB_MAIN_BOARD_OTBIOT_V0_3_H_INCLUDED

@@ -38,6 +38,9 @@ typedef struct otb_hwinfo_main_board_module_info
 // Used to record board specific information in board specific header files
 typedef struct otb_hwinfo_main_board_info
 {
+  // Name with no spaces
+  char *name;
+
   uint32 pin_count;
   uint32 mod_count;
 

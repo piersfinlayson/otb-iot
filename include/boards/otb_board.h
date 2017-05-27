@@ -25,6 +25,7 @@
 
 #include "otb_board_info.h"
 #include "otb_main_board_d1_mini_vanilla.h"
+#include "otb_main_board_otbiot_v0_3.h"
 #include "otb_main_board_otbiot_v0_4.h"
 
 // Set up default hardware information, in case info can't be read from eeprom
@@ -37,5 +38,16 @@ extern const otb_hwinfo_main_board_info_extra *otb_eeprom_def_main_board_info_ex
 const otb_hwinfo_main_board_info *otb_eeprom_def_main_board_info = &otb_hwinfo_main_board_d1_mini_vanilla_board_info;
 const otb_hwinfo_main_board_info_extra *otb_eeprom_def_main_board_info_extra = &otb_hwinfo_main_board_d1_mini_vanilla_board_info_extra;
 #endif // OTB_EEPROM_C
+
+#ifdef OTB_HWINFO_C
+#define OTB_HWINFO_DEFAULT_BOARD_TYPE otb_hwinfo_main_board_otbiot_v0_4_board_info
+const otb_hwinfo_main_board_info *otb_hwinfo_boards[] =
+{
+  &otb_hwinfo_main_board_d1_mini_vanilla_board_info,
+  &otb_hwinfo_main_board_otbiot_v0_3_board_info,
+  &otb_hwinfo_main_board_otbiot_v0_4_board_info,
+  NULL
+};
+#endif
 
 #endif // OTB_BOARD_H_INCLUDED

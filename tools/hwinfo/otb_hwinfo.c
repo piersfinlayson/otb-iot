@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
   // Set up hardware information based on type of board
   // XXX Currently not type of board!
-  hwinfo.board_info = &otb_hwinfo_main_board_otbiot_v0_4_board_info;
+  hwinfo.board_info = &OTB_HWINFO_DEFAULT_BOARD_TYPE;
 
   // Process the args - copy info into temporary structures
   argp_rc = argp_parse(&otb_hwinfo_argp, argc, argv, 0, 0, NULL);
@@ -247,6 +247,24 @@ static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state
     case 'v':
       // verbose
       otb_hwinfo_verbose = TRUE;
+      break;
+
+    case 'b':
+      rc = EINVAL;
+      for (ii = 0; otb_hwinfo_boards[ii] != NULL; ii++)
+      {
+        if (strcmp((*(otb_hwinfo_boards[ii])).name, arg) == 0)
+        {
+          // Match
+          hwinfo.board_info = otb_hwinfo_boards[ii];
+          rc = 0;
+          break;
+        }
+      }
+      if (rc == EINVAL)
+      {
+        printf("Unknown value for board_type: %s\n", arg);
+      }
       break;
       
     case ARGP_KEY_END:
