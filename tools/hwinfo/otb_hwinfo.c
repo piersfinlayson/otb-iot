@@ -32,6 +32,7 @@
 
 #define OTB_EEPROM_C
 #include "otb_eeprom.h"
+#include "otb_board.h"
 
 #include "otb_hwinfo.h"
 #include "otb_board.h"

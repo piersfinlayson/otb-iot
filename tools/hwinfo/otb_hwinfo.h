@@ -141,7 +141,7 @@ static struct argp_option otb_hwinfo_options[] =
   {"esp_module", 'm', "TYPE", 0, "ESP Module type, 1=ESP12, 2=ESP07S"},
   {"flash_size", 'f', "SIZE", 0, "ESP flash size in Kbyte e.g. 512, 4096"},
   {"adc_type", 'd', "TYPE", 0, "I2C type supported by this module, 0=None, 1=ADS1115"},
-  {"adc_config", 't', "TYPE", 0, "Internal ADC configuration, 0=None, 1=3V3_10K_2K49"},
+  {"adc_config", 't', "TYPE", 0, "Internal ADC configuration, 0=None, 1=3V3_10K_2K49, 2=3V3_220K_100K"},
   {"verbose", 'v', 0, 0, "Verbose output"},
   {0}
 };
