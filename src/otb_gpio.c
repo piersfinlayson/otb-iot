@@ -27,13 +27,13 @@ const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info_det(uint32_t 
 
   DEBUG("GPIO: otb_gpio_get_pin_info_det entry")
 
-  INFO("GPIO: info det %d, %p", pin_num, pin_info);
-
   for (ii = 0; ii < num_pins; ii++)
   {
+    DEBUG("GPIO: ii and pin_num: %d %d", ii, pin_num);
     if (pin_info[ii].num == pin_num)
     {
       rc_pin_info = pin_info + ii;
+      DEBUG("GPIO: match: 0x%p use: %d", rc_pin_info, rc_pin_info->use);
       break;
     }
   }
@@ -53,11 +53,13 @@ const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info(uint32_t pin_
 
   if (otb_eeprom_main_board_gpio_pins_g != NULL)
   {
+    DEBUG("GPIO: Search in eeprom: %d %p", otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
     pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
   }
 
   if (pin_info == NULL)
   {
+    DEBUG("GPIO: Search in pin defaults: %d %p", otb_eeprom_def_main_board_info->pin_count, *(otb_eeprom_def_main_board_info->pin_info));
     pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_def_main_board_info->pin_count, *(otb_eeprom_def_main_board_info->pin_info));
   }
 
@@ -70,6 +72,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
 {
   int ii, jj;
   const otb_eeprom_pin_info *pin_info;
+  bool set_ok;
 
   DEBUG("GPIO: otb_gpio_init entry");
 
@@ -82,35 +85,30 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   // 16 (reset)
   for (ii = 0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
   {
-    INFO("GPIO: pin %d", ii);
-    INFO("GPIO: pin %d", ii);
-    INFO("GPIO: pin %d", ii);
-    INFO("GPIO: pin %d", ii);
-    INFO("GPIO: pin %d", ii);
-    INFO("GPIO: pin %d", ii);
+    DEBUG("GPIO: Init pin %d", ii);
   
     // For each pin check whether have directions on eeprom about how to use
     // it.  If not, use default pin information.
     pin_info = otb_gpio_get_pin_info(ii);
     OTB_ASSERT(pin_info != NULL);
 
-    // Initialize any non reserved pins
-    if (pin_info->use != OTB_EEPROM_PIN_USE_RESERVED)
-    {
-      PIN_FUNC_SELECT(pin_mux[ii], pin_func[ii]);
-    }
-
     // Do special processing
+    DEBUG("GPIO: pin use: 0x%x", pin_info->use);
+    set_ok = TRUE; 
     switch (pin_info->use)
     {
       case OTB_EEPROM_PIN_USE_RESERVED:
+        INFO("GPIO: Reserved pin: %d", ii);
+        set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_HARD:
+        INFO("GPIO: Hard reset pin: %d", ii);
+        set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_SOFT:
-        INFO("GPIO: Soft reset pin: %d", pin_info->num);
+        INFO("GPIO: Soft reset pin: %d", ii);
         otb_gpio_pins.soft_reset = pin_info->num;
         ETS_GPIO_INTR_DISABLE();
         ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, otb_gpio_pins.soft_reset);
@@ -120,14 +118,19 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
         break;
 
       case OTB_EEPROM_PIN_USE_STATUS_LED:
-        INFO("GPIO: Status LED pin: %d", pin_info->num);
+        INFO("GPIO: Status LED pin: %d", ii);
         otb_gpio_pins.status = pin_info->num;
-        otb_gpio_set(ii, 1, TRUE);
+        set_ok = otb_gpio_set(ii, 1, TRUE);
         break;
 
       default:
-        otb_gpio_set(ii, 0, FALSE);
+        DEBUG("GPIO: Set pin: %d", ii);
+        set_ok = otb_gpio_set(ii, 0, FALSE);
         break;
+    }
+    if (set_ok)
+    {
+      PIN_FUNC_SELECT(pin_mux[ii], pin_func[ii]);
     }
   }
 

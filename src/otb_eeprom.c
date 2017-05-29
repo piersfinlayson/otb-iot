@@ -404,7 +404,6 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       break;
   }
 
-
 EXIT_LABEL:
 
   DEBUG("EEPROM: otb_eeprom_load_main_comp exit");
