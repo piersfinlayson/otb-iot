@@ -29,6 +29,7 @@
 // Internal I2C bus
 // Must be declared here so rboot.c doesn't include otb_i2c.h
 brzo_i2c_info otb_i2c_bus_internal;
+brzo_i2c_info otb_i2c_bus_internal_backup;
 
 char OTB_FLASH_ATTR *otb_str_i2c_invalid_cmd = "invalid I2C command";    
 char OTB_FLASH_ATTR *otb_str_i2c_ads_invalid_cmd = "invalid ADS command";    
@@ -55,6 +56,9 @@ void ICACHE_FLASH_ATTR otb_i2c_initialize_bus_internal()
   otb_i2c_initialize_bus(&otb_i2c_bus_internal,
                          OTB_I2C_BUS_INTERNAL_SDA_PIN,
                          OTB_I2C_BUS_INTERNAL_SCL_PIN);
+  otb_i2c_initialize_bus(&otb_i2c_bus_internal_backup,
+                         OTB_I2C_BUS_INTERNAL_BACKUP_SDA_PIN,
+                         OTB_I2C_BUS_INTERNAL_BACKUP_SCL_PIN);
 
   DEBUG("I2C: otb_i2c_initialize_bus_internal exit");
   

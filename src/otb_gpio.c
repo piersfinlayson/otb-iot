@@ -47,7 +47,7 @@ EXIT_LABEL:
 
 const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info(uint32_t pin_num)
 {
-  const otb_eeprom_pin_info *pin_info;
+  const otb_eeprom_pin_info *pin_info = NULL;
 
   DEBUG("GPIO: otb_gpio_get_pin_info entry")
 

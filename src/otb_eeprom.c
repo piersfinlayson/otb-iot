@@ -31,17 +31,29 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 #define TEMP_BUF_LEN 256
   unsigned char buf[TEMP_BUF_LEN];
   char fn_rc;
+  brzo_i2c_info *bus;
 
   DEBUG("EEPROM: otb_eeprom_read entry");
 
-  fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, &otb_i2c_bus_internal);
+  INFO("EEPROM: Trying internal bus");
+
+  bus = &otb_i2c_bus_internal;
+  fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, bus);
   if (!fn_rc)
   {
-    // Failed - bail
-    goto EXIT_LABEL;
+    INFO("EEPROM: Trying backup internal bus");
+    bus = &otb_i2c_bus_internal_backup;
+    fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, bus);
+    if (!fn_rc)
+    {
+      // Failed - bail
+      INFO("EEPROM: Failed");
+      goto EXIT_LABEL;
+    }
   }
 
-  otb_eeprom_read_all(otb_eeprom_main_board_addr, &otb_i2c_bus_internal);
+  INFO("EEPROM: Read eeprom ...");
+  otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
 
 EXIT_LABEL:
 

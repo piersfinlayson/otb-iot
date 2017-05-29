@@ -22,6 +22,8 @@
 
 #define OTB_I2C_BUS_INTERNAL_SDA_PIN  0
 #define OTB_I2C_BUS_INTERNAL_SCL_PIN  2
+#define OTB_I2C_BUS_INTERNAL_BACKUP_SDA_PIN  4
+#define OTB_I2C_BUS_INTERNAL_BACKUP_SCL_PIN  5
 
 typedef struct otb_i2c_ads_samples
 {
@@ -210,6 +212,7 @@ bool otb_i2c_initialized = FALSE;
 // Internal I2C bus
 #ifndef OTB_I2C_C
 extern brzo_i2c_info otb_i2c_bus_internal;
+extern brzo_i2c_info otb_i2c_bus_internal_backup;
 #endif // OTB_I2C_C
 
 #endif // OTB_I2C_H
