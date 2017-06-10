@@ -80,30 +80,30 @@ sleep_time = 60
 
 def create_temp_topic(chipId, sensorId, location):
   syslog.syslog(syslog.LOG_DEBUG, "Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
-  topic = "/otb-iot/%s/temp/%s" % (chipId, sensorId)
+  topic = "/otb-iot////%s/temp/%s" % (chipId, sensorId)
   syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
   return topic
-  
+
 # Provide support for old versions of otb-iot
 def create_temp_topic_old(chipId, sensorId, location):
   syslog.syslog(syslog.LOG_DEBUG, "Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
-  topic = "/otb_iot/%s/temp/%s" % (chipId, sensorId)
+  topic = "/otb_iot////%s/temp/%s" % (chipId, sensorId)
   syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
   return topic
-  
+
 def create_power_topic(chipId, location):
   syslog.syslog(syslog.LOG_DEBUG, "Create power topic for chipId: %s, location: %s" % (chipId, location))
-  topic = "/otb-iot/%s/power" % (chipId)
+  topic = "/otb-iot////%s/power/" % (chipId)
   syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
   return topic
-  
+
 # Provide support for old versions of otb-iot
 def create_power_topic_old(chipId, location):
   syslog.syslog(syslog.LOG_DEBUG, "Create power topic for chipId: %s, location: %s" % (chipId, location))
-  topic = "/otb_iot/%s/power" % (chipId)
+  topic = "/otb_iot////%s/power/" % (chipId)
   syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
   return topic
-  
+
 # Return chipId, sensorId and location if a match, None otherwise
 def process_topic(temp_sensors, power_sensors, topic, payload):
   rc = None
@@ -114,10 +114,10 @@ def process_topic(temp_sensors, power_sensors, topic, payload):
       pass
     elif ((substrings[1] != 'otb-iot') and (substrings[1] != 'otb_iot')):
       pass
-    elif (substrings[3] == 'temp'):
+    elif (substrings[6] == 'temp'):
       # Format OK - try and match chipId and sensorId
-      chipid = substrings[2]
-      sensorid = substrings[4]
+      chipid = substrings[5]
+      sensorid = substrings[7]
       for tsensor in temp_sensors:
         if (chipid == tsensor[CHIPID]):
           for sensor in tsensor[SENSORS]:
@@ -128,9 +128,9 @@ def process_topic(temp_sensors, power_sensors, topic, payload):
               break
           if rc != None:
             break
-    elif (substrings[3] == 'power'):
+    elif (substrings[6] == 'power'):
       # Format OK - try and match chipId and sensorId
-      chipid = substrings[2]
+      chipid = substrings[5]
       for psensor in power_sensors:
         if (chipid == psensor[CHIPID]):
           # Match
@@ -170,11 +170,11 @@ def on_message(client, userdata, msg):
   if rc == None:
     syslog.syslog(syslog.LOG_INFO, "No matching sensors (or invalid MQTT message) - ignoring: %s %s" % (msg.topic, msg.payload))
   return
-  
+
 def get_time():
-  time_now = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime()) 
+  time_now = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
   return time_now
-  
+
 def send_temp_to_influx(chipid, sensorid, location, temp):
   global influxdb_client
   try:
@@ -216,7 +216,7 @@ def on_disconnect(client, userdata, rc):
   syslog.syslog(syslog.LOG_ERR, "Disconnected from broker!!!")
   run = False
 
-def main():  
+def main():
   global client, connected, mqtt_addr, mqtt_port, sleep_time, was_once_connected
   global influxdb_client, influxdb_host, influxdb_port, influxdb_user, influxdb_password, influxdb_dbname
 
@@ -232,7 +232,7 @@ def main():
   temp_updates_received = 0
   client.connect_async(mqtt_addr, mqtt_port, 60)
   client.loop_start()
-  
+
   influxdb_client = InfluxDBClient(influxdb_host, influxdb_port, influxdb_user, influxdb_password, influxdb_dbname)
 
   run = True
@@ -241,9 +241,9 @@ def main():
     if not connected and was_once_connected:
       run = False
       break
-    
+
   syslog.syslog(syslog.LOG_ERR, "Exiting as disconnected")
-  
+
 if __name__ == "__main__":
   main()
 
