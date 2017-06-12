@@ -119,6 +119,9 @@ extern otb_cmd_handler_fn otb_gpio_cmd_set_config;
 extern otb_cmd_handler_fn otb_relay_conf_set;
 extern otb_cmd_handler_fn otb_relay_trigger;
 extern otb_cmd_handler_fn otb_serial_config_handler;
+extern otb_cmd_handler_fn otb_nixie_init;
+extern otb_cmd_handler_fn otb_nixie_clear;
+extern otb_cmd_handler_fn otb_nixie_show;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -365,7 +368,7 @@ extern otb_cmd_control otb_cmd_control_trigger_relay[];
 extern otb_cmd_control otb_cmd_control_get_config_serial[];
 extern otb_cmd_control otb_cmd_control_set_config_serial[];
 extern otb_cmd_control otb_cmd_control_trigger_serial[];
-
+extern otb_cmd_control otb_cmd_control_trigger_nixie[];
 
 #ifdef OTB_CMD_C
 
@@ -740,7 +743,8 @@ otb_cmd_control otb_cmd_control_trigger[] =
   {"test",              NULL, otb_cmd_control_trigger_test,    OTB_CMD_NO_FN},
   {"gpio",              NULL, otb_cmd_control_trigger_gpio,    OTB_CMD_NO_FN},
   {"relay",             NULL, otb_cmd_control_trigger_relay,   OTB_CMD_NO_FN},
-  {"serial",            NULL, otb_cmd_control_trigger_serial,   OTB_CMD_NO_FN},
+  {"serial",            NULL, otb_cmd_control_trigger_serial,  OTB_CMD_NO_FN},
+  {"nixie",             NULL, otb_cmd_control_trigger_nixie,   OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -802,6 +806,14 @@ otb_cmd_control otb_cmd_control_trigger_serial[] =
   {OTB_CMD_FINISH}
 };
 
+// trigger->nixie commands
+otb_cmd_control otb_cmd_control_trigger_nixie[] =
+{
+  {"init",             NULL, NULL, otb_nixie_init,   NULL},
+  {"clear",            NULL, NULL, otb_nixie_clear,   NULL},
+  {"show",             NULL, NULL, otb_nixie_show,   NULL},
+  {OTB_CMD_FINISH}    
+};
 
 #endif // OTB_CMD_C
 
