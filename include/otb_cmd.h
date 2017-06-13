@@ -122,6 +122,7 @@ extern otb_cmd_handler_fn otb_serial_config_handler;
 extern otb_cmd_handler_fn otb_nixie_init;
 extern otb_cmd_handler_fn otb_nixie_clear;
 extern otb_cmd_handler_fn otb_nixie_show;
+extern otb_cmd_handler_fn otb_nixie_cycle;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -812,6 +813,7 @@ otb_cmd_control otb_cmd_control_trigger_nixie[] =
   {"init",             NULL, NULL, otb_nixie_init,   NULL},
   {"clear",            NULL, NULL, otb_nixie_clear,   NULL},
   {"show",             NULL, NULL, otb_nixie_show,   NULL},
+  {"cycle",            NULL, NULL, otb_nixie_cycle,   NULL},
   {OTB_CMD_FINISH}    
 };
 

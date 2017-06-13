@@ -2,7 +2,7 @@
 #
 # OTB-IOT - Out of The Box Internet Of Things
 #
-# Copyright (C) 2016 Piers Finlayson
+# Copyright (C) 2017 Piers Finlayson
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -35,7 +35,7 @@ from random import randint
 # Config section - tweak the values in this section as appropriate
 #
 
-sleep_time = 1
+sleep_time = 0.5
 
 # Address and port of MQTT broker otb-iot devices are attached to
 mqtt_addr = "iotmqtt"
@@ -50,9 +50,8 @@ topic = "/otb-iot/18fe34d76b95"
 def on_connect(client, userdata, flags, rc):
   print("Connected to broker with result code "+str(rc))
   global connected    
+  client.publish(topic, "trigger/nixie/init")
   connected = True
-  
-  print ""
 
 def on_disconnect(client, userdata, rc):
   print("Disconnected from broker!!!")
@@ -75,16 +74,23 @@ def main():
     if connected:
       dot0 = False
       dot1 = False
-      if (randint(0, 9) == 0):
-        dot0 = True
-      if (randint(0, 9) == 0):
-        dot1 = True
-      to_show = "%d%d" % (randint(0, 9), randint(0, 9))
-      if (dot1):
-        to_show = to_show[0] + '.' + to_show[1]
-      if (dot0):
-        to_show = '.' + to_show
-      client.publish(topic, "trigger/nixie/show/%s" % to_show)
+      if (randint(0,19) == 0):
+        client.publish(topic, "trigger/nixie/cycle")
+      elif (randint(0,19) == 0):
+        client.publish(topic, "trigger/nixie/clear")
+      elif (randint(0,19) == 0):
+        client.publish(topic, "trigger/nixie/init")
+      else:  
+        if (randint(0, 9) == 0):
+          dot0 = True
+        if (randint(0, 9) == 0):
+          dot1 = True
+        to_show = "%d%d" % (randint(0, 9), randint(0, 9))
+        if (dot1):
+          to_show = to_show[0] + '.' + to_show[1]
+        if (dot0):
+          to_show = '.' + to_show
+        client.publish(topic, "trigger/nixie/show/%s" % to_show)
     time.sleep(sleep_time)
     
   print ("Exiting!!!")

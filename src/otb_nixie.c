@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2017 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,68 +20,86 @@
 #define OTB_NIXIE_C
 #include "otb.h"
 
-#define OTB_NIXIE_INDEX_0    0
-#define OTB_NIXIE_INDEX_1    1
-#define OTB_NIXIE_INDEX_2    2
-#define OTB_NIXIE_INDEX_3    3
-#define OTB_NIXIE_INDEX_4    4
-#define OTB_NIXIE_INDEX_5    5
-#define OTB_NIXIE_INDEX_6    6
-#define OTB_NIXIE_INDEX_7    7
-#define OTB_NIXIE_INDEX_8    8
-#define OTB_NIXIE_INDEX_9    9
-#define OTB_NIXIE_INDEX_DP   10
-#define OTB_NIXIE_INDEX_NUM  11
-
-#define OTB_NIXIE_INVALID_VALUE  0xffffffff
-
-uint8_t srck_pin = 4; 
-uint8_t ser_pin = 5;
-uint8_t rck_pin = 13;
-
-char display_bytes[2] = {'0','0'};
-
-typedef struct otb_nixie_index
+void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
 {
-  uint8_t chip;
-  uint8_t pin;
-} otb_nixie_index;
 
-// First byte is TPIC6B595 instance, second byte is pin
-otb_nixie_index otb_nixie_index_left[OTB_NIXIE_INDEX_NUM] =
-{
-  {1, 1}, // 0
-  {0, 0}, // 1
-  {0, 1}, // 2
-  {0, 2}, // 3
-  {0, 3}, // 4
-  {0, 4}, // 5
-  {0, 5}, // 6
-  {0, 6}, // 7
-  {0, 7}, // 8
-  {1, 0}, // 9
-  {1, 2}, // DP
-};
-otb_nixie_index otb_nixie_index_right[OTB_NIXIE_INDEX_NUM] =
-{
-  {2, 4}, // 0
-  {1, 3}, // 1
-  {1, 4}, // 2
-  {1, 5}, // 3
-  {1, 6}, // 4
-  {1, 7}, // 5
-  {2, 0}, // 6
-  {2, 1}, // 7
-  {2, 2}, // 8
-  {2, 3}, // 9
-  {2, 5}, // DP
-};
+  DEBUG("NIXIE: otb_nixie_module_init entry");
 
-otb_nixie_index *otb_nixie_indexes[2] =
+  otb_nixie_info.inited = FALSE;
+  otb_nixie_info.depoisoning = FALSE;
+  otb_nixie_info.current.digits[0] = '_';
+  otb_nixie_info.current.digits[1] = '_';
+  otb_nixie_info.target.digits[0] = '_';
+  otb_nixie_info.target.digits[1] = '_';
+  otb_nixie_info.pins.srck = OTB_NIXIE_PIN_DEFAULT_SRCK;
+  otb_nixie_info.pins.ser = OTB_NIXIE_PIN_DEFAULT_SER;
+  otb_nixie_info.pins.rck = OTB_NIXIE_PIN_DEFAULT_RCK;
+  otb_nixie_info.depoison_cycle = 0;
+  
+  os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
+  os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
+  os_timer_setfn((os_timer_t*)&(otb_nixie_info.depoisoning_timer), (os_timer_func_t *)otb_nixie_depoison, NULL);
+
+  DEBUG("NIXIE: otb_nixie_module_init exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
 {
-  otb_nixie_index_left,
-  otb_nixie_index_right,
-};
+  bool rc;
+  int ii, jj;
+  char display[2 * OTB_NIXIE_DIGITS + 1];
+
+  DEBUG("NIXIE: otb_nixie_depoison entry");
+
+  otb_nixie_info.depoisoning = TRUE;
+  os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
+  os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
+
+  if (otb_nixie_info.depoison_cycle >= OTB_NIXIE_CYCLE_LEN)
+  {
+    // Show current target
+    otb_nixie_info.depoisoning = FALSE;
+    otb_nixie_info.depoison_cycle = 0;
+    ii = 0;
+    for (jj = 0; jj < OTB_NIXIE_DIGITS; jj++)
+    {
+      if (otb_nixie_info.target.dots[jj] == '.')
+      {
+        display[ii] = '.';
+        ii++;
+      }
+      display[ii] = otb_nixie_info.target.digits[jj];
+      ii++;
+    }
+    display[ii] = 0;
+    rc = otb_nixie_show_value(display, ii);
+    os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 1);  
+    goto EXIT_LABEL;
+  }
+  else
+  {
+    if (otb_nixie_info.depoison_cycle == 0)
+    {
+      // Store off current as target
+      os_memcpy(&otb_nixie_info.target, &otb_nixie_info.current, sizeof(otb_nixie_info.current));
+    }
+
+    rc = otb_nixie_show_value(otb_nixie_depoison_cycle_display[otb_nixie_info.depoison_cycle], 2);
+
+    otb_nixie_info.depoison_cycle++;
+
+    os_timer_setfn((os_timer_t*)&(otb_nixie_info.display_timer), (os_timer_func_t *)otb_nixie_depoison, NULL);
+    os_timer_arm_us((os_timer_t*)&(otb_nixie_info.display_timer), OTB_NIXIE_DEPOSION_CYCLE_TIMER_US, 0);  
+  }
+
+EXIT_LABEL:  
+
+  DEBUG("NIXIE: otb_nixie_depoison exit");
+  
+  return;
+}
 
 // If only one byte passed in it's the right one.
 uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes)
@@ -102,7 +120,7 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
 
   if ((num_bytes == 0) || (num_bytes > 4))
   {
-    INFO("NIXIE: Invalid bytes passed");
+    WARN("NIXIE: Invalid bytes passed");
     value = OTB_NIXIE_INVALID_VALUE;
     goto EXIT_LABEL;
   }
@@ -115,7 +133,7 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
       min_dots = 1;
       if ((bytes[0] != '.') && (bytes[1] != '.'))
       {
-        INFO("NIXIE: No dot at first or second");
+        WARN("NIXIE: No dot at first or second");
         value = OTB_NIXIE_INVALID_VALUE;
         goto EXIT_LABEL;
       }
@@ -127,7 +145,7 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
       min_dots = 2;
       if (bytes[0] != '.')
       {
-        INFO("NIXIE: No dot at first");
+        WARN("NIXIE: No dot at first");
         value = OTB_NIXIE_INVALID_VALUE;
         goto EXIT_LABEL;
       }
@@ -142,13 +160,17 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
     }
     if ((dots > max_dots) || (dots < min_dots))
     {
-      INFO("NIXIE: Invalid number of dots");
+      WARN("NIXIE: Invalid number of dots");
       value = OTB_NIXIE_INVALID_VALUE;
       goto EXIT_LABEL;
     }
   }
 
   which_nixie = num_bytes == 1 ? 1 : 0;
+  otb_nixie_info.current.dots[0] = '_';
+  otb_nixie_info.current.dots[1] = '_';
+  otb_nixie_info.current.digits[0] = '_';
+  otb_nixie_info.current.digits[1] = '_';
 
   for (ii = 0; ii < num_bytes; ii++)
   {
@@ -167,10 +189,16 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
     {
       if (bytes[ii] == '.')
       {
+        if ((which_nixie == 0) && (ii > 0))
+        {
+          which_nixie++;
+        }
         index = OTB_NIXIE_INDEX_DP;
+        otb_nixie_info.current.dots[which_nixie] = bytes[ii];
       }
       else if (bytes[ii] != '_')
       {
+        otb_nixie_info.current.digits[which_nixie] = bytes[ii];
         index = bytes[ii] - '0';
       }
       chip = otb_nixie_indexes[which_nixie][index].chip;
@@ -188,14 +216,14 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
       }
     }
 
-    INFO("NIXIE: Byte: %d Value: %c Chip: %d Pin: %d Output Value: 0x%06x", ii, bytes[ii], chip, pin, temp_value);
+    DEBUG("NIXIE: Byte: %d Value: %c Chip: %d Pin: %d Output Value: 0x%06x", ii, bytes[ii], chip, pin, temp_value);
 
     value |= temp_value;
   }
 
 EXIT_LABEL:
 
-  INFO("NIXIE: Combined Output Value: 0x%06x", value);
+  DEBUG("NIXIE: Combined Output Value: 0x%06x", value);
 
   DEBUG("NIXIE: otb_nixie_get_serial_data exit");
 
@@ -204,7 +232,7 @@ EXIT_LABEL:
 
 bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes)
 {
-  uint32_t wait_time = 100;
+  uint32_t wait_time = OTB_NXIE_SERIAL_TIMER_US;
   uint32_t mask;
   uint32_t serial_data;
   uint32_t value;
@@ -243,14 +271,6 @@ bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_
   otb_gpio_set(rck_pin, 0, FALSE);
   os_delay_us(wait_time);
   otb_gpio_set(rck_pin, 1, FALSE);
-  
-  display_bytes[0]++;
-  display_bytes[1]++;
-  if (display_bytes[0] > '9')
-  {
-    display_bytes[0] = '0';
-    display_bytes[1] = '0';
-  }
 
 EXIT_LABEL:
 
@@ -265,11 +285,16 @@ bool ICACHE_FLASH_ATTR otb_nixie_init(unsigned char *next_cmd, void *arg, unsign
 
   DEBUG("NIXIE: otb_nixie_init entry");
 
+  INFO("NIXIE: init");
+
+  // Set pins to 1 (and using NOT gate - so is 0)
   otb_gpio_set(srck_pin, 1, FALSE);
   otb_gpio_set(ser_pin, 1, FALSE);
   otb_gpio_set(rck_pin, 1, FALSE);
 
-  rc = otb_nixie_clear(NULL, NULL, NULL);
+  rc = otb_nixie_cycle(NULL, NULL, NULL);
+
+  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 1);  
 
   DEBUG("NIXIE: otb_nixie_init exit");
 
@@ -282,7 +307,15 @@ bool ICACHE_FLASH_ATTR otb_nixie_clear(unsigned char *next_cmd, void *arg, unsig
 
   DEBUG("NIXIE: otb_nixie_clear entry");
 
-  rc = otb_nixie_show_value("__", 2);
+  INFO("NIXIE: clear");
+
+  otb_nixie_info.target.digits[0] = '_';
+  otb_nixie_info.target.digits[1] = '_';
+
+  if (!otb_nixie_info.depoisoning)
+  {
+    rc = otb_nixie_show_value("__", 2);
+  }
 
   DEBUG("NIXIE: otb_nixie_clear exit");
 
@@ -295,13 +328,23 @@ bool ICACHE_FLASH_ATTR otb_nixie_show(unsigned char *next_cmd, void *arg, unsign
   int num_bytes;
 
   DEBUG("NIXIE: otb_nixie_show entry");
-
+  
   if (next_cmd == NULL)
   {
+    INFO("NIXIE: show");
     otb_cmd_rsp_append("no value");
     rc = FALSE;
     goto EXIT_LABEL;
   }
+
+  if (otb_nixie_info.depoisoning)
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("depoisioning");
+    goto EXIT_LABEL;
+  }
+
+  INFO("NIXIE: show %s", next_cmd);
 
   rc = otb_nixie_show_value(next_cmd, os_strnlen(next_cmd, 5));
 
@@ -312,3 +355,32 @@ EXIT_LABEL:
   return rc;
 };
 
+bool ICACHE_FLASH_ATTR otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = TRUE;
+  int num_bytes;
+  int ii;
+
+  DEBUG("NIXIE: otb_nixie_cycle entry");
+
+  INFO("NIXIE: cycle");
+
+  if (otb_nixie_info.depoisoning)
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("depoisioning");
+    goto EXIT_LABEL;
+  }
+
+  for (ii = 0; (ii < (OTB_NIXIE_INDEX_NUM+1)) && rc; ii++)
+  {
+    rc = otb_nixie_show_value(otb_nixie_cycle_display[ii], 2);
+    os_delay_us(OTB_NIXIE_CYCLE_TIMER_US);
+  }
+
+EXIT_LABEL:
+
+  DEBUG("NIXIE: otb_nixie_cycle exit");
+
+  return rc;
+};
