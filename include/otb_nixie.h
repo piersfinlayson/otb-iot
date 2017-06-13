@@ -46,7 +46,7 @@
 
 #define OTB_NIXIE_DEPOISONING_TIMER_MS  10000 // 3600000 // One hour
 
-#define OTB_NIXIE_CYCLE_LEN  12
+#define OTB_NIXIE_CYCLE_LEN  13
 
 #define OTB_NIXIE_DEPOSION_CYCLE_TIMER_US  250000
 #define OTB_NIXIE_CYCLE_TIMER_US           10000
@@ -104,7 +104,7 @@ typedef struct otb_nixie_display_state
 void otb_nixie_module_init(void);
 void otb_nixie_depoison(void *arg);
 uint32_t otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes);
-bool otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes);
+bool otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes, bool commit);
 bool otb_nixie_init(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_clear(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_show(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
@@ -157,14 +157,15 @@ char otb_nixie_cycle_display[OTB_NIXIE_CYCLE_LEN][3] =
 {
   {"__"},
   {".9"},
-  {"18"},
-  {"27"},
-  {"36"},
-  {"45"},
-  {"54"},
-  {"63"},
-  {"72"},
-  {"81"},
+  {"08"},
+  {"17"},
+  {"26"},
+  {"35"},
+  {"44"},
+  {"53"},
+  {"62"},
+  {"71"},
+  {"80"},
   {"9."},
   {"__"},
 };
@@ -173,6 +174,7 @@ char otb_nixie_depoison_cycle_display[OTB_NIXIE_CYCLE_LEN][3] =
 {
   {"__"},
   {".."},
+  {"00"},
   {"11"},
   {"22"},
   {"33"},

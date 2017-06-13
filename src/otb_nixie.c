@@ -74,8 +74,8 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
       ii++;
     }
     display[ii] = 0;
-    rc = otb_nixie_show_value(display, ii);
-    os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 1);  
+    rc = otb_nixie_show_value(display, ii, TRUE);
+    os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
     goto EXIT_LABEL;
   }
   else
@@ -86,7 +86,7 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
       os_memcpy(&otb_nixie_info.target, &otb_nixie_info.current, sizeof(otb_nixie_info.current));
     }
 
-    rc = otb_nixie_show_value(otb_nixie_depoison_cycle_display[otb_nixie_info.depoison_cycle], 2);
+    rc = otb_nixie_show_value(otb_nixie_depoison_cycle_display[otb_nixie_info.depoison_cycle], 2, TRUE);
 
     otb_nixie_info.depoison_cycle++;
 
@@ -230,7 +230,7 @@ EXIT_LABEL:
   return value;
 }
 
-bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes)
+bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes, bool commit)
 {
   uint32_t wait_time = OTB_NXIE_SERIAL_TIMER_US;
   uint32_t mask;
@@ -248,6 +248,11 @@ bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_
   if (serial_data == OTB_NIXIE_INVALID_VALUE)
   {
     rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+  if (!commit)
+  {
     goto EXIT_LABEL;
   }
 
@@ -294,7 +299,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_init(unsigned char *next_cmd, void *arg, unsign
 
   rc = otb_nixie_cycle(NULL, NULL, NULL);
 
-  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 1);  
+  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
 
   DEBUG("NIXIE: otb_nixie_init exit");
 
@@ -314,7 +319,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_clear(unsigned char *next_cmd, void *arg, unsig
 
   if (!otb_nixie_info.depoisoning)
   {
-    rc = otb_nixie_show_value("__", 2);
+    rc = otb_nixie_show_value("__", 2, TRUE);
   }
 
   DEBUG("NIXIE: otb_nixie_clear exit");
@@ -326,6 +331,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_show(unsigned char *next_cmd, void *arg, unsign
 {
   bool rc;
   int num_bytes;
+  bool commit;
 
   DEBUG("NIXIE: otb_nixie_show entry");
   
@@ -337,16 +343,14 @@ bool ICACHE_FLASH_ATTR otb_nixie_show(unsigned char *next_cmd, void *arg, unsign
     goto EXIT_LABEL;
   }
 
-  if (otb_nixie_info.depoisoning)
-  {
-    rc = FALSE;
-    otb_cmd_rsp_append("depoisioning");
-    goto EXIT_LABEL;
-  }
-
   INFO("NIXIE: show %s", next_cmd);
 
-  rc = otb_nixie_show_value(next_cmd, os_strnlen(next_cmd, 5));
+  commit = otb_nixie_info.depoisoning ? FALSE : TRUE;
+  rc = otb_nixie_show_value(next_cmd, os_strnlen(next_cmd, 5), commit);
+  if (!commit)
+  {
+    os_memcpy(&otb_nixie_info.target, &otb_nixie_info.current, sizeof(otb_nixie_info.current));
+  }
 
 EXIT_LABEL:
 
@@ -372,9 +376,9 @@ bool ICACHE_FLASH_ATTR otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsig
     goto EXIT_LABEL;
   }
 
-  for (ii = 0; (ii < (OTB_NIXIE_INDEX_NUM+1)) && rc; ii++)
+  for (ii = 0; (ii < OTB_NIXIE_CYCLE_LEN) && rc; ii++)
   {
-    rc = otb_nixie_show_value(otb_nixie_cycle_display[ii], 2);
+    rc = otb_nixie_show_value(otb_nixie_cycle_display[ii], 2, TRUE);
     os_delay_us(OTB_NIXIE_CYCLE_TIMER_US);
   }
 
