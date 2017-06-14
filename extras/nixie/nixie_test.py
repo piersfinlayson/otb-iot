@@ -80,7 +80,7 @@ def main():
         client.publish(topic, "trigger/nixie/clear")
       elif (randint(0,19) == 0):
         client.publish(topic, "trigger/nixie/init")
-      elif (randint(0,19) == 0):
+      elif (randint(0,49) == 0):
         client.publish(topic, "trigger/nixie/show/..")
         for ii in range(0, 100):
           time.sleep(sleep_time/2)
