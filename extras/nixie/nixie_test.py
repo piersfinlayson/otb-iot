@@ -80,6 +80,12 @@ def main():
         client.publish(topic, "trigger/nixie/clear")
       elif (randint(0,19) == 0):
         client.publish(topic, "trigger/nixie/init")
+      elif (randint(0,19) == 0):
+        client.publish(topic, "trigger/nixie/show/..")
+        for ii in range(0, 100):
+          time.sleep(sleep_time/2)
+          output = "{0:0>2}".format(ii)
+          client.publish(topic, "trigger/nixie/show/%s" % output)
       else:  
         if (randint(0, 9) == 0):
           dot0 = True

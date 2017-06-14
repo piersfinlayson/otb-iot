@@ -178,9 +178,15 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
     pin = 0xff;
     temp_value = 0;
 
-    OTB_ASSERT(((bytes[ii] >= '0') && (bytes[ii] <= '9')) ||
-               (bytes[ii] == '_') ||
-               (bytes[ii] == '.'));
+    if ((bytes[ii] != '_') &&
+        (bytes[ii] != '.') &&
+        ((bytes[ii] < '0') || (bytes[ii] > '9')))
+    {
+      WARN("NIXIE: Invalid character: %d", bytes[ii]);
+      value = OTB_NIXIE_INVALID_VALUE;
+      goto EXIT_LABEL;
+    }
+
     if (bytes[ii] == '_')
     {
       which_nixie++;
