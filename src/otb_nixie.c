@@ -17,6 +17,12 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// XXX To do
+// - Turn otb_nixie_show_value into generate 8 bit shift register control function
+//   - Send value
+//   - Apply value
+// - Support arbitrary numbers of digits
+
 #define OTB_NIXIE_C
 #include "otb.h"
 
