@@ -100,16 +100,21 @@ typedef struct otb_nixie_display_state
   // Where in depoison cycle we are;
   uint32_t depoison_cycle;
 
+  // Power
+  bool power;
+
 } otb_nixie_display_state;
 
 void otb_nixie_module_init(void);
 void otb_nixie_depoison(void *arg);
-uint32_t otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes);
+uint32_t otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes, bool power);
 bool otb_nixie_show_value(unsigned char *to_show, uint8_t num_bytes, bool commit);
 bool otb_nixie_init(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_clear(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_show(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_nixie_power(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_nixie_display_update(otb_nixie_display *display);
 
 #ifdef OTB_NIXIE_C
 
@@ -147,6 +152,7 @@ const otb_nixie_index otb_nixie_index_right[OTB_NIXIE_INDEX_NUM] =
   {2, 3}, // 9
   {2, 5}, // DP
 };
+const otb_nixie_index otb_nixie_index_power = {2, 6};
 
 const otb_nixie_index *otb_nixie_indexes[2] =
 {

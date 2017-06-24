@@ -41,6 +41,7 @@ void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
   otb_nixie_info.pins.ser = OTB_NIXIE_PIN_DEFAULT_SER;
   otb_nixie_info.pins.rck = OTB_NIXIE_PIN_DEFAULT_RCK;
   otb_nixie_info.depoison_cycle = 0;
+  otb_nixie_info.power = FALSE;
   
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
@@ -54,8 +55,6 @@ void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
 void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
 {
   bool rc;
-  int ii, jj;
-  char display[2 * OTB_NIXIE_DIGITS + 1];
 
   DEBUG("NIXIE: otb_nixie_depoison entry");
 
@@ -68,19 +67,7 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
     // Show current target
     otb_nixie_info.depoisoning = FALSE;
     otb_nixie_info.depoison_cycle = 0;
-    ii = 0;
-    for (jj = 0; jj < OTB_NIXIE_DIGITS; jj++)
-    {
-      if (otb_nixie_info.target.dots[jj] == '.')
-      {
-        display[ii] = '.';
-        ii++;
-      }
-      display[ii] = otb_nixie_info.target.digits[jj];
-      ii++;
-    }
-    display[ii] = 0;
-    rc = otb_nixie_show_value(display, ii, TRUE);
+    rc = otb_nixie_display_update(&(otb_nixie_info.target));
     os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
     goto EXIT_LABEL;
   }
@@ -108,7 +95,7 @@ EXIT_LABEL:
 }
 
 // If only one byte passed in it's the right one.
-uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes)
+uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_bytes, bool power)
 {
   int ii;
   int which_nixie;
@@ -233,6 +220,18 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
     value |= temp_value;
   }
 
+  if (power)
+  {
+    // Do power
+    chip = otb_nixie_index_power.chip;
+    pin = otb_nixie_index_power.pin;
+    mult = 2 - chip;
+    OTB_ASSERT(pin <= 7);
+    temp_value = 1 << (7 - pin);
+    temp_value <<= 8 * mult;
+    value |= temp_value;
+  }
+
 EXIT_LABEL:
 
   DEBUG("NIXIE: Combined Output Value: 0x%06x", value);
@@ -256,7 +255,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_show_value(unsigned char *to_show, uint8_t num_
   otb_gpio_set(ser_pin, 1, FALSE);
   otb_gpio_set(rck_pin, 1, FALSE);
   
-  serial_data = otb_nixie_get_serial_data(to_show, num_bytes);
+  serial_data = otb_nixie_get_serial_data(to_show, num_bytes, otb_nixie_info.power);
   if (serial_data == OTB_NIXIE_INVALID_VALUE)
   {
     rc = FALSE;
@@ -400,3 +399,56 @@ EXIT_LABEL:
 
   return rc;
 };
+
+bool ICACHE_FLASH_ATTR otb_nixie_power(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool on = (bool)arg;
+  bool rc = TRUE;
+  int num_bytes;
+  int ii;
+
+  DEBUG("NIXIE: otb_nixie_power entry");
+
+  INFO("NIXIE: power %s", on ? "on" : "off");
+
+  otb_nixie_info.power = on ? TRUE : FALSE;
+  
+  if (!otb_nixie_info.depoisoning)
+  {
+    // If depoisoning will update the power soon anyway!
+    otb_nixie_display_update(&(otb_nixie_info.current));
+  }
+
+EXIT_LABEL:
+
+  DEBUG("NIXIE: otb_nixie_power exit");
+
+  return rc;
+};
+
+bool ICACHE_FLASH_ATTR otb_nixie_display_update(otb_nixie_display *display)
+{
+  bool rc;
+  char disp[2 * OTB_NIXIE_DIGITS + 1];
+  int ii, jj;
+
+  DEBUG("NIXIE: otb_nixie_display_update entry");
+
+  ii = 0;
+  for (jj = 0; jj < OTB_NIXIE_DIGITS; jj++)
+  {
+    if (display->dots[jj] == '.')
+    {
+      disp[ii] = '.';
+      ii++;
+    }
+    disp[ii] = display->digits[jj];
+    ii++;
+  }
+  disp[ii] = 0;
+  rc = otb_nixie_show_value(disp, ii, TRUE);
+ 
+  DEBUG("NIXIE: otb_nixie_display_update exit");
+
+  return rc;
+}

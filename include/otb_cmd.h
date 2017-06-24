@@ -123,6 +123,7 @@ extern otb_cmd_handler_fn otb_nixie_init;
 extern otb_cmd_handler_fn otb_nixie_clear;
 extern otb_cmd_handler_fn otb_nixie_show;
 extern otb_cmd_handler_fn otb_nixie_cycle;
+extern otb_cmd_handler_fn otb_nixie_power;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -318,6 +319,15 @@ typedef struct otb_cmd_control
 //     buffer
 //       dump <empty>|all|<bytes>
 //       clear|empty
+//   nixie
+//     init
+//     clear
+//     show
+//       ._._ // .s optional, _ = _ for space, or digit
+//     cycle
+//     power
+//       on
+//       off
 //  
 
 // Some macros to simplify command structure definition
@@ -370,6 +380,7 @@ extern otb_cmd_control otb_cmd_control_get_config_serial[];
 extern otb_cmd_control otb_cmd_control_set_config_serial[];
 extern otb_cmd_control otb_cmd_control_trigger_serial[];
 extern otb_cmd_control otb_cmd_control_trigger_nixie[];
+extern otb_cmd_control otb_cmd_control_trigger_nixie_power[];
 
 #ifdef OTB_CMD_C
 
@@ -814,6 +825,15 @@ otb_cmd_control otb_cmd_control_trigger_nixie[] =
   {"clear",            NULL, NULL, otb_nixie_clear,   NULL},
   {"show",             NULL, NULL, otb_nixie_show,   NULL},
   {"cycle",            NULL, NULL, otb_nixie_cycle,   NULL},
+  {"power",            NULL, otb_cmd_control_trigger_nixie_power,   OTB_CMD_NO_FN},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->nixie commands
+otb_cmd_control otb_cmd_control_trigger_nixie_power[] =
+{
+  {"on",             NULL, NULL, otb_nixie_power,   (void *)1},
+  {"off",            NULL, NULL, otb_nixie_power,   (void *)0},
   {OTB_CMD_FINISH}    
 };
 
