@@ -47,6 +47,9 @@ void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
   os_timer_setfn((os_timer_t*)&(otb_nixie_info.depoisoning_timer), (os_timer_func_t *)otb_nixie_depoison, NULL);
 
+  otb_nixie_indexes = otb_nixie_indexes_v0_2;
+  otb_nixie_index_power = &otb_nixie_index_power_v0_2;
+
   DEBUG("NIXIE: otb_nixie_module_init exit");
 
   return;
@@ -223,8 +226,8 @@ uint32_t ICACHE_FLASH_ATTR otb_nixie_get_serial_data(char *bytes, uint8_t num_by
   if (power)
   {
     // Do power
-    chip = otb_nixie_index_power.chip;
-    pin = otb_nixie_index_power.pin;
+    chip = otb_nixie_index_power->chip;
+    pin = otb_nixie_index_power->pin;
     mult = 2 - chip;
     OTB_ASSERT(pin <= 7);
     temp_value = 1 << (7 - pin);

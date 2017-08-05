@@ -45,7 +45,7 @@ mqtt_port = 1883
 # End config section
 #
 
-topic = "/otb-iot/18fe34d76b95"
+topic = "/otb-iot/20001"
 
 def on_connect(client, userdata, flags, rc):
   print("Connected to broker with result code "+str(rc))

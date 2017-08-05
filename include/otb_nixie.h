@@ -124,7 +124,7 @@ uint8_t ser_pin = OTB_NIXIE_PIN_DEFAULT_SER;
 uint8_t rck_pin = OTB_NIXIE_PIN_DEFAULT_RCK;
 
 // First byte is TPIC6B595 instance, second byte is pin
-const otb_nixie_index otb_nixie_index_left[OTB_NIXIE_INDEX_NUM] =
+const otb_nixie_index otb_nixie_index_left_v0_1[OTB_NIXIE_INDEX_NUM] =
 {
   {1, 1}, // 0
   {0, 0}, // 1
@@ -138,7 +138,7 @@ const otb_nixie_index otb_nixie_index_left[OTB_NIXIE_INDEX_NUM] =
   {1, 0}, // 9
   {1, 2}, // DP
 };
-const otb_nixie_index otb_nixie_index_right[OTB_NIXIE_INDEX_NUM] =
+const otb_nixie_index otb_nixie_index_right_v0_1[OTB_NIXIE_INDEX_NUM] =
 {
   {2, 4}, // 0
   {1, 3}, // 1
@@ -152,13 +152,50 @@ const otb_nixie_index otb_nixie_index_right[OTB_NIXIE_INDEX_NUM] =
   {2, 3}, // 9
   {2, 5}, // DP
 };
-const otb_nixie_index otb_nixie_index_power = {2, 6};
-
-const otb_nixie_index *otb_nixie_indexes[2] =
+const otb_nixie_index otb_nixie_index_power_v0_1 = {2, 6};
+const otb_nixie_index *otb_nixie_indexes_v0_1[2] =
 {
-  otb_nixie_index_left,
-  otb_nixie_index_right,
+  otb_nixie_index_left_v0_1,
+  otb_nixie_index_right_v0_1,
 };
+
+const otb_nixie_index otb_nixie_index_left_v0_2[OTB_NIXIE_INDEX_NUM] =
+{
+  {1, 4}, // 0
+  {2, 2}, // 1
+  {2, 1}, // 2
+  {2, 0}, // 3
+  {2, 7}, // 4
+  {2, 5}, // 5
+  {2, 6}, // 6
+  {1, 7}, // 7
+  {1, 6}, // 8
+  {1, 5}, // 9
+  {2, 3}, // DP
+};
+const otb_nixie_index otb_nixie_index_right_v0_2[OTB_NIXIE_INDEX_NUM] =
+{
+  {0, 7}, // 0
+  {0, 5}, // 1
+  {0, 4}, // 2
+  {1, 3}, // 3
+  {1, 2}, // 4
+  {1, 0}, // 5
+  {1, 1}, // 6
+  {0, 2}, // 7
+  {0, 1}, // 8
+  {0, 0}, // 9
+  {0, 6}, // DP
+};
+const otb_nixie_index otb_nixie_index_power_v0_2 = {2, 4};
+const otb_nixie_index *otb_nixie_indexes_v0_2[2] =
+{
+  otb_nixie_index_left_v0_2,
+  otb_nixie_index_right_v0_2,
+};
+
+const otb_nixie_index **otb_nixie_indexes;
+const otb_nixie_index *otb_nixie_index_power;
 
 char otb_nixie_cycle_display[OTB_NIXIE_CYCLE_LEN][3] =
 {
