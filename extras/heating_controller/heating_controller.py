@@ -28,7 +28,7 @@
 # temperature device
 
 import paho.mqtt.client as mqtt
-import time, syslog, datetime
+import sys, time, syslog, datetime
 
 #
 # Config section - tweak the values in this section as appropriate
@@ -50,7 +50,7 @@ min_room_temp = 5.0      # Room mustn't go below this (e.g. frozen pipes), so ri
 sleep_time = 60
 
 # Address and port of MQTT broker otb-iot devices are attached to
-mqtt_addr = "localhost"
+mqtt_addr = "mosquitto"
 mqtt_port = 1883
 
 # Addresses of DS18B20 temperature sensors for zone being controlled
@@ -94,16 +94,16 @@ ROOM_TEMP = "room temp"
 # Heating schedule - must be sequential within a particular day
 
 # WINTER
-#temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:19},
-#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:19},
-#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:19},
-#                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:19}]
+temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:19},
+                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:19},
+                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:19},
+                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:19}]
 
 # SUMMER
-temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:13},
-                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:13},
-                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:13},
-                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:13}]
+#temp_schedule = [{DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:6, MIN:0, ROOM_TEMP:13},
+#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:10, MIN:0, ROOM_TEMP:13},
+#                 {DAY:(MON, TUE, WED, THU, FRI), HOUR:16, MIN:0, ROOM_TEMP:13},
+#                 {DAY:(MON, TUE, WED, THU, FRI, SAT, SUN), HOUR:20, MIN:0, ROOM_TEMP:13}]
 
 #
 # If using updated otb-iot MQTT API for pump controller, tweak this section
@@ -179,6 +179,8 @@ def turn_pump(requested_state):
         requested_pump_state = ON
         do_it = True
         syslog.syslog(syslog.LOG_INFO, "heating: set pump state to on, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
+        print("heating: set pump state to on, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
+        sys.stdout.flush()
   else:
     if pump_state == ON or pump_state == INVALID:
       if requested_pump_state != OFF:
@@ -187,6 +189,8 @@ def turn_pump(requested_state):
         requested_pump_state = OFF
         do_it = True
         syslog.syslog(syslog.LOG_INFO, "heating: set pump state to off, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
+        print("heating: set pump state to off, wall=%.2fC, floor=%.2fC" % (last_temps[WALL], last_temps[FLOOR]))
+        sys.stdout.flush()
   if do_it:
     client.publish(pump_update_topic, pump_update_msg % requested_pump_state)
   else:
@@ -232,11 +236,15 @@ def make_pump_decision():
       print "Turning pump on as wall temp min room temp (even though max floor temp might have been exceed"
       if (last_temps[FLOOR] > max_floor_temp):
         syslog.syslog(syslog.LOG_WARNING, "heating: turning pump on even though max floor temp exceeded, as room temp below minimum")
+        print("heating: turning pump on even though max floor temp exceeded, as room temp below minimum")
+        sys.stdout.flush()
       
   # Pump state is invalid, meaning we haven't set it yet - this will be set after sleep_time (60s default)
   else:
     print "Not yet read pump state, no action"
     syslog.syslog(syslog.LOG_INFO, "heating: not yet read pump state, no action")
+    print("heating: not yet read pump state, no action")
+    sys.stdout.flush()
     
   # Actually change pump state  
   if (target_pump_state != pump_state):
@@ -256,36 +264,45 @@ def on_message(client, userdata, msg):
   elif msg.topic == pump_topic:
     if (msg.payload == pump_response):
       if requested_pump_state == INVALID:
-        print("Pump successfully set to %s" % pump_states[pump_state])
         syslog.syslog(syslog.LOG_INFO, "heating: pump successfully set to %s" % pump_states[pump_state])
+        print("heating: pump successfully set to %s" % pump_states[pump_state])
+        sys.stdout.flush()
       else:
         pump_state = requested_pump_state
-        print("Pump successfully set to %s" % pump_states[pump_state])
         syslog.syslog(syslog.LOG_INFO, "heating: pump successfully set to %s" % pump_states[pump_state])
+        print("heating: pump successfully set to %s" % pump_states[pump_state])
+        sys.stdout.flush()
         requested_pump_state = INVALID
     elif msg.payload.startswith(pump_query_response):
       state = int(msg.payload[-1])
       if state in pump_states:
         print ("Pump state is " + pump_states[state])
+        sys.stdout.flush()
       else:
         print ("Unknown pump state " + state)
+        sys.stdout.flush()
       if state != pump_state:
         pump_state = state
         print "Internal pump state updated to " + pump_states[pump_state]
         syslog.syslog(syslog.LOG_INFO, "Internal pump state updated to " + pump_states[pump_state])
+        sys.stdout.flush()
       elif state not in pump_states:
         pump_state = INVALID
         print "Internal pump state updated to " + pump_states[pump_state]
         syslog.syslog(syslog.LOG_INFO, "Internal pump state updated to " + pump_states[pump_state])
+        sys.stdout.flush()
     else:
       print("Error pump response!!!")
+      sys.stdout.flush()
       requested_pump_state = INVALID
   else:
-      print("Got unknown topic/message: " + msg.topic+" "+str(msg.payload))
+    print("Got unknown topic/message: " + msg.topic+" "+str(msg.payload))
+    sys.stdout.flush()
   print ""
     
 def on_connect(client, userdata, flags, rc):
   print("Connected to broker with result code "+str(rc))
+  sys.stdout.flush()
 
   # Subscribing in on_connect() means that if we lose the connection and
   # reconnect then subscriptions will be renewed.
@@ -299,12 +316,15 @@ def on_connect(client, userdata, flags, rc):
   print ""
 
 def on_disconnect(client, userdata, rc):
-  print("Disconnected from broker!!!")
   syslog.syslog(syslog.LOG_INFO, "heating: disconnected from broker")
+  print("heating: disconnected from broker")
+  sys.stdout.flush()
   run = False
 
 def main():  
   syslog.syslog(syslog.LOG_INFO, "heating: starting")
+  print("heating: starting")
+  sys.stdout.flush()
   global client, connected, temp_updates_received
 
   client = mqtt.Client(protocol=mqtt.MQTTv31)
@@ -329,13 +349,15 @@ def main():
       print ("Still connected")
       check_pump_state()
     else:
-      print("No temp updates received in %ds!!!" % sleep_time)
       syslog.syslog(syslog.LOG_INFO, "heating: no temp updates received in %ds" % sleep_time)
+      print("heating: no temp updates received in %ds" % sleep_time)
+      sys.stdout.flush()
       run = False
     print ""
     
-  print ("Exiting!!!")
   syslog.syslog("heating: exiting")
+  print("heating: exiting")
+  sys.stdout.flush()
   
 if __name__ == "__main__":
   main()
