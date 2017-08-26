@@ -729,7 +729,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_init(int gpio)
 	PIN_FUNC_SELECT(pin_mux[gpioPin], pin_func[gpioPin]);
 	//PIN_PULLDWN_DIS(pin_mux[gpioPin]);
   // Enable pullup resistor for this GPIO (should obviate the need for external resistor)
-	PIN_PULLUP_EN(pin_mux[gpioPin]);  
+	//PIN_PULLUP_EN(pin_mux[gpioPin]);  
 	  
 	GPIO_DIS_OUTPUT(gpioPin);
 

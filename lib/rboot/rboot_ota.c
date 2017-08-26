@@ -48,11 +48,11 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 	// details of rom slot to update
         if (ota->rom_slot == 0)
         {
-	  ota->rom_addr = 0x2000;
+	  ota->rom_addr = OTB_BOOT_ROM_0_LOCATION;
         }
 	else
 	{
-	  ota->rom_addr = 0x202000;
+	  ota->rom_addr = OTB_BOOT_ROM_1_LOCATION;
 	}
 	//ota->rom_addr = (1 - rboot_get_current_rom()) * 0x200000 + 0x2000;
 	upgrade->start_addr = ota->rom_addr;

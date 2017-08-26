@@ -115,5 +115,6 @@
 #include "otb_brzo_i2c.h"
 #include "otb_eeprom.h"
 #include "otb_board.h"
+#include "otb_nixie.h"
 
 #endif

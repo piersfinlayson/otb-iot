@@ -64,6 +64,9 @@ void ICACHE_FLASH_ATTR user_init(void)
   // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
   otb_wifi_init();
 
+  // Initialize nixie module
+  otb_nixie_module_init();
+
 #if 0
   OTB_WIFI_STATION_CONFIG wifi_conf;
   // Some code to burn an SSID/password into the flash
