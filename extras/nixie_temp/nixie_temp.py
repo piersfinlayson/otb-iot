@@ -48,7 +48,6 @@ def log(to_log):
   sys.stdout.flush()
 
 def display_temp(client, temp):
-  client.publish(nixie_topic, "trigger/nixie/init")
   client.publish(nixie_topic, "trigger/nixie/power/on")
   client.publish(nixie_topic, "trigger/nixie/cycle")
   client.publish(nixie_topic, "trigger/nixie/show/" + temp)
@@ -75,11 +74,12 @@ def on_connect(client, userdata, flags, rc):
 
   # Subscribing in on_connect() means that if we lose the connection and
   # reconnect then subscriptions will be renewed.
+  client.publish(nixie_topic, "trigger/nixie/init")
+  client.publish(nixie_topic, "trigger/nixie/power/off")
   client.subscribe(temp_sub)
   client.subscribe(temp_sub2)
   last_received_temp = INVALID_TEMP
   last_displayed_temp = INVALID_TEMP
-  client.publish(nixie_topic, "trigger/nixie/power/off")
   connected = True
 
 def on_disconnect(client, userdata, rc):
@@ -115,7 +115,7 @@ def main():
       run = False
 
   if connected:
-    client.publish(topic, "trigger/nixie/power/off")
+    client.publish(nixie_topic, "trigger/nixie/power/off")
 
   log("exiting")
   
