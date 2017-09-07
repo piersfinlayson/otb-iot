@@ -71,7 +71,7 @@ def on_message(client, userdata, msg):
     temp = str(int(round(temp)))
     last_received_temp = pump_on + temp
     if last_received_temp != last_displayed_temp or (not_updated >= update_anyway):
-      display_temp(client, temp)
+      display_temp(client, last_received_temp)
       last_displayed_temp = temp
       not_updated = 0
     else:
