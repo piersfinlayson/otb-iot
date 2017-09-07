@@ -37,3 +37,7 @@ mqtt_port = 1883
 temp_chip_id = "289cde"
 temp_sensor_id = "28-0415a18a8fff"
 nixie_chip_id = "20001"
+
+# Number of updates from temperature sensor after which should update the
+# nixie device even if unchanged from last update
+update_anyway = 60

@@ -40,8 +40,12 @@ temp_sub2 = temp_topic2 + '#'
 temp_sensor_topics = (temp_topic + temp_sensor_id, temp_topic2 + temp_sensor_id)
 
 nixie_topic = "/otb-iot/" + nixie_chip_id
+nixie_status_topic = nixie_topic + "/status"
+nixie_booted = "booted"
 
 INVALID_TEMP = ""
+
+not_updated = 0
 
 def log(to_log):
   print(script_name + ": " + to_log)
@@ -54,22 +58,30 @@ def display_temp(client, temp):
   log("display: " + temp)
 
 def on_message(client, userdata, msg):
-  global temp_updates_received, last_received_temp, last_displayed_temp
+  global temp_updates_received, last_received_temp, last_displayed_temp, not_updated
   if msg.topic in temp_sensor_topics:
     temp_updates_received += 1
     temp = float(msg.payload)
     log("Got temp " + str(temp) + "C")
     temp = str(int(round(temp)))
     last_received_temp = temp
-    if last_received_temp != last_displayed_temp:
+    if last_received_temp != last_displayed_temp or (not_updated >= update_anyway):
       display_temp(client, temp)
       last_displayed_temp = temp
+      not_updated = 0
+    else:
+      not_updated += 1
+  elif msg.topic == nixie_status_topic:
+    #log("Got nixie status update: " + msg.payload)
+    if msg.payload.startswith(nixie_booted):
+      log("Nixie booted - updated display next time we get a temperature")
+      not_updated = update_anyway
   else:
     # log("ignored topic/message: " + msg.topic+" "+str(msg.payload))
     pass
 
 def on_connect(client, userdata, flags, rc):
-  global connected, last_received_temp, last_displayed_temp
+  global connected, last_received_temp, last_displayed_temp, not_updated
   log("Connected to broker with result code "+str(rc))
 
   # Subscribing in on_connect() means that if we lose the connection and
@@ -78,9 +90,11 @@ def on_connect(client, userdata, flags, rc):
   client.publish(nixie_topic, "trigger/nixie/power/off")
   client.subscribe(temp_sub)
   client.subscribe(temp_sub2)
+  client.subscribe(nixie_status_topic)
   last_received_temp = INVALID_TEMP
   last_displayed_temp = INVALID_TEMP
   connected = True
+  not_updated = 0
 
 def on_disconnect(client, userdata, rc):
   log("disconnected from broker")
