@@ -87,7 +87,7 @@ def on_message(client, userdata, msg):
     if msg.payload.startswith(pump_gpio_get_ok):
       if msg.payload.strip(pump_gpio_get_ok) == "1":
         log("Pump is on")
-        pump_on = "_"
+        pump_on = "."
       else:
         log("Pump is off")
         pump_on = ""
