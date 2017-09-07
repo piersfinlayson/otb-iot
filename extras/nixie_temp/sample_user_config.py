@@ -41,3 +41,6 @@ nixie_chip_id = "20001"
 # Number of updates from temperature sensor after which should update the
 # nixie device even if unchanged from last update
 update_anyway = 60
+
+# ID of otbiot device with pump connected
+pump_chip_id = "d76a7d"
