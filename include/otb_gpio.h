@@ -37,6 +37,8 @@ typedef struct otb_gpio_pin_purpose
 
   uint32_t status;
 
+  uint32_t status_type;
+
 } otb_gpio_pin_purpose;
 
 #ifndef OTB_GPIO_C
@@ -45,6 +47,7 @@ extern uint8_t otb_gpio_pin_io_status[OTB_GPIO_ESP_GPIO_PINS];
 #else // OTB_GPIO_C
 otb_gpio_pin_purpose otb_gpio_pins =
 {
+  OTB_GPIO_INVALID_PIN,
   OTB_GPIO_INVALID_PIN,
   OTB_GPIO_INVALID_PIN,
 };

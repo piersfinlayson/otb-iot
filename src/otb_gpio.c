@@ -120,6 +120,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
       case OTB_EEPROM_PIN_USE_STATUS_LED:
         INFO("GPIO: Status LED pin: %d", ii);
         otb_gpio_pins.status = pin_info->num;
+        otb_gpio_pins.status_type = pin_info->further_info;
         set_ok = otb_gpio_set(ii, 1, TRUE);
         break;
 

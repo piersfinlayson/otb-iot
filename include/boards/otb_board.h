@@ -27,6 +27,7 @@
 #include "otb_main_board_d1_mini_vanilla.h"
 #include "otb_main_board_otbiot_v0_3.h"
 #include "otb_main_board_otbiot_v0_4.h"
+#include "otb_main_board_otbiot_v0_5.h"
 
 // Set up default hardware information, in case info can't be read from eeprom
 // XXX May want lots of different compile time cases in here - but for now just
@@ -46,6 +47,7 @@ const otb_hwinfo_main_board_info *otb_hwinfo_boards[] =
   &otb_hwinfo_main_board_d1_mini_vanilla_board_info,
   &otb_hwinfo_main_board_otbiot_v0_3_board_info,
   &otb_hwinfo_main_board_otbiot_v0_4_board_info,
+  &otb_hwinfo_main_board_otbiot_v0_5_board_info,
   NULL
 };
 #endif

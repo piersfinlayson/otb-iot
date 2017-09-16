@@ -331,6 +331,7 @@ typedef struct otb_eeprom_pin_info
 #define OTB_EEPROM_PIN_USE_JACK_1      21
 #define OTB_EEPROM_PIN_USE_JACK_2      22
 #define OTB_EEPROM_PIN_USE_JACK_3      23
+#define OTB_EEPROM_PIN_USE_JACK_4      24
   uint32 use;
   
   // For main boards what modules this pin is exposed to (LSB = module 1,
@@ -348,7 +349,8 @@ typedef struct otb_eeprom_pin_info
 #define OTB_EEPROM_PIN_FINFO_NONE             0
 
 // When use = OTB_EEPROM_PIN_USE_STATUS_LED
-#define OTB_EEPROM_PIN_FINFO_LED_TYPE_NEO     1
+#define OTB_EEPROM_PIN_FINFO_LED_TYPE_NEO     1  // 5mm through hole neo-pixel, using 3 bytes RGB
+#define OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B 2  // WS2812b, using 3 bytes GRB
 
 // When use = OTB_EEPROM_PIN_USE_INT_SDA and OTB_EEPROM_PIN_USE_INT_SCL
 #define OTB_EEPROM_PIN_FINFO_I2C_V33          1
@@ -358,6 +360,7 @@ typedef struct otb_eeprom_pin_info
 
 #define OTB_EEPROM_PIN_FINFO_JACK_TYPE_3_5MM  1
 #define OTB_EEPROM_PIN_FINFO_JACK_TYPE_RJ11   2
+#define OTB_EEPROM_PIN_FINFO_JACK_TYPE_PINS   3
 
 #define OTB_EEPROM_PIN_FINFO_FUSE_100MA      1
 

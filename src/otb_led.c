@@ -398,7 +398,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
   {
     otb_led_wifi_colour = rgb;
   }
-  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status);
+  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type);
   if (rgb)
   {
     otb_led_wifi_on = TRUE;
@@ -413,7 +413,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin)
+void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type)
 {
   int ii, jj;
   uint32_t colour_mask;
@@ -422,6 +422,8 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin)
   int wait_low_cycles;
   uint32_t start_ccount;
   uint32_t pin_mask;
+  uint32_t *my_rgb;
+  uint32_t scratch;
 
   DEBUG("LED: otb_led_neo_update entry");
 
@@ -430,6 +432,18 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin)
     DEBUG("LED: Status LED is not configured - not updating");
     goto EXIT_LABEL;
   }
+
+  if (type != OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B)
+  {
+    scratch = *rgb;
+  }
+  else
+  {
+    scratch = *rgb & 0xff; //blue
+    scratch += (*rgb & 0xff00) << 8; //green
+    scratch += (*rgb & 0xff0000) >> 8; //red
+  }
+  my_rgb = &scratch;
 
   pin_mask = 1 << pin;
 
@@ -440,7 +454,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin)
     colour_mask = 1 << 23;
     while (colour_mask)
     {
-      if (colour_mask & rgb[ii])
+      if (colour_mask & my_rgb[ii])
       {
         wait_high_cycles = OTB_LED_NEO_T1H_CYCLES;
         wait_low_cycles = OTB_LED_NEO_T1L_CYCLES;

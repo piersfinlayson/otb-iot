@@ -25,7 +25,7 @@
 #define OTB_LED_NEO_PIN  13
 
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
-#define OTB_LED_NEO_COLOUR_RED     0x200000
+#define OTB_LED_NEO_COLOUR_RED     0x200000 
 #define OTB_LED_NEO_COLOUR_GREEN   0x002000
 #define OTB_LED_NEO_COLOUR_BLUE    0x000020
 #define OTB_LED_NEO_COLOUR_CYAN    0x002020
@@ -226,7 +226,7 @@ void otb_led_control_on_timer(void *arg);
 void otb_led_control_init(otb_led_sequence *seq);
 bool otb_led_control_seq(otb_led_sequence *seq);
 void otb_led_wifi_update(uint32_t rgb, bool store);
-void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin);
+void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type);
 uint32_t otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue);
 void otb_led_wifi_blink(uint8 times);
 void otb_led_wifi_init_blink_timer(void);
