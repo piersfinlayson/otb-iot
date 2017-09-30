@@ -70,6 +70,9 @@ extern otb_cmd_match_fn otb_gpio_valid_pin;
 // Also defined in otb_relay.h
 extern otb_cmd_match_fn otb_relay_valid_id;
 
+// Also defined in otb_i2c_pca9695.h
+extern otb_cmd_match_fn otb_i2c_pca9685_valid_pin;
+
 //
 // otb_cmd_handler_fn functon protoype
 // 
@@ -124,6 +127,7 @@ extern otb_cmd_handler_fn otb_nixie_clear;
 extern otb_cmd_handler_fn otb_nixie_show;
 extern otb_cmd_handler_fn otb_nixie_cycle;
 extern otb_cmd_handler_fn otb_nixie_power;
+extern otb_cmd_handler_fn otb_i2c_pca_gpio_cmd;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -131,6 +135,13 @@ extern otb_cmd_handler_fn otb_nixie_power;
 #define OTB_CMD_GPIO_TRIGGER     2
 #define OTB_CMD_GPIO_SET_CONFIG  3
 #define OTB_CMD_GPIO_NUM         4
+
+#define OTB_CMD_GPIO_PCA_SDA    0x100
+#define OTB_CMD_GPIO_PCA_SCL    0x200
+#define OTB_CMD_GPIO_PCA_ADDR   0x400
+#define OTB_CMD_GPIO_PCA_STORE_CONF 0x800
+#define OTB_CMD_GPIO_PCA_INIT   0x1000
+#define OTB_CMD_GPIO_PCA_GPIO   0x2000
 
 #define OTB_CMD_RELAY_MIN      0
 #define OTB_CMD_RELAY_LOC      0
@@ -269,6 +280,14 @@ typedef struct otb_cmd_control
 //     gpio
 //       pin  // Must be an unreserved GPIO
 //         state  // Must be 0 or 1
+//       pca 
+//         sda
+//           pin
+//         scl
+//           pin
+//         addr
+//           <addr>
+//         store_conf
 //     serial
 //       enable                                          // no, yes, false, true, or no value   (no = default)
 //       disable                                         // no value
@@ -308,6 +327,10 @@ typedef struct otb_cmd_control
 //   gpio
 //     pin  // Must be an unreserved GPIO
 //       state  // Must be 0 or 1
+//     pca  
+//       pin
+//         state // Must be 0 or 1
+//       init
 //   relay
 //     <id>
 //       <num>
@@ -372,7 +395,11 @@ extern otb_cmd_control otb_cmd_control_trigger_test_led[];
 extern otb_cmd_control otb_cmd_control_get_gpio[];
 extern otb_cmd_control otb_cmd_control_get_config_gpio[];
 extern otb_cmd_control otb_cmd_control_set_config_gpio[];
+extern otb_cmd_control otb_cmd_control_set_config_gpio_pca[];
+extern otb_cmd_control otb_cmd_control_set_config_gpio_pca_sda[];
+extern otb_cmd_control otb_cmd_control_set_config_gpio_pca_scl[];
 extern otb_cmd_control otb_cmd_control_trigger_gpio[];
+extern otb_cmd_control otb_cmd_control_trigger_gpio_pca[];
 extern otb_cmd_control otb_cmd_control_set_config_relay[];
 extern otb_cmd_control otb_cmd_control_set_config_relay_valid[];
 extern otb_cmd_control otb_cmd_control_trigger_relay[];
@@ -632,7 +659,32 @@ otb_cmd_control otb_cmd_control_set_config_ads_valid[] =
 // set->config->gpio
 otb_cmd_control otb_cmd_control_set_config_gpio[] =
 {
+  {"pca", NULL, otb_cmd_control_set_config_gpio_pca, OTB_CMD_NO_FN},
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_SET_CONFIG},
+  {OTB_CMD_FINISH}
+};
+
+// set->config->gpio->pca
+otb_cmd_control otb_cmd_control_set_config_gpio_pca[] =
+{
+  {"sda",   NULL, otb_cmd_control_set_config_gpio_pca_sda, OTB_CMD_NO_FN},
+  {"scl",   NULL, otb_cmd_control_set_config_gpio_pca_scl, OTB_CMD_NO_FN},
+  {"addr",  NULL, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_ADDR)},
+  {"store_conf", NULL, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_STORE_CONF)},
+  {OTB_CMD_FINISH}
+};
+
+// set->config->gpio->pca->sda
+otb_cmd_control otb_cmd_control_set_config_gpio_pca_sda[] =
+{
+  {NULL,   otb_gpio_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SDA)},
+  {OTB_CMD_FINISH}
+};
+
+// set->config->gpio->pca->scl
+otb_cmd_control otb_cmd_control_set_config_gpio_pca_scl[] =
+{
+  {NULL,   otb_gpio_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SCL)},
   {OTB_CMD_FINISH}
 };
 
@@ -797,7 +849,16 @@ otb_cmd_control otb_cmd_control_trigger_test_led[] =
 // trigger->gpio
 otb_cmd_control otb_cmd_control_trigger_gpio[] =
 {
+  {"pca",    NULL, otb_cmd_control_trigger_gpio_pca, OTB_CMD_NO_FN},
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_TRIGGER},
+  {OTB_CMD_FINISH}
+};
+
+// trigger->gpio->pca
+otb_cmd_control otb_cmd_control_trigger_gpio_pca[] =
+{
+  {"init", NULL, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_TRIGGER|OTB_CMD_GPIO_PCA_INIT)},
+  {NULL, otb_i2c_pca9685_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_TRIGGER|OTB_CMD_GPIO_PCA_GPIO)},
   {OTB_CMD_FINISH}
 };
 

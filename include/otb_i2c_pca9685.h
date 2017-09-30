@@ -22,6 +22,8 @@
 
 // PCA9685 base address
 #define OTB_I2C_PCA9685_BASE_ADDR   0x40
+#define OTB_I2C_PCA9685_NUM_ADDRS   0x40  // (6 address bits = 64)
+#define OTB_I2C_PCA9685_NUM_PINS    16
 
 // PCA9685 key registers
 #define OTB_I2C_PCA9685_REG_MODE1        0x00
@@ -63,15 +65,29 @@
 
 #ifndef OTB_I2C_PCA9685_C
 
-
 #else
 
 bool otb_i2c_pca9685_led_on;
 static volatile os_timer_t otb_i2c_pca9685_test_timer;
 uint8_t otb_i2c_pca9685_test_addr;
 
+uint8_t otb_i2c_pca9685_desired_state[OTB_I2C_PCA9685_NUM_PINS];
+uint8_t otb_i2c_pca9685_current_state[OTB_I2C_PCA9685_NUM_PINS];
+
+brzo_i2c_info otb_i2c_pca9685_brzo_i2c_info;
+bool otb_i2c_pca9685_inited = FALSE;
+int8_t otb_i2c_pca9685_sda = -1;
+int8_t otb_i2c_pca9685_scl = -1;
+uint8_t otb_i2c_pca9685_addr = OTB_I2C_PCA9685_BASE_ADDR;
+
 #endif // OTB_I2C_PCA9685_C
 
+bool ICACHE_FLASH_ATTR otb_i2c_pca_gpio_cmd(unsigned char *,
+                                            void *,
+                                            unsigned char *);
+bool otb_i2c_pca9685_valid_pin(unsigned char *);
+bool otb_i2c_pca9685_init2();
+bool otb_i2c_pca9685_set2();
 void otb_i2c_pca9685_test_timerfunc(void);
 void otb_i2c_pca9685_test_init(void);
 bool otb_i2c_pca9685_led_conf(uint8_t, uint8_t led, uint16_t on, uint16_t off);
