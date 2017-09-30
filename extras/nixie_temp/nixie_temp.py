@@ -111,8 +111,9 @@ def on_connect(client, userdata, flags, rc):
   log("Subcribed to: " + temp_sub2)
   client.subscribe(nixie_status_topic)
   log("Subcribed to: " + nixie_status_topic)
-  client.subscribe(pump_status_topic)
-  log("Subcribed to: " + pump_status_topic)
+  if pump_chip_id != "":
+    client.subscribe(pump_status_topic)
+    log("Subcribed to: " + pump_status_topic)
   last_received_temp = INVALID_TEMP
   last_displayed_temp = INVALID_TEMP
   connected = True
