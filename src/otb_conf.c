@@ -120,14 +120,17 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       os_memset(conf->password, 0, OTB_CONF_WIFI_PASSWORD_MAX_LEN);
       modified = TRUE;
     }
-  
-    if (os_memcmp(conf->pad1, pad, sizeof(*(conf->pad1))))
+
+    OTB_ASSERT((OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL >= OTB_CONF_STATUS_LED_BEHAVIOUR_MIN) &&
+               (OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL <= OTB_CONF_STATUS_LED_BEHAVIOUR_MAX));
+    if ((conf->status_led < OTB_CONF_STATUS_LED_BEHAVIOUR_MIN) ||
+        (conf->status_led > OTB_CONF_STATUS_LED_BEHAVIOUR_MAX))
     {
-      WARN("CONF: Pad 1 wasn't 0");
-      os_memset(conf->pad1, 0, 3); 
+      WARN("CONF: status_led value invalid %d", conf->status_led);
+      conf->status_led = OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL;
       modified = TRUE;
     }
-    
+  
     // DS18B20 config checking
     
     if ((conf->ds18b20s < 0) || (conf->ds18b20s > OTB_DS18B20_MAX_DS18B20S))
@@ -407,6 +410,7 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
     INFO("CONF: DS18B20 #%d address:  %s", ii, conf->ds18b20[ii].id);
     INFO("CONF: DS18B20 #%d location: %s", ii, conf->ds18b20[ii].loc);
   }
+  INFO("CONF: Status LED behaviour: %d", conf->status_led);
   INFO("CONF: ADSs:  %d", conf->adss);
   for (ii = 0; ii < conf->adss; ii++)
   {
@@ -612,6 +616,59 @@ EXIT_LABEL:
   DEBUG("CONF: otb_conf_update exit");
  
   return rc; 
+}
+
+bool ICACHE_FLASH_ATTR otb_conf_set_status_led(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  uint32_t behaviour;
+  uint8_t old;
+
+  DEBUG("CONF: otb_conf_set_status_led entry");
+  
+  behaviour = (uint32_t)arg;
+
+  OTB_ASSERT((behaviour == OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL) ||
+             (behaviour == OTB_CONF_STATUS_LED_BEHAVIOUR_OFF) ||
+             (behaviour == OTB_CONF_STATUS_LED_BEHAVIOUR_WARN));
+
+  if (behaviour != otb_conf->status_led)
+  {
+    // Turn off LED before we actually update the configuration otherwise
+    // LED update code won't run
+    if ((behaviour == OTB_CONF_STATUS_LED_BEHAVIOUR_OFF) ||
+        ((behaviour == OTB_CONF_STATUS_LED_BEHAVIOUR_WARN) &&
+         (otb_led_wifi_colour == OTB_LED_NEO_COLOUR_GREEN)))
+    {
+      otb_led_wifi_update(OTB_LED_NEO_COLOUR_OFF, TRUE);
+    }
+
+    // Now update the config
+    old = otb_conf->status_led;
+    otb_conf->status_led = (uint8_t)behaviour;
+    rc = otb_conf_update(otb_conf);
+    if (!rc)
+    {
+      ERROR("CONF: Failed to update config");
+      otb_cmd_rsp_append("internal error");
+      otb_conf->status_led = old;
+      goto EXIT_LABEL;
+    }
+    otb_cmd_rsp_append("amended to %d", behaviour);
+  }
+  else
+  {
+    otb_cmd_rsp_append("no change");
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("CONF: otb_conf_set_status_led exit");
+  
+  return rc;
+  
 }
 
 bool ICACHE_FLASH_ATTR otb_conf_set_keep_ap_active(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)

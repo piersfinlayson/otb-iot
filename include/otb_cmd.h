@@ -109,6 +109,7 @@ extern otb_cmd_handler_fn otb_cmd_trigger_ping;
 extern otb_cmd_handler_fn otb_cmd_get_config_all;
 extern otb_cmd_handler_fn otb_cmd_get_sensor_adc_ads;
 extern otb_cmd_handler_fn otb_conf_set_keep_ap_active;
+extern otb_cmd_handler_fn otb_conf_set_status_led;
 extern otb_cmd_handler_fn otb_conf_set_loc;
 //extern otb_cmd_handler_fn otb_ds18b20_conf_set;
 //extern otb_cmd_handler_fn otb_i2c_ads_conf_set;
@@ -237,6 +238,8 @@ typedef struct otb_cmd_control
 //     vdd33
 // set
 //   config
+//     status_led
+//       <on|off|warn>
 //     keep_ap_active
 //       yes|true|no|false
 //     loc
@@ -377,6 +380,7 @@ extern otb_cmd_control otb_cmd_control_get_reason[];
 extern otb_cmd_control otb_cmd_control_get_info_logs[];
 extern otb_cmd_control otb_cmd_control_set[];
 extern otb_cmd_control otb_cmd_control_set_config[];
+extern otb_cmd_control otb_cmd_control_set_config_status_led[];
 extern otb_cmd_control otb_cmd_control_set_config_keep_ap_active[];
 extern otb_cmd_control otb_cmd_control_set_config_loc[];
 extern otb_cmd_control otb_cmd_control_set_config_ds18b20[];
@@ -598,6 +602,7 @@ otb_cmd_control otb_cmd_control_set[] =
 // set->config commands
 otb_cmd_control otb_cmd_control_set_config[] =
 {
+  {"status_led",       NULL, otb_cmd_control_set_config_status_led,  OTB_CMD_NO_FN},
   {"keep_ap_active",   NULL, otb_cmd_control_set_config_keep_ap_active,  OTB_CMD_NO_FN},
   {"loc",              NULL, otb_cmd_control_set_config_loc,             OTB_CMD_NO_FN},
   {"ds18b20",          NULL, otb_cmd_control_set_config_ds18b20,         OTB_CMD_NO_FN},
@@ -608,6 +613,15 @@ otb_cmd_control otb_cmd_control_set_config[] =
   {OTB_CMD_FINISH}    
 };
 
+// set->config->status_led commands
+otb_cmd_control otb_cmd_control_set_config_status_led[] =
+{
+  {"on",                NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL},
+  {"normal",            NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL},
+  {"off",               NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_OFF},
+  {"warn",              NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_WARN},
+  {OTB_CMD_FINISH}    
+};
 // set->config->keep_ap_active commands
 otb_cmd_control otb_cmd_control_set_config_keep_ap_active[] =
 {

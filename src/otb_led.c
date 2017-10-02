@@ -394,19 +394,36 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
   DEBUG("LED: otb_led_wifi_update entry");
 
   DEBUG("LED: Update wifi LED 0x%06x", rgb);
-  if (store)
+
+  if (rgb && (rgb != OTB_LED_NEO_COLOUR_OFF))
   {
-    otb_led_wifi_colour = rgb;
-  }
-  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type);
-  if (rgb)
-  {
+    if (store)
+    {
+      otb_led_wifi_colour = rgb;
+    }
     otb_led_wifi_on = TRUE;
   }
   else
   {
     otb_led_wifi_on = FALSE;
   }
+
+  if ((otb_conf != NULL) &&
+      ((otb_conf->status_led == OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL) || 
+       ((otb_conf->status_led == OTB_CONF_STATUS_LED_BEHAVIOUR_WARN) && (rgb != OTB_LED_NEO_COLOUR_GREEN))))
+  {
+    // Do nothing
+    DEBUG("LED: Leave as above colour");
+  }
+  else
+  {
+    // Override rgb - but not that we pretend to users of this API that the LED
+    // is turned on/off based on what comes into this function!
+    rgb = OTB_LED_NEO_COLOUR_OFF;
+    DEBUG("LED: Override to off");
+  }
+
+  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type);
 
   DEBUG("LED: otb_led_wifi_update exit");
 
@@ -448,6 +465,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, 
   pin_mask = 1 << pin;
 
   ETS_UART_INTR_DISABLE();
+  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
 
   for (ii = 0; ii < num; ii++)
   {
@@ -478,9 +496,10 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, 
     }
   }
 
-  ETS_UART_INTR_ENABLE();
+  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
+  os_delay_us(OTB_LED_NEO_LATCH/1000);
 
-  os_delay_us(50);
+  ETS_UART_INTR_ENABLE();
 
 EXIT_LABEL:  
 

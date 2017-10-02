@@ -229,8 +229,14 @@ typedef struct otb_conf_struct
   // Number of configured DS18B20s
   uint8_t ds18b20s;
   
-  // Must be set to zero 
-  char pad1[1]; 
+  // Was pad1[1]
+  // Whether to override standard behaviour of status LED.
+#define OTB_CONF_STATUS_LED_BEHAVIOUR_MIN        0
+#define OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL     0  // Always on
+#define OTB_CONF_STATUS_LED_BEHAVIOUR_OFF        1  // Always off
+#define OTB_CONF_STATUS_LED_BEHAVIOUR_WARN       2  // Only used when abnormal situation (e.g. unconnected) - currently unsupporteds
+#define OTB_CONF_STATUS_LED_BEHAVIOUR_MAX        2
+  uint8_t status_led;
   
   // Wifi password.  Max is 63, but we're going to store as a string
 #define OTB_CONF_WIFI_PASSWORD_MAX_LEN  64
@@ -292,6 +298,7 @@ uint8  otb_conf_store_sta_conf(char *ssid, char *password, bool commit);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
 bool otb_conf_update_loc(int loc, char *val);
+bool otb_conf_set_status_led(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_conf_set_keep_ap_active(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_conf_set_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_conf_delete_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
