@@ -57,27 +57,28 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 
   INFO("EEPROM: Read main board eeprom at address 0x%02x", otb_eeprom_main_board_addr);
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
-  
-  for (ii = OTB_EEPROM_MIN_ADDR; ii <= OTB_EEPROM_MAX_ADDR; ii++)
+
+  if (otb_eeprom_main_board_g != NULL)
   {
-    if (ii != otb_eeprom_main_board_addr)
+    for (ii = 0; ii < otb_eeprom_main_board_g->num_modules; ii++) 
     {
-      INFO("EEPROM: Look for other eeprom at address 0x%02x", ii);
-      eeprom_info_v = NULL;
-      eeprom_info_v = otb_eeprom_load_main_comp(ii, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_INFO, 1, NULL, 0);
-      if (eeprom_info_v != NULL)
+      if (otb_eeprom_main_board_module_g[ii] != NULL)
       {
-        mod = (otb_eeprom_main_module *)otb_eeprom_load_main_comp(ii, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE, 1, NULL, 0);
-        if (mod != NULL)
+        INFO("EEPROM: Look for module %d eeprom at address 0x%02x", ii, otb_eeprom_main_board_module_g[ii]->address);
+        
+        eeprom_info_v = NULL;
+        eeprom_info_v = otb_eeprom_load_main_comp(otb_eeprom_main_board_module_g[ii]->address, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_INFO, 1, NULL, 0);
+        if (eeprom_info_v != NULL)
         {
-          INFO("EEPROM: Found module information");
-          // XXX Actually do something with this info
+          mod = (otb_eeprom_main_module *)otb_eeprom_load_main_comp(otb_eeprom_main_board_module_g[ii]->address, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_MAIN_MODULE, 1, NULL, 0);
+          if (mod != NULL)
+          {
+            INFO("EEPROM: Found information for module %d", ii);
+            // XXX Actually do something with this info
+          }
         }
+
       }
-    }
-    else
-    {
-      DEBUG("EEPROM: Skip main board eeprom address");
     }
   }
 
@@ -447,8 +448,8 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       INFO("EEPROM:   common.code:     0x%08x", mod->common.code);
       INFO("EEPROM:   common.subcode:  0x%08x", mod->common.subcode);
       INFO("EEPROM:   module_type:     0x%08x", mod->module_type);
-      INFO("EEPROM:   socket_type:     0x%08x", mod->module_type);
-      INFO("EEPROM:   jack_used:       0x%08x", mod->module_type);
+      INFO("EEPROM:   socket_type:     0x%08x", mod->socket_type);
+      INFO("EEPROM:   jack_used:       0x%08x", mod->jack_used);
       break;
 
     default:
