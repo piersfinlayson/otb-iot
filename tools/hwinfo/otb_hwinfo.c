@@ -266,7 +266,7 @@ static error_t otb_hwinfo_parse_opt(int key, char *arg, struct argp_state *state
         printf("Unknown value for board_type: %s\n", arg);
       }
       break;
-      
+
     case ARGP_KEY_END:
       // No-op
       break;
@@ -309,6 +309,9 @@ void otb_hwinfo_setup(void)
   uint32_t info_comp_count;
   otb_eeprom_pin_info pin;
   otb_eeprom_info_comp *info_comp_ptr;
+  bool main_board;
+
+  main_board = (hwinfo.board_info->main_mod_info == NULL) ? TRUE : FALSE;
 
   info_comp_count = 0;
   len = 0;
@@ -326,36 +329,64 @@ void otb_hwinfo_setup(void)
         break;
 
       case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
-        // No info comps as part of main board so stick with length as is
-        //
-        // However, add one to info comp count (as that is for otb_eeprom_info info
-        // comps!)
-        info_comp_count++;
-        len += struct_size;
+        if (main_board)
+        {
+          // No info comps as part of main board so stick with length as is
+          //
+          // However, add one to info comp count (as that is for otb_eeprom_info info
+          // comps!)
+          info_comp_count++;
+          len += struct_size;
+        }
         break;
 
       case OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE:
-        hwinfo.board_info->mod_count;
-        for (jj = 0; jj < hwinfo.board_info->mod_count; jj++)
+        if (main_board)
         {
-          // Add main struct size, and then enough for the pins
-          len += struct_size;
-          len += (*hwinfo.board_info->module_info)[jj].num_pins * sizeof(otb_eeprom_pin_info);
-          info_comp_count++;
+          hwinfo.board_info->mod_count;
+          for (jj = 0; jj < hwinfo.board_info->mod_count; jj++)
+          {
+            // Add main struct size, and then enough for the pins
+            len += struct_size;
+            len += (*hwinfo.board_info->module_info)[jj].num_pins * sizeof(otb_eeprom_pin_info);
+            info_comp_count++;
+          }
         }
         break;
 
       case OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA:
-        // sdk init data
-        len += struct_size + OTB_SDK_INIT_DATA_LEN;
-        info_comp_count++;
+        if (main_board)
+        {
+          // sdk init data
+          len += struct_size + OTB_SDK_INIT_DATA_LEN;
+          info_comp_count++;
+        }
         break;
 
       case OTB_EEPROM_INFO_TYPE_GPIO_PINS:
-        // gpios
-        len += struct_size;
-        len += (hwinfo.board_info->pin_count * sizeof(otb_eeprom_pin_info));
-        info_comp_count++;
+        if (main_board)
+        {
+          // gpios
+          len += struct_size;
+          len += (hwinfo.board_info->pin_count * sizeof(otb_eeprom_pin_info));
+          info_comp_count++;
+        }
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE:
+        if (!main_board)
+        {
+
+          len += struct_size;
+          info_comp_count++;
+        }
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE_PINS:
+        if (!main_board)
+        {
+          
+        }
         break;
 
        default:
@@ -408,129 +439,168 @@ void otb_hwinfo_setup(void)
         break;
 
       case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
-        ;
-        otb_eeprom_main_board *main_board = (otb_eeprom_main_board *)hdr;
-        memcpy(main_board->common.serial, hwinfo.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
-        OTB_HWINFO_STORE(main_board->common.code, hwinfo.code);
-        OTB_HWINFO_STORE(main_board->common.subcode, hwinfo.subcode);
-        memcpy(main_board->chipid, hwinfo.chipid, 3);
-        memcpy(main_board->mac1, hwinfo.mac1, 3);
-        memcpy(main_board->mac1+3, hwinfo.chipid, 3);
-        memcpy(main_board->mac2, hwinfo.mac2, 3);
-        memcpy(main_board->mac2+3, hwinfo.chipid, 3);
-        OTB_HWINFO_STORE(main_board->esp_module, hwinfo.esp_module);
-        OTB_HWINFO_STORE(main_board->flash_size_bytes, hwinfo.flash_size_bytes);
-        OTB_HWINFO_STORE(main_board->i2c_adc, hwinfo.i2c_adc);
-        OTB_HWINFO_STORE(main_board->internal_adc_type, hwinfo.internal_adc_type);
-        OTB_HWINFO_STORE(main_board->num_modules, hwinfo.board_info->mod_count);
-        len = struct_size;
-        
-        // Set up otb_eeprom_info info comp
-        OTB_HWINFO_STORE(info_comp_ptr->type, ii);
-        loc = (uint32)((uint8*)hdr-ptr);
-        OTB_HWINFO_STORE(info_comp_ptr->location, loc);
-        OTB_HWINFO_STORE(info_comp_ptr->length, len);
-        info_comp_ptr++;
-
-        new_ptr += struct_size;
-        break;
-
-      case OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE:
-        ;
-        otb_eeprom_main_board_module *module = (otb_eeprom_main_board_module *)hdr;
-        working_len = 0;
-        for (jj = 0; jj < hwinfo.board_info->mod_count; jj++)
-        {
-          len = 0;
-          OTB_HWINFO_STORE(module->num, (*hwinfo.board_info->module_info)[jj].num);
-          OTB_HWINFO_STORE(module->socket_type, (*hwinfo.board_info->module_info)[jj].socket_type);
-          OTB_HWINFO_STORE(module->num_headers, (*hwinfo.board_info->module_info)[jj].num_headers);
-          OTB_HWINFO_STORE(module->num_pins, (*hwinfo.board_info->module_info)[jj].num_pins);
-          OTB_HWINFO_STORE(module->address, (*hwinfo.board_info->module_info)[jj].address);
-          len += otb_eeprom_main_comp_types[ii].struct_size_max;
-
-          // Now do each of the pins
-          otb_eeprom_pin_info *pin = module->pin_info;
-          for (kk = 0; kk < (*hwinfo.board_info->module_info)[jj].num_pins; kk++)
-          {
-            OTB_HWINFO_STORE(pin[kk].num, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].num)
-            OTB_HWINFO_STORE(pin[kk].header_num, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].header_num)
-            OTB_HWINFO_STORE(pin[kk].use, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].use)
-            OTB_HWINFO_STORE(pin[kk].module, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].module)
-            OTB_HWINFO_STORE(pin[kk].further_info, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].further_info)
-            OTB_HWINFO_STORE(pin[kk].pulled, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].pulled)
-          }
-
-          len += (*hwinfo.board_info->module_info)[jj].num_pins * sizeof(otb_eeprom_pin_info);
-          working_len += len;
-
+        if (main_board)
+        {        
+          otb_eeprom_main_board *main_board = (otb_eeprom_main_board *)hdr;
+          memcpy(main_board->common.serial, hwinfo.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
+          OTB_HWINFO_STORE(main_board->common.code, hwinfo.code);
+          OTB_HWINFO_STORE(main_board->common.subcode, hwinfo.subcode);
+          memcpy(main_board->chipid, hwinfo.chipid, 3);
+          memcpy(main_board->mac1, hwinfo.mac1, 3);
+          memcpy(main_board->mac1+3, hwinfo.chipid, 3);
+          memcpy(main_board->mac2, hwinfo.mac2, 3);
+          memcpy(main_board->mac2+3, hwinfo.chipid, 3);
+          OTB_HWINFO_STORE(main_board->esp_module, hwinfo.esp_module);
+          OTB_HWINFO_STORE(main_board->flash_size_bytes, hwinfo.flash_size_bytes);
+          OTB_HWINFO_STORE(main_board->i2c_adc, hwinfo.i2c_adc);
+          OTB_HWINFO_STORE(main_board->internal_adc_type, hwinfo.internal_adc_type);
+          OTB_HWINFO_STORE(main_board->num_modules, hwinfo.board_info->mod_count);
+          len = struct_size;
+          
           // Set up otb_eeprom_info info comp
           OTB_HWINFO_STORE(info_comp_ptr->type, ii);
-          loc = (uint32)((uint8*)module-ptr);
+          loc = (uint32)((uint8*)hdr-ptr);
           OTB_HWINFO_STORE(info_comp_ptr->location, loc);
           OTB_HWINFO_STORE(info_comp_ptr->length, len);
           info_comp_ptr++;
 
-          // Fill in all header fields except checksum (which is last)
-          // Note hdr is updated to point to new module so use module->hdr
-          OTB_HWINFO_STORE(module->hdr.magic, magic);
-          OTB_HWINFO_STORE(module->hdr.type, ii);
-          OTB_HWINFO_STORE(module->hdr.struct_size, struct_size);
-          OTB_HWINFO_STORE(module->hdr.version, version);
-          OTB_HWINFO_STORE(module->hdr.length, len);
-
-          // Now do the checksums
-          OTB_HWINFO_CHECKSUM_DO((&(module->hdr)));
-
-          // Figure out where next module starts
-          module = (otb_eeprom_main_board_module *)(((uint8 *)hdr) + working_len);
+          new_ptr += struct_size;
         }
-        new_ptr += working_len;
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE:
+        if (main_board)
+        {        
+          otb_eeprom_main_board_module *module = (otb_eeprom_main_board_module *)hdr;
+          working_len = 0;
+          for (jj = 0; jj < hwinfo.board_info->mod_count; jj++)
+          {
+            len = 0;
+            OTB_HWINFO_STORE(module->num, (*hwinfo.board_info->module_info)[jj].num);
+            OTB_HWINFO_STORE(module->socket_type, (*hwinfo.board_info->module_info)[jj].socket_type);
+            OTB_HWINFO_STORE(module->num_headers, (*hwinfo.board_info->module_info)[jj].num_headers);
+            OTB_HWINFO_STORE(module->num_pins, (*hwinfo.board_info->module_info)[jj].num_pins);
+            OTB_HWINFO_STORE(module->address, (*hwinfo.board_info->module_info)[jj].address);
+            len += otb_eeprom_main_comp_types[ii].struct_size_max;
+
+            // Now do each of the pins
+            otb_eeprom_pin_info *pin = module->pin_info;
+            for (kk = 0; kk < (*hwinfo.board_info->module_info)[jj].num_pins; kk++)
+            {
+              OTB_HWINFO_STORE(pin[kk].num, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].num)
+              OTB_HWINFO_STORE(pin[kk].header_num, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].header_num)
+              OTB_HWINFO_STORE(pin[kk].use, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].use)
+              OTB_HWINFO_STORE(pin[kk].module, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].module)
+              OTB_HWINFO_STORE(pin[kk].further_info, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].further_info)
+              OTB_HWINFO_STORE(pin[kk].pulled, (*(*hwinfo.board_info->module_info)[jj].pin_info)[kk].pulled)
+            }
+
+            len += (*hwinfo.board_info->module_info)[jj].num_pins * sizeof(otb_eeprom_pin_info);
+            working_len += len;
+
+            // Set up otb_eeprom_info info comp
+            OTB_HWINFO_STORE(info_comp_ptr->type, ii);
+            loc = (uint32)((uint8*)module-ptr);
+            OTB_HWINFO_STORE(info_comp_ptr->location, loc);
+            OTB_HWINFO_STORE(info_comp_ptr->length, len);
+            info_comp_ptr++;
+
+            // Fill in all header fields except checksum (which is last)
+            // Note hdr is updated to point to new module so use module->hdr
+            OTB_HWINFO_STORE(module->hdr.magic, magic);
+            OTB_HWINFO_STORE(module->hdr.type, ii);
+            OTB_HWINFO_STORE(module->hdr.struct_size, struct_size);
+            OTB_HWINFO_STORE(module->hdr.version, version);
+            OTB_HWINFO_STORE(module->hdr.length, len);
+
+            // Now do the checksums
+            OTB_HWINFO_CHECKSUM_DO((&(module->hdr)));
+
+            // Figure out where next module starts
+            module = (otb_eeprom_main_board_module *)(((uint8 *)hdr) + working_len);
+          }
+          new_ptr += working_len;
+        }
         break;
 
       case OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA:
-        assert(OTB_SDK_INIT_DATA_LEN % 4 == 0);
-        memcpy(((otb_eeprom_main_board_sdk_init_data *)hdr)->sdk_init_data,
-               OTB_SDK_INIT_DATA,
-               OTB_SDK_INIT_DATA_LEN);
-        OTB_HWINFO_STORE(((otb_eeprom_main_board_sdk_init_data *)hdr)->data_len, OTB_SDK_INIT_DATA_LEN);
-        len = struct_size + OTB_SDK_INIT_DATA_LEN;
+        if (main_board)
+        {        
+          assert(OTB_SDK_INIT_DATA_LEN % 4 == 0);
+          memcpy(((otb_eeprom_main_board_sdk_init_data *)hdr)->sdk_init_data,
+                OTB_SDK_INIT_DATA,
+                OTB_SDK_INIT_DATA_LEN);
+          OTB_HWINFO_STORE(((otb_eeprom_main_board_sdk_init_data *)hdr)->data_len, OTB_SDK_INIT_DATA_LEN);
+          len = struct_size + OTB_SDK_INIT_DATA_LEN;
 
-        // Set up otb_eeprom_info info comp
-        OTB_HWINFO_STORE(info_comp_ptr->type, ii);
-        loc = (uint32)((uint8*)hdr-ptr);
-        OTB_HWINFO_STORE(info_comp_ptr->location, loc);
-        OTB_HWINFO_STORE(info_comp_ptr->length, len);
-        info_comp_ptr++;
+          // Set up otb_eeprom_info info comp
+          OTB_HWINFO_STORE(info_comp_ptr->type, ii);
+          loc = (uint32)((uint8*)hdr-ptr);
+          OTB_HWINFO_STORE(info_comp_ptr->location, loc);
+          OTB_HWINFO_STORE(info_comp_ptr->length, len);
+          info_comp_ptr++;
 
-        new_ptr += len;
+          new_ptr += len;
+        }
         break;
 
       case OTB_EEPROM_INFO_TYPE_GPIO_PINS:
-        // Copy in GPIO pin information
-        ;
-        otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)hdr;
-        gpio_pins->num_pins = hwinfo.board_info->pin_count; 
-        for (jj = 0; jj < hwinfo.board_info->pin_count; jj++)
-        {
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].num, (*hwinfo.board_info->pin_info)[jj].num);
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].header_num, (*hwinfo.board_info->pin_info)[jj].header_num);
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].use, (*hwinfo.board_info->pin_info)[jj].use);
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].module, (*hwinfo.board_info->pin_info)[jj].module);
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].further_info, (*hwinfo.board_info->pin_info)[jj].further_info);
-          OTB_HWINFO_STORE(gpio_pins->pin_info[jj].pulled, (*hwinfo.board_info->pin_info)[jj].pulled);
+        if (main_board)
+        {        
+          // Copy in GPIO pin information
+          otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)hdr;
+          gpio_pins->num_pins = hwinfo.board_info->pin_count; 
+          for (jj = 0; jj < hwinfo.board_info->pin_count; jj++)
+          {
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].num, (*hwinfo.board_info->pin_info)[jj].num);
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].header_num, (*hwinfo.board_info->pin_info)[jj].header_num);
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].use, (*hwinfo.board_info->pin_info)[jj].use);
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].module, (*hwinfo.board_info->pin_info)[jj].module);
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].further_info, (*hwinfo.board_info->pin_info)[jj].further_info);
+            OTB_HWINFO_STORE(gpio_pins->pin_info[jj].pulled, (*hwinfo.board_info->pin_info)[jj].pulled);
+          }
+          len = struct_size + (hwinfo.board_info->pin_count * sizeof(otb_eeprom_pin_info));
+
+          // Set up otb_eeprom_info info comp
+          OTB_HWINFO_STORE(info_comp_ptr->type, ii);
+          loc = (uint32)((uint8*)hdr-ptr);
+          OTB_HWINFO_STORE(info_comp_ptr->location, loc);
+          OTB_HWINFO_STORE(info_comp_ptr->length, len);
+          info_comp_ptr++;
+
+          new_ptr += len;
         }
-        len = struct_size + (hwinfo.board_info->pin_count * sizeof(otb_eeprom_pin_info));
-
-        // Set up otb_eeprom_info info comp
-        OTB_HWINFO_STORE(info_comp_ptr->type, ii);
-        loc = (uint32)((uint8*)hdr-ptr);
-        OTB_HWINFO_STORE(info_comp_ptr->location, loc);
-        OTB_HWINFO_STORE(info_comp_ptr->length, len);
-        info_comp_ptr++;
-
-        new_ptr += len;
         break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE:
+        if (!main_board)
+        {
+          otb_eeprom_main_module *mez_board = (otb_eeprom_main_module *)hdr;
+          memcpy(mez_board->common.serial, hwinfo.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
+          OTB_HWINFO_STORE(mez_board->common.code, hwinfo.code);
+          OTB_HWINFO_STORE(mez_board->common.subcode, hwinfo.subcode);
+          OTB_HWINFO_STORE(mez_board->module_type, hwinfo.board_info->main_mod_info->module_type);
+          OTB_HWINFO_STORE(mez_board->socket_type, hwinfo.board_info->main_mod_info->socket_type);
+          OTB_HWINFO_STORE(mez_board->jack_used, hwinfo.board_info->main_mod_info->jack_used);
+          len = struct_size;
+          
+          // Set up otb_eeprom_info info comp
+          OTB_HWINFO_STORE(info_comp_ptr->type, ii);
+          loc = (uint32)((uint8*)hdr-ptr);
+          OTB_HWINFO_STORE(info_comp_ptr->location, loc);
+          OTB_HWINFO_STORE(info_comp_ptr->length, len);
+
+          info_comp_ptr++;
+          new_ptr += struct_size;
+        }
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE_PINS:
+        break;
+        if (!main_board)
+        {
+          
+        }
 
        default:
          assert(FALSE);
@@ -898,6 +968,22 @@ void otb_hwinfo_output_comps(char *prefix, otb_eeprom_hdr *hdr)
         otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)new_hdr;
         printf("%s  num_pins:  %d\n", prefix, gpio_pins->num_pins);
         otb_hwinfo_output_pin_info(prefix, gpio_pins->num_pins, gpio_pins->pin_info);
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE:
+        ;
+        otb_eeprom_main_module *mez_board = (otb_eeprom_main_module *)new_hdr;
+        printf("%s  common:\n", prefix);
+        printf("%s    serial:    %s\n", prefix, mez_board->common.serial);
+        printf("%s    code:      0x%08x\n", prefix, mez_board->common.code);
+        printf("%s    subcode:   0x%08x\n", prefix, mez_board->common.subcode);
+        printf("%s  module_type: 0x%08x\n", prefix, mez_board->module_type);
+        printf("%s  socket_type: 0x%08x\n", prefix, mez_board->socket_type);
+        printf("%s  jack_used:   0x%08x\n", prefix, mez_board->jack_used);
+        break;
+
+      case OTB_EEPROM_INFO_TYPE_MAIN_MODULE_PINS:
+        printf("Unsupported\n");
         break;
 
       default:

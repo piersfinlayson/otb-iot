@@ -35,22 +35,40 @@ typedef struct otb_hwinfo_main_board_module_info
   const otb_eeprom_pin_info (*pin_info)[];
 } otb_hwinfo_main_board_module_info;
 
+typedef struct otb_hwinfo_main_module_info
+{
+  uint32 module_type;
+  uint32 socket_type;
+  uint8 jack_used;
+  uint32 num_headers;
+  uint32 num_pins;
+
+  // Pointer to an array of pin_infos (not an array of pointers!)
+  const otb_eeprom_pin_info (*pin_info)[];
+} otb_hwinfo_main_module_info;
+
 // Used to record board specific information in board specific header files
-typedef struct otb_hwinfo_main_board_info
+typedef struct otb_hwinfo_board_info
 {
   // Name with no spaces
   char *name;
 
-  uint32 pin_count;
-  uint32 mod_count;
+  uint32 type;  // One of OTB_EEPROM_HW_CODE_*** (MAIN_BOARD, MAIN_MODULE)
+
+  uint32 pin_count;  // GPIO pin count - 0 in case of MAIN_MODULE
+
+  uint32 mod_count;  // Number of modules - 0 in case of MAIN_MODULE 
 
   // Pointer to an array of pin_infos (not an array of pointers!)
   const otb_eeprom_pin_info (*pin_info)[];
 
   // Pointer to an array of module infos (not an array of pointers!)
-  const otb_hwinfo_main_board_module_info (*module_info)[];
+  const otb_hwinfo_main_board_module_info (*module_info)[];  // NULL in case of MAIN_MODULE
 
-} otb_hwinfo_main_board_info;
+  // Pointer to structure containing main module info (NULL in case of MAIN_BOARD)
+  const otb_hwinfo_main_module_info *main_mod_info;
+
+} otb_hwinfo_board_info;
 
 // Some extra info only used by otbiot (not hwinfo or rboot)
 typedef struct otb_hwinfo_main_board_info_extra

@@ -115,7 +115,9 @@
 #define OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE   2
 #define OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA       3
 #define OTB_EEPROM_INFO_TYPE_GPIO_PINS           4
-#define OTB_EEPROM_INFO_TYPE_NUM                 5
+#define OTB_EEPROM_INFO_TYPE_MAIN_MODULE         5 
+#define OTB_EEPROM_INFO_TYPE_MAIN_MODULE_PINS    6
+#define OTB_EEPROM_INFO_TYPE_NUM                 7
 
 typedef struct otb_eeprom_main_comp_type
 {
@@ -449,12 +451,15 @@ typedef struct otb_eeprom_main_board_module
 typedef struct otb_eeprom_main_module
 {
   // Info common to multiple eeprom info types
-#define OTB_EEPROM_HW_MAIN_MODULE_MAGIC      0xeb6438dc
+#define OTB_EEPROM_MAIN_MODULE_MAGIC      0xeb6438dc
 
   otb_eeprom_hw_common common;
 
   // Type of this module
 #define OTB_EEPROM_MODULE_TYPE_PROG_V0_1  0x00000001  // CP2104 based programmer
+#define OTB_EEPROM_MODULE_TYPE_PROG_V0_2  0x00000002  // CP2104 based programmer
+#define OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2 0x00000011  // Nixie board v0.2
+#define OTB_EEPROM_MODULE_TYPE_TEMP_V0_2  0x00000021  // Temperature board v0.2 (DS18B20 based)
 #define OTB_EEPROM_MODULE_TYPE_ADC_V0_1   0x00000101  // ADS1115 board
 #define OTB_EEPROM_MODULE_TYPE_LL_V0_1    0x00000201  // Logic level shifter 3.3V-5V
   uint32 module_type;
@@ -566,6 +571,28 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
    OTB_EEPROM_COMP_1,
    1,
    (void**)&otb_eeprom_main_board_gpio_pins_g},
+  {"otb_eeprom_main_module",
+   OTB_EEPROM_MAIN_MODULE_MAGIC,
+   sizeof(otb_eeprom_main_module),
+   sizeof(otb_eeprom_main_module),
+   0,
+   1,
+   1,
+   0xFFFFFFFF,
+   OTB_EEPROM_COMP_1,
+   1,
+   NULL},  //  XXX Should be global
+  {"otb_eeprom_main_module_pins",
+   OTB_EEPROM_MAIN_MODULE_PINS_MAGIC,
+   sizeof(otb_eeprom_main_module_pins),
+   sizeof(otb_eeprom_main_module_pins),
+   0,
+   1,
+   1,
+   0xFFFFFFFF,
+   OTB_EEPROM_COMP_1,
+   1,
+   NULL},  //  XXX Should be global
 };
 #endif // OTB_EEPROM_C
 

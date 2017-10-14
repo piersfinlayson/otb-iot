@@ -59,8 +59,8 @@ const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info(uint32_t pin_
 
   if (pin_info == NULL)
   {
-    DEBUG("GPIO: Search in pin defaults: %d %p", otb_eeprom_def_main_board_info->pin_count, *(otb_eeprom_def_main_board_info->pin_info));
-    pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_def_main_board_info->pin_count, *(otb_eeprom_def_main_board_info->pin_info));
+    DEBUG("GPIO: Search in pin defaults: %d %p", otb_eeprom_def_board_info->pin_count, *(otb_eeprom_def_board_info->pin_info));
+    pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_def_board_info->pin_count, *(otb_eeprom_def_board_info->pin_info));
   }
 
   DEBUG("GPIO: otb_gpio_get_pin_info exit")

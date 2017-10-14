@@ -32,6 +32,9 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
   unsigned char buf[TEMP_BUF_LEN];
   char fn_rc;
   brzo_i2c_info *bus;
+  uint8_t ii;
+  otb_eeprom_main_module *mod;
+  otb_eeprom_info *eeprom_info_v;
 
   DEBUG("EEPROM: otb_eeprom_read entry");
 
@@ -52,8 +55,31 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
     }
   }
 
-  INFO("EEPROM: Read eeprom ...");
+  INFO("EEPROM: Read main board eeprom at address 0x%02x", otb_eeprom_main_board_addr);
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
+  
+  for (ii = OTB_EEPROM_MIN_ADDR; ii <= OTB_EEPROM_MAX_ADDR; ii++)
+  {
+    if (ii != otb_eeprom_main_board_addr)
+    {
+      INFO("EEPROM: Look for other eeprom at address 0x%02x", ii);
+      eeprom_info_v = NULL;
+      eeprom_info_v = otb_eeprom_load_main_comp(ii, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_INFO, 1, NULL, 0);
+      if (eeprom_info_v != NULL)
+      {
+        mod = (otb_eeprom_main_module *)otb_eeprom_load_main_comp(ii, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE, 1, NULL, 0);
+        if (mod != NULL)
+        {
+          INFO("EEPROM: Found module information");
+          // XXX Actually do something with this info
+        }
+      }
+    }
+    else
+    {
+      DEBUG("EEPROM: Skip main board eeprom address");
+    }
+  }
 
 EXIT_LABEL:
 
@@ -267,8 +293,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
   uint32_t fn_rc;
   otb_eeprom_hdr *hdr;
   int ii;
+  unsigned char serial[OTB_EEPROM_HW_SERIAL_LEN+2];
 
-  DEBUG("EEPROM: otb_eeprom_read_all_otbiot entry");
+  DEBUG("EEPROM: otb_eeprom_load_main_comp entry");
 
   // Check valid type
   OTB_ASSERT(type < OTB_EEPROM_INFO_TYPE_NUM);
@@ -355,10 +382,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       ;
       otb_eeprom_main_board *main_board = (otb_eeprom_main_board *)local_buf;
       // Guard against non NULL terminated serial!
-      unsigned char serial[OTB_EEPROM_HW_SERIAL_LEN+2];
       os_memcpy(serial, main_board->common.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
       serial[OTB_EEPROM_HW_SERIAL_LEN+1] = 0;
-      INFO("EEPROM:   common.serial:   %s", main_board->common.serial);
+      INFO("EEPROM:   common.serial:   %s", serial);
       INFO("EEPROM:   common.code:     0x%08x", main_board->common.code);
       INFO("EEPROM:   common.subcode:  0x%08x", main_board->common.subcode);
       INFO("EEPROM:   chipid:          %02x%02x%02x", main_board->chipid[0], main_board->chipid[1], main_board->chipid[2]);
@@ -409,6 +435,20 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
 #ifdef OTB_DEBUG      
       otb_eeprom_output_pin_info(gpio_pins->num_pins, gpio_pins->pin_info);
 #endif // OTB_DEBUG      
+      break;
+
+    case OTB_EEPROM_INFO_TYPE_MAIN_MODULE:
+      ;
+      otb_eeprom_main_module *mod = (otb_eeprom_main_module *)local_buf;
+      // Guard against non NULL terminated serial!
+      os_memcpy(serial, mod->common.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
+      serial[OTB_EEPROM_HW_SERIAL_LEN+1] = 0;
+      INFO("EEPROM:   common.serial:   %s", serial);
+      INFO("EEPROM:   common.code:     0x%08x", mod->common.code);
+      INFO("EEPROM:   common.subcode:  0x%08x", mod->common.subcode);
+      INFO("EEPROM:   module_type:     0x%08x", mod->module_type);
+      INFO("EEPROM:   socket_type:     0x%08x", mod->module_type);
+      INFO("EEPROM:   jack_used:       0x%08x", mod->module_type);
       break;
 
     default:

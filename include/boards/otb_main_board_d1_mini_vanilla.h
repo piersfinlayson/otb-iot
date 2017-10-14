@@ -168,13 +168,15 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_i
    OTB_EEPROM_PIN_PULLED_FLOAT},
 };
 
-const otb_hwinfo_main_board_info otb_hwinfo_main_board_d1_mini_vanilla_board_info =
+const otb_hwinfo_board_info otb_hwinfo_main_board_d1_mini_vanilla_board_info =
 {
   "d1_mini",
+  OTB_EEPROM_HW_CODE_MAIN_BOARD,
   OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_GPIO_PIN_NUM,
   OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_MODULE_NUM,
   &otb_hwinfo_main_board_d1_mini_vanilla_main_board_pin_info,
   NULL,
+  NULL
 };
 
 const otb_hwinfo_main_board_info_extra otb_hwinfo_main_board_d1_mini_vanilla_board_info_extra = 

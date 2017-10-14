@@ -167,13 +167,15 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_3_main_board_pin_info[
    OTB_EEPROM_PIN_PULLED_V33},
 };
 
-const otb_hwinfo_main_board_info otb_hwinfo_main_board_otbiot_v0_3_board_info =
+const otb_hwinfo_board_info otb_hwinfo_main_board_otbiot_v0_3_board_info =
 {
   "otbiot_v0_3",
+  OTB_EEPROM_HW_CODE_MAIN_BOARD,
   OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_GPIO_PIN_NUM,
   OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_3_MODULE_NUM,
   &otb_hwinfo_main_board_otbiot_v0_3_main_board_pin_info,
   NULL,
+  NULL
 };
 #endif // OTB_HWINFO_C
 

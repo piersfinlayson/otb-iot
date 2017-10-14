@@ -858,13 +858,15 @@ const otb_hwinfo_main_board_module_info otb_hwinfo_main_board_otbiot_v0_4_module
   },
 };
 
-const otb_hwinfo_main_board_info otb_hwinfo_main_board_otbiot_v0_4_board_info =
+const otb_hwinfo_board_info otb_hwinfo_main_board_otbiot_v0_4_board_info =
 {
   "otbiot_v0_4",
+  OTB_EEPROM_HW_CODE_MAIN_BOARD,
   OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_GPIO_PIN_NUM,
   OTB_HWINFO_MAIN_BOARD_OTBIOT_V0_4_MODULE_NUM,
   &otb_hwinfo_main_board_otbiot_v0_4_main_board_pin_info,
   &otb_hwinfo_main_board_otbiot_v0_4_module_info,
+  NULL
 };
 #endif // OTB_HWINFO_C
 
