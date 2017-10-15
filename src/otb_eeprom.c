@@ -55,6 +55,8 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
     }
   }
 
+#ifndef OTB_RBOOT_BOOTLOADER
+
   INFO("EEPROM: Read main board eeprom at address 0x%02x", otb_eeprom_main_board_addr);
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
 
@@ -81,6 +83,8 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
       }
     }
   }
+
+#endif // OTB_RBOOT_BOOTLOADER
 
 EXIT_LABEL:
 
