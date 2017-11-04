@@ -68,7 +68,18 @@ def on_message(client, userdata, msg):
     temp_updates_received += 1
     temp = float(msg.payload)
     log("Got temp " + str(temp) + "C")
+    neg = False
+    if (round(temp) < 0):
+      neg = True
     temp = str(int(round(temp)))
+    if len(temp) < 2:
+      if neg:
+        temp = "_." + temp
+      else:
+        temp = "_" + temp
+    else:
+      if neg:
+        temp = temp[0]+"."+temp[1]
     last_received_temp = pump_on + temp
     if last_received_temp != last_displayed_temp or (not_updated >= update_anyway):
       display_temp(client, last_received_temp)
