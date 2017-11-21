@@ -59,11 +59,18 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 
   INFO("EEPROM: Read main board eeprom at address 0x%02x", otb_eeprom_main_board_addr);
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
+  os_memset(otb_eeprom_main_module_info_g, 0, sizeof(otb_eeprom_main_module_info) * OTB_EEPROM_MAX_MODULES);
 
   if (otb_eeprom_main_board_g != NULL)
   {
     for (ii = 0; ii < otb_eeprom_main_board_g->num_modules; ii++) 
     {
+      if (ii >= OTB_EEPROM_MAX_MODULES)
+      {
+        WARN("EEPROM: Too many modules");
+        break;
+      }
+
       if (otb_eeprom_main_board_module_g[ii] != NULL)
       {
         INFO("EEPROM: Look for module %d eeprom at address 0x%02x", ii, otb_eeprom_main_board_module_g[ii]->address);
@@ -75,11 +82,12 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
           mod = (otb_eeprom_main_module *)otb_eeprom_load_main_comp(otb_eeprom_main_board_module_g[ii]->address, bus, eeprom_info_v, OTB_EEPROM_INFO_TYPE_MAIN_MODULE, 1, NULL, 0);
           if (mod != NULL)
           {
+            // No errors - so store this module info off
             INFO("EEPROM: Found information for module %d", ii);
-            // XXX Actually do something with this info
+            otb_eeprom_main_module_info_g[ii].eeprom_info = eeprom_info_v;
+            otb_eeprom_main_module_info_g[ii].module = mod;
           }
         }
-
       }
     }
   }
@@ -94,6 +102,31 @@ EXIT_LABEL:
   DEBUG("EEPROM: otb_eeprom_read exit");
 
   return;
+}
+
+bool ICACHE_FLASH_ATTR otb_eeprom_module_present()
+{
+  bool rc = FALSE;
+  int ii;
+
+  DEBUG("EEPROM: otb_eeprom_module_present entry");
+
+  if (otb_eeprom_main_board_g != NULL)
+  {
+    for (ii = 0; ii < OTB_EEPROM_MAX_MODULES; ii++) 
+    {
+      if (otb_eeprom_main_module_info_g[ii].eeprom_info != NULL)
+      { 
+        DEBUG("EEPROM: Have found at one set of module info");
+        rc = TRUE;
+        break;
+      }
+    }
+  }
+
+  DEBUG("EEPROM: otb_eeprom_module_present exit");
+
+  return rc;
 }
 
 //

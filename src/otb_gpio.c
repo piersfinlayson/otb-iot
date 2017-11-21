@@ -253,6 +253,12 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
 
   DEBUG("GPIO: gpio_apply_boot_state entry");
 
+  if (otb_eeprom_module_present())
+  {
+    INFO("GPIO: Not applying boot state as have modules present");
+    goto EXIT_LABEL;
+  }
+
   for (ii = 0; ii < 17; ii++)
   {
     if (!otb_gpio_is_reserved(ii, &dummy))
@@ -268,6 +274,8 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
       WARN("GPIO: not applying boot state for reserved pin %d", ii);
     }
   }
+
+EXIT_LABEL:  
   
   DEBUG("GPIO: gpio_apply_boot_state exit");
   

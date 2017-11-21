@@ -492,6 +492,12 @@ typedef struct otb_eeprom_main_module_pins
   
 } otb_eeprom_main_module_pins;
 
+typedef struct otb_eeprom_main_module_info
+{
+  otb_eeprom_info *eeprom_info;
+  otb_eeprom_main_module *module;
+} otb_eeprom_main_module_info;
+
 // Global pointers to eeprom structures (and info_comps)
 // NULL if not yet read from eeprom, or couldn't be read from eeprom.
 #ifndef OTB_EEPROM_C
@@ -501,6 +507,7 @@ extern otb_eeprom_main_board *otb_eeprom_main_board_g;
 extern otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_MAX_MODULES];
 extern otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
 extern otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
+extern otb_eeprom_main_module_info otb_eeprom_main_module_info_g[OTB_EEPROM_MAX_MODULES];
 #else // OTB_EEPROM_C
 
 otb_eeprom_info *otb_eeprom_info_g;
@@ -510,6 +517,7 @@ otb_eeprom_main_board *otb_eeprom_main_board_g;
 otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_MAX_MODULES];
 otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
 otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
+otb_eeprom_main_module_info otb_eeprom_main_module_info_g[OTB_EEPROM_MAX_MODULES];
 #endif // OTB_EEPROM_C
 
 #ifndef OTB_EEPROM_C
@@ -599,6 +607,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
 
 #ifndef OTB_HWINFO_C
 void otb_eeprom_read(void);
+bool otb_eeprom_module_present();
 char otb_eeprom_init(uint8_t addr, brzo_i2c_info *i2c_info);
 void otb_eeprom_read_all(uint8_t addr,
                          brzo_i2c_info *i2c_info);

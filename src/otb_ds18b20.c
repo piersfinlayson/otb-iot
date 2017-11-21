@@ -78,7 +78,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
       os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 1);
     }
   }
-  
+
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
   
   return;
