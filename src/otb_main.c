@@ -84,11 +84,8 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_init();
   otb_conf_load();
   
-  // Maybe delete boot state?
-  if (!otb_eeprom_module_present())
-  {
-    otb_gpio_apply_boot_state();
-  }
+  // Maybe get rid of this?
+  otb_gpio_apply_boot_state();
   
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
 
