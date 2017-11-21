@@ -1365,9 +1365,13 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
                       OTB_MQTT_KEEPALIVE);
 
   // Now set up DS18B20 init
+  // Only do this if a temp board or not mezz boards
+  // XXX
+  #if 0
   os_timer_disarm((os_timer_t*)&init_timer);
   os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ds18b20, NULL);
   os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
+  #endif
 
   DEBUG("OTB: otb_init_mqtt entry");
 

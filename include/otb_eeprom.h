@@ -460,6 +460,7 @@ typedef struct otb_eeprom_main_module
 #define OTB_EEPROM_MODULE_TYPE_PROG_V0_2  0x00000002  // CP2104 based programmer
 #define OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2 0x00000011  // Nixie board v0.2
 #define OTB_EEPROM_MODULE_TYPE_TEMP_V0_2  0x00000021  // Temperature board v0.2 (DS18B20 based)
+#define OTB_EEPROM_MODULE_TYPE_RELAY_V0_2  0x00000031  // Temperature board v0.2 (DS18B20 based)
 #define OTB_EEPROM_MODULE_TYPE_ADC_V0_1   0x00000101  // ADS1115 board
 #define OTB_EEPROM_MODULE_TYPE_LL_V0_1    0x00000201  // Logic level shifter 3.3V-5V
   uint32 module_type;

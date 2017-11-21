@@ -31,6 +31,7 @@
 #include "otb_mez_board_nixie_v0_2.h"
 #include "otb_mez_board_prog_v0_2.h"
 #include "otb_mez_board_temp_v0_2.h"
+#include "otb_mez_board_relay_v0_2.h"
 
 // Set up default hardware information, in case info can't be read from eeprom
 // XXX May want lots of different compile time cases in here - but for now just

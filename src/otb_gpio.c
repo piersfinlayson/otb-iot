@@ -98,6 +98,8 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
     switch (pin_info->use)
     {
       case OTB_EEPROM_PIN_USE_RESERVED:
+      case OTB_EEPROM_PIN_USE_INT_SDA:
+      case OTB_EEPROM_PIN_USE_INT_SCL:
         INFO("GPIO: Reserved pin: %d", ii);
         set_ok = FALSE; 
         break;
@@ -125,8 +127,25 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
         break;
 
       default:
-        DEBUG("GPIO: Set pin: %d", ii);
-        set_ok = otb_gpio_set(ii, 0, FALSE);
+        switch (ii)
+        {
+          case 4:
+          case 5:
+          case 12:
+          case 13:
+            // These pins are held up on otbiot hardware, so initialise to 1
+            // On the Wemos D1 mini these are floating.  Might as well therefore be
+            // consistent with otbiot hardware, but may say these pins switching
+            // at boot as may well be floating low before we set them.
+            DEBUG("GPIO: Set pin: %d: 1", ii);
+            set_ok = otb_gpio_set(ii, 1, FALSE);
+            break;
+
+          default:
+            DEBUG("GPIO: Set pin: %d: 0", ii);
+            set_ok = otb_gpio_set(ii, 0, FALSE);
+            break;
+        }
         break;
     }
     if (set_ok)

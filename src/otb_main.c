@@ -65,6 +65,7 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_wifi_init();
 
   // Initialize nixie module
+  // Need to trigger off nixie module
   otb_nixie_module_init();
 
 #if 0
@@ -84,7 +85,8 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_init();
   otb_conf_load();
   
-  otb_gpio_apply_boot_state();
+  // XXX Disable now - maybe delete?
+  //otb_gpio_apply_boot_state();
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
 
 #if 0  
