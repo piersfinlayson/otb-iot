@@ -22,7 +22,90 @@
 #define OTB_RELAY_C
 #include "otb.h"
 
-int8_t otb_relay_id;
+void ICACHE_FLASH_ATTR otb_relay_init_mezz(void *arg)
+{
+  uint8 temp;
+  uint32 gpios = (uint32)arg;
+
+  DEBUG("RELAY: otb_relay_init_mezz entry");
+
+  // Get our GPIOs
+  otb_relay_mezz.relay_gpio = (uint8)(gpios & 0xff);
+  otb_relay_mezz.led_gpio = (uint8)((gpios & 0xff00) >> 8);
+
+  if (otb_relay_mezz.relay_gpio > otb_relay_mezz.led_gpio)
+  {
+    temp = otb_relay_mezz.relay_gpio;
+    otb_relay_mezz.relay_gpio = otb_relay_mezz.led_gpio;
+    otb_relay_mezz.led_gpio = temp;
+  }
+
+  otb_relay_mezz.inited = TRUE;
+
+  INFO("RELAY: Initialized mezz relay board relay pin: %d led pin: %d", otb_relay_mezz.relay_gpio, otb_relay_mezz.led_gpio);
+
+  // "Connect" to the relay - this means pulling gpio[1] low to light the led
+  otb_gpio_set(otb_relay_mezz.led_gpio, 0, FALSE);
+
+  DEBUG("RELAY: otb_relay_init_mezz exit");
+
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_relay_mezz_trigger(unsigned char *next_cmd,
+                                              void *arg,
+                                              unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  unsigned char *next_next_cmd;
+    
+  DEBUG("RELAY: otb_relay_mezz_trigger entry");
+  
+  if (!otb_relay_mezz.inited)
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("No relay mezz installed");
+    goto EXIT_LABEL;
+  }
+  
+  if ((next_cmd == NULL) || (os_strnlen(next_cmd, 2) >= 2) || (next_cmd[0] != '0'))
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("Invalid relay selected (only 0 supported)");
+    goto EXIT_LABEL;
+  }
+  
+  next_next_cmd = otb_cmd_get_next_cmd(next_cmd);
+  if ((next_next_cmd == NULL) || (os_strnlen(next_next_cmd, 2) >= 2) || ((next_next_cmd[0] != '0') && (next_next_cmd[0] != '1')))
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("Invalid state (only 0 and 1 supported)");
+    goto EXIT_LABEL;
+  }
+
+  switch(next_next_cmd[0])
+  {
+    case '0':
+      otb_gpio_set(otb_relay_mezz.relay_gpio, 1, FALSE);
+      rc = TRUE;
+      break;
+
+    case '1':
+      otb_gpio_set(otb_relay_mezz.relay_gpio, 0, FALSE);
+      rc = TRUE;
+      break;
+
+    default:
+      OTB_ASSERT(FALSE);
+      break;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("RELAY: otb_relay_mezz_trigger exit");
+  
+  return rc;
+}
 
 bool ICACHE_FLASH_ATTR otb_relay_valid_id(unsigned char *to_match)
 {

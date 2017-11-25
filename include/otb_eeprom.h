@@ -496,6 +496,7 @@ typedef struct otb_eeprom_main_module_info
 {
   otb_eeprom_info *eeprom_info;
   otb_eeprom_main_module *module;
+  otb_eeprom_main_board_module *main_board_mod;
 } otb_eeprom_main_module_info;
 
 // Global pointers to eeprom structures (and info_comps)
@@ -608,6 +609,7 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
 #ifndef OTB_HWINFO_C
 void otb_eeprom_read(void);
 bool otb_eeprom_module_present();
+void otb_eeprom_init_modules();
 char otb_eeprom_init(uint8_t addr, brzo_i2c_info *i2c_info);
 void otb_eeprom_read_all(uint8_t addr,
                          brzo_i2c_info *i2c_info);

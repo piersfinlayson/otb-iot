@@ -38,13 +38,29 @@ typedef struct otb_relay
 
 } otb_relay;
  
+typedef struct otb_relay_mezz_info
+{
+  bool inited;
+
+  uint8 relay_gpio;
+
+  uint8 led_gpio;
+
+} otb_relay_mezz_info;
+
 #ifdef OTB_RELAY_C
+otb_relay_mezz_info otb_relay_mezz;
 uint8_t otb_relay_num;
+int8_t otb_relay_id;
 otb_relay otb_relay_status[OTB_CONF_RELAY_MAX_MODULES];
 #endif // OTB_RELAY_C
 
 #define OTB_RELAY_STATUS_LED_OTB_0_4  15
 
+void otb_relay_init_mezz(void *arg);
+bool otb_relay_mezz_trigger(unsigned char *next_cmd,
+                            void *arg,
+                            unsigned char *prev_cmd);
 bool otb_relay_valid_id(unsigned char *to_match);  
 int8_t otb_relay_get_index(unsigned char *text);
 bool otb_relay_check_index(int8_t index); 

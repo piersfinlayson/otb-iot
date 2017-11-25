@@ -86,6 +86,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
             INFO("EEPROM: Found information for module %d", ii);
             otb_eeprom_main_module_info_g[ii].eeprom_info = eeprom_info_v;
             otb_eeprom_main_module_info_g[ii].module = mod;
+            otb_eeprom_main_module_info_g[ii].main_board_mod = otb_eeprom_main_board_module_g[ii];
           }
         }
       }
@@ -103,6 +104,8 @@ EXIT_LABEL:
 
   return;
 }
+
+#ifndef OTB_RBOOT_BOOTLOADER
 
 bool ICACHE_FLASH_ATTR otb_eeprom_module_present()
 {
@@ -128,6 +131,114 @@ bool ICACHE_FLASH_ATTR otb_eeprom_module_present()
 
   return rc;
 }
+
+void ICACHE_FLASH_ATTR otb_eeprom_init_modules()
+{
+  int ii;
+  os_timer_func_t *timer_func = otb_init_ds18b20;
+  void *timer_param = NULL;
+  int jj;
+  int kk;
+  uint32 gpios[2];
+  uint32 gpios_munged;
+
+  DEBUG("OTB: otb_eeprom_init_modules entry");
+
+  //
+  // XXX
+  // 
+  // This function only currently supported initialising the last mezzanine board found (only starts one timer function)
+  //
+  os_timer_disarm((os_timer_t*)&init_timer);
+
+  // If there aren't any modules present
+  // - set up stored GPIO status
+  if (!otb_eeprom_module_present())
+  {
+    INFO("OTB: No modules present, initialise GPIOs and DS18B20");
+    otb_gpio_apply_boot_state();
+    goto EXIT_LABEL;
+  }
+
+  if (otb_eeprom_main_board_g != NULL)
+  {
+    for (ii = 0; ii < OTB_EEPROM_MAX_MODULES; ii++) 
+    {
+      if (otb_eeprom_main_module_info_g[ii].eeprom_info != NULL)
+      { 
+        DEBUG("EEPROM: Have found at one set of module info socket_type 0x%x", otb_eeprom_main_module_info_g[ii].main_board_mod->socket_type);
+        OTB_ASSERT(otb_eeprom_main_module_info_g[ii].module != NULL);
+        OTB_ASSERT(otb_eeprom_main_module_info_g[ii].main_board_mod != NULL);
+        // Only interested in mezzanine boards (other sort is programming board, or mezz+prog combo)
+        if ((otb_eeprom_main_module_info_g[ii].main_board_mod->socket_type == OTB_EEPROM_MODULE_TYPE_MEZZ) ||
+            (otb_eeprom_main_module_info_g[ii].main_board_mod->socket_type == OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ))
+        {
+          // Check out the GPIOs for this module
+          // XXX Note relying on the num_pins actually being correct and not sending us off into hyperspace
+          //     Should really check length as we do through
+          for (jj = 0, kk = 0; jj < otb_eeprom_main_module_info_g[ii].main_board_mod->num_pins; jj++)
+          {
+            if (otb_eeprom_main_module_info_g[ii].main_board_mod->pin_info[jj].use == OTB_EEPROM_PIN_USE_GPIO)
+            {
+              // Bottom type of further_info is GPIO number
+              gpios[kk] = (otb_eeprom_main_module_info_g[ii].main_board_mod->pin_info[jj].further_info & 0xff);
+              kk++;
+              if (kk >= 2)
+              {
+                // Only want 2 GPIOs
+                break;
+              }
+            }
+          }
+
+          if (kk >= 2)
+          {
+            gpios_munged = (gpios[1] << 8) | gpios[0];
+            timer_param = (void*)gpios_munged;
+            switch (otb_eeprom_main_module_info_g[ii].module->module_type)
+            {
+              case OTB_EEPROM_MODULE_TYPE_TEMP_V0_2:
+                timer_func = otb_init_ds18b20;
+                break;
+
+              case OTB_EEPROM_MODULE_TYPE_ADC_V0_1:
+                timer_func = otb_init_ads;
+                break;
+
+              case OTB_EEPROM_MODULE_TYPE_RELAY_V0_2:
+                timer_func = otb_relay_init_mezz;
+                break;
+
+              case OTB_EEPROM_MODULE_TYPE_LL_V0_1:
+              case OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2:
+              default:
+                INFO("EEPROM: No initialisation for module type: 0x%08x", otb_eeprom_main_module_info_g[ii].module->module_type);
+                break;
+            }
+          }
+          else 
+          {
+            WARN("EEPROM: Have mezzanine board 0x%02x but module has fewer than 2 GPIOs", otb_eeprom_main_module_info_g[ii].main_board_mod->address);
+          }
+        }
+      }
+    }
+  }
+
+EXIT_LABEL:
+
+  if (timer_func != NULL)
+  {
+    os_timer_setfn((os_timer_t*)&init_timer, timer_func, timer_param);
+    os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
+  }
+
+  DEBUG("OTB: otb_eeprom_init_modules exit");
+
+  return;
+}
+
+#endif // OTB_RBOOT_BOOTLOADER
 
 //
 // otb_eeprom_init

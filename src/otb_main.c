@@ -84,9 +84,6 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_init();
   otb_conf_load();
   
-  // Maybe get rid of this?
-  otb_gpio_apply_boot_state();
-  
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
 
 #if 0  

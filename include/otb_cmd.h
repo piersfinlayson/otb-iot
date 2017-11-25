@@ -121,6 +121,7 @@ extern otb_cmd_handler_fn otb_gpio_cmd_get_config;
 extern otb_cmd_handler_fn otb_gpio_cmd_set;
 extern otb_cmd_handler_fn otb_gpio_cmd_set_config;
 extern otb_cmd_handler_fn otb_relay_conf_set;
+extern otb_cmd_handler_fn otb_relay_mezz_trigger;
 extern otb_cmd_handler_fn otb_relay_trigger;
 extern otb_cmd_handler_fn otb_serial_config_handler;
 extern otb_cmd_handler_fn otb_nixie_init;
@@ -340,6 +341,9 @@ typedef struct otb_cmd_control
 //         <state> (0 or 1)
 //       all
 //         <state> (string of 0s and 1s - lowest numbered pin last)
+//     mezz
+//       0 (only 1 relay mezz board supported)
+//         <state> (0 or 1)
 //   serial
 //     send|transmit|tx
 //     buffer
@@ -879,6 +883,7 @@ otb_cmd_control otb_cmd_control_trigger_gpio_pca[] =
 // trigger->relay
 otb_cmd_control otb_cmd_control_trigger_relay[] =
 {
+  {"mezz", NULL, NULL, otb_relay_mezz_trigger, NULL},
   {NULL, otb_relay_valid_id, NULL, otb_relay_trigger, NULL},
   {OTB_CMD_FINISH}
 };

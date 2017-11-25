@@ -1364,18 +1364,11 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
                       otb_conf->mqtt.pass,
                       OTB_MQTT_KEEPALIVE);
 
-  // Now set up DS18B20 init
-  if (otb_eeprom_module_present())
-  {
-    INFO("DS18B20: Not initializing DS18B20 routine as modules present");
-    goto EXIT_LABEL;
-  }
-  
+  // Now initialise according to the installed modules
   os_timer_disarm((os_timer_t*)&init_timer);
-  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ds18b20, NULL);
-  os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
+  otb_eeprom_init_modules();
 
-EXIT_LABEL:  
+  EXIT_LABEL:  
   
   DEBUG("OTB: otb_init_mqtt entry");
 
@@ -1388,11 +1381,6 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
 
   INFO("OTB: Set up One Wire bus");
   otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
-
-  // Now set up ADS init
-  os_timer_disarm((os_timer_t*)&init_timer);
-  os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_ads, NULL);
-  os_timer_arm((os_timer_t*)&init_timer, 500, 0);  
 
   DEBUG("OTB: otb_init_ds18b20 exit");
 
