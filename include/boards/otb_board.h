@@ -55,7 +55,7 @@ const otb_hwinfo_board_info *otb_hwinfo_boards[] =
   &otb_hwinfo_mez_board_nixie_v0_2,
   &otb_hwinfo_mez_board_prog_v0_2,
   &otb_hwinfo_mez_board_temp_v0_2,
-  &otb_hwinfo_mez_board__v0_2,
+  &otb_hwinfo_mez_board_relay_v0_2,
   NULL
 };
 #endif
