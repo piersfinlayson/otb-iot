@@ -71,6 +71,7 @@ def on_message(client, userdata, msg):
     neg = False
     if (round(temp) < 0):
       neg = True
+      temp = 0-temp
     temp = str(int(round(temp)))
     if len(temp) < 2:
       if neg:
