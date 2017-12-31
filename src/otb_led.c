@@ -804,8 +804,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, un
   }
   rep++;
   
-  // Flipped = true as going throug a not gate
-  otb_led_neo_update(rgb, 252, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, TRUE);
+  otb_led_neo_update(rgb, 252, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, FALSE);
     
   rc = TRUE;
   
