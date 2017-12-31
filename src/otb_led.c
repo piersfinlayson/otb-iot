@@ -423,24 +423,203 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
     DEBUG("LED: Override to off");
   }
 
-  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type);
+  otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type, FALSE);
 
   DEBUG("LED: otb_led_wifi_update exit");
 
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type)
+void otb_led_neo_send_0(bool flip, uint32_t pin_mask)
+{
+  uint32_t high_reg;
+  uint32_t low_reg;
+
+  // DEBUG("LED: otb_led_neo_send_0 entry");
+
+  high_reg = flip ? GPIO_OUT_W1TC_ADDRESS : GPIO_OUT_W1TS_ADDRESS;
+  low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
+
+  // High
+  GPIO_REG_WRITE(high_reg, pin_mask);
+  __asm__ __volatile__
+  (
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+  );
+
+  // Low
+  GPIO_REG_WRITE(low_reg, pin_mask);
+  __asm__ __volatile__
+  (
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+  );
+
+  // DEBUG("LED: otb_led_neo_send_0 exit");
+
+  return;
+}
+
+void otb_led_neo_send_1(bool flip, uint32_t pin_mask)
+{
+  uint32_t high_reg;
+  uint32_t low_reg;
+
+  // DEBUG("LED: otb_led_neo_send_1 entry");
+
+  high_reg = flip ? GPIO_OUT_W1TC_ADDRESS : GPIO_OUT_W1TS_ADDRESS;
+  low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
+
+  // High
+  GPIO_REG_WRITE(high_reg, pin_mask);
+  __asm__ __volatile__
+  (
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+  );
+
+  // Low
+  GPIO_REG_WRITE(low_reg, pin_mask);
+  __asm__ __volatile__
+  (
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+  );
+
+  // DEBUG("LED: otb_led_neo_send_1 exit");
+
+  return;
+}
+
+void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, bool flip)
 {
   int ii, jj;
   uint32_t colour_mask;
   uint32_t ccount;
-  int wait_high_cycles;
-  int wait_low_cycles;
   uint32_t start_ccount;
   uint32_t pin_mask;
-  uint32_t *my_rgb;
   uint32_t scratch;
+  uint32_t pixel;
+  uint32_t low_reg;
 
   DEBUG("LED: otb_led_neo_update entry");
 
@@ -450,54 +629,45 @@ void ICACHE_FLASH_ATTR otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, 
     goto EXIT_LABEL;
   }
 
-  if (type != OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B)
+
+  if (type == OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B)
   {
-    scratch = *rgb;
+    // Flip r and g around - WS2812Bs expect green first
+    for (ii = 0; ii < num; ii++)
+    {
+      scratch = rgb[ii] & 0xff; //blue
+      scratch += (rgb[ii] & 0xff00) << 8; //green
+      scratch += (rgb[ii] & 0xff0000) >> 8; //red
+      rgb[ii] = scratch;
+    }
   }
-  else
-  {
-    scratch = *rgb & 0xff; //blue
-    scratch += (*rgb & 0xff00) << 8; //green
-    scratch += (*rgb & 0xff0000) >> 8; //red
-  }
-  my_rgb = &scratch;
 
   pin_mask = 1 << pin;
+  low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
 
   ETS_UART_INTR_DISABLE();
-  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
 
+  #if 0
+  // Make sure pulled low before start
+  GPIO_REG_WRITE(low_reg, pin_mask);
+  os_delay_us(1000);
+  #endif
+
+  // Send the bytes
   for (ii = 0; ii < num; ii++)
   {
     colour_mask = 1 << 23;
+    pixel = rgb[ii];
     while (colour_mask)
     {
-      if (colour_mask & my_rgb[ii])
-      {
-        wait_high_cycles = OTB_LED_NEO_T1H_CYCLES;
-        wait_low_cycles = OTB_LED_NEO_T1L_CYCLES;
-      }
-      else
-      {
-        wait_high_cycles = OTB_LED_NEO_T0H_CYCLES;
-        wait_low_cycles = OTB_LED_NEO_T0L_CYCLES;
-      }
-      GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pin_mask);
-      start_ccount = otb_util_get_cycle_count();
-      for (ccount = otb_util_get_cycle_count();
-           ccount - start_ccount < wait_high_cycles;
-           ccount = otb_util_get_cycle_count());
-      GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
-      start_ccount = otb_util_get_cycle_count();
-      for (ccount = otb_util_get_cycle_count();
-           ccount - start_ccount < wait_low_cycles;
-           ccount = otb_util_get_cycle_count());
+      colour_mask & pixel ? otb_led_neo_send_1(flip, pin_mask) : otb_led_neo_send_0(flip, pin_mask);
       colour_mask >>= 1;
     }
   }
 
-  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pin_mask);
-  os_delay_us(OTB_LED_NEO_LATCH/1000);
+  // Pull low for 10us to cause devices to latch
+  GPIO_REG_WRITE(low_reg, pin_mask);
+  os_delay_us(10);
 
   ETS_UART_INTR_ENABLE();
 
@@ -613,3 +783,35 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink_timerfunc(void *arg)
   
   return;
 }
+
+int rep = 0;
+bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  uint32_t rgb[252];
+  int ii;
+  
+  DEBUG("CMD: otb_led_trigger_sf entry");
+
+  for (ii = 0; ii < 252; ii+=6)
+  {
+    rgb[ii+((rep+0)%6)] = 0xff0000;
+    rgb[ii+((rep+1)%6)] = 0xffff00;
+    rgb[ii+((rep+2)%6)] = 0x00ff00;
+    rgb[ii+((rep+3)%6)] = 0x00ffff;
+    rgb[ii+((rep+4)%6)] = 0x0000ff;
+    rgb[ii+((rep+5)%6)] = 0xff00ff;
+  }
+  rep++;
+  
+  // Flipped = true as going throug a not gate
+  otb_led_neo_update(rgb, 252, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, TRUE);
+    
+  rc = TRUE;
+  
+  DEBUG("CMD: otb_led_trigger_sf exit");
+  
+  return rc;
+
+}
+

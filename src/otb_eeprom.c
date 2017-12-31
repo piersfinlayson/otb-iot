@@ -44,15 +44,9 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
   fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, bus);
   if (!fn_rc)
   {
-    INFO("EEPROM: Trying backup internal bus");
-    bus = &otb_i2c_bus_internal_backup;
-    fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, bus);
-    if (!fn_rc)
-    {
-      // Failed - bail
-      INFO("EEPROM: Failed");
-      goto EXIT_LABEL;
-    }
+    // Failed - bail
+    INFO("EEPROM: Failed");
+    goto EXIT_LABEL;
   }
 
 #ifndef OTB_RBOOT_BOOTLOADER
