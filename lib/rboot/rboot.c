@@ -190,12 +190,11 @@ static uint32 get_gpio(uint8 pin)
   {
     goto EXIT_LABEL;
   }
-  PIN_FUNC_SELECT(pin_mux[pin], pin_func[pin]);
-	rc = (*pin_in & (1 << pin)) >> pin;
+  rc = (READ_PERI_REG(0x60000318) & (1 << pin)) >> pin;
 
 EXIT_LABEL:
   
-	return rc;
+  return rc;
 }
 
 static void reset(void)
@@ -588,15 +587,21 @@ void NOINLINE factory_reset(void)
 	ets_printf("BOOT: Checking GPIO%d ", gpio);
 
 	// First of all set the pin to high - in case being weakly pulled low from reboot
-  PIN_FUNC_SELECT(pin_mux[14], pin_func[14]);
-  WRITE_PERI_REG(PERIPHS_GPIO_BASEADDR + GPIO_OUT_W1TS_ADDRESS, 1<<14);
+  PIN_FUNC_SELECT(pin_mux[gpio], pin_func[gpio]);
+  WRITE_PERI_REG(PERIPHS_GPIO_BASEADDR + GPIO_OUT_W1TS_ADDRESS, 1<<gpio);
+
+  ets_intr_lock();
 
   for (ii = 0; ii <= FACTORY_RESET_LEN; ii++)
   {
+    // Feed the dog!
+    WRITE_PERI_REG(0x60000600 + 0x314, 0x73);
     gpio_state = get_gpio(gpio);
     if (gpio_state)
     {
-      ets_printf("o");
+      ets_printf("o\r\n");
+      ets_intr_unlock();
+      goto EXIT_LABEL;
       break;
     }
     else
@@ -606,7 +611,9 @@ void NOINLINE factory_reset(void)
     }
   }
   ets_printf("\r\n");
-  
+
+  ets_intr_unlock();
+
   // Would be lovely to flash the status LED at this point, but that's beyond our
   // abilities - as we would need to speak I2C to do so!
   
@@ -617,9 +624,9 @@ void NOINLINE factory_reset(void)
     ets_delay_us(2000000);
     reset();
   }
-  
+
 EXIT_LABEL:
-  
+
   return;
 }
 
