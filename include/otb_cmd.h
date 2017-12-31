@@ -106,6 +106,7 @@ extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_addr;
 // extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_value;
 extern otb_cmd_handler_fn otb_cmd_trigger_reset;
 extern otb_cmd_handler_fn otb_cmd_trigger_ping;
+extern otb_cmd_handler_fn otb_led_trigger_sf;
 extern otb_cmd_handler_fn otb_cmd_get_config_all;
 extern otb_cmd_handler_fn otb_cmd_get_sensor_adc_ads;
 extern otb_cmd_handler_fn otb_conf_set_keep_ap_active;
@@ -358,6 +359,7 @@ typedef struct otb_cmd_control
 //     power
 //       on
 //       off
+//   sf
 //  
 
 // Some macros to simplify command structure definition
@@ -827,6 +829,7 @@ otb_cmd_control otb_cmd_control_trigger[] =
   {"relay",             NULL, otb_cmd_control_trigger_relay,   OTB_CMD_NO_FN},
   {"serial",            NULL, otb_cmd_control_trigger_serial,  OTB_CMD_NO_FN},
   {"nixie",             NULL, otb_cmd_control_trigger_nixie,   OTB_CMD_NO_FN},
+  {"sf",                NULL, NULL,     otb_led_trigger_sf,      NULL},
   {OTB_CMD_FINISH}    
 };
 

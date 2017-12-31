@@ -56,9 +56,6 @@ void ICACHE_FLASH_ATTR otb_i2c_initialize_bus_internal()
   otb_i2c_initialize_bus(&otb_i2c_bus_internal,
                          OTB_I2C_BUS_INTERNAL_SDA_PIN,
                          OTB_I2C_BUS_INTERNAL_SCL_PIN);
-  otb_i2c_initialize_bus(&otb_i2c_bus_internal_backup,
-                         OTB_I2C_BUS_INTERNAL_BACKUP_SDA_PIN,
-                         OTB_I2C_BUS_INTERNAL_BACKUP_SCL_PIN);
 
   DEBUG("I2C: otb_i2c_initialize_bus_internal exit");
   

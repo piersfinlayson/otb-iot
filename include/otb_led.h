@@ -34,17 +34,25 @@
 #define OTB_LED_NEO_COLOUR_PINK    0x201818
 
 // Nanoseconds
+#if 0
+#define OTB_LED_NEO_T1H    700 // 800
+#define OTB_LED_NEO_T1L    50 // 450
+#define OTB_LED_NEO_T0H    300 // 400
+#define OTB_LED_NEO_T0L    400 // 850
+#endif
 #define OTB_LED_NEO_T1H    800
 #define OTB_LED_NEO_T1L    450
 #define OTB_LED_NEO_T0H    400
 #define OTB_LED_NEO_T0L    850
 #define OTB_LED_NEO_LATCH  50000
 
-#define OTB_LED_NEO_T1H_CYCLES  OTB_LED_NEO_T1H/OTB_UTIL_NS_PER_CYCLE
-#define OTB_LED_NEO_T1L_CYCLES  OTB_LED_NEO_T1L/OTB_UTIL_NS_PER_CYCLE
-#define OTB_LED_NEO_T0H_CYCLES  OTB_LED_NEO_T0H/OTB_UTIL_NS_PER_CYCLE
-#define OTB_LED_NEO_T0L_CYCLES  OTB_LED_NEO_T0L/OTB_UTIL_NS_PER_CYCLE
-#define OTB_LED_NEO_LATCH_CYCLES  OTB_LED_NEO_TATCH/OTB_UTIL_NS_PER_CYCLE
+#define OTB_LED_NS_PER_CYCLE 125
+
+#define OTB_LED_NEO_T1H_CYCLES  OTB_LED_NEO_T1H/OTB_LED_NS_PER_CYCLE
+#define OTB_LED_NEO_T1L_CYCLES  OTB_LED_NEO_T1L/OTB_LED_NS_PER_CYCLE
+#define OTB_LED_NEO_T0H_CYCLES  OTB_LED_NEO_T0H/OTB_LED_NS_PER_CYCLE
+#define OTB_LED_NEO_T0L_CYCLES  OTB_LED_NEO_T0L/OTB_LED_NS_PER_CYCLE
+#define OTB_LED_NEO_LATCH_CYCLES  OTB_LED_NEO_LATCH/OTB_LED_NS_PER_CYCLE
 
 
 // error_step is 0 if successful is True
@@ -227,12 +235,15 @@ void otb_led_control_on_timer(void *arg);
 void otb_led_control_init(otb_led_sequence *seq);
 bool otb_led_control_seq(otb_led_sequence *seq);
 void otb_led_wifi_update(uint32_t rgb, bool store);
-void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type);
+void otb_led_neo_send_0(bool flip, uint32_t pin_mask);
+void otb_led_neo_send_1(bool flip, uint32_t pin_mask);
+void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, bool flip);
 uint32_t otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8_t blue);
 void otb_led_wifi_blink(uint8 times);
 void otb_led_wifi_init_blink_timer(void);
 void otb_led_wifi_disable_blink_timer(void);
 void otb_led_wifi_blink_it(void);
 void otb_led_wifi_blink_timerfunc(void *arg);
+bool otb_led_trigger_sf(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 
 #endif  // OTB_LED_H
