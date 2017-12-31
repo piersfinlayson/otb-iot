@@ -599,6 +599,8 @@ void NOINLINE factory_reset(void)
     gpio_state = get_gpio(gpio);
     if (gpio_state)
     {
+      // Note hangs at this point and then watchdog resets.
+      // Can't figure out why hangs - may be something to do with interrupts.
       ets_printf("o\r\n");
       ets_intr_unlock();
       goto EXIT_LABEL;
