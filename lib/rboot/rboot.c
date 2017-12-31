@@ -148,6 +148,7 @@ static uint32 check_image(uint32 readpos) {
 #define RTC_GPIO_IN_DATA						(REG_RTC_BASE + 0x08C)
 #define RTC_GPIO_CONF							(REG_RTC_BASE + 0x090)
 #define PAD_XPD_DCDC_CONF						(REG_RTC_BASE + 0x0A0)
+#define PERIPHS_GPIO_BASEADDR               0x60000300
 
 // GPIO14 stuff
 #define PERIPHS_IO_MUX                                          0x60000800
@@ -165,6 +166,8 @@ static uint32 check_image(uint32 readpos) {
 #define PERIPHS_IO_MUX_FUNC             0x13
 #define PERIPHS_IO_MUX_FUNC_S           4
 #define BIT2     0x00000004
+#define GPIO_OUT_W1TS_ADDRESS             0x04
+#define GPIO_OUT_W1TC_ADDRESS             0x08
 static uint32 get_gpio16() {
 	// set output level to 1
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
@@ -583,6 +586,11 @@ void NOINLINE factory_reset(void)
   
   // Check if GPIO14 is depressed
 	ets_printf("BOOT: Checking GPIO%d ", gpio);
+
+	// First of all set the pin to high - in case being weakly pulled low from reboot
+  PIN_FUNC_SELECT(pin_mux[14], pin_func[14]);
+  WRITE_PERI_REG(PERIPHS_GPIO_BASEADDR + GPIO_OUT_W1TS_ADDRESS, 1<<14);
+
   for (ii = 0; ii <= FACTORY_RESET_LEN; ii++)
   {
     gpio_state = get_gpio(gpio);
