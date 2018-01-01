@@ -22,6 +22,16 @@
 
 #define OTB_LED_H
 
+#define OTB_CMD_LED_NEO_MIN      0
+#define OTB_CMD_LED_NEO_OFF      0
+#define OTB_CMD_LED_NEO_SOLID    1
+#define OTB_CMD_LED_NEO_BOUNCE   2
+#define OTB_CMD_LED_NEO_ROUND    3
+#define OTB_CMD_LED_NEO_RAINBOW  4
+#define OTB_CMD_LED_NEO_BOUNCER  5
+#define OTB_CMD_LED_NEO_ROUNDER  6
+#define OTB_CMD_LED_NEO_MAX      6
+
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
 #define OTB_LED_NEO_COLOUR_RED     0x200000 
 #define OTB_LED_NEO_COLOUR_GREEN   0x002000
@@ -57,6 +67,21 @@
 
 // error_step is 0 if successful is True
 typedef void (otb_led_control_callback)(void *, bool , uint8_t );
+
+typedef struct otb_led_neo_seq
+{
+  uint8_t num;
+  uint8_t next_step;
+  uint8_t fwd;  // Going fwds or backwards?
+  uint8_t running;
+  os_timer_t timer;
+  os_timer_func_t *func;
+  uint32_t first_colour;
+  uint32_t second_colour;
+  uint32_t third_colour;
+  uint32_t pause;
+  uint32_t rgb[256];
+} otb_led_neo_seq;
 
 typedef struct otb_led_sequence_step
 {
@@ -245,5 +270,12 @@ void otb_led_wifi_disable_blink_timer(void);
 void otb_led_wifi_blink_it(void);
 void otb_led_wifi_blink_timerfunc(void *arg);
 bool otb_led_trigger_sf(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+uint32_t otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num);
+bool otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+void otb_led_neo_round(void *arg);
+void otb_led_neo_bounce(void *arg);
+void otb_led_neo_bouncer(void *arg);
+void otb_led_neo_rounder(void *arg);
+void otb_led_neo_bounce_or_round(void *arg, bool bounce, bool rainbow);
 
 #endif  // OTB_LED_H

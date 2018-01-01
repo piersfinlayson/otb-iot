@@ -645,13 +645,7 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
   pin_mask = 1 << pin;
   low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
 
-  ETS_UART_INTR_DISABLE();
-
-  #if 0
-  // Make sure pulled low before start
-  GPIO_REG_WRITE(low_reg, pin_mask);
-  os_delay_us(1000);
-  #endif
+  ETS_INTR_LOCK();
 
   // Send the bytes
   for (ii = 0; ii < num; ii++)
@@ -669,7 +663,7 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
   GPIO_REG_WRITE(low_reg, pin_mask);
   os_delay_us(10);
 
-  ETS_UART_INTR_ENABLE();
+  ETS_INTR_UNLOCK();
 
 EXIT_LABEL:  
 
@@ -814,3 +808,407 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, un
 
 }
 
+uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num)
+{
+  uint32_t result;
+  int32_t diff, inc;
+
+  DEBUG("LED: otb_led_neo_calc_rainbow entry");
+
+  OTB_ASSERT(num >= 2);
+  OTB_ASSERT(step < num);
+
+  diff = (colour_end > colour_start) ? colour_end - colour_start : colour_start - colour_end;
+  inc = (diff * step) / (num - 1);
+  result = (colour_end > colour_start) ? colour_start + inc : colour_start - inc;
+
+  DEBUG("LED: Colour start: %x", colour_start);
+  DEBUG("LED: Colour end:   %x", colour_end);
+  DEBUG("LED: Diff:         %x", diff);
+  DEBUG("LED: Inc:          %x", inc);
+  DEBUG("LED: Result:       %x", result);
+
+  DEBUG("LED: otb_led_neo_calc_rainbow exit");
+
+  return result;
+}
+
+otb_led_neo_seq *otb_led_neo_seq_buf = NULL;
+bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  uint32_t cmd = (uint32_t)arg;
+  unsigned char *next_cmd2 = NULL;
+  unsigned char *next_cmd3 = NULL;
+  unsigned char *next_cmd4 = NULL;
+  unsigned char *next_cmd5 = NULL;
+  bool rc = TRUE;
+  int32_t num;
+  uint32_t rgb[256];
+  int32_t single_rgb = 0;
+  int32_t second_rgb = 0;
+  int32_t third_rgb = 0;
+  int32_t speed = 15;
+  int32_t min_speed;
+  uint32_t red, green, blue;
+  int ii;
+
+  DEBUG("NIXIE: otb_led_trigger_neo entry");
+
+  OTB_ASSERT((cmd >= OTB_CMD_LED_NEO_MIN) && (cmd <= OTB_CMD_LED_NEO_MAX));
+
+  // Get num neo pixels
+  if (next_cmd != NULL)
+  {
+    num = strtol(next_cmd, NULL, 10);
+    if ((num < 1) || (num > 256))
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("Num must be 1-256");
+      goto EXIT_LABEL;
+    }
+  }
+  else
+  {
+    rc = FALSE;
+    otb_cmd_rsp_append("Num not specified");
+    goto EXIT_LABEL;
+  }
+
+  // Get up to 2 more cmds - number varies based on command
+  next_cmd2 = otb_cmd_get_next_cmd(next_cmd);
+  if (next_cmd2 != NULL)
+  {
+    next_cmd3 = otb_cmd_get_next_cmd(next_cmd2);
+    if (next_cmd3 != NULL)
+    {
+      next_cmd4 = otb_cmd_get_next_cmd(next_cmd3);
+      if (next_cmd4 != NULL)
+      {
+        next_cmd5 = otb_cmd_get_next_cmd(next_cmd4);
+      }
+    }
+  }
+
+  if ((cmd == OTB_CMD_LED_NEO_SOLID) ||
+      (cmd == OTB_CMD_LED_NEO_BOUNCE) ||
+      (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_RAINBOW) || 
+      (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
+      (cmd == OTB_CMD_LED_NEO_ROUNDER))
+  {
+    if (next_cmd2 != NULL)
+    {
+      single_rgb = strtol(next_cmd2, NULL, 16);
+      if ((single_rgb < 0) || (single_rgb > 0xffffff))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("colour out of range 000000-ffffff");
+        goto EXIT_LABEL;
+      }
+    }
+    else
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("No first colour provided");
+      goto EXIT_LABEL;
+    }
+    DEBUG("LED: Colour requested: 0x%06x", single_rgb);
+  }
+
+  if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
+      (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_RAINBOW) ||
+      (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
+      (cmd == OTB_CMD_LED_NEO_ROUNDER))
+  {
+    if (next_cmd3 != NULL)
+    {
+      second_rgb = strtol(next_cmd3, NULL, 16);
+      if ((second_rgb < 0) || (second_rgb > 0xffffff))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("colour out of range 000000-ffffff");
+        goto EXIT_LABEL;
+      }
+    }
+  }
+
+  if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
+      (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
+      (cmd == OTB_CMD_LED_NEO_ROUNDER))
+  {
+    if (next_cmd4 != NULL)
+    {
+      min_speed = (((13 * 24 * num + 100) * 120) / 1000000) + 1; // 13 = us per bit, 24 = bits, num = pixels, 100 = 10us latch time, 120 = add 20%, 1000000 to get in ms, + 1 round up
+      DEBUG("LED: Min speed: %d", min_speed);
+      speed = strtol(next_cmd4, NULL, 10);
+      if ((speed < min_speed) || (speed > 10000))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("speed out of range %d-10000 ms", min_speed);
+        goto EXIT_LABEL;
+      }
+    }
+    else
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("No speed and/or second colour provided");
+      goto EXIT_LABEL;
+    }
+    DEBUG("LED: Colour requested: 0x%06x", second_rgb);
+  }
+
+  if ((cmd == OTB_CMD_LED_NEO_BOUNCER) || (cmd == OTB_CMD_LED_NEO_ROUNDER))
+  {
+    if (next_cmd5 != NULL)
+    {
+      third_rgb = strtol(next_cmd5, NULL, 16);
+      if ((third_rgb < 0) || (third_rgb > 0xffffff))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("colour out of range 000000-ffffff");
+        goto EXIT_LABEL;
+      }
+    }
+    else
+    {
+      rc = FALSE;
+      otb_cmd_rsp_append("Final colour nots provided");
+      goto EXIT_LABEL;
+    }
+  }
+
+
+  if (otb_led_neo_seq_buf != NULL)
+  {
+    os_timer_disarm((os_timer_t*)&otb_led_neo_seq_buf->timer);
+    otb_led_neo_seq_buf->running = 0;
+  }
+
+  switch (cmd)
+  {
+    case OTB_CMD_LED_NEO_OFF:
+      single_rgb = 0;
+    case OTB_CMD_LED_NEO_SOLID:
+      for (ii = 0; ii < num; ii++)
+      {
+        rgb[ii] = single_rgb;
+      }
+      otb_led_neo_update(rgb, num, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, FALSE);
+      break;
+
+    case OTB_CMD_LED_NEO_RAINBOW:
+      if (num < 2)
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("Rainbow requires at least 2 pixels");
+        goto EXIT_LABEL;
+      }
+      for (ii = 0; ii < num; ii++)
+      {
+        red = otb_led_neo_calc_rainbow((single_rgb >> 16) & 0xff, (second_rgb >> 16) & 0xff, ii, num);
+        green = otb_led_neo_calc_rainbow((single_rgb >> 8) & 0xff, (second_rgb >> 8) & 0xff, ii, num);
+        blue = otb_led_neo_calc_rainbow((single_rgb >> 0) & 0xff, (second_rgb >> 0) & 0xff, ii, num);
+        rgb[ii] = (red << 16) | (green << 8) | blue;
+        DEBUG("LED: r colour: %x", red);
+        DEBUG("LED: g colour: %x", green);
+        DEBUG("LED: b colour: %x", blue);
+        DEBUG("LED: rainbow colour: %06x", rgb[ii]);
+      }
+      otb_led_neo_update(rgb, num, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, FALSE);
+      break;
+
+    case OTB_CMD_LED_NEO_BOUNCER:
+    case OTB_CMD_LED_NEO_BOUNCE:
+    case OTB_CMD_LED_NEO_ROUND:
+    case OTB_CMD_LED_NEO_ROUNDER:
+      // Allocate buffer
+      if (otb_led_neo_seq_buf == NULL)
+      {
+        otb_led_neo_seq_buf = (otb_led_neo_seq *)os_malloc(sizeof(*otb_led_neo_seq_buf));
+        if (otb_led_neo_seq_buf == NULL)
+        {
+          rc = FALSE;
+          otb_cmd_rsp_append("not enough memory");
+          goto EXIT_LABEL;
+        }
+      }
+      os_memset(otb_led_neo_seq_buf, 0, sizeof(*otb_led_neo_seq_buf));
+
+      // Now set up the buf and kick the sequence off
+      otb_led_neo_seq_buf->num = num;
+      otb_led_neo_seq_buf->next_step = 0;
+      otb_led_neo_seq_buf->fwd = 1;
+      otb_led_neo_seq_buf->running = 1;
+      otb_led_neo_seq_buf->first_colour = single_rgb;
+      otb_led_neo_seq_buf->second_colour = second_rgb;
+      otb_led_neo_seq_buf->pause = speed; //ms
+      if (cmd == OTB_CMD_LED_NEO_BOUNCE)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_bounce;
+      }
+      else if (cmd == OTB_CMD_LED_NEO_ROUND)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_round;
+      }
+      else if (cmd == OTB_CMD_LED_NEO_BOUNCER)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_bouncer;
+        otb_led_neo_seq_buf->third_colour = third_rgb;
+      }
+      else if (cmd == OTB_CMD_LED_NEO_ROUNDER)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_rounder;
+        otb_led_neo_seq_buf->third_colour = third_rgb;
+      }
+      otb_util_timer_set(&otb_led_neo_seq_buf->timer, 
+                         (os_timer_func_t *)otb_led_neo_seq_buf->func,
+                         NULL,
+                         otb_led_neo_seq_buf->pause,
+                         1);
+      break;
+
+    default:
+      rc = FALSE;
+      otb_cmd_rsp_append("internal error");
+      goto EXIT_LABEL;
+      break;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("NIXIE: otb_led_trigger_neo exit");
+
+  return rc;
+};
+
+void ICACHE_FLASH_ATTR otb_led_neo_round(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_round entry");
+
+  otb_led_neo_bounce_or_round(arg, FALSE, FALSE);
+
+  DEBUG("LED: otb_led_neo_round exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_bounce(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_bounce entry");
+
+  otb_led_neo_bounce_or_round(arg, TRUE, FALSE);
+
+  DEBUG("LED: otb_led_neo_bounce exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_bouncer(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_bouncer entry");
+
+  otb_led_neo_bounce_or_round(arg, TRUE, TRUE);
+
+  DEBUG("LED: otb_led_neo_bouncer exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_rounder(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_rounder entry");
+
+  otb_led_neo_bounce_or_round(arg, FALSE, TRUE);
+
+  DEBUG("LED: otb_led_neo_rounder exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool rainbow)
+{
+  int ii;
+  int num;
+  uint32_t red, green, blue;
+
+  DEBUG("LED: otb_led_neo_bounce_or_round entry");
+
+  // Set up the colours
+  num = otb_led_neo_seq_buf->num;
+  if (num == 0)
+  {
+    num = 256;
+  }
+  for (ii = 0; ii < num; ii++)
+  {
+    if (otb_led_neo_seq_buf->next_step != ii)
+    {
+      if (!rainbow)
+      {
+        otb_led_neo_seq_buf->rgb[ii] = otb_led_neo_seq_buf->first_colour;
+      }
+      else
+      {
+        red = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 16) & 0xff, (otb_led_neo_seq_buf->third_colour >> 16) & 0xff, ii, num);
+        green = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 8) & 0xff, (otb_led_neo_seq_buf->third_colour >> 8) & 0xff, ii, num);
+        blue = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 0) & 0xff, (otb_led_neo_seq_buf->third_colour >> 0) & 0xff, ii, num);
+        otb_led_neo_seq_buf->rgb[ii] = (red << 16) | (green << 8) | blue;
+      }
+    }
+    else
+    {
+      otb_led_neo_seq_buf->rgb[ii] = otb_led_neo_seq_buf->second_colour;
+    }
+  }
+
+  // Write the colours
+  otb_led_neo_update(otb_led_neo_seq_buf->rgb,
+                     num,
+                     4,
+                     OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B,
+                     FALSE);
+
+  // Figure out the next step
+  if (otb_led_neo_seq_buf->fwd)
+  {
+    if (otb_led_neo_seq_buf->next_step != (num-1))
+    {
+      otb_led_neo_seq_buf->next_step++;
+    }
+    else
+    {
+      if (bounce)
+      {
+        otb_led_neo_seq_buf->next_step--;
+        otb_led_neo_seq_buf->fwd = 0;
+      }
+      else
+      {
+        otb_led_neo_seq_buf->next_step = 0;
+      }
+    }
+  }
+  else
+  {
+    if (otb_led_neo_seq_buf->next_step != 0)
+    {
+      otb_led_neo_seq_buf->next_step--;
+    }
+    else
+    {
+      otb_led_neo_seq_buf->next_step++;
+      otb_led_neo_seq_buf->fwd = 1;
+    }
+  }
+
+
+  DEBUG("LED: otb_led_neo_bounce_or_round exit");
+
+  return;
+}

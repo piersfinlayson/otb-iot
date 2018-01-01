@@ -359,7 +359,39 @@ typedef struct otb_cmd_control
 //     power
 //       on
 //       off
-//   sf
+//   sf // snowflake - temporary
+//   neo
+//     off
+//       [num of neos]
+//     solid
+//       [num of neos]
+//         [colour in hex]
+//     bounce
+//       [num of neos]
+//         [main colour in hex]
+//           [bounce colour in hex]
+//             [speed (in ms between movements - minimum 10)]
+//     round
+//       [num of neos]
+//         [main colour in hex]
+//           [bounce colour in hex]
+//             [speed (in ms between movements - minimum 10)]
+//     rainbow
+//       [num of neos]
+//         [start colour in hex]
+//           [end colour in hex]
+//     bouncer // rainow bounce
+//       [num of neos]
+//         [main colour in hex]
+//           [bounce colour in hex]
+//             [speed (in ms between movements - minimum 10)]
+//               [end colour in hex]
+//     rounder // rainow bounce
+//       [num of neos]
+//         [main colour in hex]
+//           [bounce colour in hex]
+//             [speed (in ms between movements - minimum 10)]
+//               [end colour in hex]
 //  
 
 // Some macros to simplify command structure definition
@@ -418,6 +450,7 @@ extern otb_cmd_control otb_cmd_control_set_config_serial[];
 extern otb_cmd_control otb_cmd_control_trigger_serial[];
 extern otb_cmd_control otb_cmd_control_trigger_nixie[];
 extern otb_cmd_control otb_cmd_control_trigger_nixie_power[];
+extern otb_cmd_control otb_cmd_control_trigger_neo[];
 
 #ifdef OTB_CMD_C
 
@@ -830,6 +863,7 @@ otb_cmd_control otb_cmd_control_trigger[] =
   {"serial",            NULL, otb_cmd_control_trigger_serial,  OTB_CMD_NO_FN},
   {"nixie",             NULL, otb_cmd_control_trigger_nixie,   OTB_CMD_NO_FN},
   {"sf",                NULL, NULL,     otb_led_trigger_sf,      NULL},
+  {"neo",               NULL, otb_cmd_control_trigger_neo,     OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -912,11 +946,24 @@ otb_cmd_control otb_cmd_control_trigger_nixie[] =
   {OTB_CMD_FINISH}    
 };
 
-// trigger->nixie commands
+// trigger->nixie->power commands
 otb_cmd_control otb_cmd_control_trigger_nixie_power[] =
 {
   {"on",             NULL, NULL, otb_nixie_power,   (void *)1},
   {"off",            NULL, NULL, otb_nixie_power,   (void *)0},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->neo commands
+otb_cmd_control otb_cmd_control_trigger_neo[] =
+{
+  {"off",              NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_OFF},
+  {"solid",            NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_SOLID},
+  {"bounce",           NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_BOUNCE},
+  {"round",            NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROUND},
+  {"rainbow",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_RAINBOW},
+  {"bouncer",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_BOUNCER},
+  {"rounder",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROUNDER},
   {OTB_CMD_FINISH}    
 };
 
