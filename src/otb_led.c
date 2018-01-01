@@ -808,19 +808,36 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, un
 
 }
 
-uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num)
+uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num, bool o360)
 {
   uint32_t result;
   int32_t diff, inc;
+  int mult;
 
   DEBUG("LED: otb_led_neo_calc_rainbow entry");
 
   OTB_ASSERT(num >= 2);
   OTB_ASSERT(step < num);
 
+  // o360 means starts at starts, goes to end in middle and then back to start!
+  mult = o360 ? 2 : 1;
   diff = (colour_end > colour_start) ? colour_end - colour_start : colour_start - colour_end;
-  inc = (diff * step) / (num - 1);
-  result = (colour_end > colour_start) ? colour_start + inc : colour_start - inc;
+  inc = (diff * step * mult) / (num - 1);
+  if (!o360)
+  {
+    result = ((colour_end > colour_start) ? colour_start + inc : colour_start - inc) % 256;
+  }
+  else
+  {
+    if ((step * 2) >= num)
+    {
+      result = ((colour_end > colour_start) ? colour_end - inc : colour_end + inc) % 256;
+    }
+    else
+    {
+      result = ((colour_end > colour_start) ? colour_start + inc : colour_start - inc) % 256;
+    }
+  }
 
   DEBUG("LED: Colour start: %x", colour_start);
   DEBUG("LED: Colour end:   %x", colour_end);
@@ -892,6 +909,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   if ((cmd == OTB_CMD_LED_NEO_SOLID) ||
       (cmd == OTB_CMD_LED_NEO_BOUNCE) ||
       (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATE) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATEB) ||
       (cmd == OTB_CMD_LED_NEO_RAINBOW) || 
       (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
       (cmd == OTB_CMD_LED_NEO_ROUNDER))
@@ -917,6 +936,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
       (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATE) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATEB) ||
       (cmd == OTB_CMD_LED_NEO_RAINBOW) ||
       (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
       (cmd == OTB_CMD_LED_NEO_ROUNDER))
@@ -935,6 +956,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
       (cmd == OTB_CMD_LED_NEO_ROUND) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATE) ||
+      (cmd == OTB_CMD_LED_NEO_ROTATEB) ||
       (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
       (cmd == OTB_CMD_LED_NEO_ROUNDER))
   {
@@ -1007,9 +1030,9 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       }
       for (ii = 0; ii < num; ii++)
       {
-        red = otb_led_neo_calc_rainbow((single_rgb >> 16) & 0xff, (second_rgb >> 16) & 0xff, ii, num);
-        green = otb_led_neo_calc_rainbow((single_rgb >> 8) & 0xff, (second_rgb >> 8) & 0xff, ii, num);
-        blue = otb_led_neo_calc_rainbow((single_rgb >> 0) & 0xff, (second_rgb >> 0) & 0xff, ii, num);
+        red = otb_led_neo_calc_rainbow((single_rgb >> 16) & 0xff, (second_rgb >> 16) & 0xff, ii, num, FALSE);
+        green = otb_led_neo_calc_rainbow((single_rgb >> 8) & 0xff, (second_rgb >> 8) & 0xff, ii, num, FALSE);
+        blue = otb_led_neo_calc_rainbow((single_rgb >> 0) & 0xff, (second_rgb >> 0) & 0xff, ii, num, FALSE);
         rgb[ii] = (red << 16) | (green << 8) | blue;
         DEBUG("LED: r colour: %x", red);
         DEBUG("LED: g colour: %x", green);
@@ -1023,6 +1046,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
     case OTB_CMD_LED_NEO_BOUNCE:
     case OTB_CMD_LED_NEO_ROUND:
     case OTB_CMD_LED_NEO_ROUNDER:
+    case OTB_CMD_LED_NEO_ROTATE:
+    case OTB_CMD_LED_NEO_ROTATEB:
       // Allocate buffer
       if (otb_led_neo_seq_buf == NULL)
       {
@@ -1061,6 +1086,14 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       {
         otb_led_neo_seq_buf->func = otb_led_neo_rounder;
         otb_led_neo_seq_buf->third_colour = third_rgb;
+      }
+      else if (cmd == OTB_CMD_LED_NEO_ROTATE)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_rotate;
+      }
+      else if (cmd == OTB_CMD_LED_NEO_ROTATEB)
+      {
+        otb_led_neo_seq_buf->func = otb_led_neo_rotateb;
       }
       otb_util_timer_set(&otb_led_neo_seq_buf->timer, 
                          (os_timer_func_t *)otb_led_neo_seq_buf->func,
@@ -1131,6 +1164,105 @@ void ICACHE_FLASH_ATTR otb_led_neo_rounder(void *arg)
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_led_neo_rotate(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_rotate entry");
+
+  otb_led_neo_rotate_or_bounce(arg, FALSE);
+
+  DEBUG("LED: otb_led_neo_rotate exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_rotateb(void *arg)
+{
+
+  DEBUG("LED: otb_led_neo_rotateb entry");
+
+  otb_led_neo_rotate_or_bounce(arg, TRUE);
+
+  DEBUG("LED: otb_led_neo_rotateb exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_rotate_or_bounce(void *arg, bool bounce)
+{
+  int ii;
+  int num;
+  uint32_t red, green, blue;
+
+  DEBUG("LED: otb_led_neo_rotate_or_bounce entry");
+
+  // Set up the colours
+  num = otb_led_neo_seq_buf->num;
+  if (num == 0)
+  {
+    num = 256;
+  }
+  for (ii = 0; ii < num; ii++)
+  {
+    red = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 16) & 0xff, (otb_led_neo_seq_buf->second_colour >> 16) & 0xff, ii, num, TRUE);
+    green = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 8) & 0xff, (otb_led_neo_seq_buf->second_colour >> 8) & 0xff, ii, num, TRUE);
+    blue = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 0) & 0xff, (otb_led_neo_seq_buf->second_colour >> 0) & 0xff, ii, num, TRUE);
+    otb_led_neo_seq_buf->rgb[(ii+otb_led_neo_seq_buf->next_step)%num] = (red << 16) | (green << 8) | blue;
+  }
+
+  // Write the colours
+  otb_led_neo_update(otb_led_neo_seq_buf->rgb,
+                     num,
+                     4,
+                     OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B,
+                     FALSE);
+
+  // Figure out the next step
+  if (!bounce)
+  {
+    if (otb_led_neo_seq_buf->next_step != (num-1))
+    {
+      otb_led_neo_seq_buf->next_step++;
+    }
+    else
+    {
+      otb_led_neo_seq_buf->next_step = 0;
+    }
+  }
+  else
+  {
+    if (otb_led_neo_seq_buf->fwd)
+    {
+      if (otb_led_neo_seq_buf->next_step != (num-1))
+      {
+        otb_led_neo_seq_buf->next_step++;
+      }
+      else
+      {
+          otb_led_neo_seq_buf->next_step--;
+          otb_led_neo_seq_buf->fwd = 0;
+      }
+    }
+    else
+    {
+      if (otb_led_neo_seq_buf->next_step != 0)
+      {
+        otb_led_neo_seq_buf->next_step--;
+      }
+      else
+      {
+        otb_led_neo_seq_buf->next_step++;
+        otb_led_neo_seq_buf->fwd = 1;
+      }
+    }
+    
+  }
+
+  DEBUG("LED: otb_led_neo_rotate_or_bounce exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool rainbow)
 {
   int ii;
@@ -1155,9 +1287,9 @@ void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool 
       }
       else
       {
-        red = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 16) & 0xff, (otb_led_neo_seq_buf->third_colour >> 16) & 0xff, ii, num);
-        green = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 8) & 0xff, (otb_led_neo_seq_buf->third_colour >> 8) & 0xff, ii, num);
-        blue = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 0) & 0xff, (otb_led_neo_seq_buf->third_colour >> 0) & 0xff, ii, num);
+        red = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 16) & 0xff, (otb_led_neo_seq_buf->third_colour >> 16) & 0xff, ii, num, FALSE);
+        green = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 8) & 0xff, (otb_led_neo_seq_buf->third_colour >> 8) & 0xff, ii, num, FALSE);
+        blue = otb_led_neo_calc_rainbow((otb_led_neo_seq_buf->first_colour >> 0) & 0xff, (otb_led_neo_seq_buf->third_colour >> 0) & 0xff, ii, num, FALSE);
         otb_led_neo_seq_buf->rgb[ii] = (red << 16) | (green << 8) | blue;
       }
     }
@@ -1206,7 +1338,6 @@ void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool 
       otb_led_neo_seq_buf->fwd = 1;
     }
   }
-
 
   DEBUG("LED: otb_led_neo_bounce_or_round exit");
 

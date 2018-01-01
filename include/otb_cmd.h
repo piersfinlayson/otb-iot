@@ -370,12 +370,12 @@ typedef struct otb_cmd_control
 //       [num of neos]
 //         [main colour in hex]
 //           [bounce colour in hex]
-//             [speed (in ms between movements - minimum 10)]
+//             [speed (in ms between movements)]
 //     round
 //       [num of neos]
 //         [main colour in hex]
 //           [bounce colour in hex]
-//             [speed (in ms between movements - minimum 10)]
+//             [speed (in ms between movements)]
 //     rainbow
 //       [num of neos]
 //         [start colour in hex]
@@ -384,14 +384,24 @@ typedef struct otb_cmd_control
 //       [num of neos]
 //         [main colour in hex]
 //           [bounce colour in hex]
-//             [speed (in ms between movements - minimum 10)]
+//             [speed (in ms between movements)]
 //               [end colour in hex]
 //     rounder // rainow bounce
 //       [num of neos]
 //         [main colour in hex]
 //           [bounce colour in hex]
-//             [speed (in ms between movements - minimum 10)]
+//             [speed (in ms between movements)]
 //               [end colour in hex]
+//     rotate
+//       [num of neos]
+//         [start colour in hex]
+//           [end colour in hex]
+//             [speed (in ms between movements)]
+//     rotateb
+//       [num of neos]
+//         [start colour in hex]
+//           [end colour in hex]
+//             [speed (in ms between movements)]
 //  
 
 // Some macros to simplify command structure definition
@@ -964,6 +974,8 @@ otb_cmd_control otb_cmd_control_trigger_neo[] =
   {"rainbow",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_RAINBOW},
   {"bouncer",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_BOUNCER},
   {"rounder",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROUNDER},
+  {"rotate",           NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATE},
+  {"rotateb",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATEB},
   {OTB_CMD_FINISH}    
 };
 

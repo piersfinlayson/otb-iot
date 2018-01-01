@@ -30,7 +30,9 @@
 #define OTB_CMD_LED_NEO_RAINBOW  4
 #define OTB_CMD_LED_NEO_BOUNCER  5
 #define OTB_CMD_LED_NEO_ROUNDER  6
-#define OTB_CMD_LED_NEO_MAX      6
+#define OTB_CMD_LED_NEO_ROTATE   7
+#define OTB_CMD_LED_NEO_ROTATEB  8
+#define OTB_CMD_LED_NEO_MAX      8
 
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
 #define OTB_LED_NEO_COLOUR_RED     0x200000 
@@ -270,12 +272,15 @@ void otb_led_wifi_disable_blink_timer(void);
 void otb_led_wifi_blink_it(void);
 void otb_led_wifi_blink_timerfunc(void *arg);
 bool otb_led_trigger_sf(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
-uint32_t otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num);
+uint32_t otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num, bool o360);
 bool otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_led_neo_round(void *arg);
 void otb_led_neo_bounce(void *arg);
 void otb_led_neo_bouncer(void *arg);
 void otb_led_neo_rounder(void *arg);
+void otb_led_neo_rotate(void *arg);
+void otb_led_neo_rotateb(void *arg);
+void otb_led_neo_rotate_or_bounce(void *arg, bool bounce);
 void otb_led_neo_bounce_or_round(void *arg, bool bounce, bool rainbow);
 
 #endif  // OTB_LED_H
