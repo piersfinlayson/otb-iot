@@ -50,7 +50,7 @@
 # This script supports just new format (otb-iot) MQTT topics
 
 import paho.mqtt.client as mqtt
-import time, syslog, datetime
+import time, datetime
 import subprocess
 import xml.etree.ElementTree as ET
 from influxdb import InfluxDBClient
@@ -93,15 +93,15 @@ def create_mbus_query_string(chipId, addr, location):
   return "105b%02s5c16" % addr
 
 def create_mbus_topic_send(chipId):
-  syslog.syslog(syslog.LOG_DEBUG, "Create mbus topic send for chipId: %s" % (chipId))
+  #print("Create mbus topic send for chipId: %s" % (chipId))
   topic = "/otb-iot/%s" % chipId
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
+  #print("Topic: %s" % topic)
   return topic
 
 def create_mbus_topic_rsp(chipId, addr, location):
-  syslog.syslog(syslog.LOG_DEBUG, "Create temp topic rsp for chipId: %s, addr: %s, location: %s" % (chipId, addr, location))
+  #print("Create temp topic rsp for chipId: %s, addr: %s, location: %s" % (chipId, addr, location))
   topic = "/otb-iot/%s/status" % chipId
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
+  #print("Topic: %s" % topic)
   return topic
   
 # returns False if no more to do for now, True if something else to do
@@ -111,7 +111,7 @@ def do_addr_action(status):
   addr = status[ADDR]
   location = status[LOCATION]
   chipId = status[CHIPID]
-  syslog.syslog(syslog.LOG_DEBUG, "do_addr_action: %d chipId: %s addr: %s location: %s" % (sta, chipId, addr, location))
+  #print("do_addr_action: %d chipId: %s addr: %s location: %s" % (sta, chipId, addr, location))
   rc = False
   send_mbus = False
   if (sta == ADDR_STATUS_INIT):
@@ -134,10 +134,10 @@ def do_addr_action(status):
     if (rc):
       status[STATUS] += 1
   else:
-    syslog.syslog(syslog.LOG_ERR, "Unexpected status: %d" % sta)
+    print("Unexpected status: %d" % sta)
     assert(False)
   if send_mbus:
-    syslog.syslog(syslog.LOG_DEBUG, "Send MQTT %s %s" % (topic, message))
+    #print("Send MQTT %s %s" % (topic, message))
     client.publish(topic, message)
   return rc
   
@@ -179,13 +179,13 @@ def process_response(topic, message):
 
 def on_message(client, userdata, msg):
   global status, exit
-  syslog.syslog(syslog.LOG_DEBUG, "Received MQTT message: %s %s" % (msg.topic, msg.payload))
+  #print("Received MQTT message: %s %s" % (msg.topic, msg.payload))
   chipId, ok = process_response(msg.topic, msg.payload)
   sta = status[chipId]
   if not ok:
     # Only failure we accept is disabling at start (in case already disabled)
     if (sta[STATUS] != CHIP_STATUS_DISABLE):
-      syslog.syslog(syslog.LOG_ERR, "Failed message - exiting")
+      print("Failed message - exiting")
       exit = True
       return
   if sta[STATUS] < CHIP_STATUS_DONE:
@@ -217,7 +217,7 @@ def do_chip_action(status):
   global tx_pin, rx_pin, baud_rate, exit, client
   chipId = status[CHIPID]
   sta = status[STATUS]
-  syslog.syslog(syslog.LOG_DEBUG, "do_chip_action: %d chipId: %s" % (sta, chipId))
+  #print("do_chip_action: %d chipId: %s" % (sta, chipId))
   rc = False
   send_mbus = False
   if (sta == CHIP_STATUS_INIT):
@@ -247,10 +247,10 @@ def do_chip_action(status):
     status = STATUS_INIT
     exit = True
   else:
-    syslog.syslog(syslog.LOG_ERR, "Unexpected status: %d", sta)
+    print("Unexpected status: %d", sta)
     assert(False)
   if send_mbus:
-    syslog.syslog(syslog.LOG_DEBUG, "Send MQTT %s %s" % (topic, message))
+    #print("Send MQTT %s %s" % (topic, message))
     client.publish(topic, message)
   return rc
 
@@ -267,7 +267,7 @@ def on_subscribe(client, userdata, mid, qos):
 
 def on_connect(client, userdata, flags, rc):
   global mbus_sensors, connected, status
-  syslog.syslog(syslog.LOG_INFO, "Connected to broker with result code: " + str(rc))
+  print("Connected to broker with result code: " + str(rc))
   for chip in mbus_sensors:
     chipId = chip[CHIPID]
     status[chipId] = {CHIPID:chipId, ADDRS:{}, STATUS:CHIP_STATUS_INIT, MID:None}
@@ -285,7 +285,7 @@ def on_connect(client, userdata, flags, rc):
   was_once_connected = True
 
 def on_disconnect(client, userdata, rc):
-  syslog.syslog(syslog.LOG_ERR, "Disconnected from broker!!!")
+  print("Disconnected from broker!!!")
   run = False
   
 def get_time():
@@ -315,13 +315,13 @@ def send_to_influx(chipId, addr, location, xml):
   uflow_temp = "C"
   vreturn_temp = int(return_temp) / 10.0
   ureturn_temp = "C"
-  syslog.syslog(syslog.LOG_INFO, "Output for chipId: %s addr: %s location: %s" % (chipId, addr, location))
-  syslog.syslog(syslog.LOG_INFO, "  %s      %s" % ("Energy (10kWh)",     xml[2][3].text))
-  syslog.syslog(syslog.LOG_INFO, "  %s     %s" % ("Volume (0.1m^3)",    xml[3][3].text))
-  syslog.syslog(syslog.LOG_INFO, "  %s        %s" % ("Power (100W)",       xml[4][3].text))
-  syslog.syslog(syslog.LOG_INFO, "  %s      %s" % ("Flow (m m^3/h)",     xml[5][3].text))
-  syslog.syslog(syslog.LOG_INFO, "  %s    %s" % ("Flow temp (0.1C)",   xml[6][3].text))
-  syslog.syslog(syslog.LOG_INFO, "  %s  %s" % ("Return temp (0.1C)", xml[7][3].text))
+  print("Output for chipId: %s addr: %s location: %s" % (chipId, addr, location))
+  print("  %s      %s" % ("Energy (10kWh)",     xml[2][3].text))
+  print("  %s     %s" % ("Volume (0.1m^3)",    xml[3][3].text))
+  print("  %s        %s" % ("Power (100W)",       xml[4][3].text))
+  print("  %s      %s" % ("Flow (m m^3/h)",     xml[5][3].text))
+  print("  %s    %s" % ("Flow temp (0.1C)",   xml[6][3].text))
+  print("  %s  %s" % ("Return temp (0.1C)", xml[7][3].text))
   try:
     cur_time = get_time()
     json_body = [{'measurement':'energy',
@@ -368,16 +368,16 @@ def send_to_influx(chipId, addr, location, xml):
                   'fields':{'value':"%.1f" % vreturn_temp}},
                 ]
     influxdb_client.write_points(json_body)
-    syslog.syslog(syslog.LOG_INFO, "Written data to influxdb: " + str(json_body))
+    print("Written data to influxdb: " + str(json_body))
   except:
-    syslog.syslog(syslog.LOG_ERR, "EXCEPTION: Failed to write info to influxdb")
+    print("EXCEPTION: Failed to write info to influxdb")
   
 
 def main():  
   global client, connected, mqtt_addr, mqtt_port, sleep_time, was_once_connected, status
   global influxdb_client, influxdb_host, influxdb_port, influxdb_user, influxdb_password, influxdb_dbname
 
-  syslog.syslog(syslog.LOG_INFO, "Create connection to MQTT broker: %s:%d" % (mqtt_addr, mqtt_port))
+  print("Create connection to MQTT broker: %s:%d" % (mqtt_addr, mqtt_port))
 
   client = mqtt.Client(protocol=mqtt.MQTTv31)
   client.on_connect = on_connect
@@ -400,19 +400,20 @@ def main():
     time.sleep(sleep_time)
     if not connected and was_once_connected:
       run = False
-      syslog.syslog(syslog.LOG_ERR, "Exiting as disconnected")
+      print("Exiting as disconnected")
       break
     if exit:
-      syslog.syslog(syslog.LOG_INFO, "Exiting as done")
+      print("Exiting as done")
       graceful = True
       break
     if (time.time() - start_time) > total_time:
-      syslog.syslog(syslog.LOG_ERR, "Exiting as taken too long")
+      print("Exiting as taken too long")
       run = False
   if graceful:
     for chipId in status:
       for addr in status[chipId][ADDRS]:
         location = status[chipId][ADDRS][addr][LOCATION]
+        print("Calling %s %s" % (mbus_process_hex_dump_cmd, status[chipId][ADDRS][addr][DUMP]))
         output = subprocess.check_output([mbus_process_hex_dump_cmd, status[chipId][ADDRS][addr][DUMP]])
         output = "\n".join(output.split("\n")[1:])
         xml = ET.fromstring(output)
