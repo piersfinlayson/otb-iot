@@ -454,7 +454,7 @@ nweb: FORCE directories
 	gcc external/nweb/nweb23.c -o bin/nweb
 
 mbus_tools: FORCE
-	cd extras/mbus_tools;./build.sh
+	cd extras/mbus_tools;. ./build.sh
 
 FORCE:
 
