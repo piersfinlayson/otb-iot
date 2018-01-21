@@ -634,6 +634,8 @@ void otb_led_neo_send_1(bool flip, uint32_t pin_mask)
   return;
 }
 
+bool otb_led_neo_lock = FALSE;
+
 void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, bool flip)
 {
   int ii, jj;
@@ -647,12 +649,19 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
 
   DEBUG("LED: otb_led_neo_update entry");
 
+  if (otb_led_neo_lock)
+  {
+    ERROR("LED: Neo lock held - function not re-entrant");
+    goto EXIT_LABEL;
+  }
+
+  otb_led_neo_lock = TRUE;
+
   if (pin == OTB_GPIO_INVALID_PIN)
   {
     DEBUG("LED: Status LED is not configured - not updating");
     goto EXIT_LABEL;
   }
-
 
   if (type == OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B)
   {
@@ -690,6 +699,8 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
   ETS_INTR_UNLOCK();
 
 EXIT_LABEL:  
+
+  otb_led_neo_lock = FALSE;
 
   DEBUG("LED: otb_led_neo_update exit");
 
