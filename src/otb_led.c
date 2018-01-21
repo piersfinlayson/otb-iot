@@ -456,6 +456,12 @@ void otb_led_neo_send_0(bool flip, uint32_t pin_mask)
     "nop;"
     "nop;"
     "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
   );
 
   // Low
@@ -594,6 +600,24 @@ void otb_led_neo_send_1(bool flip, uint32_t pin_mask)
   GPIO_REG_WRITE(low_reg, pin_mask);
   __asm__ __volatile__
   (
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
+    "nop;"
     "nop;"
     "nop;"
     "nop;"
