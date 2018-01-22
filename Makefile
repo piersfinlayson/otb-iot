@@ -1,7 +1,7 @@
 #
 # OTB-IOT - Out of The Box Internet Of Things
 #
-# Copyright (C) 2016 Piers Finlayson
+# Copyright (C) 2016-8 Piers Finlayson
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -158,6 +158,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_i2c_pcf8574.o \
              $(OTB_OBJ_DIR)/otb_i2c_24xxyy.o \
              $(OTB_OBJ_DIR)/otb_brzo_i2c.o \
+             $(OTB_OBJ_DIR)/otb_font.o \
              $(OTB_OBJ_DIR)/otb_led.o \
              $(OTB_OBJ_DIR)/otb_wifi.o \
              $(OTB_OBJ_DIR)/otb_main.o \

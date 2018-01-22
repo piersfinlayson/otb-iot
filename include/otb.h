@@ -93,6 +93,7 @@
 #include "otb_def.h"
 #include "otb_globals.h"
 #include "otb_macros.h"
+#include "otb_font.h"
 #include "otb_util.h"
 #include "otb_main.h"
 #include "otb_wifi.h"

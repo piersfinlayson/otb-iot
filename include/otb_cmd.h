@@ -402,6 +402,12 @@ typedef struct otb_cmd_control
 //         [start colour in hex]
 //           [end colour in hex]
 //             [speed (in ms between movements)]
+//     message
+//       [size of display - only 8x8 supported]
+//         [background colour in hex]
+//           [message colour in hex]
+//             [speed (in ms between movements)]
+//               message
 //  
 
 // Some macros to simplify command structure definition
@@ -976,6 +982,7 @@ otb_cmd_control otb_cmd_control_trigger_neo[] =
   {"rounder",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROUNDER},
   {"rotate",           NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATE},
   {"rotateb",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATEB},
+  {"message",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_MESSAGE},
   {OTB_CMD_FINISH}    
 };
 

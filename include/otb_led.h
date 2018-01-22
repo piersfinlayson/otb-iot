@@ -32,7 +32,8 @@
 #define OTB_CMD_LED_NEO_ROUNDER  6
 #define OTB_CMD_LED_NEO_ROTATE   7
 #define OTB_CMD_LED_NEO_ROTATEB  8
-#define OTB_CMD_LED_NEO_MAX      8
+#define OTB_CMD_LED_NEO_MESSAGE  9
+#define OTB_CMD_LED_NEO_MAX      9
 
 #define OTB_LED_NEO_COLOUR_OFF     0x000000
 #define OTB_LED_NEO_COLOUR_RED     0x200000 
@@ -84,6 +85,30 @@ typedef struct otb_led_neo_seq
   uint32_t pause;
   uint32_t rgb[256];
 } otb_led_neo_seq;
+
+typedef struct otb_led_neo_msg_seq
+{
+  #define OTB_LED_NEO_MSG_MAX_LEN 64
+  unsigned char message[OTB_LED_NEO_MSG_MAX_LEN];
+
+  uint32_t background_colour;
+
+  uint32_t char_colour;
+
+  uint8_t cur_char;
+
+  // 0 = show 1st column, 1 = 2nd ... 5 = 6th;
+  uint8_t cur_char_pos;
+  
+  uint8_t msg_len;
+
+  uint32_t pause;
+
+  os_timer_t timer;
+
+  os_timer_func_t *func;
+
+} otb_led_neo_msg_seq;
 
 typedef struct otb_led_sequence_step
 {
@@ -274,6 +299,8 @@ void otb_led_wifi_blink_timerfunc(void *arg);
 bool otb_led_trigger_sf(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 uint32_t otb_led_neo_calc_rainbow(uint32_t colour_start, uint32_t colour_end, int step, uint32_t num, bool o360);
 bool otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+otb_font_6x6 *otb_led_neo_get_font_char(unsigned char cchar);
+void otb_led_neo_msg(void *arg);
 void otb_led_neo_round(void *arg);
 void otb_led_neo_bounce(void *arg);
 void otb_led_neo_bouncer(void *arg);

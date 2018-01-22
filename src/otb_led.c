@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -886,6 +886,7 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint3
 }
 
 otb_led_neo_seq *otb_led_neo_seq_buf = NULL;
+otb_led_neo_msg_seq *otb_led_msg_seq_buf = NULL;
 bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   uint32_t cmd = (uint32_t)arg;
@@ -903,13 +904,14 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   int32_t min_speed;
   uint32_t red, green, blue;
   int ii;
+  int msg_len;
 
   DEBUG("NIXIE: otb_led_trigger_neo entry");
 
   OTB_ASSERT((cmd >= OTB_CMD_LED_NEO_MIN) && (cmd <= OTB_CMD_LED_NEO_MAX));
 
   // Get num neo pixels
-  if (next_cmd != NULL)
+  if ((cmd != OTB_CMD_LED_NEO_MESSAGE) && (next_cmd != NULL))
   {
     num = strtol(next_cmd, NULL, 10);
     if ((num < 1) || (num > 256))
@@ -927,16 +929,20 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   }
 
   // Get up to 2 more cmds - number varies based on command
-  next_cmd2 = otb_cmd_get_next_cmd(next_cmd);
-  if (next_cmd2 != NULL)
+  // Must test next_cmd here in case OTB_CMD_LED_NEO_MESSAGE
+  if (next_cmd != NULL)
   {
-    next_cmd3 = otb_cmd_get_next_cmd(next_cmd2);
-    if (next_cmd3 != NULL)
+    next_cmd2 = otb_cmd_get_next_cmd(next_cmd);
+    if (next_cmd2 != NULL)
     {
-      next_cmd4 = otb_cmd_get_next_cmd(next_cmd3);
-      if (next_cmd4 != NULL)
+      next_cmd3 = otb_cmd_get_next_cmd(next_cmd2);
+      if (next_cmd3 != NULL)
       {
-        next_cmd5 = otb_cmd_get_next_cmd(next_cmd4);
+        next_cmd4 = otb_cmd_get_next_cmd(next_cmd3);
+        if (next_cmd4 != NULL)
+        {
+          next_cmd5 = otb_cmd_get_next_cmd(next_cmd4);
+        }
       }
     }
   }
@@ -986,7 +992,13 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
         otb_cmd_rsp_append("colour out of range 000000-ffffff");
         goto EXIT_LABEL;
       }
+      DEBUG("LED: Colour requested: 0x%06x", second_rgb);
     }
+  }
+
+  if (cmd == OTB_CMD_LED_NEO_MESSAGE)
+  {
+    num = 64;  // only 8x8 supported
   }
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
@@ -994,7 +1006,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       (cmd == OTB_CMD_LED_NEO_ROTATE) ||
       (cmd == OTB_CMD_LED_NEO_ROTATEB) ||
       (cmd == OTB_CMD_LED_NEO_BOUNCER) ||
-      (cmd == OTB_CMD_LED_NEO_ROUNDER))
+      (cmd == OTB_CMD_LED_NEO_ROUNDER) ||
+      (cmd == OTB_CMD_LED_NEO_MESSAGE))
   {
     if (next_cmd4 != NULL)
     {
@@ -1014,7 +1027,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       otb_cmd_rsp_append("No speed and/or second colour provided");
       goto EXIT_LABEL;
     }
-    DEBUG("LED: Colour requested: 0x%06x", second_rgb);
+    DEBUG("LED: Speed requested: %d", speed);
   }
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCER) || (cmd == OTB_CMD_LED_NEO_ROUNDER))
@@ -1137,6 +1150,95 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
                          1);
       break;
 
+    case OTB_CMD_LED_NEO_MESSAGE:
+      // check have enough commands
+      if (next_cmd5 == NULL)
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("not enough commands");
+        goto EXIT_LABEL;
+      }
+
+      // Allocate buffer
+      if (otb_led_msg_seq_buf == NULL)
+      {
+        otb_led_msg_seq_buf = (otb_led_neo_msg_seq *)os_malloc(sizeof(*otb_led_msg_seq_buf));
+        if (otb_led_neo_seq_buf == NULL)
+        {
+          rc = FALSE;
+          otb_cmd_rsp_append("not enough memory");
+          goto EXIT_LABEL;
+        }
+      }
+      os_memset(otb_led_msg_seq_buf, 0, sizeof(*otb_led_msg_seq_buf));
+
+      // store colours
+      single_rgb = strtol(next_cmd2, NULL, 16);
+      if ((single_rgb < 0) || (single_rgb > 0xffffff))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("colour out of range 000000-ffffff");
+        goto EXIT_LABEL;
+      }
+      otb_led_msg_seq_buf->background_colour = single_rgb;
+      single_rgb = strtol(next_cmd3, NULL, 16);
+      if ((single_rgb < 0) || (single_rgb > 0xffffff))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("colour out of range 000000-ffffff");
+        goto EXIT_LABEL;
+      }
+      otb_led_msg_seq_buf->char_colour = single_rgb;
+
+      // Get display type
+      if (os_strncmp(next_cmd, "8x8", 3) != 0)
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("only 8x8 display supported: %s", next_cmd);
+        goto EXIT_LABEL;
+      }
+
+      // store message and space terminate the string
+      msg_len = os_strnlen(next_cmd5, (OTB_LED_NEO_MSG_MAX_LEN-1));
+      if (msg_len >= (OTB_LED_NEO_MSG_MAX_LEN-1))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("max msg length: %d", (OTB_LED_NEO_MSG_MAX_LEN-2));
+        goto EXIT_LABEL;
+      }
+      os_memcmp(next_cmd5, otb_led_msg_seq_buf->message, msg_len-1);
+      OTB_ASSERT(msg_len+1 < OTB_LED_NEO_MSG_MAX_LEN);
+      otb_led_msg_seq_buf->message[msg_len] = ' ';
+      otb_led_msg_seq_buf->message[msg_len+1] = 0;
+      otb_led_msg_seq_buf->msg_len = msg_len+1; // includes terminating space
+      for (ii = 0; ii < msg_len-1; ii++)
+      {
+        if (otb_led_msg_seq_buf->message[ii] == '_')
+        {
+          otb_led_msg_seq_buf->message[ii] = ' ';
+        }
+        else if ((otb_led_msg_seq_buf->message[ii] < 'A') || (otb_led_msg_seq_buf->message[ii] > 'Z'))
+        {
+          rc = FALSE;
+          otb_cmd_rsp_append("invalid char in message - only A-Z and underscore (space) supported");
+          goto EXIT_LABEL;
+        }
+      }
+
+      // Set up other stuff
+      otb_led_msg_seq_buf->pause = speed;
+      otb_led_msg_seq_buf->cur_char = 0;
+      otb_led_msg_seq_buf->cur_char_pos = 7; // starts at rhs
+
+      // Kick off timer
+      otb_led_msg_seq_buf->func = otb_led_neo_msg;
+      otb_util_timer_set(&otb_led_msg_seq_buf->timer, 
+                         (os_timer_func_t *)otb_led_msg_seq_buf->func,
+                         NULL,
+                         otb_led_msg_seq_buf->pause,
+                         1);
+      break;
+
     default:
       rc = FALSE;
       otb_cmd_rsp_append("internal error");
@@ -1150,6 +1252,109 @@ EXIT_LABEL:
 
   return rc;
 };
+
+otb_font_6x6 ICACHE_FLASH_ATTR *otb_led_neo_get_font_char(unsigned char cchar)
+{
+  otb_font_6x6 *fchar = NULL;
+  int ii;
+
+  DEBUG("LED: otb_led_neo_get_font_char entry");
+  
+  for (ii = 0; ii < OTB_FONT_LEN; ii++)
+  {
+    if (otb_font_6x6_1[ii].character == cchar)
+    {
+      fchar = otb_font_6x6_1 + ii;
+      break;
+    }
+  }
+
+  DEBUG("LED: otb_led_neo_get_font_char exit");
+
+  return fchar;
+}
+
+void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
+{
+  uint32_t neos[64];
+  int ii, jj;
+  unsigned char cur_char = NULL;
+  unsigned char prev_char = NULL;
+  otb_font_6x6 *cur_charf = NULL;
+  otb_font_6x6 *prev_charf = NULL;
+  otb_font_6x6 *charf;
+  int cpos, pos, index;
+
+  DEBUG("LED: otb_led_neo_msg entry");
+
+  // first set the neo pixels to background colour
+  for (ii = 0; ii < 64; ii++)
+  {
+    neos[ii] = otb_led_msg_seq_buf->background_colour;
+  }
+
+  // get characters from font for current and previous
+  cur_char = otb_led_msg_seq_buf->message[otb_led_msg_seq_buf->cur_char];
+  prev_char = otb_led_msg_seq_buf->message[(otb_led_msg_seq_buf->cur_char-1) % otb_led_msg_seq_buf->msg_len];
+  cur_charf = otb_led_neo_get_font_char(cur_char);
+  prev_charf = otb_led_neo_get_font_char(prev_char);
+  OTB_ASSERT((cur_charf != NULL) && (prev_charf != NULL));
+  cpos = otb_led_msg_seq_buf->cur_char_pos;
+
+  // ii = row, jj = column
+  // rows are 0 at top, 7 at bottom, columns are 0 at left, 7 at right
+  // only do middle 6 rows
+  for (ii = 1; ii < 7; ii--)
+  {
+    for (jj = 0; jj >= 7; jj++)
+    {
+      index = jj - cpos;
+      if ((index == -1) || (index == 6))
+      {
+        // nothing to do - between chars
+      }
+      else
+      {
+        if (index < 7)
+        {
+          pos = index + 7;  // i.e. mod 7 cos chars are 6 char wide with 1 byte gap between
+          charf = prev_charf;
+        }
+        else
+        {
+          pos = index;
+          charf = cur_charf;
+          OTB_ASSERT(cpos < 6);
+        }
+        OTB_ASSERT(pos < 6);
+        neos[(ii*8) + jj] = charf->bytes[ii-1] & (1 << pos) ? otb_led_msg_seq_buf->char_colour : otb_led_msg_seq_buf->background_colour;
+      }
+    }
+  }
+  
+  // Now decrement cur_char/pos
+  cpos--;
+  if (cpos < 1)
+  {
+    cpos = 7;
+    otb_led_msg_seq_buf->cur_char++;
+    if (otb_led_msg_seq_buf->cur_char >= otb_led_msg_seq_buf->msg_len)
+    {
+      otb_led_msg_seq_buf->cur_char = 0;
+    }
+  }
+
+  // Write the colours
+  otb_led_neo_update(neos,
+                     64,
+                     4,
+                     OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B,
+                     FALSE);
+
+  DEBUG("LED: otb_led_neo_msg exit");
+
+  return;
+}
 
 void ICACHE_FLASH_ATTR otb_led_neo_round(void *arg)
 {
