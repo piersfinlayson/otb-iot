@@ -886,7 +886,8 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint3
 }
 
 otb_led_neo_seq *otb_led_neo_seq_buf = NULL;
-otb_led_neo_msg_seq *otb_led_msg_seq_buf = NULL;
+otb_led_neo_msg_seq otb_led_msg_seq_buf_a; // XXX Hack
+otb_led_neo_msg_seq *otb_led_msg_seq_buf = &otb_led_msg_seq_buf_a;
 bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   uint32_t cmd = (uint32_t)arg;
@@ -911,21 +912,24 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   OTB_ASSERT((cmd >= OTB_CMD_LED_NEO_MIN) && (cmd <= OTB_CMD_LED_NEO_MAX));
 
   // Get num neo pixels
-  if ((cmd != OTB_CMD_LED_NEO_MESSAGE) && (next_cmd != NULL))
+  if (cmd != OTB_CMD_LED_NEO_MESSAGE)
   {
-    num = strtol(next_cmd, NULL, 10);
-    if ((num < 1) || (num > 256))
+    if (next_cmd != NULL)
+    {
+      num = strtol(next_cmd, NULL, 10);
+      if ((num < 1) || (num > 256))
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("Num must be 1-256");
+        goto EXIT_LABEL;
+      }
+    }
+    else
     {
       rc = FALSE;
-      otb_cmd_rsp_append("Num must be 1-256");
+      otb_cmd_rsp_append("Num not specified");
       goto EXIT_LABEL;
     }
-  }
-  else
-  {
-    rc = FALSE;
-    otb_cmd_rsp_append("Num not specified");
-    goto EXIT_LABEL;
   }
 
   // Get up to 2 more cmds - number varies based on command
@@ -1024,7 +1028,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
     else
     {
       rc = FALSE;
-      otb_cmd_rsp_append("No speed and/or second colour provided");
+      otb_cmd_rsp_append("missing commands");
       goto EXIT_LABEL;
     }
     DEBUG("LED: Speed requested: %d", speed);
@@ -1055,6 +1059,11 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   {
     os_timer_disarm((os_timer_t*)&otb_led_neo_seq_buf->timer);
     otb_led_neo_seq_buf->running = 0;
+  }
+
+  if (otb_led_msg_seq_buf != NULL)
+  {
+    os_timer_disarm((os_timer_t*)&otb_led_msg_seq_buf->timer);
   }
 
   switch (cmd)
@@ -1152,13 +1161,13 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
     case OTB_CMD_LED_NEO_MESSAGE:
       // check have enough commands
-      if (next_cmd5 == NULL)
+      if ((next_cmd5 == NULL) || (next_cmd5[0] == 0))
       {
         rc = FALSE;
         otb_cmd_rsp_append("not enough commands");
         goto EXIT_LABEL;
       }
-
+      
       // Allocate buffer
       if (otb_led_msg_seq_buf == NULL)
       {
@@ -1166,6 +1175,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
         if (otb_led_neo_seq_buf == NULL)
         {
           rc = FALSE;
+          WARN("LED: Failed to allocated %d bytes", sizeof(*otb_led_msg_seq_buf));
           otb_cmd_rsp_append("not enough memory");
           goto EXIT_LABEL;
         }
@@ -1200,30 +1210,32 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
       // store message and space terminate the string
       msg_len = os_strnlen(next_cmd5, (OTB_LED_NEO_MSG_MAX_LEN-1));
-      if (msg_len >= (OTB_LED_NEO_MSG_MAX_LEN-1))
+      if (msg_len >= (OTB_LED_NEO_MSG_MAX_LEN-2))
       {
         rc = FALSE;
         otb_cmd_rsp_append("max msg length: %d", (OTB_LED_NEO_MSG_MAX_LEN-2));
         goto EXIT_LABEL;
       }
-      os_memcmp(next_cmd5, otb_led_msg_seq_buf->message, msg_len-1);
-      OTB_ASSERT(msg_len+1 < OTB_LED_NEO_MSG_MAX_LEN);
+      os_memcpy(otb_led_msg_seq_buf->message, next_cmd5, msg_len);
       otb_led_msg_seq_buf->message[msg_len] = ' ';
       otb_led_msg_seq_buf->message[msg_len+1] = 0;
       otb_led_msg_seq_buf->msg_len = msg_len+1; // includes terminating space
-      for (ii = 0; ii < msg_len-1; ii++)
+      for (ii = 0; ii < otb_led_msg_seq_buf->msg_len; ii++)
       {
         if (otb_led_msg_seq_buf->message[ii] == '_')
         {
           otb_led_msg_seq_buf->message[ii] = ' ';
         }
-        else if ((otb_led_msg_seq_buf->message[ii] < 'A') || (otb_led_msg_seq_buf->message[ii] > 'Z'))
+        else if (((otb_led_msg_seq_buf->message[ii] < 'A') || (otb_led_msg_seq_buf->message[ii] > 'Z')) && (otb_led_msg_seq_buf->message[ii] != ' '))
         {
           rc = FALSE;
-          otb_cmd_rsp_append("invalid char in message - only A-Z and underscore (space) supported");
+          otb_cmd_rsp_append("invalid char %d %d in message - only A-Z and underscore (space) supported", otb_led_msg_seq_buf->message[ii], ii);
           goto EXIT_LABEL;
         }
+        //INFO("LED: Char %d is %d", ii, otb_led_msg_seq_buf->message[ii]);
       }
+      //INFO("LED: Message: %s", otb_led_msg_seq_buf->message);
+      //INFO("LED: msg_len: %d", otb_led_msg_seq_buf->msg_len);
 
       // Set up other stuff
       otb_led_msg_seq_buf->pause = speed;
@@ -1295,7 +1307,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
 
   // get characters from font for current and previous
   cur_char = otb_led_msg_seq_buf->message[otb_led_msg_seq_buf->cur_char];
-  prev_char = otb_led_msg_seq_buf->message[(otb_led_msg_seq_buf->cur_char-1) % otb_led_msg_seq_buf->msg_len];
+  ii = (otb_led_msg_seq_buf->cur_char-1) % otb_led_msg_seq_buf->msg_len;
+  ii = ii < 0 ? (otb_led_msg_seq_buf->msg_len+ii) : ii;
+  //INFO("LED: prev char index %d", ii);
+  prev_char = otb_led_msg_seq_buf->message[ii];
+  //INFO("LED: Chars cur: %d prev: %d", cur_char, prev_char);
   cur_charf = otb_led_neo_get_font_char(cur_char);
   prev_charf = otb_led_neo_get_font_char(prev_char);
   OTB_ASSERT((cur_charf != NULL) && (prev_charf != NULL));
@@ -1304,9 +1320,9 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
   // ii = row, jj = column
   // rows are 0 at top, 7 at bottom, columns are 0 at left, 7 at right
   // only do middle 6 rows
-  for (ii = 1; ii < 7; ii--)
+  for (ii = 1; ii < 7; ii++)
   {
-    for (jj = 0; jj >= 7; jj++)
+    for (jj = 0; jj <= 7; jj++)
     {
       index = jj - cpos;
       if ((index == -1) || (index == 6))
@@ -1315,7 +1331,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
       }
       else
       {
-        if (index < 7)
+        if (index < 0)
         {
           pos = index + 7;  // i.e. mod 7 cos chars are 6 char wide with 1 byte gap between
           charf = prev_charf;
@@ -1324,19 +1340,19 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
         {
           pos = index;
           charf = cur_charf;
-          OTB_ASSERT(cpos < 6);
         }
         OTB_ASSERT(pos < 6);
-        neos[(ii*8) + jj] = charf->bytes[ii-1] & (1 << pos) ? otb_led_msg_seq_buf->char_colour : otb_led_msg_seq_buf->background_colour;
+        //INFO("LED: ii: %d jj: %d neos_index: %d pos: %d", ii, jj, ((ii*8)+jj), pos);
+        neos[(ii*8) + jj] = charf->bytes[ii-1] & (0b100000 >> pos) ? otb_led_msg_seq_buf->char_colour : otb_led_msg_seq_buf->background_colour;
       }
     }
   }
   
   // Now decrement cur_char/pos
-  cpos--;
-  if (cpos < 1)
+  otb_led_msg_seq_buf->cur_char_pos--;
+  if (otb_led_msg_seq_buf->cur_char_pos < 1)
   {
-    cpos = 7;
+    otb_led_msg_seq_buf->cur_char_pos = 7;
     otb_led_msg_seq_buf->cur_char++;
     if (otb_led_msg_seq_buf->cur_char >= otb_led_msg_seq_buf->msg_len)
     {
