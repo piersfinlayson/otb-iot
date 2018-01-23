@@ -23,6 +23,27 @@
 #include "otb.h"
 #include <stdarg.h>
 
+otb_cmd_control ICACHE_FLASH_ATTR *otb_cmd_load_cmd_control_from_flash(otb_cmd_control *ctrl)
+{
+  otb_cmd_control *rc = (otb_cmd_control *)&otb_cmd_control_flash_buf;
+  int ii;
+
+  DEBUG("CMD: otb_cmd_load_cmd_control_from_flash entry");
+
+  // This is a bit inefficient - we always read in whole of buf size even though
+  // cmd_control structure is unlikely to be that long.  <Shrugs> - it's easier
+  // than figuring out the size at runtime
+  for (ii = 0; ii < OTB_CMD_CONTROL_BUF_SIZE/4; ii++)
+  {
+    // load in 4 bytes at a time or will throw an exception
+    *(((uint32_t*)(&otb_cmd_control_flash_buf))+ii) = *(((uint32_t*)(ctrl))+ii);
+  }
+
+  DEBUG("CMD: otb_cmd_load_cmd_control_from_flash exit");
+
+  return rc;
+}
+
 void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
                                             const char* topic,
                                             uint32_t topic_len,
@@ -37,6 +58,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
   bool rc = FALSE;
   bool match = TRUE;
   int ii;
+  int jj;
 
   DEBUG("CMD: otb_cmd_mqtt_received entry");
   
@@ -57,7 +79,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
   rc = FALSE;
   
   // Start at the top
-  cur_control = otb_cmd_control_topic_top;
+  cur_control = otb_cmd_load_cmd_control_from_flash(otb_cmd_control_topic_top);
   
   // Now run through otb_cmd_incoming according to the rules defined within the
   // otb_cmd_control_top_level tree.
@@ -108,7 +130,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
       // sub_cmd_control is set, or the handler_fn if not.
       if (cur_control[ii].sub_cmd_control != NULL)
       {
-        cur_control = cur_control[ii].sub_cmd_control;
+        cur_control = otb_cmd_load_cmd_control_from_flash(cur_control[ii].sub_cmd_control);
         depth++;
         if (depth < OTB_CMD_MAX_CMDS)
         {

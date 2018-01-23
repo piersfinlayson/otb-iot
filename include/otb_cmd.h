@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -414,79 +414,89 @@ typedef struct otb_cmd_control
 #define OTB_CMD_NO_FN   NULL, NULL
 #define OTB_CMD_FINISH  NULL, NULL, NULL, NULL, NULL
 
-extern otb_cmd_control otb_cmd_control_topic_top[];
-extern otb_cmd_control otb_cmd_control_topic_2nd[];
-extern otb_cmd_control otb_cmd_control_cmd_top_level[];
-extern otb_cmd_control otb_cmd_control_get[];
-extern otb_cmd_control otb_cmd_control_get_sensor[];
-extern otb_cmd_control otb_cmd_control_get_sensor_temp[];
-extern otb_cmd_control otb_cmd_control_get_sensor_temp_ds18b20[];
-extern otb_cmd_control otb_cmd_control_get_sensor_adc[];
-extern otb_cmd_control otb_cmd_control_get_sensor_adc_ads[];
-// extern otb_cmd_control otb_cmd_control_get_sensor_gpio[];
-// extern otb_cmd_control otb_cmd_control_get_gpio_native[];
-// extern otb_cmd_control otb_cmd_control_get_gpio_pcf[];
-// extern otb_cmd_control otb_cmd_control_get_gpio_mcp[];
-// extern otb_cmd_control otb_cmd_control_get_gpio_pca[];
-extern otb_cmd_control otb_cmd_control_get_config[];
-extern otb_cmd_control otb_cmd_control_get_info[];
-extern otb_cmd_control otb_cmd_control_get_reason[];
-extern otb_cmd_control otb_cmd_control_get_info_logs[];
-extern otb_cmd_control otb_cmd_control_set[];
-extern otb_cmd_control otb_cmd_control_set_config[];
-extern otb_cmd_control otb_cmd_control_set_config_status_led[];
-extern otb_cmd_control otb_cmd_control_set_config_keep_ap_active[];
-extern otb_cmd_control otb_cmd_control_set_config_loc[];
-extern otb_cmd_control otb_cmd_control_set_config_ds18b20[];
-extern otb_cmd_control otb_cmd_control_set_config_ads[];
-extern otb_cmd_control otb_cmd_control_set_config_ads_valid[];
-extern otb_cmd_control otb_cmd_control_delete[];
-extern otb_cmd_control otb_cmd_control_delete_config[];
-extern otb_cmd_control otb_cmd_control_delete_config_loc[];
-extern otb_cmd_control otb_cmd_control_delete_config_ds18b20[];
-extern otb_cmd_control otb_cmd_control_delete_config_ads[];
-extern otb_cmd_control otb_cmd_control_trigger[];
-extern otb_cmd_control otb_cmd_control_trigger_ow[];
-extern otb_cmd_control otb_cmd_control_trigger_i2c[];
-extern otb_cmd_control otb_cmd_control_trigger_test[];
-extern otb_cmd_control otb_cmd_control_trigger_test_led[];
-extern otb_cmd_control otb_cmd_control_get_gpio[];
-extern otb_cmd_control otb_cmd_control_get_config_gpio[];
-extern otb_cmd_control otb_cmd_control_set_config_gpio[];
-extern otb_cmd_control otb_cmd_control_set_config_gpio_pca[];
-extern otb_cmd_control otb_cmd_control_set_config_gpio_pca_sda[];
-extern otb_cmd_control otb_cmd_control_set_config_gpio_pca_scl[];
-extern otb_cmd_control otb_cmd_control_trigger_gpio[];
-extern otb_cmd_control otb_cmd_control_trigger_gpio_pca[];
-extern otb_cmd_control otb_cmd_control_set_config_relay[];
-extern otb_cmd_control otb_cmd_control_set_config_relay_valid[];
-extern otb_cmd_control otb_cmd_control_trigger_relay[];
-extern otb_cmd_control otb_cmd_control_get_config_serial[];
-extern otb_cmd_control otb_cmd_control_set_config_serial[];
-extern otb_cmd_control otb_cmd_control_trigger_serial[];
-extern otb_cmd_control otb_cmd_control_trigger_nixie[];
-extern otb_cmd_control otb_cmd_control_trigger_nixie_power[];
-extern otb_cmd_control otb_cmd_control_trigger_neo[];
+#define OTB_CMD_CONTROL(X)  otb_cmd_control ALIGN4 ICACHE_RODATA_ATTR X
+#define OTB_CMD_CONTROL_SIZE(X)  size_t MUNGE1(X, size) = sizeof(X)
+#define OTB_CMD_CONTROL_SIZE_CHECK(X)  OTB_COMPILE_ASSERT(sizeof(X) <= OTB_CMD_CONTROL_BUF_SIZE-4);                 
+
+extern OTB_CMD_CONTROL(otb_cmd_control_topic_top)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_topic_2nd)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_cmd_top_level)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp_ds18b20)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_adc)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_adc_ads)[];
+// extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_gpio)[];
+// extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio_native)[];
+// extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio_pcf)[];
+// extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio_mcp)[];
+// extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio_pca)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_config)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_info)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_reason)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_status_led)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_keep_ap_active)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_loc)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_ds18b20)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_ads)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_ads_valid)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_delete)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_delete_config)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_delete_config_loc)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_delete_config_ds18b20)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_delete_config_ads)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_ow)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_i2c)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_test)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_test_led)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_config_gpio)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca_sda)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca_scl)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_gpio)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_gpio_pca)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_relay)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_relay_valid)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_relay)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_config_serial)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_serial)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_serial)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie_power)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[];
 
 #ifdef OTB_CMD_C
 
-otb_cmd_control otb_cmd_control_topic_top[] = 
+// Buffer to load cmds into from flash - 256 bytes is too small, 512 may become
+// too small in future, but having a decent hierarchy should avoid that problem
+#define OTB_CMD_CONTROL_BUF_SIZE  512
+char ALIGN4 otb_cmd_control_flash_buf[OTB_CMD_CONTROL_BUF_SIZE];
+
+OTB_CMD_CONTROL(otb_cmd_control_topic_top)[] = 
 {
   {OTB_MQTT_OTBIOT_TOPIC, NULL, otb_cmd_control_topic_2nd,      OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
+OTB_CMD_CONTROL_SIZE(otb_cmd_control_topic_top);
 
 // Note deliberately not checking any sub-topics beyond chipid until the bottom.  Note
 // this won't work where location is set and used within the topic
 // XX fixup
-otb_cmd_control otb_cmd_control_topic_2nd[] = 
+OTB_CMD_CONTROL(otb_cmd_control_topic_2nd)[] = 
 {
   {NULL, otb_cmd_match_chipid, otb_cmd_control_cmd_top_level,  OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
 
 // First level of OTB-IOT commands
-otb_cmd_control otb_cmd_control_cmd_top_level[] =
+OTB_CMD_CONTROL(otb_cmd_control_cmd_top_level)[] =
 {
   {"get",              NULL, otb_cmd_control_get,            OTB_CMD_NO_FN},
   {"set",              NULL, otb_cmd_control_set,            OTB_CMD_NO_FN},
@@ -496,7 +506,7 @@ otb_cmd_control otb_cmd_control_cmd_top_level[] =
 };
 
 // get commands
-otb_cmd_control otb_cmd_control_get[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get)[] = 
 {
   {"sensor",           NULL, otb_cmd_control_get_sensor,     OTB_CMD_NO_FN},
   {"config",           NULL, otb_cmd_control_get_config,     OTB_CMD_NO_FN},
@@ -506,7 +516,7 @@ otb_cmd_control otb_cmd_control_get[] =
 };
 
 // get->sensor commands
-otb_cmd_control otb_cmd_control_get_sensor[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get_sensor)[] = 
 {
   {"temp",             NULL, otb_cmd_control_get_sensor_temp,       OTB_CMD_NO_FN},
   {"adc",              NULL, otb_cmd_control_get_sensor_adc,        OTB_CMD_NO_FN},
@@ -514,14 +524,14 @@ otb_cmd_control otb_cmd_control_get_sensor[] =
 };
 
 // get->sensor->temp commands
-otb_cmd_control otb_cmd_control_get_sensor_temp[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp)[] = 
 {
   {"ds18b20",          NULL, otb_cmd_control_get_sensor_temp_ds18b20, OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
 // get->sensor->temp->ds18b20 commands
-otb_cmd_control otb_cmd_control_get_sensor_temp_ds18b20[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp_ds18b20)[] =
 {
   {"num",              NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_num, NULL},
 //  {"value",            NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_value, NULL},
@@ -530,21 +540,21 @@ otb_cmd_control otb_cmd_control_get_sensor_temp_ds18b20[] =
 };
 
 // get->sensor->adc commands
-otb_cmd_control otb_cmd_control_get_sensor_adc[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get_sensor_adc)[] = 
 {
   {"ads",              NULL, otb_cmd_control_get_sensor_adc_ads,    OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
 // get->sensor->adc->ads commands
-otb_cmd_control otb_cmd_control_get_sensor_adc_ads[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get_sensor_adc_ads)[] = 
 {
   {"ads",              NULL, NULL,      otb_cmd_get_sensor_adc_ads, NULL},
   {OTB_CMD_FINISH}    
 };
 
 // get->sensor->gpio commands
-otb_cmd_control otb_cmd_control_get_gpio[] = 
+OTB_CMD_CONTROL(otb_cmd_control_get_gpio)[] = 
 {
 //  {"native",           NULL, otb_cmd_control_get_gpio_native,  OTB_CMD_NO_FN},
 //  {"pcf",              NULL, otb_cmd_control_get_gpio_pcf,     OTB_CMD_NO_FN},
@@ -555,21 +565,21 @@ otb_cmd_control otb_cmd_control_get_gpio[] =
 
 #if 0
 // get->sensor->gpio->pcf commands
-otb_cmd_control otb_cmd_control_get_gpio_pcf[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_gpio_pcf)[] =
 {
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
 
 // get->sensor->gpio->mcp commands
-otb_cmd_control otb_cmd_control_get_gpio_mcp[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_gpio_mcp)[] =
 {
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
 
 // get->sensor->gpio->pca commands
-otb_cmd_control otb_cmd_control_get_gpio_pca[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_gpio_pca)[] =
 {
   // XXX TBC
   {OTB_CMD_FINISH}    
@@ -577,7 +587,7 @@ otb_cmd_control otb_cmd_control_get_gpio_pca[] =
 #endif
 
 // get->config commands
-otb_cmd_control otb_cmd_control_get_config[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_config)[] =
 {
   {"all",              NULL, NULL,      otb_cmd_get_config_all,    NULL},
   {"gpio",             NULL, otb_cmd_control_get_config_gpio,    OTB_CMD_NO_FN},
@@ -587,14 +597,14 @@ otb_cmd_control otb_cmd_control_get_config[] =
 };
 
 // get->config->gpio
-otb_cmd_control otb_cmd_control_get_config_gpio[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_config_gpio)[] =
 {
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
   {OTB_CMD_FINISH}
 };
 
 // get->config->Serial
-otb_cmd_control otb_cmd_control_get_config_serial[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_config_serial)[] =
 {
   {"enable",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_ENABLE  | OTB_SERIAL_CMD_GET)},
   {"rx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_RX      | OTB_SERIAL_CMD_GET)},
@@ -616,7 +626,7 @@ otb_cmd_control otb_cmd_control_get_config_serial[] =
 };
 
 // get->info commands
-otb_cmd_control otb_cmd_control_get_info[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_info)[] =
 {
   {"version",           NULL, NULL,     otb_cmd_get_string,        otb_version_id},
   {"compile_date",      NULL, NULL,     otb_cmd_get_string,        otb_compile_date},
@@ -633,21 +643,21 @@ otb_cmd_control otb_cmd_control_get_info[] =
 };
 
 // get->info->reason commands
-otb_cmd_control otb_cmd_control_get_reason[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_reason)[] =
 {
   {"reason",            NULL, NULL,     otb_cmd_get_reason_reboot, NULL},
   {OTB_CMD_FINISH}    
 };
 
 // get->info->logs commands
-otb_cmd_control otb_cmd_control_get_info_logs[] =
+OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[] =
 {
   {"ram",               NULL, NULL,     otb_cmd_get_logs_ram,      NULL},
   {OTB_CMD_FINISH}    
 };
 
 // set commands
-otb_cmd_control otb_cmd_control_set[] =
+OTB_CMD_CONTROL(otb_cmd_control_set)[] =
 {
   {"config",           NULL, otb_cmd_control_set_config,        OTB_CMD_NO_FN},
   {"boot_slot",        NULL, NULL,      otb_cmd_set_boot_slot,     NULL},
@@ -655,7 +665,7 @@ otb_cmd_control otb_cmd_control_set[] =
 };
 
 // set->config commands
-otb_cmd_control otb_cmd_control_set_config[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config)[] =
 {
   {"status_led",       NULL, otb_cmd_control_set_config_status_led,  OTB_CMD_NO_FN},
   {"keep_ap_active",   NULL, otb_cmd_control_set_config_keep_ap_active,  OTB_CMD_NO_FN},
@@ -669,7 +679,7 @@ otb_cmd_control otb_cmd_control_set_config[] =
 };
 
 // set->config->status_led commands
-otb_cmd_control otb_cmd_control_set_config_status_led[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_status_led)[] =
 {
   {"on",                NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL},
   {"normal",            NULL, NULL, otb_conf_set_status_led, (void *)OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL},
@@ -678,7 +688,7 @@ otb_cmd_control otb_cmd_control_set_config_status_led[] =
   {OTB_CMD_FINISH}    
 };
 // set->config->keep_ap_active commands
-otb_cmd_control otb_cmd_control_set_config_keep_ap_active[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_keep_ap_active)[] =
 {
   {"yes",               NULL, NULL, otb_conf_set_keep_ap_active, (void *)TRUE},
   {"true",              NULL, NULL, otb_conf_set_keep_ap_active, (void *)TRUE},
@@ -688,7 +698,7 @@ otb_cmd_control otb_cmd_control_set_config_keep_ap_active[] =
 };
 
 // set->config->loc commands
-otb_cmd_control otb_cmd_control_set_config_loc[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_loc)[] =
 {
   {"1",                 NULL, NULL, otb_conf_set_loc, (void *)1},
   {"2",                 NULL, NULL, otb_conf_set_loc, (void *)2},
@@ -697,21 +707,21 @@ otb_cmd_control otb_cmd_control_set_config_loc[] =
 };
 
 // set->config->ds18b20
-otb_cmd_control otb_cmd_control_set_config_ds18b20[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_ds18b20)[] =
 {
   {NULL, otb_ds18b20_valid_addr, NULL, otb_ds18b20_conf_set, NULL}, 
   {OTB_CMD_FINISH}    
 };
 
 // set->config->ads
-otb_cmd_control otb_cmd_control_set_config_ads[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_ads)[] =
 {
   {NULL, otb_i2c_ads_valid_addr, otb_cmd_control_set_config_ads_valid, OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
 
 // set->config->ads-><addr>
-otb_cmd_control otb_cmd_control_set_config_ads_valid[] = 
+OTB_CMD_CONTROL(otb_cmd_control_set_config_ads_valid)[] = 
 {
   {"add",      NULL, NULL, otb_i2c_ads_conf_set, (void *)OTB_CMD_ADS_ADD}, 
   {"mux",      NULL, NULL, otb_i2c_ads_conf_set, (void *)OTB_CMD_ADS_MUX}, 
@@ -726,7 +736,7 @@ otb_cmd_control otb_cmd_control_set_config_ads_valid[] =
 };
 
 // set->config->gpio
-otb_cmd_control otb_cmd_control_set_config_gpio[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio)[] =
 {
   {"pca", NULL, otb_cmd_control_set_config_gpio_pca, OTB_CMD_NO_FN},
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_SET_CONFIG},
@@ -734,7 +744,7 @@ otb_cmd_control otb_cmd_control_set_config_gpio[] =
 };
 
 // set->config->gpio->pca
-otb_cmd_control otb_cmd_control_set_config_gpio_pca[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca)[] =
 {
   {"sda",   NULL, otb_cmd_control_set_config_gpio_pca_sda, OTB_CMD_NO_FN},
   {"scl",   NULL, otb_cmd_control_set_config_gpio_pca_scl, OTB_CMD_NO_FN},
@@ -744,14 +754,14 @@ otb_cmd_control otb_cmd_control_set_config_gpio_pca[] =
 };
 
 // set->config->gpio->pca->sda
-otb_cmd_control otb_cmd_control_set_config_gpio_pca_sda[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca_sda)[] =
 {
   {NULL,   otb_gpio_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SDA)},
   {OTB_CMD_FINISH}
 };
 
 // set->config->gpio->pca->scl
-otb_cmd_control otb_cmd_control_set_config_gpio_pca_scl[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_gpio_pca_scl)[] =
 {
   {NULL,   otb_gpio_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SCL)},
   {OTB_CMD_FINISH}
@@ -770,13 +780,13 @@ otb_cmd_control otb_cmd_control_set_config_gpio_pca_scl[] =
 //             <state> (0 or 1)
 //           all
 //             <state> (string of 0s and 1s - lowest numbered pin last)
-otb_cmd_control otb_cmd_control_set_config_relay[] = 
+OTB_CMD_CONTROL(otb_cmd_control_set_config_relay)[] = 
 {
   {NULL, otb_relay_valid_id, otb_cmd_control_set_config_relay_valid, OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
 
-otb_cmd_control otb_cmd_control_set_config_relay_valid[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_relay_valid)[] =
 {
   {"loc",          NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_LOC},
   {"type",         NULL, NULL, otb_relay_conf_set, (void *)OTB_CMD_RELAY_TYPE},
@@ -788,7 +798,7 @@ otb_cmd_control otb_cmd_control_set_config_relay_valid[] =
 };
 
 // get->config->Serial
-otb_cmd_control otb_cmd_control_set_config_serial[] =
+OTB_CMD_CONTROL(otb_cmd_control_set_config_serial)[] =
 {
   {"enable",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_ENABLE  | OTB_SERIAL_CMD_SET)},
   {"disable",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_DISABLE | OTB_SERIAL_CMD_SET)},
@@ -812,14 +822,14 @@ otb_cmd_control otb_cmd_control_set_config_serial[] =
 };
 
 // delete commands
-otb_cmd_control otb_cmd_control_delete[] = 
+OTB_CMD_CONTROL(otb_cmd_control_delete)[] = 
 {
   {"config",            NULL, otb_cmd_control_delete_config,   OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
 // delete->config commands
-otb_cmd_control otb_cmd_control_delete_config[] = 
+OTB_CMD_CONTROL(otb_cmd_control_delete_config)[] = 
 {
   {"loc",               NULL, otb_cmd_control_delete_config_loc,     OTB_CMD_NO_FN},
   {"ds18b20",           NULL, otb_cmd_control_delete_config_ds18b20, OTB_CMD_NO_FN},
@@ -828,7 +838,7 @@ otb_cmd_control otb_cmd_control_delete_config[] =
 };
 
 // delete->config->loc commands
-otb_cmd_control otb_cmd_control_delete_config_loc[] = 
+OTB_CMD_CONTROL(otb_cmd_control_delete_config_loc)[] = 
 {
   {"all",               NULL, NULL, otb_conf_delete_loc, (void *)NULL},
   {"1",                 NULL, NULL, otb_conf_delete_loc, (void *)1},
@@ -842,7 +852,7 @@ otb_cmd_control otb_cmd_control_delete_config_loc[] =
 #define OTB_CMD_DS18B20_ALL   0
 #define OTB_CMD_DS18B20_ADDR  1
 #ifdef OTB_CMD_C
-otb_cmd_control otb_cmd_control_delete_config_ds18b20[] = 
+OTB_CMD_CONTROL(otb_cmd_control_delete_config_ds18b20)[] = 
 {
 
   {"all",               NULL, NULL, otb_ds18b20_conf_delete, (void *)OTB_CMD_DS18B20_ALL},
@@ -855,7 +865,7 @@ otb_cmd_control otb_cmd_control_delete_config_ds18b20[] =
 #define OTB_CMD_ADS_ALL   0
 #define OTB_CMD_ADS_ADDR  1
 #ifdef OTB_CMD_C
-otb_cmd_control otb_cmd_control_delete_config_ads[] = 
+OTB_CMD_CONTROL(otb_cmd_control_delete_config_ads)[] = 
 {
 
   {"all",               NULL, NULL,           otb_i2c_ads_conf_delete, (void *)OTB_CMD_ADS_ALL},
@@ -864,7 +874,7 @@ otb_cmd_control otb_cmd_control_delete_config_ads[] =
 };
 
 // trigger commands
-otb_cmd_control otb_cmd_control_trigger[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger)[] =
 {
   {"update",            NULL, NULL,     otb_cmd_trigger_update,    NULL},
   {"upgrade",           NULL, NULL,     otb_cmd_trigger_update,    NULL},
@@ -884,28 +894,28 @@ otb_cmd_control otb_cmd_control_trigger[] =
 };
 
 // trigger->ow commands
-otb_cmd_control otb_cmd_control_trigger_ow[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_ow)[] =
 {
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
 
 // trigger->i2c commands
-otb_cmd_control otb_cmd_control_trigger_i2c[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_i2c)[] =
 {
   // XXX TBC
   {OTB_CMD_FINISH}    
 };
 
 // trigger->test commands
-otb_cmd_control otb_cmd_control_trigger_test[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_test)[] =
 {
   {"led",               NULL, otb_cmd_control_trigger_test_led, OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}
 };
 
 // trigger->test->led commands
-otb_cmd_control otb_cmd_control_trigger_test_led[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_test_led)[] =
 {
 #define OTB_CMD_TRIGGER_TEST_LED_ONCE   0 
 #define OTB_CMD_TRIGGER_TEST_LED_GO     1
@@ -918,7 +928,7 @@ otb_cmd_control otb_cmd_control_trigger_test_led[] =
 };
 
 // trigger->gpio
-otb_cmd_control otb_cmd_control_trigger_gpio[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_gpio)[] =
 {
   {"pca",    NULL, otb_cmd_control_trigger_gpio_pca, OTB_CMD_NO_FN},
   {NULL, otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_TRIGGER},
@@ -926,7 +936,7 @@ otb_cmd_control otb_cmd_control_trigger_gpio[] =
 };
 
 // trigger->gpio->pca
-otb_cmd_control otb_cmd_control_trigger_gpio_pca[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_gpio_pca)[] =
 {
   {"init", NULL, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_TRIGGER|OTB_CMD_GPIO_PCA_INIT)},
   {NULL, otb_i2c_pca9685_valid_pin, NULL, otb_i2c_pca_gpio_cmd, (void *)(OTB_CMD_GPIO_TRIGGER|OTB_CMD_GPIO_PCA_GPIO)},
@@ -934,7 +944,7 @@ otb_cmd_control otb_cmd_control_trigger_gpio_pca[] =
 };
 
 // trigger->relay
-otb_cmd_control otb_cmd_control_trigger_relay[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_relay)[] =
 {
   {"mezz", NULL, NULL, otb_relay_mezz_trigger, NULL},
   {NULL, otb_relay_valid_id, NULL, otb_relay_trigger, NULL},
@@ -942,7 +952,7 @@ otb_cmd_control otb_cmd_control_trigger_relay[] =
 };
 
 // trigger->serial
-otb_cmd_control otb_cmd_control_trigger_serial[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_serial)[] =
 {
   {"send",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
   {"trasmit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
@@ -952,7 +962,7 @@ otb_cmd_control otb_cmd_control_trigger_serial[] =
 };
 
 // trigger->nixie commands
-otb_cmd_control otb_cmd_control_trigger_nixie[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie)[] =
 {
   {"init",             NULL, NULL, otb_nixie_init,   NULL},
   {"clear",            NULL, NULL, otb_nixie_clear,   NULL},
@@ -963,7 +973,7 @@ otb_cmd_control otb_cmd_control_trigger_nixie[] =
 };
 
 // trigger->nixie->power commands
-otb_cmd_control otb_cmd_control_trigger_nixie_power[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie_power)[] =
 {
   {"on",             NULL, NULL, otb_nixie_power,   (void *)1},
   {"off",            NULL, NULL, otb_nixie_power,   (void *)0},
@@ -971,7 +981,7 @@ otb_cmd_control otb_cmd_control_trigger_nixie_power[] =
 };
 
 // trigger->neo commands
-otb_cmd_control otb_cmd_control_trigger_neo[] =
+OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[] =
 {
   {"off",              NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_OFF},
   {"solid",            NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_SOLID},
@@ -986,9 +996,68 @@ otb_cmd_control otb_cmd_control_trigger_neo[] =
   {OTB_CMD_FINISH}    
 };
 
+void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()
+{
+  // Compile time asserts that each of the cmd control structures is less than buffer size they'll be loaded into from flash
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_topic_top);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_topic_2nd);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_cmd_top_level);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor_temp);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor_temp_ds18b20);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor_adc);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor_adc_ads);
+//   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_sensor_gpio);
+//   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio_native);
+//   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio_pcf);
+//   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio_mcp);
+//   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio_pca);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_config);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_info);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_reason);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_info_logs);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_status_led);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_keep_ap_active);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_loc);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_ds18b20);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_ads);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_ads_valid);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_delete);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_delete_config);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_delete_config_loc);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_delete_config_ds18b20);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_delete_config_ads);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_ow);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_i2c);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_test);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_test_led);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_config_gpio);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_gpio);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_gpio_pca);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_gpio_pca_sda);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_gpio_pca_scl);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_gpio);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_gpio_pca);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_relay);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_relay_valid);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_relay);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_config_serial);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_serial);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_serial);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_nixie);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_nixie_power);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_neo);
+}
+
 #endif // OTB_CMD_C
 
 // Generic functions
+otb_cmd_control *otb_cmd_load_cmd_control_from_flash(otb_cmd_control *ctrl);
 void otb_cmd_mqtt_receive(uint32_t *client,
                           const char* topic,
                           uint32_t topic_len,
