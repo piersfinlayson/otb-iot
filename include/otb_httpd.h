@@ -32,7 +32,7 @@ int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 
 #ifdef OTB_HTTPD_C
 
-#define OTB_HTTP_SCRATCH_LEN 8192
+#define OTB_HTTP_SCRATCH_LEN 6144
 char otb_httpd_scratch[OTB_HTTP_SCRATCH_LEN];
 HttpdBuiltInUrl otb_httpd_ap_urls[] =
 {
