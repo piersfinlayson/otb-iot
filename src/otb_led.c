@@ -1247,6 +1247,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
                   (otb_led_msg_seq_buf->message[ii] != '$') &&
                   (otb_led_msg_seq_buf->message[ii] != '(') &&
                   (otb_led_msg_seq_buf->message[ii] != ')') &&
+                  (otb_led_msg_seq_buf->message[ii] != '\'') &&
                   (otb_led_msg_seq_buf->message[ii] != '^') &&
                   (otb_led_msg_seq_buf->message[ii] != '~'))
         {
@@ -1311,13 +1312,11 @@ otb_font_6x6 ICACHE_FLASH_ATTR *otb_led_neo_get_font_char(unsigned char cchar)
 void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
 {
   uint32_t neos[64];
-  int ii, jj;
-  unsigned char cur_char = NULL;
-  unsigned char prev_char = NULL;
-  otb_font_6x6 *cur_charf = NULL;
-  otb_font_6x6 *prev_charf = NULL;
+  int ii, jj, kk;
+  unsigned char cur_char[4];
+  otb_font_6x6 *cur_charf[4];
   otb_font_6x6 *charf;
-  int cpos, pos, index;
+  int cpos, tcpos, pos, index;
 
   DEBUG("LED: otb_led_neo_msg entry");
 
@@ -1327,16 +1326,20 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
     neos[ii] = otb_led_msg_seq_buf->background_colour;
   }
 
-  // get characters from font for current and previous
-  cur_char = otb_led_msg_seq_buf->message[otb_led_msg_seq_buf->cur_char];
-  ii = (otb_led_msg_seq_buf->cur_char-1) % otb_led_msg_seq_buf->msg_len;
-  ii = ii < 0 ? (otb_led_msg_seq_buf->msg_len+ii) : ii;
-  //INFO("LED: prev char index %d", ii);
-  prev_char = otb_led_msg_seq_buf->message[ii];
-  //INFO("LED: Chars cur: %d prev: %d", cur_char, prev_char);
-  cur_charf = otb_led_neo_get_font_char(cur_char);
-  prev_charf = otb_led_neo_get_font_char(prev_char);
-  OTB_ASSERT((cur_charf != NULL) && (prev_charf != NULL));
+  // need current char and up to 3 others (most pathological case is 4 chars each 1 char wide with 1 char gaps)
+  cur_char[0] = otb_led_msg_seq_buf->message[otb_led_msg_seq_buf->cur_char];
+  ii = otb_led_msg_seq_buf->cur_char;
+  for (kk = 1; kk < 4; kk++)
+  {
+    ii--;
+    ii = ii < 0 ? (otb_led_msg_seq_buf->msg_len+ii) : ii;
+    cur_char[kk] = otb_led_msg_seq_buf->message[ii];
+  }
+  for (kk = 0; kk < 4; kk++)
+  {
+    cur_charf[kk] = otb_led_neo_get_font_char(cur_char[kk]);
+    OTB_ASSERT(cur_charf[0] != NULL); // If this fails, have failed to find char in font
+  }
   cpos = otb_led_msg_seq_buf->cur_char_pos;
 
   // ii = row, jj = column
@@ -1346,25 +1349,26 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
   {
     for (jj = 0; jj <= 7; jj++)
     {
-      index = jj - cpos;
-      if ((index == -1) || (index == 6))
+      kk = 0;
+      tcpos = cpos;
+      index = jj - tcpos;
+      while ((index < 0) && (kk < 4))
       {
-        // nothing to do - between chars
+        if (index == -1)
+        {
+          kk = -1; // Between chars, so skip
+          break;
+        }
+        kk++;
+        tcpos -= (cur_charf[kk]->len + 1);
+        index = jj - tcpos;
       }
-      else
+      OTB_ASSERT(kk != 4); // If this fails a character must be less than 1 character which isn't supported
+      if ((kk != -1) && (index < cur_charf[kk]->len))
       {
-        if (index < 0)
-        {
-          pos = index + 7;  // i.e. mod 7 cos chars are 6 char wide with 1 byte gap between
-          charf = prev_charf;
-        }
-        else
-        {
-          pos = index;
-          charf = cur_charf;
-        }
-        OTB_ASSERT(pos < 6);
-        //INFO("LED: ii: %d jj: %d neos_index: %d pos: %d", ii, jj, ((ii*8)+jj), pos);
+        charf = cur_charf[kk];
+        pos = index;
+        OTB_ASSERT((pos < 6) && (pos >= 0));
         neos[(ii*8) + jj] = charf->bytes[ii-1] & (0b100000 >> pos) ? otb_led_msg_seq_buf->char_colour : otb_led_msg_seq_buf->background_colour;
       }
     }
@@ -1372,7 +1376,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
   
   // Now decrement cur_char/pos
   otb_led_msg_seq_buf->cur_char_pos--;
-  if (otb_led_msg_seq_buf->cur_char_pos < 1)
+  if (otb_led_msg_seq_buf->cur_char_pos < (7 - cur_charf[0]->len))
   {
     otb_led_msg_seq_buf->cur_char_pos = 7;
     otb_led_msg_seq_buf->cur_char++;
