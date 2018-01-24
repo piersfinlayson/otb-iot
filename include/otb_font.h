@@ -33,7 +33,7 @@ typedef struct otb_font_6x6
   uint8_t bytes[6];
 } otb_font_6x6;
 
-#define OTB_FONT_LEN 1 + 26 + 26 + 10 + 18 + 2 // space, upper case alphabet, lower case, digits, symbols (@ ! ? " # , . : ; + - * = % $ \( \)) heart(~), degrees(^)
+#define OTB_FONT_LEN 1 + 26 + 26 + 10 + 19 + 2 // space, upper case alphabet, lower case, digits, symbols (@ ! ? " # , . : ; + - * = % $ \( \) ') heart(~), degrees(^)
 #ifndef OTB_FONT_C
 otb_font_6x6 otb_font_6x6_1[OTB_FONT_LEN];
 #else
@@ -473,7 +473,7 @@ otb_font_6x6 otb_font_6x6_1[OTB_FONT_LEN] =
   },
   {
     'j',
-    6,
+    3,
     {
       0b001000,
       0b000000,
@@ -1010,6 +1010,18 @@ otb_font_6x6 otb_font_6x6_1[OTB_FONT_LEN] =
       0b010000,
       0b010000,
       0b100000
+    }
+  },
+  {
+    '\'',
+    1,
+    {
+      0b100000,
+      0b100000,
+      0b000000,
+      0b000000,
+      0b000000,
+      0b000000,
     }
   },
   {
