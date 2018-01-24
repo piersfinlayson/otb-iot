@@ -1210,16 +1210,15 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
       // store message and space terminate the string
       msg_len = os_strnlen(next_cmd5, (OTB_LED_NEO_MSG_MAX_LEN-1));
-      if (msg_len >= (OTB_LED_NEO_MSG_MAX_LEN-2))
+      if (msg_len >= (OTB_LED_NEO_MSG_MAX_LEN-1))
       {
         rc = FALSE;
-        otb_cmd_rsp_append("max msg length: %d", (OTB_LED_NEO_MSG_MAX_LEN-2));
+        otb_cmd_rsp_append("max msg length: %d", (OTB_LED_NEO_MSG_MAX_LEN-1));
         goto EXIT_LABEL;
       }
       os_memcpy(otb_led_msg_seq_buf->message, next_cmd5, msg_len);
       otb_led_msg_seq_buf->message[msg_len] = ' ';
-      otb_led_msg_seq_buf->message[msg_len+1] = 0;
-      otb_led_msg_seq_buf->msg_len = msg_len+1; // includes terminating space
+      otb_led_msg_seq_buf->msg_len = msg_len;
       for (ii = 0; ii < otb_led_msg_seq_buf->msg_len; ii++)
       {
         if (otb_led_msg_seq_buf->message[ii] == '_')
