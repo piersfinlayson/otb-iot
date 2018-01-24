@@ -37,7 +37,7 @@ unsigned char otb_cmd_rsp[OTB_CMD_RSP_MAX_LEN];
 // about the command which kicked off the asynchronous programming.
 
 // Note that TOPIC_LEN length includes the string NULL terminator
-#define OTB_CMD_MAX_CMD_LEN  16
+#define OTB_CMD_MAX_CMD_LEN  64
 #define OTB_CMD_MAX_CMDS     16
 unsigned char otb_cmd_incoming_cmd[OTB_CMD_MAX_CMDS][OTB_CMD_MAX_CMD_LEN];
 
