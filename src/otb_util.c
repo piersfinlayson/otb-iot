@@ -1343,8 +1343,8 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
               OTB_MAIN_CHIPID,
               OTB_MQTT_PUB_LOG);
 
-  // QOS=1 so gets through at least once, retain=1 so last log retained
-  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 1);
+  // QOS=1 so gets through at least once, retain=0 so last log not retained
+  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 0);
 
   // DEBUG("UTIL: otb_util_log_error_via_mqtt exit");
 
