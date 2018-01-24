@@ -1235,9 +1235,8 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
                   (otb_led_msg_seq_buf->message[ii] != '?') &&
                   (otb_led_msg_seq_buf->message[ii] != '"') &&
                   (otb_led_msg_seq_buf->message[ii] != '#') &&
-                  (otb_led_msg_seq_buf->message[ii] != '\'') &&
-                  (otb_led_msg_seq_buf->message[ii] != '~') &&
-                  (otb_led_msg_seq_buf->message[ii] != '`'))
+                  (otb_led_msg_seq_buf->message[ii] != '^') &&
+                  (otb_led_msg_seq_buf->message[ii] != '~'))
         {
           rc = FALSE;
           otb_cmd_rsp_append("invalid char %d %d in message - only A-Z and underscore (space) supported", otb_led_msg_seq_buf->message[ii], ii);
