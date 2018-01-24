@@ -1234,6 +1234,19 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
                   (otb_led_msg_seq_buf->message[ii] != '?') &&
                   (otb_led_msg_seq_buf->message[ii] != '"') &&
                   (otb_led_msg_seq_buf->message[ii] != '#') &&
+                  (otb_led_msg_seq_buf->message[ii] != ',') &&
+                  (otb_led_msg_seq_buf->message[ii] != '.') &&
+                  (otb_led_msg_seq_buf->message[ii] != ':') &&
+                  (otb_led_msg_seq_buf->message[ii] != ';') &&
+                  (otb_led_msg_seq_buf->message[ii] != '+') &&
+                  (otb_led_msg_seq_buf->message[ii] != '-') &&
+                  (otb_led_msg_seq_buf->message[ii] != '*') &&
+                  (otb_led_msg_seq_buf->message[ii] != '=') &&
+                  (otb_led_msg_seq_buf->message[ii] != '%') &&
+                  (otb_led_msg_seq_buf->message[ii] != '&') &&
+                  (otb_led_msg_seq_buf->message[ii] != '$') &&
+                  (otb_led_msg_seq_buf->message[ii] != '(') &&
+                  (otb_led_msg_seq_buf->message[ii] != ')') &&
                   (otb_led_msg_seq_buf->message[ii] != '^') &&
                   (otb_led_msg_seq_buf->message[ii] != '~'))
         {
