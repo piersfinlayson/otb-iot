@@ -26,6 +26,8 @@
 #define OTB_NIXIE_C
 #include "otb.h"
 
+bool otb_nixie_depoison_timer_armed = FALSE;
+
 void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
 {
 
@@ -44,6 +46,7 @@ void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
   otb_nixie_info.power = FALSE;
   
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
+  otb_nixie_depoison_timer_armed = FALSE;
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
   os_timer_setfn((os_timer_t*)&(otb_nixie_info.depoisoning_timer), (os_timer_func_t *)otb_nixie_depoison, NULL);
 
@@ -63,6 +66,7 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
 
   otb_nixie_info.depoisoning = TRUE;
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
+  otb_nixie_depoison_timer_armed = FALSE;
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
 
   if (otb_nixie_info.depoison_cycle >= OTB_NIXIE_CYCLE_LEN)
@@ -71,7 +75,7 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
     otb_nixie_info.depoisoning = FALSE;
     otb_nixie_info.depoison_cycle = 0;
     rc = otb_nixie_display_update(&(otb_nixie_info.target));
-    os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
+    otb_nixie_depoison_timer_arm();
     goto EXIT_LABEL;
   }
   else
@@ -313,8 +317,6 @@ bool ICACHE_FLASH_ATTR otb_nixie_init(unsigned char *next_cmd, void *arg, unsign
 
   rc = otb_nixie_cycle(NULL, NULL, NULL);
 
-  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
-
   DEBUG("NIXIE: otb_nixie_init exit");
 
   return rc;
@@ -386,7 +388,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsig
   if (otb_nixie_info.depoisoning)
   {
     rc = FALSE;
-    otb_cmd_rsp_append("depoisioning");
+    otb_cmd_rsp_append("depoisoning");
     goto EXIT_LABEL;
   }
 
@@ -403,6 +405,31 @@ EXIT_LABEL:
   return rc;
 };
 
+void ICACHE_FLASH_ATTR otb_nixie_depoison_timer_arm()
+{
+  DEBUG("NIXIE: otb_nixie_depoison_timer_arm entry");
+
+  otb_nixie_depoison_timer_disarm();
+  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
+  otb_nixie_depoison_timer_armed = TRUE;
+
+  DEBUG("NIXIE: otb_nixie_depoison_timer_arm exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_nixie_depoison_timer_disarm()
+{
+  DEBUG("NIXIE: otb_nixie_depoison_timer_disarm entry");
+
+  os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
+  otb_nixie_depoison_timer_armed = FALSE;
+
+  DEBUG("NIXIE: otb_nixie_depoison_timer_disarm exit");
+
+  return;
+}
+
 bool ICACHE_FLASH_ATTR otb_nixie_power(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool on = (bool)arg;
@@ -413,6 +440,17 @@ bool ICACHE_FLASH_ATTR otb_nixie_power(unsigned char *next_cmd, void *arg, unsig
   DEBUG("NIXIE: otb_nixie_power entry");
 
   INFO("NIXIE: power %s", on ? "on" : "off");
+
+  if (on)
+  {
+    // Kick off depoison routine
+    if (!otb_nixie_depoison_timer_armed)
+    {
+      otb_nixie_depoison_timer_arm();
+    }
+  }
+  // Keep depoison timer running if we've ever been turned on so short on/off
+  // periods don't keep from depoisoning
 
   otb_nixie_info.power = on ? TRUE : FALSE;
   

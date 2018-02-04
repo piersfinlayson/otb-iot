@@ -45,11 +45,10 @@
 #define OTB_NXIE_SERIAL_TIMER_US  1
 
 #define OTB_NIXIE_DEPOISONING_TIMER_MS  3600000 // One hour
-//#define OTB_NIXIE_DEPOISONING_TIMER_MS  3600000 // One hour
 
 #define OTB_NIXIE_CYCLE_LEN  13
 
-#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_US  250000
+#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_US  5000000 // Five seconds
 #define OTB_NIXIE_CYCLE_TIMER_US           10000
 
 // Used to map a nixie digit to a TPIC6B595 IC and pin
@@ -113,6 +112,8 @@ bool otb_nixie_init(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 bool otb_nixie_clear(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_show(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+void otb_nixie_depoison_timer_arm();
+void otb_nixie_depoison_timer_disarm();
 bool otb_nixie_power(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_nixie_display_update(otb_nixie_display *display);
 
