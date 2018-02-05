@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -27,6 +27,8 @@ void mbus_init();
 void ICACHE_FLASH_ATTR user_init(void)
 {
   // According to docs required as first step, to enable us timer
+  // Note that this means that maximum os_timer_arm (not us) value is about
+  // 432s (0x689D0 in ms)
   system_timer_reinit();
 
   otb_util_init_logging();
