@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,7 +22,7 @@
 #define OTB_MAIN_BAUD_RATE 115200
 #define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
-#define OTB_MAIN_FW_VERSION "v0_1e" //max 8 chars
+#define OTB_MAIN_FW_VERSION "v0_1f1" //max 8 chars
 #define OTB_MAIN_MAX_VERSION_LENGTH 64 // Enough space for root, version, build number, compile data and compile time
 #define OTB_MAIN_GPIO_RESET 16
 #define OTB_MAIN_MAX_LOG_LENGTH 1024
