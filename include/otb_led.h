@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -131,7 +131,7 @@ typedef struct otb_led_sequence_step
   uint8_t blue;
   
   // Time to take to fade to this colour from previous, 0 = no fade time, in us
-  uint32_t timer_us;
+  uint32_t timer_ms;
   
 } otb_led_sequence_step;
 
@@ -219,24 +219,24 @@ typedef struct otb_led_type_info
 // Dots are 1, dashes 3, gaps between elements 1, gaps between letters 3, gaps between words 7
 otb_led_sequence_step otb_led_test_steps[18] =
 {
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 300000},
-  {1, 0, 0, 0, 300000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 300000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 300000},
-  {0, 0, 0, 0, 300000},
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 100000},
-  {1, 0, 0, 0, 100000},
-  {0, 0, 0, 0, 700000},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 300},
+  {1, 0, 0, 0, 300},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 300},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 300},
+  {0, 0, 0, 0, 300},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 100},
+  {1, 0, 0, 0, 100},
+  {0, 0, 0, 0, 700},
 };
 
 otb_led_sequence otb_led_test_seq[OTB_LED_TYPE_NUM] =

@@ -289,8 +289,8 @@ EXIT_LABEL:
     else
     {
       // Set up timer (including if 0)
-      os_timer_arm_us((os_timer_t*)&(seq->timer), step->timer_us, 0);  
-      //ERROR("Arm for %dus", step->timer_us);
+      os_timer_arm((os_timer_t*)&(seq->timer), step->timer_ms, 0);  
+      //ERROR("Arm for %dms", step->timer_ms);
     }
   }
   else
