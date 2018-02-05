@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -34,6 +34,7 @@ void ICACHE_FLASH_ATTR otb_nixie_module_init(void)
   DEBUG("NIXIE: otb_nixie_module_init entry");
 
   otb_nixie_info.inited = FALSE;
+  otb_nixie_info.depoisoning_wait_s = 0;
   otb_nixie_info.depoisoning = FALSE;
   otb_nixie_info.current.digits[0] = '_';
   otb_nixie_info.current.digits[1] = '_';
@@ -64,7 +65,18 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
 
   DEBUG("NIXIE: otb_nixie_depoison entry");
 
+  if (!otb_nixie_info.depoisoning)
+  {
+    otb_nixie_info.depoisoning_wait_s++;
+    if (otb_nixie_info.depoisoning_wait_s < OTB_NIXIE_DEPOISONING_TIMER_S)
+    {
+      // No need to rearm as set as repeating
+      goto EXIT_LABEL;
+    }
+  }
+
   otb_nixie_info.depoisoning = TRUE;
+  otb_nixie_info.depoisoning_wait_s = 0;
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.depoisoning_timer));
   otb_nixie_depoison_timer_armed = FALSE;
   os_timer_disarm((os_timer_t*)&(otb_nixie_info.display_timer));
@@ -91,7 +103,7 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison(void *arg)
     otb_nixie_info.depoison_cycle++;
 
     os_timer_setfn((os_timer_t*)&(otb_nixie_info.display_timer), (os_timer_func_t *)otb_nixie_depoison, NULL);
-    os_timer_arm_us((os_timer_t*)&(otb_nixie_info.display_timer), OTB_NIXIE_DEPOSION_CYCLE_TIMER_US, 0);  
+    os_timer_arm((os_timer_t*)&(otb_nixie_info.display_timer), OTB_NIXIE_DEPOSION_CYCLE_TIMER_MS, 0);  
   }
 
 EXIT_LABEL:  
@@ -410,7 +422,8 @@ void ICACHE_FLASH_ATTR otb_nixie_depoison_timer_arm()
   DEBUG("NIXIE: otb_nixie_depoison_timer_arm entry");
 
   otb_nixie_depoison_timer_disarm();
-  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), OTB_NIXIE_DEPOISONING_TIMER_MS, 0);  
+  os_timer_arm((os_timer_t*)&(otb_nixie_info.depoisoning_timer), 1000, 1);  
+  otb_nixie_info.depoisoning_wait_s = 0;
   otb_nixie_depoison_timer_armed = TRUE;
 
   DEBUG("NIXIE: otb_nixie_depoison_timer_arm exit");

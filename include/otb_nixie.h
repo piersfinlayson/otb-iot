@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -44,11 +44,11 @@
 
 #define OTB_NXIE_SERIAL_TIMER_US  1
 
-#define OTB_NIXIE_DEPOISONING_TIMER_MS  3600000 // One hour
+#define OTB_NIXIE_DEPOISONING_TIMER_S      60 // 1 minute
 
 #define OTB_NIXIE_CYCLE_LEN  13
 
-#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_US  5000000 // Five seconds
+#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_MS  5000000 // Five seconds
 #define OTB_NIXIE_CYCLE_TIMER_US           10000
 
 // Used to map a nixie digit to a TPIC6B595 IC and pin
@@ -77,6 +77,8 @@ typedef struct otb_nixie_display_state
 {
   // Whether nixie display has been initialized
   bool inited;
+
+  uint32_t depoisoning_wait_s;  // Number of times we've waited for 1s before depoisoning 
 
   // Whether depoisioning cycle is taking place
   bool depoisoning;
