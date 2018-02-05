@@ -44,7 +44,7 @@
 
 #define OTB_NXIE_SERIAL_TIMER_US  1
 
-#define OTB_NIXIE_DEPOISONING_TIMER_S      60 // 1 minute
+#define OTB_NIXIE_DEPOISONING_TIMER_S      3600 // 1 hour
 
 #define OTB_NIXIE_CYCLE_LEN  13
 
