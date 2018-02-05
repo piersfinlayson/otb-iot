@@ -48,7 +48,7 @@
 
 #define OTB_NIXIE_CYCLE_LEN  13
 
-#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_MS  5000000 // Five seconds
+#define OTB_NIXIE_DEPOSION_CYCLE_TIMER_MS  5000 // Five seconds
 #define OTB_NIXIE_CYCLE_TIMER_US           10000
 
 // Used to map a nixie digit to a TPIC6B595 IC and pin
