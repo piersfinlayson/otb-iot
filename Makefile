@@ -368,7 +368,9 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(LD) -nostdlib -Wl,-r obj/html/webpages.espfs.o.tmp -o obj/html/webpages.espfs.o -Wl,-T ld/webpages.espfs.ld
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
-flash_boot: bin/rboot.bin
+boot: bin/rboot.bin
+
+flash_boot: boot
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fm dio -ff 40m -fs 32m 0x0 bin/rboot.bin
 
 flash_app: bin/app_image.bin
