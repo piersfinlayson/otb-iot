@@ -639,8 +639,10 @@ void NOINLINE factory_reset(void)
 
   ets_intr_unlock();
 
-  // Would be lovely to flash the status LED at this point, but that's beyond our
-  // abilities - as we would need to speak I2C to do so!
+  // Would be lovely to flash the status LED at this point - would require
+	// - reading status_led info from eeprom (which we already do)
+	// - some WS2812B comms (which really isn't very hard - see otb_led_neo_update
+	//   in otb_led.c)
   
   // If gpio14 is zero we have looped 15 times ...
   if (!gpio_state)
