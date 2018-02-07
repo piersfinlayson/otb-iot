@@ -3,7 +3,31 @@
 // Copyright 2015 Richard A Burton
 // richardaburton@gmail.com
 // See license.txt for license terms.
+//
 //////////////////////////////////////////////////
+
+//
+// Modifications from original rboot source code are copyright and licensed as follows:
+//
+
+/*
+ * OTB-IOT - Out of The Box Internet Of Things
+ *
+ * Copyright (C) 2016-8 Piers Finlayson
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version. 
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for 
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef RBOOT_INTEGRATION
 #include <rboot-integration.h>
@@ -468,8 +492,7 @@ void NOINLINE start_otb_boot(void)
 	// delay to slow boot (help see messages when debugging)
 	ets_delay_us(2000000);
 	
-	ets_printf("\r\nBOOT: OTA-BOOT v0.3\r\n");
-	ets_printf("BOOT: OTA-Boot based on rBoot v1.2.1 - https://github.com/raburton/rboot\r\n");
+	ets_printf("\r\nBOOT: OTA-BOOT v0.4a\r\n");
 
   return;
 }
@@ -489,7 +512,7 @@ void do_factory_reset(void)
   
   // Erase config sector - that's all we need to do to clear config
   SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
-  ets_printf("BOOT: otb-iot onfig cleared\r\n");
+  ets_printf("BOOT: otb-iot boot config cleared\r\n");
 
   for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
        written < OTB_BOOT_ROM_2_LEN;
