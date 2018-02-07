@@ -227,7 +227,7 @@ hwinfoDep = $(hwinfoObjects:%.o=%.d)
 stageObjects = $(STAGE_OBJ_DIR)/otb_stage.o
 stageDep = $(stageObjects:%.o=%.d)
 
-all: directories bin/app_image.bin bin/rboot.bin docs
+all: directories bin/app_image.bin boot docs
 
 bin/app_image.bin: bin/app_image.elf $(ESPTOOL2)
 	$(NM) -n bin/app_image.elf > bin/app_image.sym
@@ -368,7 +368,7 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 	$(LD) -nostdlib -Wl,-r obj/html/webpages.espfs.o.tmp -o obj/html/webpages.espfs.o -Wl,-T ld/webpages.espfs.ld
 	$(AR) cru $@ obj/html/webpages.espfs.o
 
-boot: bin/rboot.bin
+boot: directories bin/rboot.bin
 
 flash_boot: boot
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fm dio -ff 40m -fs 32m 0x0 bin/rboot.bin
