@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -32,12 +32,464 @@ void ICACHE_FLASH_ATTR otb_serial_init(void)
   otb_serial_conf.baudrate = OTB_SERIAL_B_DEFAULT;
   otb_serial_conf.rx = OTB_SERIAL_PIN_INVALID;
   otb_serial_conf.tx = OTB_SERIAL_PIN_INVALID;
+  otb_serial_conf.mezz_info = NULL;
   
   DEBUG("SERIAL: otb_serial_init exit");
   
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
+{
+  uint8 temp;
+  uint8 bytes[2];
+  uint32 mezz_type = (uint32)arg;
+  int ii;
+
+  DEBUG("SERIAL: otb_serial_init_mbus_mezz entry");
+
+  // Assert a supported mezzanine type (otherwise this function shouldn't be called)
+  OTB_ASSERT(mezz_type == OTB_EEPROM_MODULE_TYPE_MBUS_V0_1);
+  
+  // Allocate memory for the serial mezz info
+  otb_serial_conf.mezz_info = (otb_serial_mezz_info *)os_malloc(sizeof(otb_serial_mezz_info));
+  if (!otb_serial_conf.mezz_info)
+  {
+    ERROR("SERIAL: Failed to allocate memory for serial mezz");
+    goto EXIT_LABEL;
+  }
+  os_memset(otb_serial_conf.mezz_info, 0, sizeof(otb_serial_mezz_info));
+
+  otb_serial_conf.mezz_info->mezz_inited = FALSE;
+  otb_serial_conf.mezz_info->mezz_type = mezz_type;
+  otb_serial_conf.mezz_info->i2c_addr = OTB_SERIAL_MBUS_V0_1_I2C_ADDR;
+  otb_serial_conf.mezz_info->uart_num = 0;
+  otb_serial_conf.mezz_info->buf.buf_size = OTB_SERIAL_BUF_SIZE;
+
+  // Disable outputs for IRQ pin
+  GPIO_DIS_OUTPUT(OTB_SERIAL_MBUS_V0_1_IRQ_PIN);
+
+  // Initialise I2C bus
+  otb_i2c_initialize_bus(&(otb_serial_conf.mezz_info->i2c_info),
+                         OTB_SERIAL_MBUS_V0_1_SDA_PIN,
+                         OTB_SERIAL_MBUS_V0_1_SCL_PIN);
+  otb_serial_conf.mezz_info->i2c_info.clock_stretch_time_out_usec = 100;
+  brzo_i2c_setup_info(&(otb_serial_conf.mezz_info->i2c_info));
+
+  // Hard reset SC16IS752
+  if (!otb_serial_mezz_reset(TRUE))
+  {
+    ERROR("SERIAL: Failed to reset serial mezz");
+    goto EXIT_LABEL;
+  }
+
+  // Configure before turning on GPIOs
+  if (!otb_serial_mezz_configure())
+  {
+    goto EXIT_LABEL;
+  }
+
+  // Now turn on connected LED
+  if (!otb_serial_mezz_gpio(0b10))  // GPIO1 state 1
+  {
+    ERROR("SERIAL: Failed to turn on serial mezz GPIO0");
+    goto EXIT_LABEL;
+  }
+
+  // Have succesfully connected so ...
+  otb_serial_conf.mezz_info->mezz_inited = TRUE;
+  otb_serial_conf.mezz_info->use_mezz = TRUE;  // default to using this mezzanine
+
+  INFO("SERIAL: Initialized mezz serial board");
+
+EXIT_LABEL:
+
+  if (!otb_serial_conf.mezz_info->mezz_inited && (otb_serial_conf.mezz_info != NULL))
+  {
+    // Cleanup
+    os_free(otb_serial_conf.mezz_info);
+    otb_serial_conf.mezz_info = NULL;
+  }
+
+  DEBUG("SERIAL: otb_serial_init_mbus_mezz exit");
+
+  return;
+}
+
+uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_write_reg(uint8_t reg, uint8_t val)
+{
+  uint8_t brc;
+  uint8 bytes[2];
+
+  DEBUG("SERIAL: otb_serial_mezz_write_reg entry");
+
+  bytes[0] = OTB_SERIAL_SC16IS_REG(reg);
+  bytes[1] = val;
+  brzo_i2c_start_transaction_info(otb_serial_conf.mezz_info->i2c_addr,
+                                  100,
+                                  &(otb_serial_conf.mezz_info->i2c_info));
+  brzo_i2c_write_info(bytes, 2, FALSE, &(otb_serial_conf.mezz_info->i2c_info));
+  brc = brzo_i2c_end_transaction_info(&(otb_serial_conf.mezz_info->i2c_info));
+  if (brc)
+  {
+    DEBUG("SERIAL: Failed to write reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x val: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], val, brc)
+  }
+  
+  DEBUG("SERIAL: otb_serial_mezz_write_reg exit");
+
+  return brc;
+}
+
+uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_read_reg(uint8_t reg, uint8_t *val)
+{
+  uint8_t brc;
+  uint8 bytes[1];
+
+  DEBUG("SERIAL: otb_serial_mezz_read_reg entry");
+
+  bytes[0] = OTB_SERIAL_SC16IS_REG(reg);
+  brzo_i2c_start_transaction_info(otb_serial_conf.mezz_info->i2c_addr,
+                                  100,
+                                  &(otb_serial_conf.mezz_info->i2c_info));
+  brzo_i2c_write_info(bytes, 1, FALSE, &(otb_serial_conf.mezz_info->i2c_info));
+  brzo_i2c_read_info(val, 1, FALSE, &(otb_serial_conf.mezz_info->i2c_info));
+  brc = brzo_i2c_end_transaction_info(&(otb_serial_conf.mezz_info->i2c_info));
+  if (brc)
+  {
+    DEBUG("SERIAL: Failed to read reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], brc)
+  }
+  
+  DEBUG("SERIAL: otb_serial_mezz_read_reg exit");
+
+  return brc;
+}
+
+// gpios should be bitmask with state
+bool ICACHE_FLASH_ATTR otb_serial_mezz_gpio(uint8 gpios)
+{
+  uint8 bytes[2];
+  bool rc = FALSE;
+  uint8_t brc;
+  int ii;
+  
+  DEBUG("SERIAL: otb_serial_mezz_gpio entry");
+
+  // Reg 0x0b is "IOState"
+  brc = otb_serial_mezz_write_reg(0x0B, gpios);
+  if (!brc)
+  {
+    rc = TRUE;
+  }
+
+  DEBUG("SERIAL: otb_serial_mezz_gpio exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_mezz_reset(bool hard)
+{
+  uint8 byte;
+  bool rc = FALSE;
+  uint8_t brc;
+  int ii;
+
+  DEBUG("SERIAL: otb_serial_mezz_reset entry");
+
+  if (hard)
+  {
+    otb_gpio_set(OTB_SERIAL_MBUS_V0_1_RST_PIN, 0, FALSE);
+    os_delay_us(1000);
+    otb_gpio_set(OTB_SERIAL_MBUS_V0_1_RST_PIN, 1, FALSE);
+  }
+  else
+  {
+    // Issue a software reset - reg is 0x0e (IOControl)
+    brc = otb_serial_mezz_write_reg(0x0E, 0b1000);
+    // sc16IS752 doesn't ack on soft reset
+    if (brc && (brc != 2))
+    {
+      goto EXIT_LABEL;
+    }
+  }
+
+  os_delay_us(1000);
+
+  // Now try, twice (first one after soft reset fails) to read LSR register
+  for (ii = 0; ii < 2; ii++)
+  {
+    brc = otb_serial_mezz_read_reg(0x05, &byte);
+    if (!brc)
+    {
+      break;
+    }
+  }
+  if (brc)
+  {
+    goto EXIT_LABEL;
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("SERIAL: otb_serial_mezz_reset exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
+{
+#define OTB_SERIAL_MEZZ_CONFIGURE_REGS  11
+  uint8 reg[OTB_SERIAL_MEZZ_CONFIGURE_REGS] = {0x01, 0x02, 0x03, 0x04, 0x0A, 0x0C, 0x0F, 0x03, 0x00, 0x01, 0x03};
+  uint8 val[OTB_SERIAL_MEZZ_CONFIGURE_REGS] = {0b1, 0b1, 0b11, 0b0, 0b11, 0b0, 0b0, 0b10000011, 48, 0, 0b11};
+  bool rc = FALSE;
+  uint8_t brc;
+  int ii;
+
+  DEBUG("SERIAL: otb_serial_mezz_configure entry");
+
+//  XXX Test baud rate - special regs 0x00 and 0x01 (48, 0) contain this
+//  XXX Also need to check
+//       baud|baudrate|baud_rate|bit_rate|bitrate|speed
+//       stopbit|stop_bit
+//       parity
+
+  for (ii = 0; ii < OTB_SERIAL_MEZZ_CONFIGURE_REGS; ii++)
+  {
+    brc = otb_serial_mezz_write_reg(reg[ii], val[ii]);
+    if (brc)
+    {
+      goto EXIT_LABEL;
+    }
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:  
+
+  DEBUG("SERIAL: otb_serial_mezz_configure exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_enable_mezz()
+{
+  bool rc = FALSE;
+
+  DEBUG("SERIAL: otb_serial_enable_mezz entry");
+
+  // Reset
+  if (!otb_serial_mezz_reset(TRUE))
+  {
+    goto EXIT_LABEL;
+  }
+
+  // Configure before turning on GPIOs
+  if (!otb_serial_mezz_configure())
+  {
+    goto EXIT_LABEL;
+  }
+
+  if (!otb_intr_register(otb_serial_mezz_intr_handler, NULL, OTB_SERIAL_MBUS_V0_1_IRQ_PIN))
+  {
+    goto EXIT_LABEL;
+  }
+
+  // Turn on enabled (and connected) GPIO
+  if (!otb_serial_mezz_gpio(0b11))
+  {
+    goto EXIT_LABEL;
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("SERIAL: otb_serial_enable_mezz exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
+{
+  bool rc = FALSE;
+
+  DEBUG("SERIAL: otb_serial_disable_mezz entry");
+
+  otb_intr_unreg(OTB_SERIAL_MBUS_V0_1_IRQ_PIN);
+  
+  // Reset
+  if (!otb_serial_mezz_reset(TRUE))
+  {
+    goto EXIT_LABEL;
+  }
+
+  // Configure before turning on GPIOs
+  if (!otb_serial_mezz_configure())
+  {
+    goto EXIT_LABEL;
+  }
+
+  // Turn on connected GPIO1
+  if (!otb_serial_mezz_gpio(0b10))
+  {
+    goto EXIT_LABEL;
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("SERIAL: otb_serial_disable_mezz exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_mezz_byte_to_read(void)
+{
+  bool rc = FALSE;
+  uint8_t brc;
+  uint8_t rval;
+
+  DEBUG("SERIAL: otb_serial_mezz_byte_to_read entry");
+
+  brc = otb_serial_mezz_read_reg(0x05, &rval);
+  if (!rc)
+  {
+    if (rval & 1)
+    {
+      rc = TRUE;
+    }
+  }
+
+  DEBUG("SERIAL: otb_serial_mezz_byte_to_read exit");
+
+  return rc;
+}
+
+void ICACHE_FLASH_ATTR otb_serial_mezz_read_data(void *arg)
+{
+  uint8_t brc;
+  uint16_t pos;
+
+  DEBUG("SERIAL: otb_serial_mezz_read_data entry");
+
+  while (otb_serial_mezz_byte_to_read())
+  {
+    pos = otb_serial_conf.mezz_info->buf.tail;
+    brc = otb_serial_mezz_read_reg(0x00, otb_serial_conf.mezz_info->buf.buf+pos);
+    DEBUG("SERIAL: Read 0x%02x into positon: %d", otb_serial_conf.mezz_info->buf.buf[pos], pos);
+    if (!brc)
+    {
+      // Succeeded
+
+      // If we just wrote over the head, mark that we have overflowed the buffer
+      // and move head on (but not if head and tail the same, as this happens
+      // if the buffer is empty, or if have overflowed already
+      if ((pos == otb_serial_conf.mezz_info->buf.head) && (otb_serial_conf.mezz_info->buf.head != otb_serial_conf.mezz_info->buf.tail))
+      {
+        otb_serial_conf.mezz_info->buf.head++;
+        if (otb_serial_conf.mezz_info->buf.head >= otb_serial_conf.mezz_info->buf.buf_size)
+        {
+          otb_serial_conf.mezz_info->buf.head = 0;
+        }
+        otb_serial_conf.mezz_info->buf.overflow = TRUE;
+      }
+
+      // Now update the tail
+      pos++;
+      if (pos >= otb_serial_conf.mezz_info->buf.buf_size)
+      {
+        pos = 0;
+      }
+      otb_serial_conf.mezz_info->buf.tail = pos;
+    }
+  }
+
+  DEBUG("SERIAL: otb_serial_mezz_read_data exit");
+
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_mezz_buf_data_avail(void)
+{ 
+  bool rc = FALSE;
+
+  DEBUG("SERIAL: otb_serial_mezz_buf_data_avail entry");
+
+  OTB_ASSERT(otb_serial_conf.mezz_info != NULL);
+
+  if (otb_serial_conf.mezz_info->buf.tail != otb_serial_conf.mezz_info->buf.head)
+  {
+    rc = TRUE;
+  }
+  else if (otb_serial_conf.mezz_info->buf.overflow)
+  {
+    rc = TRUE;
+  }
+
+  DEBUG("SERIAL: otb_serial_mezz_buf_data_avail exit");
+
+  return rc;
+}
+
+uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_buf_get_next_byte(void)
+{
+  uint8_t byte;
+
+  DEBUG("SERIAL: otb_serial_mezz_buf_get_next_byte entry");
+
+  OTB_ASSERT(otb_serial_conf.mezz_info != NULL);
+  OTB_ASSERT(otb_serial_mezz_buf_data_avail());
+
+  byte = otb_serial_conf.mezz_info->buf.buf[otb_serial_conf.mezz_info->buf.head];
+  DEBUG("SERIAL: Read 0x%02x from positon: %d", byte, otb_serial_conf.mezz_info->buf.head);
+  otb_serial_conf.mezz_info->buf.head++;
+  if (otb_serial_conf.mezz_info->buf.head >= otb_serial_conf.mezz_info->buf.buf_size)
+  {
+    otb_serial_conf.mezz_info->buf.head = 0;
+  }
+  otb_serial_conf.mezz_info->buf.overflow = FALSE;
+
+  DEBUG("SERIAL: otb_serial_mezz_buf_get_next_byte exit");
+
+  return byte;
+}
+
+void ICACHE_FLASH_ATTR otb_serial_mezz_intr_handler(void *arg)
+{
+  DEBUG("SERIAL: otb_serial_mezz_intr_handler entry");
+
+  // Schedule timer immediately to read data from the SC16IS
+  // (Don't do it in this interrupt handler)
+  OTB_ASSERT(otb_serial_conf.mezz_info != NULL);
+  os_timer_disarm(&otb_serial_conf.mezz_info->timer);
+  os_timer_setfn(&otb_serial_conf.mezz_info->timer, otb_serial_mezz_read_data, NULL);
+  os_timer_arm(&otb_serial_conf.mezz_info->timer, 0, 0);
+
+  DEBUG("SERIAL: otb_serial_mezz_intr_handler exit");
+
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_serial_mezz_send_byte(uint8_t byte)
+{
+  bool rc = FALSE;
+  uint8_t brc;
+
+  DEBUG("SERIAL: otb_serial_mezz_send_byte entry");
+
+  brc = otb_serial_mezz_write_reg(0x00, byte);
+  INFO("SERIAL: Sent 0x%02x", byte);
+  if (!brc)
+  {
+    rc = TRUE;
+  }
+
+  DEBUG("SERIAL: otb_serial_mezz_send_byte exit");
+
+  return rc;
+}
 
 bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
                                                  void *arg,
@@ -83,7 +535,8 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             otb_mqtt_match(next_cmd, "yes") ||
             otb_mqtt_match(next_cmd, "true"))
         {
-          if ((conf->rx == OTB_SERIAL_PIN_INVALID) || (conf->tx == OTB_SERIAL_PIN_INVALID))
+          if (((conf->mezz_info == NULL) && ((conf->rx == OTB_SERIAL_PIN_INVALID) || (conf->tx == OTB_SERIAL_PIN_INVALID))) ||
+              ((conf->mezz_info == NULL) && (!conf->mezz_info->use_mezz)))
           {
             otb_cmd_rsp_append("cannot enable until rx and tx pins set");
             rc = FALSE;
@@ -95,10 +548,27 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             rc = FALSE;
             goto EXIT_LABEL;
           }
-          Softuart_SetPinRx(&(conf->softuart), conf->rx);
-          Softuart_SetPinTx(&(conf->softuart), conf->tx);
-          Softuart_Init(&(conf->softuart), conf->baudrate);
-          conf->enabled = TRUE;
+          if (conf->mezz_info && conf->mezz_info->use_mezz)
+          {
+            conf->enabled = otb_serial_enable_mezz();
+            if (conf->enabled)
+            {
+              rc = TRUE;
+            }
+            else
+            {
+              otb_cmd_rsp_append("failed to enable mezz");
+              rc = FALSE;
+              goto EXIT_LABEL;
+            }
+          }
+          else
+          {
+            Softuart_SetPinRx(&(conf->softuart), conf->rx);
+            Softuart_SetPinTx(&(conf->softuart), conf->tx);
+            Softuart_Init(&(conf->softuart), conf->baudrate);
+            conf->enabled = TRUE;
+          }
           rc = TRUE;
         }
         else if (otb_mqtt_match(next_cmd, "no") ||
@@ -109,6 +579,10 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             otb_cmd_rsp_append("already disabled");
             rc = FALSE;
             goto EXIT_LABEL;
+          }
+          if (conf->mezz_info && conf->mezz_info->use_mezz)
+          {
+            otb_serial_disable_mezz();
           }
           conf->enabled = FALSE;
           rc = TRUE;
@@ -143,12 +617,17 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
         rc = FALSE;
         goto EXIT_LABEL;
       }
+      if (conf->mezz_info && conf->mezz_info->use_mezz)
+      {
+        otb_serial_disable_mezz();
+      }
       conf->enabled = FALSE;
       rc = TRUE;
       break;
 
     case OTB_SERIAL_CMD_RX:
     case OTB_SERIAL_CMD_TX:
+    case OTB_SERIAL_CMD_MEZZ:
       // Valid get, set
       if ((cmd_type != OTB_SERIAL_CMD_GET) && (cmd_type != OTB_SERIAL_CMD_SET))
       {
@@ -166,46 +645,77 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
         }
         if (conf->enabled)
         {
-          otb_cmd_rsp_append("can't change pin when enabled");
+          otb_cmd_rsp_append("can't change pin/mezz when enabled");
           rc = FALSE;
           goto EXIT_LABEL;
         }
-        pin = atoi(next_cmd);
-        if ((pin == 0) && (next_cmd[0] != '0'))
+        if (cmd == OTB_SERIAL_CMD_MEZZ)
         {
-          otb_cmd_rsp_append("invalid pin value");
-          rc = FALSE;
-          goto EXIT_LABEL;
+          if (conf->mezz_info == NULL)
+          {
+            otb_cmd_rsp_append("no mezz connected");
+            rc = FALSE;
+            goto EXIT_LABEL;
+          }
+          if (!os_strcmp("on", next_cmd) ||
+              !os_strcmp("true", next_cmd) ||
+              !os_strcmp("yes", next_cmd))
+          {
+            // Check we're actually a serial supporting mezzanine!
+            conf->mezz_info->use_mezz = TRUE;
+          }
+          else if (!os_strcmp("off", next_cmd) ||
+                   !os_strcmp("false", next_cmd) ||
+                   !os_strcmp("no", next_cmd))
+          {
+            conf->mezz_info->use_mezz = FALSE;
+          }
+          else
+          {
+            otb_cmd_rsp_append("invalid mezz value");
+            rc = FALSE;
+            goto EXIT_LABEL;
+          }
         }
-        if (pin != -1)
+        else
         {
-          if ((pin < 0) || (pin > 16))
+          pin = atoi(next_cmd);
+          if ((pin == 0) && (next_cmd[0] != '0'))
           {
             otb_cmd_rsp_append("invalid pin value");
             rc = FALSE;
             goto EXIT_LABEL;
           }
-          if (!otb_gpio_is_valid((uint8_t)pin))
+          if (pin != -1)
           {
-            otb_cmd_rsp_append("invalid pin value (may be reserved)");
-            rc = FALSE;
-            goto EXIT_LABEL;
+            if ((pin < 0) || (pin > 16))
+            {
+              otb_cmd_rsp_append("invalid pin value");
+              rc = FALSE;
+              goto EXIT_LABEL;
+            }
+            if (!otb_gpio_is_valid((uint8_t)pin))
+            {
+              otb_cmd_rsp_append("invalid pin value (may be reserved)");
+              rc = FALSE;
+              goto EXIT_LABEL;
+            }
+            if (((cmd == OTB_SERIAL_CMD_RX) && (pin == conf->tx)) ||
+                ((cmd == OTB_SERIAL_CMD_TX) && (pin == conf->rx)))
+            {
+              otb_cmd_rsp_append("pin value clashes with other serial pin");
+              rc = FALSE;
+              goto EXIT_LABEL;
+            }
           }
-          if (((cmd == OTB_SERIAL_CMD_RX) && (pin == conf->tx)) ||
-              ((cmd == OTB_SERIAL_CMD_TX) && (pin == conf->rx)))
+          if (cmd == OTB_SERIAL_CMD_RX)
           {
-            otb_cmd_rsp_append("pin value clashes with other serial pin");
-            rc = FALSE;
-            goto EXIT_LABEL;
+            conf->rx = pin;
           }
-        }
-        if (cmd == OTB_SERIAL_CMD_RX)
-        {
-          conf->rx = pin;
-        }
-        else
-        {
-          conf->tx = pin;
+          else
+          {
+            conf->tx = pin;
+          }
         }
         rc = TRUE;
       }
@@ -215,12 +725,24 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
         if (cmd == OTB_SERIAL_CMD_RX)
         {
           pin = conf->rx;
+          otb_cmd_rsp_append("%d", pin);
         }
-        else
+        else if (cmd == OTB_SERIAL_CMD_TX)
         {
           pin = conf->tx;
+          otb_cmd_rsp_append("%d", pin);
         }
-        otb_cmd_rsp_append("%d", pin);
+        else if (cmd == OTB_SERIAL_CMD_MEZZ)
+        {
+          if (conf->mezz_info == NULL)
+          {
+            otb_cmd_rsp_append("not present");
+          }
+          else
+          {
+            otb_cmd_rsp_append("%s", conf->mezz_info->use_mezz ? "on" : "off");
+          }
+        }
         rc = TRUE;
       }
       break;
@@ -407,19 +929,41 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
         if ((next_next_cmd == NULL) || (next_next_cmd[0] == 0) || otb_mqtt_match(next_next_cmd, "all"))
         {
           ii = 0;
-          while (Softuart_Available(&(conf->softuart)))
+          if (conf->mezz_info && conf->mezz_info->use_mezz)
           {
-            if (ii >= 25)
+            // Make sure we have all the data so read first
+            otb_serial_mezz_read_data(NULL);
+            while (otb_serial_mezz_buf_data_avail())
             {
-              ii = 0;
-              otb_mqtt_send_status(OTB_MQTT_STATUS_OK,
-                                   otb_cmd_rsp_get(),
-                                   "",
-                                   "");
-              otb_cmd_rsp_clear();
+              if (ii >= 25)
+              {
+                ii = 0;
+                otb_mqtt_send_status(OTB_MQTT_STATUS_OK,
+                                    otb_cmd_rsp_get(),
+                                    "",
+                                    "");
+                otb_cmd_rsp_clear();
+              }
+              otb_cmd_rsp_append("%02x", otb_serial_mezz_buf_get_next_byte());
+              ii++;
             }
-            otb_cmd_rsp_append("%02x", Softuart_Read(&(conf->softuart)));
-            ii++;
+          }
+          else
+          {
+            while (Softuart_Available(&(conf->softuart)))
+            {
+              if (ii >= 25)
+              {
+                ii = 0;
+                otb_mqtt_send_status(OTB_MQTT_STATUS_OK,
+                                    otb_cmd_rsp_get(),
+                                    "",
+                                    "");
+                otb_cmd_rsp_clear();
+              }
+              otb_cmd_rsp_append("%02x", Softuart_Read(&(conf->softuart)));
+              ii++;
+            }
           }
           otb_cmd_rsp_append("xx");
           rc = TRUE;
@@ -434,17 +978,38 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             rc = FALSE;
             goto EXIT_LABEL;
           }
-          for (ii = 0; ii < bytesd; ii++)
+          if (conf->mezz_info && conf->mezz_info->use_mezz)
           {
-            if (Softuart_Available(&(conf->softuart)))
+            // Make sure we have all the data so read first
+            otb_serial_mezz_read_data(NULL);
+            for (ii = 0; ii < bytesd; ii++)
             {
-              otb_cmd_rsp_append("%02x", Softuart_Read(&(conf->softuart)));
+              if (otb_serial_mezz_buf_data_avail())
+              {
+                otb_cmd_rsp_append("%02x", otb_serial_mezz_buf_get_next_byte());
+              }
+              else
+              {
+                // x marks end
+                otb_cmd_rsp_append("xx");
+                break;
+              }
             }
-            else
+          }
+          else
+          {
+            for (ii = 0; ii < bytesd; ii++)
             {
-              // x marks end
-              otb_cmd_rsp_append("xx");
-              break;
+              if (Softuart_Available(&(conf->softuart)))
+              {
+                otb_cmd_rsp_append("%02x", Softuart_Read(&(conf->softuart)));
+              }
+              else
+              {
+                // x marks end
+                otb_cmd_rsp_append("xx");
+                break;
+              }
             }
           }
           rc = TRUE;
@@ -452,10 +1017,22 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
       }
       else if ((otb_mqtt_match(next_cmd, "empty") || otb_mqtt_match(next_cmd, "clear")))
       {
-        // XXX Implement trigger/buffer/empty|clear
-        otb_cmd_rsp_append("Not implemented");
-        rc = FALSE;
-        goto EXIT_LABEL;
+        // Not the most efficient way to do it!
+        if (conf->mezz_info && conf->mezz_info->use_mezz)
+        {
+          while (otb_serial_mezz_buf_data_avail())
+          {
+            otb_serial_mezz_buf_get_next_byte();
+          }
+        }
+        else
+        {
+          while (Softuart_Available(&(conf->softuart)))
+          {
+            Softuart_Read(&(conf->softuart));
+          }
+        }
+        rc = TRUE;
       }
       else
       {
@@ -499,7 +1076,21 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
       // Send it
       for (ii = 0; ii < (os_strlen(next_cmd)/2); ii++)
       {
-        Softuart_Putchar(&(conf->softuart), serial_data[ii]);
+        if (conf->mezz_info && conf->mezz_info->use_mezz)
+        {
+          rc = otb_serial_mezz_send_byte(serial_data[ii]);
+          if (!rc)
+          {
+            otb_cmd_rsp_append("failed to send byte");
+            rc = FALSE;
+            goto EXIT_LABEL;
+          }
+          
+        }
+        else
+        {
+          Softuart_Putchar(&(conf->softuart), serial_data[ii]);
+        }
       }
       rc = TRUE;
       break;

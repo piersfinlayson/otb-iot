@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -32,6 +32,7 @@
 #include "otb_mez_board_prog_v0_2.h"
 #include "otb_mez_board_temp_v0_2.h"
 #include "otb_mez_board_relay_v0_2.h"
+#include "otb_mez_board_mbus_v0_1.h"
 
 // Set up default hardware information, in case info can't be read from eeprom
 // XXX May want lots of different compile time cases in here - but for now just
@@ -56,6 +57,7 @@ const otb_hwinfo_board_info *otb_hwinfo_boards[] =
   &otb_hwinfo_mez_board_prog_v0_2,
   &otb_hwinfo_mez_board_temp_v0_2,
   &otb_hwinfo_mez_board_relay_v0_2,
+  &otb_hwinfo_mez_board_mbus_v0_1,
   NULL
 };
 #endif

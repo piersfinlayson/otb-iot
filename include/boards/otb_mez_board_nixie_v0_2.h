@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -25,9 +25,6 @@
 // This is the default hardware configuration for otbiot if no eeprom info is
 // provided
 #if defined(OTB_EEPROM_C) || defined(OTB_HWINFO_C)
-
-#define OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_GPIO_PIN_NUM       17
-#define OTB_HWINFO_MAIN_BOARD_D1_MINI_VANILLA_MODULE_NUM         0
 
 const otb_hwinfo_main_module_info otb_hwinfo_mez_board_nixie_v0_2_main_module_info = 
 {

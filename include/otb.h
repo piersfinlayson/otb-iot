@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -117,5 +117,6 @@
 #include "otb_eeprom.h"
 #include "otb_board.h"
 #include "otb_nixie.h"
+#include "otb_intr.h"
 
 #endif

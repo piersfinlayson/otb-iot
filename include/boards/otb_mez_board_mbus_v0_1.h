@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017-2018 Piers Finlayson
+ * Copyright (C) 2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,33 +19,33 @@
  * 
  */
  
-#ifndef OTB_MEZ_BOARD_RELAY_V0_2_H_INCLUDED
-#define OTB_MEZ_BOARD_RELAY_V0_2_H_INCLUDED
+#ifndef OTB_MEZ_BOARD_MBUS_V0_1_H_INCLUDED
+#define OTB_MEZ_BOARD_MBUS_V0_1_H_INCLUDED
 
 // This is the default hardware configuration for otbiot if no eeprom info is
 // provided
 #if defined(OTB_EEPROM_C) || defined(OTB_HWINFO_C)
 
-const otb_hwinfo_main_module_info otb_hwinfo_mez_board_relay_v0_2_main_module_info = 
+const otb_hwinfo_main_module_info otb_hwinfo_mez_board_mbus_v0_1_main_module_info = 
 {
-  OTB_EEPROM_MODULE_TYPE_RELAY_V0_2,  // module_type
+  OTB_EEPROM_MODULE_TYPE_MBUS_V0_1,  // module_type
   OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ, // socket_type
   0,  // jack_used
   0, // num_headers
   0 // num_pins
 };
 
-const otb_hwinfo_board_info otb_hwinfo_mez_board_relay_v0_2 =
+const otb_hwinfo_board_info otb_hwinfo_mez_board_mbus_v0_1 =
 {
-  "relay_v0_2",
+  "mbus_v0_1",
   OTB_EEPROM_HW_CODE_MAIN_MODULE,
   0,
   0,
   NULL,
   NULL,
-  &otb_hwinfo_mez_board_relay_v0_2_main_module_info
+  &otb_hwinfo_mez_board_mbus_v0_1_main_module_info
 };
 
 #endif // defined(OTB_EEPROM_C) || defined(OTB_HWINFO_C)
 
-#endif // OTB_MEZ_BOARD_RELAY_V0_2_H_INCLUDED
+#endif // OTB_MEZ_BOARD_MBUS_V0_1_H_INCLUDED

@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-2017 Piers Finlayson
+ * Copyright (C) 2016-2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -201,6 +201,11 @@ void ICACHE_FLASH_ATTR otb_eeprom_init_modules()
 
               case OTB_EEPROM_MODULE_TYPE_RELAY_V0_2:
                 timer_func = otb_relay_init_mezz;
+                break;
+
+              case OTB_EEPROM_MODULE_TYPE_MBUS_V0_1:
+                timer_func = otb_serial_init_mbus_mezz;
+                timer_param = (void*)otb_eeprom_main_module_info_g[ii].module->module_type;
                 break;
 
               case OTB_EEPROM_MODULE_TYPE_LL_V0_1:

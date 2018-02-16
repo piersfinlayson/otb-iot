@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2018 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -112,11 +112,8 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
       case OTB_EEPROM_PIN_USE_RESET_SOFT:
         INFO("GPIO: Soft reset pin: %d", ii);
         otb_gpio_pins.soft_reset = pin_info->num;
-        ETS_GPIO_INTR_DISABLE();
-        ETS_GPIO_INTR_ATTACH(otb_gpio_reset_button_interrupt, otb_gpio_pins.soft_reset);
         GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
-        gpio_pin_intr_state_set(GPIO_ID_PIN(otb_gpio_pins.soft_reset), 1);
-        ETS_GPIO_INTR_ENABLE();
+        otb_intr_register(otb_gpio_reset_button_interrupt, NULL, pin_info->num);
         break;
 
       case OTB_EEPROM_PIN_USE_STATUS_LED:
@@ -159,14 +156,11 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void)
+void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
 {
   sint8 get;
   uint32_t gpio_status;
 
-  // Disable interrupts
-  ETS_GPIO_INTR_DISABLE();
-  
   // Get and act on interrupt
   get = otb_gpio_get(otb_gpio_pins.soft_reset, TRUE);
   if (get)
@@ -180,13 +174,6 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void)
   {
     DEBUG("GPIO: Reset button released");
   }
-  
-  // Clear interrupt
-  gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
-  GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
-  
-  // Re-enable interrupts
-  ETS_GPIO_INTR_ENABLE();
   
   return;
 }

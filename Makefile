@@ -173,6 +173,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_eeprom.o \
              $(OTB_OBJ_DIR)/otb_serial.o \
              $(OTB_OBJ_DIR)/otb_nixie.o \
+             $(OTB_OBJ_DIR)/otb_intr.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \

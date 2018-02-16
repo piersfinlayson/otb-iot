@@ -223,6 +223,7 @@ typedef struct otb_cmd_control
 //       baud|baudrate|baud_rate|bit_rate|bitrate|speed
 //       stopbit|stop_bit
 //       parity
+//       mezz // use mezzanine
 //   info
 //     version
 //     compile_date
@@ -297,10 +298,12 @@ typedef struct otb_cmd_control
 //       enable                                          // no, yes, false, true, or no value   (no = default)
 //       disable                                         // no value
 //       rx|rx_pin|rxpin                                 // GPIO pin to use for RX (no default, cannot be enabled until set)
-//       tx|tx_pin|txpin                                 // GPIO pin to use for TX (no default, cannot be enabled until set)
+//       tx|tx_pin|txpin                                 // GPIO pin to use for TX (no default, cannot be enabled until set, unless mezz true)
 //       baud|baudrate|baud_rate|bit_rate|bitrate|speed  // standard baudrate from 300 to 57600 (9600 = default)
 //       stopbit|stop_bit                                // 1, one, 2, two, 0, none (0 = default)
 //       parity                                          // none, even or odd      (none = default
+//       mezz                                            // use mezzanine
+//         <on|off|true|false|yes|no>
 //       commit                                          // no argument required
 //   boot_slot
 // delete
@@ -622,6 +625,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get_config_serial)[] =
   {"stopbit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_GET)},
   {"stop_bit",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_GET)},
   {"parity",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_PARITY  | OTB_SERIAL_CMD_GET)},
+  {"mezz",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_MEZZ    | OTB_SERIAL_CMD_GET)},
   {OTB_CMD_FINISH}
 };
 
@@ -817,6 +821,7 @@ OTB_CMD_CONTROL(otb_cmd_control_set_config_serial)[] =
   {"stopbit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_SET)},
   {"stop_bit",  NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_STOPBIT | OTB_SERIAL_CMD_SET)},
   {"parity",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_PARITY  | OTB_SERIAL_CMD_SET)},
+  {"mezz",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_MEZZ    | OTB_SERIAL_CMD_SET)},
   {"commit",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_COMMIT  | OTB_SERIAL_CMD_SET)},
   {OTB_CMD_FINISH}
 };
@@ -955,7 +960,7 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_relay)[] =
 OTB_CMD_CONTROL(otb_cmd_control_trigger_serial)[] =
 {
   {"send",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
-  {"trasmit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
+  {"transmit",   NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
   {"tx",        NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_TRANSMIT | OTB_SERIAL_CMD_TRIGGER)},
   {"buffer",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_BUFFER   | OTB_SERIAL_CMD_TRIGGER)},
   {OTB_CMD_FINISH}

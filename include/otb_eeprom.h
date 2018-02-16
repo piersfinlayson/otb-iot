@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-8 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -32,7 +32,7 @@
 
 // Error codes - may be ORed together
 #define OTB_EEPROM_ERR_OK        0
-#define OTB_EEPROM_ERR           0x01000000   // Internal error
+#define OTB_EEPROM_ERR           0x0100F0000   // Internal error
 #define OTB_EEPROM_ERR_I2C       0x1    // Error contacting eeprom over I2C
 #define OTB_EEPROM_ERR_MAGIC     0x2    // Magic value error
 #define OTB_EEPROM_ERR_VERSION   0x4    // Unsupported version
@@ -456,13 +456,14 @@ typedef struct otb_eeprom_main_module
   otb_eeprom_hw_common common;
 
   // Type of this module
-#define OTB_EEPROM_MODULE_TYPE_PROG_V0_1  0x00000001  // CP2104 based programmer
-#define OTB_EEPROM_MODULE_TYPE_PROG_V0_2  0x00000002  // CP2104 based programmer
-#define OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2 0x00000011  // Nixie board v0.2
-#define OTB_EEPROM_MODULE_TYPE_TEMP_V0_2  0x00000021  // Temperature board v0.2 (DS18B20 based)
+#define OTB_EEPROM_MODULE_TYPE_PROG_V0_1   0x00000001  // CP2104 based programmer
+#define OTB_EEPROM_MODULE_TYPE_PROG_V0_2   0x00000002  // CP2104 based programmer
+#define OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2  0x00000011  // Nixie board v0.2
+#define OTB_EEPROM_MODULE_TYPE_TEMP_V0_2   0x00000021  // Temperature board v0.2 (DS18B20 based)
 #define OTB_EEPROM_MODULE_TYPE_RELAY_V0_2  0x00000031  // Temperature board v0.2 (DS18B20 based)
-#define OTB_EEPROM_MODULE_TYPE_ADC_V0_1   0x00000101  // ADS1115 board
-#define OTB_EEPROM_MODULE_TYPE_LL_V0_1    0x00000201  // Logic level shifter 3.3V-5V
+#define OTB_EEPROM_MODULE_TYPE_MBUS_V0_1   0x00000041  // Mbus V0.1 board (SC16IS752 based)
+#define OTB_EEPROM_MODULE_TYPE_ADC_V0_1    0x00000101  // ADS1115 board
+#define OTB_EEPROM_MODULE_TYPE_LL_V0_1     0x00000201  // Logic level shifter 3.3V-5V
   uint32 module_type;
   
   // Socket type required by this module (see otb_eeprom_main_board_module_info)
