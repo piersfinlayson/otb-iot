@@ -224,6 +224,7 @@ typedef struct otb_cmd_control
 //       stopbit|stop_bit
 //       parity
 //       mezz // use mezzanine
+//         uart
 //   info
 //     version
 //     compile_date
@@ -304,6 +305,7 @@ typedef struct otb_cmd_control
 //       parity                                          // none, even or odd      (none = default
 //       mezz                                            // use mezzanine
 //         <on|off|true|false|yes|no>
+//         uart <uart_num>                               // 0 or 1
 //       commit                                          // no argument required
 //   boot_slot
 // delete

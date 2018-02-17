@@ -147,7 +147,8 @@ extern otb_serial_config otb_serial_conf;
 otb_serial_config otb_serial_conf;
 #endif // OTB_SERIAL_C
 
-#define OTB_SERIAL_SC16IS_REG(REG)  (REG << 3) | (otb_serial_conf.mezz_info->uart_num << 2)
+// Special case GPIO register - always apply to UART 0
+#define OTB_SERIAL_SC16IS_REG(REG)  (REG << 3) | ((REG != 0x0B) ? otb_serial_conf.mezz_info->uart_num << 2 : 0)
 
 void otb_serial_init(void);
 void otb_serial_init_mbus_mezz(void *arg);

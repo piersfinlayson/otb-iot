@@ -245,14 +245,33 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
   bool rc = FALSE;
   uint8_t brc;
   int ii;
+  uint32_t baudrate;
+  uint8_t br_lo, br_ho;
+  uint8_t lcr = 0b11;
 
   DEBUG("SERIAL: otb_serial_mezz_configure entry");
 
-//  XXX Test baud rate - special regs 0x00 and 0x01 (48, 0) contain this
-//  XXX Also need to check
-//       baud|baudrate|baud_rate|bit_rate|bitrate|speed
-//       stopbit|stop_bit
-//       parity
+  // To set baudrate need bps/50, split low/high order bytes
+  baudrate = otb_serial_conf.baudrate / 50;
+  OTB_ASSERT(baudrate < 0xffff);
+  br_lo = baudrate & 0xff;
+  br_ho = (baudrate>>8) & 0xff;
+  val[8] = br_lo;
+  val[9] = br_ho;
+
+  if (otb_serial_conf.stopbit > 0)
+  {
+    lcr |= 0b100;
+  }
+  if (otb_serial_conf.parity != OTB_SERIAL_PARITY_NONE)
+  {
+    OTB_ASSERT((otb_serial_conf.parity == OTB_SERIAL_PARITY_EVEN) ||
+               (otb_serial_conf.parity == OTB_SERIAL_PARITY_ODD));
+    lcr |= (otb_serial_conf.parity == OTB_SERIAL_PARITY_EVEN) ? 0b11000 : 0b01000;
+  }
+  val[2] = lcr;
+  val[7] = lcr & 0b10000000; // divisor latch enable
+  val[10] = lcr;
 
   for (ii = 0; ii < OTB_SERIAL_MEZZ_CONFIGURE_REGS; ii++)
   {
@@ -508,6 +527,8 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
   char *rs;
   uint8_t serial_data[256];
   int bytesd;
+  int num;
+  char *error;
     
   DEBUG("SERIAL: otb_serial_config_handler entry");
   
@@ -657,9 +678,27 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             rc = FALSE;
             goto EXIT_LABEL;
           }
-          if (!os_strcmp("on", next_cmd) ||
-              !os_strcmp("true", next_cmd) ||
-              !os_strcmp("yes", next_cmd))
+          if (!os_strcmp("uart", next_cmd)) // Already test for NULLness earlier
+          {
+            next_next_cmd = otb_cmd_get_next_cmd(next_cmd);
+            if (next_next_cmd != NULL)
+            {
+              num = strtol(next_next_cmd, &error, 10);
+              if (((error == NULL) || ((error != (char *)next_next_cmd) && (error[0] == 0))) && (num >= 0) && (num <= 1))
+              {
+                conf->mezz_info->uart_num = num;
+              }
+              else
+              {
+                otb_cmd_rsp_append("invalid uart num");
+                rc = FALSE;
+                goto EXIT_LABEL;
+              }
+            }
+          }
+          else if (!os_strcmp("on", next_cmd) ||
+                   !os_strcmp("true", next_cmd) ||
+                   !os_strcmp("yes", next_cmd))
           {
             // Check we're actually a serial supporting mezzanine!
             conf->mezz_info->use_mezz = TRUE;
@@ -679,7 +718,7 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
         }
         else
         {
-          pin = atoi(next_cmd);
+          pin = strtol(next_cmd, NULL, 10);
           if ((pin == 0) && (next_cmd[0] != '0'))
           {
             otb_cmd_rsp_append("invalid pin value");
@@ -738,6 +777,10 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
           {
             otb_cmd_rsp_append("not present");
           }
+          else if ((next_cmd != NULL) && (!os_strcmp(next_cmd, "uart")))
+          {
+            otb_cmd_rsp_append("%d", conf->mezz_info->uart_num);
+          }
           else
           {
             otb_cmd_rsp_append("%s", conf->mezz_info->use_mezz ? "on" : "off");
@@ -751,12 +794,18 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
       // Valid get, set
       if ((cmd_type != OTB_SERIAL_CMD_GET) && (cmd_type != OTB_SERIAL_CMD_SET))
       {
-        otb_cmd_rsp_append("enable only valid on get or set");
+        otb_cmd_rsp_append("baudrate only valid on get or set");
         rc = FALSE;
         goto EXIT_LABEL;
       }
       if (cmd_type == OTB_SERIAL_CMD_SET)
       {
+        if (conf->enabled)
+        {
+          otb_cmd_rsp_append("can't change baudrate when enabled");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
         if ((next_cmd == NULL) || (next_cmd[0] == 0))
         {
           otb_cmd_rsp_append("no value provided");
@@ -799,6 +848,12 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
       }
       if (cmd_type == OTB_SERIAL_CMD_SET)
       {
+        if (conf->enabled)
+        {
+          otb_cmd_rsp_append("can't change stopbit when enabled");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
         if ((next_cmd == NULL) || (next_cmd[0] == 0))
         {
           otb_cmd_rsp_append("no value provided");
@@ -812,7 +867,7 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
           rc = FALSE;
           goto EXIT_LABEL;
         }
-        if ((stopbit < OTB_SERIAL_STOPBIT_MIN) || (stopbit > OTB_SERIAL_STOPBIT_MIN))
+        if ((stopbit < OTB_SERIAL_STOPBIT_MIN) || (stopbit > OTB_SERIAL_STOPBIT_MAX))
         {
           otb_cmd_rsp_append("invalid stopbit value (min: %d, max:%d",
                              OTB_SERIAL_STOPBIT_MIN,
@@ -841,6 +896,12 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
       }
       if (cmd_type == OTB_SERIAL_CMD_SET)
       {
+        if (conf->enabled)
+        {
+          otb_cmd_rsp_append("can't change parity when enabled");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
         if ((next_cmd == NULL) || (next_cmd[0] == 0))
         {
           otb_cmd_rsp_append("no value provided");
