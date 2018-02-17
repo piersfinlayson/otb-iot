@@ -100,7 +100,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   otb_serial_conf.mezz_info->mezz_inited = TRUE;
   otb_serial_conf.mezz_info->use_mezz = TRUE;  // default to using this mezzanine
 
-  INFO("SERIAL: Initialized mezz serial board");
+  INFO("SERIAL: Initialized mezz serial board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
 EXIT_LABEL:
 
@@ -251,9 +251,8 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
 
   DEBUG("SERIAL: otb_serial_mezz_configure entry");
 
-  // To set baudrate need bps/50, split low/high order bytes
-  baudrate = otb_serial_conf.baudrate / 50;
-  OTB_ASSERT(baudrate < 0xffff);
+  baudrate = 115200 / otb_serial_conf.baudrate; // Assumes a 1.8432 MHz crystal, generating 16x clock
+  OTB_ASSERT(baudrate <= 0xffff);
   br_lo = baudrate & 0xff;
   br_ho = (baudrate>>8) & 0xff;
   val[8] = br_lo;
@@ -270,8 +269,10 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
     lcr |= (otb_serial_conf.parity == OTB_SERIAL_PARITY_EVEN) ? 0b11000 : 0b01000;
   }
   val[2] = lcr;
-  val[7] = lcr & 0b10000000; // divisor latch enable
+  val[7] = lcr | 0b10000000; // divisor latch enable
   val[10] = lcr;
+
+  DEBUG("SERIAL: LCR 0x%02x br_lo 0x%02x br_hi: 0x%02x", lcr, br_lo, br_ho);
 
   for (ii = 0; ii < OTB_SERIAL_MEZZ_CONFIGURE_REGS; ii++)
   {
@@ -322,6 +323,11 @@ bool ICACHE_FLASH_ATTR otb_serial_enable_mezz()
 
   rc = TRUE;
 
+  INFO("SERIAL: Enabled serial mezz board 0x%02x at %d baud uart %d",
+       otb_serial_conf.mezz_info->i2c_addr,
+       otb_serial_conf.baudrate,
+       otb_serial_conf.mezz_info->uart_num);
+
 EXIT_LABEL:
 
   DEBUG("SERIAL: otb_serial_enable_mezz exit");
@@ -331,7 +337,7 @@ EXIT_LABEL:
 
 bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
 {
-  bool rc = FALSE;
+  bool rc = TRUE;
 
   DEBUG("SERIAL: otb_serial_disable_mezz entry");
 
@@ -340,24 +346,27 @@ bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
   // Reset
   if (!otb_serial_mezz_reset(TRUE))
   {
-    goto EXIT_LABEL;
+    // Try to carry on
+    rc = FALSE;
   }
 
   // Configure before turning on GPIOs
   if (!otb_serial_mezz_configure())
   {
-    goto EXIT_LABEL;
+    // Try to carry on
+    rc = FALSE;
   }
 
   // Turn on connected GPIO1
   if (!otb_serial_mezz_gpio(0b10))
   {
-    goto EXIT_LABEL;
+    // Try to carry on
+    rc = FALSE;
   }
 
-  rc = TRUE;
-
 EXIT_LABEL:
+
+  INFO("SERIAL: Disabled serial mezz board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
   DEBUG("SERIAL: otb_serial_disable_mezz exit");
 
@@ -499,7 +508,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_send_byte(uint8_t byte)
   DEBUG("SERIAL: otb_serial_mezz_send_byte entry");
 
   brc = otb_serial_mezz_write_reg(0x00, byte);
-  INFO("SERIAL: Sent 0x%02x", byte);
+  DEBUG("SERIAL: Sent 0x%02x", byte);
   if (!brc)
   {
     rc = TRUE;
