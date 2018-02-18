@@ -835,6 +835,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   char *ptr;
   int byte;
   int port_int;
+  bool conf_rc;
 
   DEBUG("MQTT: otb_mqtt_set_svr entry");
 
@@ -889,8 +890,8 @@ EXIT_LABEL:
 
     if (commit)
     {
-      rc = otb_conf_update(otb_conf);
-      if (!rc)
+      conf_rc = otb_conf_update(otb_conf);
+      if (!conf_rc)
       {
         ERROR("CONF: Failed to update config");
         rc = OTB_CONF_RC_ERROR;
@@ -906,6 +907,7 @@ EXIT_LABEL:
 uint8 ICACHE_FLASH_ATTR otb_mqtt_set_user(char *user, char *pass, bool commit)
 {
   uint8 rc = OTB_CONF_RC_NOT_CHANGED;
+  bool conf_rc;
 
   DEBUG("MQTT: otb_mqtt_set_user enty");
 
@@ -940,8 +942,8 @@ EXIT_LABEL:
 
     if (commit)
     {
-      rc = otb_conf_update(otb_conf);
-      if (!rc)
+      conf_rc = otb_conf_update(otb_conf);
+      if (!conf_rc)
       {
         rc = OTB_CONF_RC_ERROR;
         ERROR("CONF: Failed to update config");
@@ -958,6 +960,9 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
 {
   bool rc = FALSE;
   uint32_t cmd = (uint32_t)arg;
+  char *username, *password, *svr, *port;
+  char port_exist[8];
+  uint8 mqtt_rc;
   
   DEBUG("CMD: otb_mqtt_config_handler entry");
 
@@ -998,9 +1003,84 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
   }
   else
   {
-    otb_cmd_rsp_append("not implemented");
-    rc = FALSE;
-    goto EXIT_LABEL;
+    if (next_cmd == NULL)
+    {
+        otb_cmd_rsp_append("no value provided");
+        rc = FALSE;
+        goto EXIT_LABEL;
+    }
+    switch (cmd & 0xff)
+    {
+      case OTB_MQTT_CONFIG_CMD_SERVER:
+      case OTB_MQTT_CONFIG_CMD_PORT:
+        // Blank _password_ and _username_ OK
+        if (next_cmd[0] == 0)
+        {
+            otb_cmd_rsp_append("no value provided");
+            rc = FALSE;
+            goto EXIT_LABEL;
+        }
+        svr = otb_conf->mqtt.svr;
+        os_snprintf(port_exist, 7, "%d", otb_conf->mqtt.port);
+        port = port_exist;
+        if ((cmd & 0xff) == OTB_MQTT_CONFIG_CMD_SERVER)
+        {
+          svr = next_cmd;
+        }
+        else
+        {
+          port = next_cmd;
+        }
+        INFO("MQTT: Change svr from %s to %s port from %d to %s", otb_conf->mqtt.svr, svr, otb_conf->mqtt.port, port);
+        mqtt_rc = otb_mqtt_set_svr(svr, port, TRUE);
+        if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
+        {
+          otb_cmd_rsp_append("unchanged");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        else if (mqtt_rc == OTB_CONF_RC_ERROR)
+        {
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        rc = TRUE;
+        break;
+
+      case OTB_MQTT_CONFIG_CMD_USERNAME:
+      case OTB_MQTT_CONFIG_CMD_PASSWORD:
+        username = otb_conf->mqtt.user;
+        password = otb_conf->mqtt.pass;
+        if ((cmd & 0xff) == OTB_MQTT_CONFIG_CMD_USERNAME)
+        {
+          username = next_cmd;
+        }
+        else
+        {
+          password = next_cmd;
+        }
+        INFO("MQTT: Change username from %s to %s password from %s to %s", otb_conf->mqtt.user, username, otb_conf->mqtt.pass, password);
+        mqtt_rc = otb_mqtt_set_user(username, password, TRUE);
+        if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
+        {
+          otb_cmd_rsp_append("unchanged");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        else if (mqtt_rc == OTB_CONF_RC_ERROR)
+        {
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        rc = TRUE;
+        break;
+
+      default:
+        otb_cmd_rsp_append("internal error");
+        rc = FALSE;
+        goto EXIT_LABEL;
+        break;
+    }
   }
     
   rc = TRUE;

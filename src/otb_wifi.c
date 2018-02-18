@@ -844,6 +844,9 @@ bool ICACHE_FLASH_ATTR otb_wifi_config_handler(unsigned char *next_cmd, void *ar
 {
   bool rc = FALSE;
   uint32_t cmd = (uint32_t)arg;
+  uint8 wifi_rc;
+  char *ssid;
+  char *password;
   
   DEBUG("CMD: otb_wifi_config_handler entry");
 
@@ -874,9 +877,48 @@ bool ICACHE_FLASH_ATTR otb_wifi_config_handler(unsigned char *next_cmd, void *ar
   }
   else
   {
-    otb_cmd_rsp_append("not implemented");
-    rc = FALSE;
-    goto EXIT_LABEL;
+    if ((next_cmd == NULL) || (next_cmd[0] == 0))
+    {
+        otb_cmd_rsp_append("no value provided");
+        rc = FALSE;
+        goto EXIT_LABEL;
+    }
+    switch (cmd & 0xff)
+    {
+      case OTB_WIFI_CONFIG_CMD_SSID:
+      case OTB_WIFI_CONFIG_CMD_PASSWORD:
+        ssid = otb_conf->ssid;
+        password = otb_conf->password;
+        if ((cmd & 0xff) == OTB_WIFI_CONFIG_CMD_SSID)
+        {
+          ssid = next_cmd;
+        }
+        else
+        {
+          password = next_cmd;
+        }
+        DEBUG("WIFI: Change ssid from %s to %s password from %s to %s", otb_conf->ssid, ssid, otb_conf->password, password);
+        wifi_rc = otb_wifi_set_station_config(ssid, password, TRUE);
+        if (wifi_rc == OTB_CONF_RC_NOT_CHANGED)
+        {
+          otb_cmd_rsp_append("unchanged");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        else if (wifi_rc == OTB_CONF_RC_ERROR)
+        {
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        rc = TRUE;
+        break;
+
+      default:
+        otb_cmd_rsp_append("internal error");
+        rc = FALSE;
+        goto EXIT_LABEL;
+        break;
+    }
   }
     
   rc = TRUE;
@@ -888,4 +930,3 @@ EXIT_LABEL:
   return rc;
 
 }
-

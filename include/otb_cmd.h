@@ -486,6 +486,10 @@ extern OTB_CMD_CONTROL(otb_cmd_control_trigger_serial)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie_power)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_config_wifi)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_config_mqtt)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[];
 
 #ifdef OTB_CMD_C
 
@@ -715,6 +719,8 @@ OTB_CMD_CONTROL(otb_cmd_control_set_config)[] =
   {"gpio",             NULL, otb_cmd_control_set_config_gpio,            OTB_CMD_NO_FN},
   {"relay",            NULL, otb_cmd_control_set_config_relay,           OTB_CMD_NO_FN},
   {"serial",           NULL, otb_cmd_control_set_config_serial,          OTB_CMD_NO_FN},
+  {"wifi",             NULL, otb_cmd_control_set_config_wifi,            OTB_CMD_NO_FN},
+  {"mqtt",             NULL, otb_cmd_control_set_config_mqtt,            OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -859,6 +865,28 @@ OTB_CMD_CONTROL(otb_cmd_control_set_config_serial)[] =
   {"parity",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_PARITY  | OTB_SERIAL_CMD_SET)},
   {"mezz",      NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_MEZZ    | OTB_SERIAL_CMD_SET)},
   {"commit",    NULL, NULL, otb_serial_config_handler, (void *)(OTB_SERIAL_CMD_COMMIT  | OTB_SERIAL_CMD_SET)},
+  {OTB_CMD_FINISH}
+};
+
+// set->config->wifi
+OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[] =
+{
+  {"ssid",      NULL, NULL, otb_wifi_config_handler, (void *)(OTB_WIFI_CONFIG_CMD_SSID | OTB_WIFI_CMD_SET)},
+  {"pass",      NULL, NULL, otb_wifi_config_handler, (void *)(OTB_WIFI_CONFIG_CMD_PASSWORD | OTB_WIFI_CMD_SET)},
+  {"password",  NULL, NULL, otb_wifi_config_handler, (void *)(OTB_WIFI_CONFIG_CMD_PASSWORD | OTB_WIFI_CMD_SET)},
+  {OTB_CMD_FINISH}
+};
+
+// get->config->mqtt
+OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[] =
+{
+  {"svr",       NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_SERVER | OTB_MQTT_CFG_CMD_SET)},
+  {"server",    NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_SERVER | OTB_MQTT_CFG_CMD_SET)},
+  {"port",      NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_PORT | OTB_MQTT_CFG_CMD_SET)},
+  {"user",      NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_USERNAME | OTB_MQTT_CFG_CMD_SET)},
+  {"username",  NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_USERNAME | OTB_MQTT_CFG_CMD_SET)},
+  {"pass",      NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_PASSWORD | OTB_MQTT_CFG_CMD_SET)},
+  {"password",  NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_PASSWORD | OTB_MQTT_CFG_CMD_SET)},
   {OTB_CMD_FINISH}
 };
 
