@@ -37,6 +37,7 @@ influxdb_password = 'admin'
 influxdb_dbname = 'mydb'
 
 # Pin to use for TX and RX communication to mbus meter
+mezz = False # If mezz is True, tx/rx are unused
 tx_pin = "15"
 rx_pin    = "13"
 baud_rate = "2400"

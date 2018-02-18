@@ -106,7 +106,7 @@ def create_mbus_topic_rsp(chipId, addr, location):
   
 # returns False if no more to do for now, True if something else to do
 def do_addr_action(status):
-  global tx_pin, rx_pin, baud_rate, exit, client
+  global tx_pin, rx_pin, mezz, baud_rate, exit, client
   sta = status[STATUS]
   addr = status[ADDR]
   location = status[LOCATION]
@@ -214,7 +214,7 @@ def do_subscribe(chipId, addr, location):
   return client.subscribe(create_mbus_topic_rsp(chipId, addr, location))
 
 def do_chip_action(status):
-  global tx_pin, rx_pin, baud_rate, exit, client
+  global tx_pin, rx_pin, mezz, baud_rate, exit, client
   chipId = status[CHIPID]
   sta = status[STATUS]
   #print("do_chip_action: %d chipId: %s" % (sta, chipId))
@@ -229,15 +229,24 @@ def do_chip_action(status):
     send_mbus = True
   elif (sta == CHIP_STATUS_SET_TX_PIN):
     topic = create_mbus_topic_send(chipId)
-    message = create_mbus_set_config(TX, tx_pin)
+    if mezz:
+      message = create_mbus_set_config(MEZZ, "on")
+      status[STATUS] += 1
+    else:
+      message = create_mbus_set_config(TX, tx_pin)
     send_mbus = True
   elif (sta == CHIP_STATUS_SET_RX_PIN):
     topic = create_mbus_topic_send(chipId)
+    assert(mezz == False)
     message = create_mbus_set_config(RX, rx_pin)
     send_mbus = True
   elif (sta == CHIP_STATUS_SET_BAUD_RATE):
     topic = create_mbus_topic_send(chipId)
     message = create_mbus_set_config(BAUD_RATE, baud_rate)
+    send_mbus = True
+  elif (sta == CHIP_STATUS_SET_PARITY):
+    topic = create_mbus_topic_send(chipId)
+    message = create_mbus_set_config(PARITY, "even")
     send_mbus = True
   elif (sta == CHIP_STATUS_ENABLE):
     topic = create_mbus_topic_send(chipId)
