@@ -954,3 +954,62 @@ EXIT_LABEL:
   return(rc);
 }
 
+bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  uint32_t cmd = (uint32_t)arg;
+  
+  DEBUG("CMD: otb_mqtt_config_handler entry");
+
+  OTB_ASSERT(((cmd & 0xff) >= OTB_MQTT_CONFIG_CMD_MIN) &&
+             ((cmd & 0xff) <= OTB_MQTT_CONFIG_CMD_MAX));
+  OTB_ASSERT((cmd & OTB_MQTT_CFG_CMD_GET) || (cmd & OTB_MQTT_CFG_CMD_SET));
+
+  if (cmd & OTB_MQTT_CFG_CMD_GET)
+  {
+    switch (cmd & 0xff)
+    {
+      case OTB_MQTT_CONFIG_CMD_SERVER:
+        otb_cmd_rsp_append("%s", otb_conf->mqtt.svr);
+        rc = TRUE;
+        break;
+
+      case OTB_MQTT_CONFIG_CMD_PORT:
+        otb_cmd_rsp_append("%d", otb_conf->mqtt.port);
+        rc = TRUE;
+        break;
+
+      case OTB_MQTT_CONFIG_CMD_USERNAME:
+        otb_cmd_rsp_append("%s", otb_conf->mqtt.user);
+        rc = TRUE;
+        break;
+
+      case OTB_MQTT_CONFIG_CMD_PASSWORD:
+        otb_cmd_rsp_append("%s", otb_conf->mqtt.pass);
+        rc = TRUE;
+        break;
+
+      default:
+        otb_cmd_rsp_append("internal error");
+        rc = FALSE;
+        goto EXIT_LABEL;
+        break;
+    }
+  }
+  else
+  {
+    otb_cmd_rsp_append("not implemented");
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+    
+  rc = TRUE;
+
+EXIT_LABEL:
+  
+  DEBUG("CMD: otb_mqtt_config_handler exit");
+  
+  return rc;
+
+}
+

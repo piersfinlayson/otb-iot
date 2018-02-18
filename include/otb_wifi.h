@@ -31,6 +31,14 @@
 
 #define OTB_WIFI_STA_MAX_SECOND_COUNT       30
 
+#define OTB_WIFI_CONFIG_CMD_MIN       0
+#define OTB_WIFI_CONFIG_CMD_SSID      0
+#define OTB_WIFI_CONFIG_CMD_PASSWORD  1
+#define OTB_WIFI_CONFIG_CMD_MAX       1
+
+#define OTB_WIFI_CMD_GET   0x100
+#define OTB_WIFI_CMD_SET   0x200
+
 typedef struct station_config OTB_WIFI_STATION_CONFIG;
 
 typedef void (otb_wifi_ap_otb_callback)(void *);
@@ -98,6 +106,7 @@ bool otb_wifi_ap_disable(void);
 void otb_wifi_ap_keep_alive(void);
 int8 otb_wifi_get_rssi(void);
 void otb_wifi_mqtt_do_rssi(char *msg);
+bool otb_wifi_config_handler(unsigned char *, void *, unsigned char *);
 
 extern bool otb_wifi_ap_running;
 

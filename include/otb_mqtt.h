@@ -20,6 +20,16 @@
 #ifndef OTB_MQTT_H
 #define OTB_MQTT_H
 
+#define OTB_MQTT_CONFIG_CMD_MIN       0
+#define OTB_MQTT_CONFIG_CMD_SERVER    0
+#define OTB_MQTT_CONFIG_CMD_PORT      1
+#define OTB_MQTT_CONFIG_CMD_USERNAME  2
+#define OTB_MQTT_CONFIG_CMD_PASSWORD  3
+#define OTB_MQTT_CONFIG_CMD_MAX       3
+
+#define OTB_MQTT_CFG_CMD_GET  0x100
+#define OTB_MQTT_CFG_CMD_SET  0x200
+
 #define OTB_MQTT_MAX_CMDS  6
 
 #define OTB_MQTT_OTBIOT_TOPIC OTB_MAIN_OTBIOT_PREFIX
@@ -327,6 +337,7 @@ uint8 otb_mqtt_pub_get_command(char *msg, char *val[]);
 uint8 otb_mqtt_get_reason(char *msg);
 uint8 otb_mqtt_set_svr(char *svr, char *port, bool commit);
 uint8 otb_mqtt_set_user(char *user, char *pass, bool commit);
+bool otb_mqtt_config_handler(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 
 extern char otb_mqtt_string_empty[];
 extern char otb_mqtt_string_slash[];
