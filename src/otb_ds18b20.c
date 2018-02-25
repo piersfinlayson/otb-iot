@@ -664,11 +664,16 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   int ii;
   bool rc = FALSE;
 	uint8_t data[12];
+  uint16_t tdata, sign;
   uint16_t tVal, tFract;
   char tSign[2];
+  uint16_t sign_bits;
   
   DEBUG("DS18B20: otb_ds18b20_request_temp entry");
 
+  // Read scratchpad from DS18 device we're interested in
+  // This is up to 9 bytes long, but 0 and 1 bytes contain LSB and MSB
+  // of current temp
   reset();
   select(addr);
   write( DS1820_READ_SCRATCHPAD, 0 );
@@ -677,28 +682,62 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
     data[ii] = read();
   }
 
-  // float arithmetic isn't really necessary, tVal and tFract are in 1/10 °C
-  tVal = (data[1] << 8) | data[0];
-  if (tVal & 0x8000)
+  tdata = (data[1] << 8) | data[0]; 
+
+  // Top X bits are either all 0s or all ones
+  if (addr[0] != DS18S20)
   {
-    tVal = (tVal ^ 0xffff) + 1;				// 2's complement
-    tSign[0] = '-';
-    tSign[1] = 0;
-  } 
+    sign_bits = 0xf800;
+  }
   else
   {
-    tSign[0] = 0;
+    sign_bits = 0xff00;
   }
-  
-  // datasize differs between DS18S20 and DS18B20 - 9bit vs 12bit
-  if (addr[0] == DS18S20) {
-    tFract = (tVal & 0x01) ? 50 : 0;		// 1bit Fract for DS18S20
-    tVal >>= 1;
-  }
-  else 
+
+  sign = tdata & sign_bits;
+  tSign[0] = 0;
+  if (sign)
   {
-    tFract = (tVal & 0x0f) * 100 / 16;		// 4bit Fract for DS18B20
-    tVal >>= 4;
+    if (sign != sign_bits)
+    {
+      // All bits must be set if any are
+      WARN("DS18B20: Invalid data received 0x%04x", tdata);
+      goto EXIT_LABEL;
+    }
+    tSign[0] = '-';
+    tSign[1] = 0;
+  }
+
+  // Discard sign info
+  tdata &= ~sign_bits;
+  if (sign)
+  {
+    tdata = (tdata ^ (~sign_bits)) + 1;  // Take 2s complement
+  }
+
+  if (addr[0] != DS18S20)
+  {
+    // DS18B20
+    tVal = tdata >> 4;
+    tFract = (tdata & 0x0F) * 100 / 16;
+  }
+  else
+  {
+    // DS18S20
+    tVal = tdata >> 1;
+    tFract = (tdata & 1) ? 50 : 0;
+  }
+
+  if ((sign && ((tVal > 55) ||
+                ((tVal == 55) &&
+                (tFract > 0)))) ||
+      (!sign && ((tVal > 125) ||
+                 ((tVal == 125) &&
+                  (tFract > 0)))))
+  {
+    // Invalid value
+    WARN("DS18B20: Invalid value decoded: %s%d.%02d from 0x%04x", tSign, tVal, tFract, (data[1]<<8 | data[0]));
+    goto EXIT_LABEL;
   }
   
   os_snprintf(temp_s,
@@ -709,6 +748,8 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
               tFract);
 
   rc = TRUE;
+
+EXIT_LABEL:
 
   DEBUG("DS18B20: otb_ds18b20_request_temp exit");
 
