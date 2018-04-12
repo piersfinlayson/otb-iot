@@ -45,7 +45,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
 
-  DEBUG("DS18B20: Initialize one wire bus on GPIO pin %d", bus);
+  INFO("DS18B20: Initialize one wire bus on GPIO pin %d", bus);
 
   otb_ds18b20_init(bus);
 
@@ -92,7 +92,10 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
   char crc;
   
   otb_ds18b20_count = 0;
+
+  DEBUG("DS18B20: Get devices ...");
   
+  reset_search();
   do
   {
     rc = ds_search(ds18b20);
@@ -141,9 +144,11 @@ char ALIGN4 otb_ds18b20_callback_error_string[] = "DS18B20: MQTT disconnected ti
 void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
 {
   int chars;
-  bool rc;
+  bool rc = FALSE;
   otbDs18b20DeviceAddress *addr;
   char *sensor_loc;
+  int tries;
+  char output[32];
   
   DEBUG("DS18B20: otb_ds18b20_callback entry");
 
@@ -165,10 +170,13 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     // already set, and when set that was tested and set to repeat.
   }
 
-  // Read all this sensor.
-  otb_ds18b20_prepare_to_read();
-  rc = otb_ds18b20_request_temp(addr->addr,
-                                otb_ds18b20_last_temp_s[addr->index]);
+  // Read this sensor - try up to 4 times (in case of invalid CRC/data)
+  for (tries = 0; (tries < 4) && !rc; tries++)
+  {
+    otb_ds18b20_prepare_to_read();
+    rc = otb_ds18b20_request_temp(addr->addr,
+                                  otb_ds18b20_last_temp_s[addr->index]);
+  }
   if (!rc)
   {
     os_strcpy(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP);
@@ -183,6 +191,43 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     // Could send (but may choose not to), so reset disconnectedCounter
     otb_ds18b20_mqtt_disconnected_counter = 0;
 
+    // Put friendly name for sensor in as well, if exists.
+    sensor_loc = otb_ds18b20_get_sensor_name(addr->friendly, NULL);
+    if (sensor_loc != NULL)
+    {
+      DEBUG("DS18B20: Sensor location: %s", sensor_loc);
+      os_snprintf(otb_mqtt_scratch,
+                  OTB_MQTT_MAX_MSG_LENGTH,
+                  "%s/%s",
+                  sensor_loc,
+                  addr->friendly);
+      sensor_loc = otb_mqtt_scratch;            
+    }
+    else
+    {
+      sensor_loc = addr->friendly;
+    }
+      
+    if (tries > 1)
+    {
+      // Record the fact that we had to retry
+      os_snprintf(otb_mqtt_topic_s,
+                  OTB_MQTT_MAX_TOPIC_LENGTH,
+                  "/%s/%s/%s/%s/%s/%s/%s/%s",
+                  OTB_MQTT_ROOT,
+                  OTB_MQTT_LOCATION_1,
+                  OTB_MQTT_LOCATION_2,
+                  OTB_MQTT_LOCATION_3,
+                  OTB_MAIN_CHIPID,
+                  "error",
+                  OTB_MQTT_TEMPERATURE,
+                  sensor_loc);
+      DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
+      chars = os_snprintf(output, 32, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
+      DEBUG("DS18B20:       message: %s", output);
+      MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, output, chars, 0, 1);  
+    }
+
     if (strcmp(otb_ds18b20_last_temp_s[addr->index], "-127.00") &&
         strcmp(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP) &&
         strcmp(otb_ds18b20_last_temp_s[addr->index], "85.00"))
@@ -192,23 +237,6 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
       // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
       // publish)
       // XXX Should replace with otb_mqtt_publish call
-      
-      // Put friendly name for sensor in as well, if exists.
-      sensor_loc = otb_ds18b20_get_sensor_name(addr->friendly, NULL);
-      if (sensor_loc != NULL)
-      {
-        DEBUG("DS18B20: Sensor location: %s", sensor_loc);
-        os_snprintf(otb_mqtt_scratch,
-                    OTB_MQTT_MAX_MSG_LENGTH,
-                    "%s/%s",
-                    sensor_loc,
-                    addr->friendly);
-        sensor_loc = otb_mqtt_scratch;            
-      }
-      else
-      {
-        sensor_loc = addr->friendly;
-      }
       
       os_snprintf(otb_mqtt_topic_s,
                   OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -668,6 +696,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   uint16_t tVal, tFract;
   char tSign[2];
   uint16_t sign_bits;
+  uint8_t crc;
   
   DEBUG("DS18B20: otb_ds18b20_request_temp entry");
 
@@ -680,6 +709,16 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   for(ii = 0; ii< 9; ii++)
   {
     data[ii] = read();
+  }
+  crc = crc8(data, 8);
+  if (crc != data[8])
+  {
+    WARN("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x - invalid CRC: 0x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], crc);
+    goto EXIT_LABEL;
+  }
+  else
+  {
+    INFO("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
   }
 
   tdata = (data[1] << 8) | data[0]; 
@@ -769,6 +808,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_init(int gpio)
 
 	PIN_FUNC_SELECT(pin_mux[gpioPin], pin_func[gpioPin]);
 	//PIN_PULLDWN_DIS(pin_mux[gpioPin]);
+  //CLEAR_PERI_REG_MASK(pin_mux[gpioPin], BIT6);  // PULLDWN_DIS replacement
+	//PIN_PULLUP_DIS(pin_mux[gpioPin]);
   // Enable pullup resistor for this GPIO (should obviate the need for external resistor)
 	//PIN_PULLUP_EN(pin_mux[gpioPin]);  
 	  
@@ -857,6 +898,7 @@ static int ICACHE_FLASH_ATTR  ds_search( uint8_t *newAddr )
 			LastDiscrepancy = 0;
 			LastDeviceFlag = FALSE;
 			LastFamilyDiscrepancy = 0;
+
 			return FALSE;
 		}
 
@@ -872,7 +914,9 @@ static int ICACHE_FLASH_ATTR  ds_search( uint8_t *newAddr )
 	 
 			// check for no devices on 1-wire
 			if ((id_bit == 1) && (cmp_id_bit == 1))
+			{
 				break;
+			}
 			else
 			{
 				// all devices coupled have 0 or 1
@@ -957,7 +1001,7 @@ static int ICACHE_FLASH_ATTR  ds_search( uint8_t *newAddr )
 // go tri-state at the end of the write to avoid heating in a short or
 // other mishap.
 //
-static void ICACHE_FLASH_ATTR  write( uint8_t v, int power ) {
+static void write( uint8_t v, int power ) {
 	uint8_t bitMask;
 
 	for (bitMask = 0x01; bitMask; bitMask <<= 1) {
@@ -1045,7 +1089,7 @@ static void ICACHE_FLASH_ATTR select(const uint8_t *rom)
 //
 // Read a byte
 //
-static uint8_t ICACHE_FLASH_ATTR read() {
+static uint8_t read() {
 	uint8_t bitMask;
 	uint8_t r = 0;
 
@@ -1059,6 +1103,9 @@ static uint8_t ICACHE_FLASH_ATTR read() {
 // Compute a Dallas Semiconductor 8 bit CRC directly.
 // this is much slower, but much smaller, than the lookup table.
 //
+// The other option is to store the lookup table in flash and then load
+// it into a stack variable when required - but likely to be fairly
+// slow as well
 static uint8_t ICACHE_FLASH_ATTR crc8(const uint8_t *addr, uint8_t len)
 {
 	uint8_t crc = 0;
