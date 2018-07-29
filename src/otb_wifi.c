@@ -125,7 +125,12 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       goto EXIT_LABEL;
       break;
   }
-  
+
+  if (!otb_wifi_sta_connected && !otb_wifi_timeout_is_set)
+  {
+    otb_wifi_timeout_set_timer();
+  } 
+
   if ((otb_wifi_status == OTB_WIFI_STATUS_CONNECTING) ||
        (otb_wifi_status == OTB_WIFI_STATUS_PERMANENTLY_FAILED))
   {
@@ -134,10 +139,6 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
     {
       otb_wifi_ap_quick_start();
     }
-    if (!otb_wifi_timeout_is_set)
-    {
-      otb_wifi_timeout_set_timer();
-    } 
     if (!otb_util_timer_is_set((os_timer_t *)&otb_wifi_timer))
     {
       // Start up the wifi timer.  This fires every second until the station is connected.
