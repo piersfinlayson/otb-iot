@@ -38,6 +38,7 @@ void ets_delay_us(uint16_t us);
 
 extern void ets_isr_mask(unsigned intr);
 extern void ets_isr_unmask(unsigned intr);
+typedef void (* ets_isr_t)(void *);
 void ets_isr_attach(int i, ets_isr_t func, void *arg);
 
 extern int ets_memcmp(const void *s1, const void *s2, size_t n);
