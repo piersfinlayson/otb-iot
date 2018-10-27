@@ -120,6 +120,16 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       goto EXIT_LABEL;
       break;
 
+#ifndef EVENT_OPMODE_CHANGED
+// Introduced in SDK 2.1.0
+#define EVENT_OPMODE_CHANGED 8
+#endif
+    case EVENT_OPMODE_CHANGED:
+      // Could check this was expected but not bothering for now
+      DEBUG("WIFI: Event - opmode changed");
+      goto EXIT_LABEL;
+      break;
+
     default:
       ERROR("WIFI: Unknown wifi event received: %02x", event->event);
       goto EXIT_LABEL;
