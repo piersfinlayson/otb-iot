@@ -817,7 +817,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_init(int gpio)
 
 }
 
-static void ICACHE_FLASH_ATTR reset_search()
+static void reset_search()
 {
 	// reset the search state
 	LastDiscrepancy = 0;
@@ -835,7 +835,7 @@ static void ICACHE_FLASH_ATTR reset_search()
 //
 // Returns 1 if a device asserted a presence pulse, 0 otherwise.
 //
-static uint8_t ICACHE_FLASH_ATTR reset(void)
+static uint8_t reset(void)
 {
 	//	IO_REG_TYPE mask = bitmask;
 	//	volatile IO_REG_TYPE *reg IO_REG_ASM = baseReg;
@@ -872,7 +872,7 @@ static uint8_t ICACHE_FLASH_ATTR reset(void)
 }
 
 /* pass array of 8 bytes in */
-static int ICACHE_FLASH_ATTR  ds_search( uint8_t *newAddr )
+static int ds_search( uint8_t *newAddr )
 {
 	uint8_t id_bit_number;
 	uint8_t last_zero, rom_byte_number;
@@ -1052,7 +1052,7 @@ static inline void ICACHE_FLASH_ATTR  write_bit( int v )
 // Read a bit. Port and bit is used to cut lookup time and provide
 // more certain timing.
 //
-static inline int ICACHE_FLASH_ATTR read_bit(void)
+static inline int read_bit(void)
 {
 	//IO_REG_TYPE mask=bitmask;
 	//volatile IO_REG_TYPE *reg IO_REG_ASM = baseReg;
@@ -1077,7 +1077,7 @@ static inline int ICACHE_FLASH_ATTR read_bit(void)
 //
 // Do a ROM select
 //
-static void ICACHE_FLASH_ATTR select(const uint8_t *rom)
+static void select(const uint8_t *rom)
 {
 	uint8_t i;
 
