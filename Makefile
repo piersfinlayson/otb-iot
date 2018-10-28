@@ -39,7 +39,8 @@ SERIAL_PORT ?= /dev/ttyUSB0
 SERIAL_BAUD ?= 115200
 SERIAL_BAUD_230 = 230400
 SERIAL_BAUD_74 = 74880
-SERIAL = miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD) --raw
+SERIAL_CMD = python2.7 /usr/lib/python2.7/dist-packages/serial/tools/miniterm.py
+SERIAL = $(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
 CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
@@ -402,13 +403,13 @@ flash_initial_40mhz: directories erase_flash flash_boot flash_app flash_factory 
 con: connect
 
 connect:
-	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD) --raw
+	$(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 con230:
-	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD_230) --raw
+	$(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD_230) --raw
 
 con74:
-	miniterm.py $(SERIAL_PORT) $(SERIAL_BAUD_74) --raw
+	$(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD_74) --raw
 
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
