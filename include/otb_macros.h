@@ -25,6 +25,10 @@
 #define MUNGE1(X, Y)  MUNGE2(X, Y)
 #define UNIQUE(B)     MUNGE1(B, __LINE__)
 
+// Some weird magic to turn a number #define into a string
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X)  STRINGIFY2(X)
+
 // Macro to align stuff to 4 byte boundary.  Useful for reading and writing
 // to flash.
 #define ALIGN4 __attribute__((aligned(4)))

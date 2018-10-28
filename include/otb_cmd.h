@@ -235,6 +235,7 @@ typedef struct otb_cmd_control
 //       password|pass
 //   info
 //     version
+//     sdk_version
 //     compile_date
 //     compile_time
 //     boot_slot
@@ -673,6 +674,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get_config_mqtt)[] =
 OTB_CMD_CONTROL(otb_cmd_control_get_info)[] =
 {
   {"version",           NULL, NULL,     otb_cmd_get_string,        otb_version_id},
+  {"sdk_version",       NULL, NULL,     otb_cmd_get_string,        otb_sdk_version_id},
   {"compile_date",      NULL, NULL,     otb_cmd_get_string,        otb_compile_date},
   {"compile_time",      NULL, NULL,     otb_cmd_get_string,        otb_compile_time},
   {"boot_slot",         NULL, NULL,     otb_cmd_get_boot_slot,     NULL},

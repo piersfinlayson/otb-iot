@@ -427,8 +427,15 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
               OTB_BUILD_NUM,
               otb_compile_date, 
               otb_compile_time);
+  otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH-1] = 0;
+  os_snprintf(otb_sdk_version_id,
+              OTB_MAIN_SDK_MAX_VERSION_LENGTH,
+              "%s", 
+              STRINGIFY(ESP_SDK_VERSION));
+  otb_sdk_version_id[OTB_MAIN_SDK_MAX_VERSION_LENGTH-1] = 0;
   // First log needs a line break!
   INFO("\nOTB: %s%s", otb_version_id, recovery_str);
+  INFO("OTB: SDK Version: %s", otb_sdk_version_id);
   INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
   INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
   

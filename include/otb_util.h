@@ -138,7 +138,6 @@ struct otb_reset_reason otb_reset_reason_struct;
 
 char otb_compile_date[12];
 char otb_compile_time[9];
-char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 char OTB_MAIN_DEVICE_ID[20];
 char otb_hw_info[10];

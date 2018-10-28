@@ -50,6 +50,7 @@
 #include "smartconfig.h"
 #include "esp_systemapi.h"
 #include "uart.h"
+#include "esp_sdk_ver.h"
 #else
 #include "esput.h"
 #endif // ESPUT
