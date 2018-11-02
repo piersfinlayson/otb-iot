@@ -258,7 +258,7 @@ bin/stage_app_image.elf: build_num libmain2 stage_objects
 
 sdk_init_data.bin: directories
 	@rm -f $(HWINFO_OBJ_DIR)/sdk_init_data.bin
-	ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin
+	ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default_v05.bin $(HWINFO_OBJ_DIR)/sdk_init_data_v05.bin
 
 otb_hwinfo_sdk_init_data.h: sdk_init_data.bin
 	xxd -i $(HWINFO_OBJ_DIR)/sdk_init_data.bin $(HWINFO_OBJ_DIR)/otb_hwinfo_sdk_init_data.h
@@ -389,14 +389,18 @@ flash_stage_app: bin/stage_app_image.bin
 
 flash: flash_boot flash_app
 
+flash_blank:
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fb000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fe000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+
 flash_sdk:
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default_v05.bin
 
 flash_initial: flash_otbiot
 
-flash_otbiot: directories erase_flash flash_sdk flash_boot flash_app flash_factory
+flash_otbiot: directories erase_flash flash_blank flash_sdk flash_boot flash_app flash_factory
 
-flash_stage: directories erase_flash flash_sdk flash_boot flash_stage_app
+flash_stage: directories erase_flash flash_blank flash_sdk flash_boot flash_stage_app
 
 flash_initial_40mhz: directories erase_flash flash_boot flash_app flash_factory flash_40mhz
 

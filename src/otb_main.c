@@ -107,9 +107,41 @@ void ICACHE_FLASH_ATTR user_init(void)
   return;
 }
 
+#if ESP_SDK_VERSION >= 030000
+// user_pre_init is required from SDK v3.0.0 onwards
+// It is used to register the parition map with the SDK, primarily to allow
+// the app to use the SDK's OTA capability.  We don't make use of that in 
+// otb-iot and therefore the only info we provide is the mandatory stuff:
+// - RF calibration data
+// - Physical data
+// - System parameter
+// The location and length of these are from the 2A SDK getting started guide
 void ICACHE_FLASH_ATTR user_pre_init(void)
 {
-  // From SDK V3.0 onwards need to register parition table here
+  bool rc = false;
+  static const partition_item_t part_table[] = 
+  {
+    {SYSTEM_PARTITION_RF_CAL,
+     OTB_BOOT_RF_CAL,
+     OTB_BOOT_RF_CAL_LEN},
+    {SYSTEM_PARTITION_PHY_DATA,
+     OTB_BOOT_PHY_DATA,
+     OTB_BOOT_PHY_DATA_LEN},
+    {SYSTEM_PARTITION_SYSTEM_PARAMETER,
+     OTB_BOOT_SYS_PARAM,
+     OTB_BOOT_SYS_PARAM_LEN},
+  };
+
+  // This isn't an ideal approach but there's not much point moving on unless
+  // or until this has succeeded cos otherwise the SDK will just barf and 
+  // refuse to call user_init()
+  while (!rc)
+  {
+    rc = system_partition_table_regist(part_table,
+				       sizeof(part_table)/sizeof(part_table[0]),
+                                       4);
+  }
 
   return;
 }
+#endif // ESP_SDK_VERSION >= 030000

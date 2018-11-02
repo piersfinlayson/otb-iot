@@ -68,6 +68,12 @@ typedef struct{
 #define OTB_BOOT_RESERVED7           0x301000  // length 0x1000  = 28KB
 #define OTB_BOOT_ROM_2_LOCATION      0x308000  // length 0xF4000 = 976KB
 #define OTB_BOOT_ROM_2_LEN            0xf4000
+#define OTB_BOOT_RF_CAL              0x3fb000  
+#define OTB_BOOT_RF_CAL_LEN            0x1000
+#define OTB_BOOT_PHY_DATA            0x3fc000  
+#define OTB_BOOT_PHY_DATA_LEN          0x1000 
+#define OTB_BOOT_SYS_PARAM           0x3fd000 
+#define OTB_BOOT_SYS_PARAM_LEN         0x3000 
 #define OTB_BOOT_SDK_RESERVED        0x3fc000  // length 0x4000  = 16KB
 #define OTB_BOOT_ESP_USER_BIN        0x3fc000  // length ??? ESP SDK user bin
 
