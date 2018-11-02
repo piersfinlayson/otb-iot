@@ -106,3 +106,10 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   return;
 }
+
+void ICACHE_FLASH_ATTR user_pre_init(void)
+{
+  // From SDK V3.0 onwards need to register parition table here
+
+  return;
+}
