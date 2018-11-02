@@ -102,7 +102,11 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
     case EVENT_SOFTAPMODE_STACONNECTED:
       INFO("WIFI: Event - AP mode - station connected");
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_PINK, TRUE);
-      otb_wifi_ap_sta_con_count++;
+      if (otb_wifi_ap_enabled)
+      {
+        OTB_ASSERT(otb_wifi_ap_sta_con_count >= 0);
+        otb_wifi_ap_sta_con_count++;
+      };
       goto EXIT_LABEL;
       break;
       
@@ -110,8 +114,11 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       // Assume SDK will be retrying
       INFO("WIFI: Event - AP mode - station disconnected");
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED, TRUE);
-      otb_wifi_ap_sta_con_count--;
-      OTB_ASSERT(otb_wifi_ap_sta_con_count >= 0);
+      if (otb_wifi_ap_enabled)
+      {
+        otb_wifi_ap_sta_con_count--;
+        OTB_ASSERT(otb_wifi_ap_sta_con_count >= 0);
+      };
       goto EXIT_LABEL;
       break;
       
@@ -120,15 +127,23 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       goto EXIT_LABEL;
       break;
 
-#ifndef EVENT_OPMODE_CHANGED
+#if ESP_SDK_VERSION >= 020100
 // Introduced in SDK 2.1.0
-#define EVENT_OPMODE_CHANGED 8
-#endif
     case EVENT_OPMODE_CHANGED:
       // Could check this was expected but not bothering for now
       DEBUG("WIFI: Event - opmode changed");
       goto EXIT_LABEL;
       break;
+#endif // ESP_SDK_VERSION >= 020100
+
+#if ESP_SDK_VERSION >= 030000
+// Introduced in SDK 3.0.0
+    case EVENT_SOFTAPMODE_DISTRIBUTE_STA_IP:
+      // Could check this was expected but not bothering for now
+      DEBUG("WIFI: Event - soft AP mode distribute station IP");
+      goto EXIT_LABEL;
+      break;
+#endif // ESP_SDK_VERSION >= 030000
 
     default:
       ERROR("WIFI: Unknown wifi event received: %02x", event->event);
