@@ -156,7 +156,9 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
 #ifndef ESPUT
 #define os_vsnprintf(A, B, ...)  ets_vsnprintf(A, B, __VA_ARGS__)
+#ifndef os_snprintf
 #define os_snprintf ets_snprintf
+#endif
 #else
 #define os_vsnprintf(A, B, ...)  vsnprintf(A, B, __VA_ARGS__)
 #define os_snprintf snprintf
