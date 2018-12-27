@@ -34,7 +34,6 @@ extern void ets_timer_setfn(ETSTimer *t, ETSTimerFunc *pfunction, void *parg);
 extern void ets_wdt_enable(void);
 extern void ets_wdt_disable(void);
 extern void wdt_feed(void);
-extern void ets_delay_us(uint32_t us);
 
 extern void ets_isr_mask(unsigned intr);
 extern void ets_isr_unmask(unsigned intr);
