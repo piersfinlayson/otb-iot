@@ -20,7 +20,7 @@
 // Configurable stuff
 #define OTB_MAIN_OTBIOT_PREFIX "otb-iot"
 #define OTB_MAIN_BAUD_RATE 115200
-#define OTB_MAIN_SDK_LOGGING 1 // 1 if SDK logging required
+#define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
 #define OTB_MAIN_FW_VERSION "v0_1_2" //max 8 chars
 #define OTB_MAIN_MAX_VERSION_LENGTH 64 // Enough space for root, version, build number, compile data and compile time
