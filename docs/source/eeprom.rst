@@ -31,7 +31,7 @@ On an otb-iot main board, the following other stuctures are present:
 
 * otb_eeprom_main_board_gpio_pins
 
-  * purposes of the board's :doc:`gpio <gpio>` pins
+  * purposes of the board's :doc:`gpio_pins <gpio_pins>` 
 
 * otb_eeprom_main_board_module (may be multiple of)
 

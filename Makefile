@@ -418,7 +418,7 @@ con74:
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs clean_stage
+clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs clean_stage clean_docs
 	@rm -fr bin obj 
 
 clean_hwinfo: FORCE
