@@ -13,9 +13,6 @@
 [submodule "external/nweb"]
 	path = external/nweb
 	url = https://github.com/piersfinlayson/nweb
-[submodule "lib/libmbus"]
-	path = lib/libmbus
-	url = https://github.com/piersfinlayson/libmbus
 [submodule "lib/esp8266-software-uart"]
 	path = lib/esp8266-software-uart
 	url = https://github.com/piersfinlayson/esp8266-software-uart
