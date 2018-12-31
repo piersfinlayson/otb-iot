@@ -23,21 +23,21 @@ Quick-Start
 
 * Install docker:
 
-```
-curl https://get.docker.com/|sh
-```
+::
+
+  curl https://get.docker.com/|sh
 
 * Run the container containing pre-build otb-iot images:
 
-```
-docker run --rm -ti --device /dev/ttyUSB0:/dev/ttyUSB0 piersfinlayson/otbiot
-```
+::
+
+  docker run --rm -ti --device /dev/ttyUSB0:/dev/ttyUSB0 piersfinlayson/otbiot
 
 * Flash the device and connect to it over serial:
 
-```
-make flash_initial && make con
-```
+::
+
+  make flash_initial && make con
 
 Do It Yourself
 --------------
