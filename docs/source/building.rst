@@ -27,7 +27,7 @@ Quick-Start
 
   curl https://get.docker.com/|sh
 
-* Run the container containing pre-build otb-iot images:
+* Run the container containing pre-build otb-iot images (changing the first /dev/ttyUSB0 to point to the USB serial device your ESP8266 is attached to):
 
 ::
 
