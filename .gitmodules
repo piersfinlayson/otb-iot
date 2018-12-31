@@ -19,9 +19,6 @@
 [submodule "lib/libb64"]
 	path = lib/libb64
 	url = https://github.com/piersfinlayson/libb64
-[submodule "extras/libmbus"]
-	path = extras/libmbus
-	url = https://github.com/piersfinlayson/libmbus
 [submodule "extras/mbus_tools"]
 	path = extras/mbus_tools
 	url = https://github.com/piersfinlayson/libmbus
