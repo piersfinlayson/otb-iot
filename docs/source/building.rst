@@ -37,7 +37,7 @@ You should see output like this (in this example I am using a Wemos D1 mini - th
 [90279.481709] usb 2-1.8: ch341-uart converter now attached to ttyUSB1
 ```
 
-Note the value provided right at the end - here _ttyUSB1_ - you'll need this in a sec.
+Note the value provided right at the end - here *ttyUSB1* - you'll need this in a sec.
 
 
 Install docker if not already installed:
@@ -48,7 +48,7 @@ curl https://get.docker.com/|sh
 
 You may need to log out and log back in again at this point so that your user is part of the docker group.
 
-Run the container containing pre-built otb-iot images.  Change <usb-device> to the value you noted earlier - in my example this would be _ttyUSB1_:
+Run the container containing pre-built otb-iot images.  Change \<usb-device\> to the value you noted earlier - in my example this would be *ttyUSB1*:
 
 ```
 docker run --rm -ti --device /dev/<usb-device>:/dev/ttyUSB0 piersfinlayson/otbiot
