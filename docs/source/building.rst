@@ -19,7 +19,7 @@ otb-iot is intended to be built on linux and has been successfully built on vari
 Quick-Start
 -----------
 
-Plug your ESP8266 device into a USB port on your linux machine (or, if you're using VirtualBox, [map the USB device](https://www.eltima.com/article/virtualbox-usb-passthrough/) through from your host to your guest).
+Plug your ESP8266 device into a USB port on your linux machine (or, if you're using VirtualBox, `map the USB device <https://www.eltima.com/article/virtualbox-usb-passthrough/>`_ through from your host to your guest).
 
 Then run:
 
