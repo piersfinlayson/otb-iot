@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017 Piers Finlayson
+ * Copyright (C) 2017-2019 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -108,7 +108,7 @@ void ICACHE_FLASH_ATTR user_pre_init(void)
      0x1000},
     {SYSTEM_PARTITION_SYSTEM_PARAMETER,
      0x3fd000,
-     0x1000},
+     0x3000},
   };
 
   // This isn't an ideal approach but there's not much point moving on unless
