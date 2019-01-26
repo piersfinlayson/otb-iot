@@ -94,3 +94,32 @@ void ICACHE_FLASH_ATTR otb_stage_do(void)
 
   return;
 }
+
+void ICACHE_FLASH_ATTR user_pre_init(void)
+{
+  bool rc = false;
+  static const partition_item_t part_table[] =
+  {
+    {SYSTEM_PARTITION_RF_CAL,
+     0x3fb000,
+     0x1000},
+    {SYSTEM_PARTITION_PHY_DATA,
+     0x3fc000,
+     0x1000},
+    {SYSTEM_PARTITION_SYSTEM_PARAMETER,
+     0x3fd000,
+     0x1000},
+  };
+
+  // This isn't an ideal approach but there's not much point moving on unless
+  // or until this has succeeded cos otherwise the SDK will just barf and
+  // refuse to call user_init()
+  while (!rc)
+  {
+    rc = system_partition_table_regist(part_table,
+                                       sizeof(part_table)/sizeof(part_table[0]),
+                                       4);
+  }
+
+  return;
+}
