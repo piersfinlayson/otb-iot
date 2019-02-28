@@ -566,7 +566,7 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
             otb_mqtt_match(next_cmd, "true"))
         {
           if (((conf->mezz_info == NULL) && ((conf->rx == OTB_SERIAL_PIN_INVALID) || (conf->tx == OTB_SERIAL_PIN_INVALID))) ||
-              ((conf->mezz_info == NULL) && (!conf->mezz_info->use_mezz)))
+              ((conf->mezz_info != NULL) && (!conf->mezz_info->use_mezz)))
           {
             otb_cmd_rsp_append("cannot enable until rx and tx pins set");
             rc = FALSE;
