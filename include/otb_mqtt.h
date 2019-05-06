@@ -347,6 +347,7 @@ extern char otb_mqtt_string_period[];
 extern char otb_mqtt_string_true[];
 extern char otb_mqtt_string_false[];
 extern char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
+extern char *otb_mqtt_root;
 
 #ifdef OTB_MQTT_C
 
@@ -357,6 +358,7 @@ char otb_mqtt_string_colon[] = ":";
 char otb_mqtt_string_period[] = ".";
 char otb_mqtt_string_true[] = "true";
 char otb_mqtt_string_false[] = "false";
+char *otb_mqtt_root = OTB_MAIN_OTBIOT_PREFIX;
 
 MQTT_Client otb_mqtt_client;
 

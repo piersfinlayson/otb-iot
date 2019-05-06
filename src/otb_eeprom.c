@@ -310,6 +310,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read_all(uint8_t addr,
 
 void ICACHE_FLASH_ATTR otb_eeprom_process_all(void)
 {
+  unsigned char *prefix;
 
   DEBUG("EEPROM: otb_eeprom_process_all entry");
 
@@ -319,10 +320,19 @@ void ICACHE_FLASH_ATTR otb_eeprom_process_all(void)
 
   // Get the chip ID
   otb_util_get_chip_id();
-  OTB_ASSERT((os_strlen(OTB_MAIN_OTBIOT_PREFIX) +
+
+  // Get the prefix - used for AP, and for MQTT
+  prefix = OTB_MAIN_OTBIOT_PREFIX;
+  if ((otb_eeprom_main_board_g != NULL) && 
+      (otb_eeprom_main_board_g->common.code == OTB_EEPROM_HW_CODE_ESPI_BOARD))
+  {
+    prefix = OTB_MAIN_ESPI_PREFIX;
+  }
+  otb_mqtt_root = prefix;
+  OTB_ASSERT((os_strlen(prefix) +
               os_strlen(OTB_MAIN_CHIPID)) <
              sizeof(OTB_MAIN_DEVICE_ID));
-  os_sprintf(OTB_MAIN_DEVICE_ID, "%s.%s", OTB_MAIN_OTBIOT_PREFIX, OTB_MAIN_CHIPID);
+  os_sprintf(OTB_MAIN_DEVICE_ID, "%s.%s", prefix, OTB_MAIN_CHIPID);
 
 #endif // OTB_RBOOT_BOOTLOADER
 

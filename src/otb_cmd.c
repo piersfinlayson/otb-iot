@@ -54,6 +54,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
   otb_cmd_control *cur_control = NULL;
   unsigned char *cur_cmd = NULL;
   unsigned char *prev_cmd;
+  unsigned char *match_cmd;
   uint8_t depth;
   bool rc = FALSE;
   bool match = TRUE;
@@ -101,7 +102,16 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
       if (cur_control[ii].match_cmd != NULL)
       {
         // Do string_match
-        if (!os_strcmp(cur_control[ii].match_cmd, cur_cmd))
+        if (depth == 0)
+        {
+          // Override 
+          match_cmd = otb_mqtt_root;
+        }
+        else
+        {
+          match_cmd = cur_control[ii].match_cmd;
+        }
+        if (!os_strcmp(match_cmd, cur_cmd))
         {
           DEBUG("CMD: Match");
           match = TRUE;

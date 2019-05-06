@@ -19,6 +19,7 @@
 
 // Configurable stuff
 #define OTB_MAIN_OTBIOT_PREFIX "otb-iot"
+#define OTB_MAIN_ESPI_PREFIX "espi"
 #define OTB_MAIN_BAUD_RATE 115200
 #define OTB_MAIN_SDK_LOGGING 0 // 1 if SDK logging required
 #define OTB_MAIN_DISABLE_OTB_LOGGING 0 // 1 if no logging from OTB required
@@ -29,8 +30,6 @@
 #define OTB_MAIN_GPIO_RESET 16
 #define OTB_MAIN_MAX_LOG_LENGTH 1024
 #define OTB_WIFI_DEFAULT_DISCONNECTED_TIMEOUT 300000 // 5 minutes
-#define OTB_WIFI_DEFAULT_SSID_PREFIX OTB_MAIN_OTBIOT_PREFIX
-#define OTB_WIFI_DEFAULT_DUMMY_SSID "otb-iot-dummy"
 #define OTB_WIFI_MAC_ADDRESS_STRING_LENGTH 18 // 6 * 2 + 5 + 1
 #define OTB_DS18B20_MAX_DS18B20S 8
 #ifndef OTB_IOT_V0_3

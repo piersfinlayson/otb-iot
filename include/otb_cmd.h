@@ -499,6 +499,8 @@ extern OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[];
 #define OTB_CMD_CONTROL_BUF_SIZE  512
 char ALIGN4 otb_cmd_control_flash_buf[OTB_CMD_CONTROL_BUF_SIZE];
 
+// Note the OTB_MQTT_OTBIOT_TOPIC is overridden with correct prefix
+// E.g. may be otb-iot or espi - see otb_cmd_mqtt_recieved
 OTB_CMD_CONTROL(otb_cmd_control_topic_top)[] = 
 {
   {OTB_MQTT_OTBIOT_TOPIC, NULL, otb_cmd_control_topic_2nd,      OTB_CMD_NO_FN},
