@@ -239,6 +239,7 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_CODE_GENERIC      0x0 // Use for any off the shelf or non OTB-IOT ESP8266 module
 #define OTB_EEPROM_HW_CODE_MAIN_BOARD   0x001 // otb-iot main board
 #define OTB_EEPROM_HW_CODE_MAIN_MODULE  0x101 // otb-iot main module
+#define OTB_EEPROM_HW_CODE_ESPI_BOARD   0x002 // otb-iot main module
   uint32 code;
   
   // otb-iot hardware subcode
@@ -248,6 +249,7 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_SUBCODE_MAIN_BOARD_OTB_IOT_0_3  0x003 // otb-iot v0.3
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_MEZZ        0x101
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_PROG        0x201
+#define OTB_EEPROM_HW_SUBCODE_ESPI_BOARD_1_0A         0x001
   uint32 subcode;
 
 } otb_eeprom_hw_common;
@@ -353,6 +355,7 @@ typedef struct otb_eeprom_pin_info
 // When use = OTB_EEPROM_PIN_USE_STATUS_LED
 #define OTB_EEPROM_PIN_FINFO_LED_TYPE_NEO     1  // 5mm through hole neo-pixel, using 3 bytes RGB
 #define OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B 2  // WS2812b, using 3 bytes GRB
+#define OTB_EEPROM_PIN_FINFO_LED_TYPE_LED     3  // Bog standard LED
 
 // When use = OTB_EEPROM_PIN_USE_INT_SDA and OTB_EEPROM_PIN_USE_INT_SCL
 #define OTB_EEPROM_PIN_FINFO_I2C_V33          1
@@ -430,6 +433,7 @@ typedef struct otb_eeprom_main_board_module
 #define OTB_EEPROM_MODULE_TYPE_PROG              2
 #define OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ       3  // Used by otb_eeprom_main_module only
 #define OTB_EEPROM_MODULE_TYPE_DOUBLE_MEZZ_PROG  4  // Used by otb_eeprom_main_module only
+#define OTB_EEPROM_MODULE_TYPE_RPI_HAT_ESPI      5  // Raspberry Pi hat module - may or may not include ESPi 10 pin additional header
   uint32 socket_type;
   
   // Number of headers
