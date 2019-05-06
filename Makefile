@@ -34,11 +34,9 @@ ESPTOOL2 = bin/esptool2
 ESPTOOL_PY = python2 $(XTENSA_DIR)/esptool.py
 MAKE = make
 
-STANDBY = 
-RUN = 
-# Uncomment for ESPI programming
-# STANDBY = pi/standby.sh
-# RUN = pi/run.sh
+# Uncomment to program ESPi devices from a raspberry pi
+#STANDBY = pi/standby.sh
+#RUN = pi/run.sh
 
 # Serial connection information
 SERIAL_PORT ?= /dev/ttyUSB0
