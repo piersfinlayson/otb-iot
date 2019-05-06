@@ -350,7 +350,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_1[OT
 
   // Module 1, Header 2, Pin 2
   {
-    1,
+    2,
     OTB_EEPROM_PIN_HEADER_2,
     OTB_EEPROM_PIN_USE_GND,
     OTB_EEPROM_PIN_MODULE_1,
@@ -533,7 +533,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_2[OT
 
   // Module 2, Header 2, Pin 2
   {
-    1,
+    2,
     OTB_EEPROM_PIN_HEADER_2,
     OTB_EEPROM_PIN_USE_INT_SCL,
     OTB_EEPROM_PIN_MODULE_2,
@@ -736,7 +736,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_otbiot_v0_4_module_pin_info_3[OT
 
   // Module 3, Header 2, Pin 2
   {
-    1,
+    2,
     OTB_EEPROM_PIN_HEADER_2,
     OTB_EEPROM_PIN_USE_INT_SCL,
     OTB_EEPROM_PIN_MODULE_3,
