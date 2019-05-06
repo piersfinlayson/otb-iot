@@ -34,6 +34,12 @@ ESPTOOL2 = bin/esptool2
 ESPTOOL_PY = python2 $(XTENSA_DIR)/esptool.py
 MAKE = make
 
+STANDBY = 
+RUN = 
+# Uncomment for ESPI programming
+# STANDBY = pi/standby.sh
+# RUN = pi/run.sh
+
 # Serial connection information
 SERIAL_PORT ?= /dev/ttyUSB0
 SERIAL_BAUD ?= 115200
@@ -373,28 +379,43 @@ obj/html/libwebpages-espfs.a: webpages.espfs
 boot: directories bin/rboot.bin
 
 flash_boot: boot
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash -fm dio -ff 40m -fs 32m 0x0 bin/rboot.bin
+	$(RUN)
 
 flash_app: bin/app_image.bin
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x8000 bin/app_image.bin
+	$(RUN)
 
 flash_app2: bin/app_image.bin
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x208000 bin/app_image.bin
+	$(RUN)
 
 flash_factory: bin/app_image.bin
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x308000 bin/app_image.bin
+	$(RUN)
 
 flash_stage_app: bin/stage_app_image.bin
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x8000 bin/stage_app_image.bin
+	$(RUN)
 
 flash: flash_boot flash_app
 
 flash_blank:
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fb000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fe000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+	$(RUN)
 
 flash_sdk: hwinfo
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 $(HWINFO_OBJ_DIR)/sdk_init_data.bin
+	$(RUN)
 
 flash_initial: flash_otbiot
 
@@ -442,10 +463,14 @@ i2c-tools: directories
 	cp external/i2c-tools/eeprog/eeprog bin/
 
 erase_flash:
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) erase_flash
+	$(RUN)
 
 flash_40mhz:
+	$(STANDBY)
 	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fc000 flash/esp_init_data_40mhz_xtal.hex
+	$(RUN)
 
 directories:
 	mkdir -p bin $(OTB_OBJ_DIR) $(HTTPD_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(RBOOT_OBJ_DIR) $(MQTT_OBJ_DIR) $(I2C_OBJ_DIR) $(HWINFO_OBJ_DIR) $(STAGE_OBJ_DIR) $(SOFTUART_OBJ_DIR) $(LIBB64_OBJ_DIR) obj/html
