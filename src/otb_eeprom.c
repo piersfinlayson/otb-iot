@@ -282,13 +282,13 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_eeprom_read_all(uint8_t addr,
                                            brzo_i2c_info *i2c_info)
 {
-#ifndef OTB_RBOOT_BOOTLOADER
+#ifndef OTB_RBOOT_BOOTLOADER // Not within the bootloader
   uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO,
                       OTB_EEPROM_INFO_TYPE_MAIN_BOARD,
                       OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE,
                       OTB_EEPROM_INFO_TYPE_GPIO_PINS};
   uint32_t types_num = 4;
-#else // OTB_RBOOT_BOOTLOADER
+#else // OTB_RBOOT_BOOTLOADER // Within the bootloader
   uint32_t types[] = {OTB_EEPROM_INFO_TYPE_INFO,
                       OTB_EEPROM_INFO_TYPE_GPIO_PINS,
                       OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA};
