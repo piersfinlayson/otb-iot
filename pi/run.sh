@@ -1,4 +1,3 @@
 #!/bin/bash
-gpio mode 22 output
-gpio write 22 1
+gpio mode 22 input
 pi/reboot.sh

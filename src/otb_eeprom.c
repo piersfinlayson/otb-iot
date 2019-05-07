@@ -474,7 +474,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       (fn_rc != (OTB_EEPROM_ERR | OTB_EEPROM_ERR_BUF_LEN_COMP)))
   {
     // Errors have already been logged
-    WARN("EEPROM: Reading main comp %s returned error 0x%x", struct_name, fn_rc);
+    WARN("EEPROM: Reading main comp %s at 0x%x returned error 0x%x", struct_name, addr, fn_rc);
     goto EXIT_LABEL;
   }
 

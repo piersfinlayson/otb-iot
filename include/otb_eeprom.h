@@ -46,7 +46,7 @@
 #define OTB_EEPROM_ERR_TYPE      0x400  // Type is wrong
 
 // No main component can be longer than this
-#define OTB_EEPROM_MAX_MAIN_COMP_LENGTH 1024
+#define OTB_EEPROM_MAX_MAIN_COMP_LENGTH 1536
 
 #define OTB_EEPROM_COMP_0_OR_MORE  0
 #define OTB_EEPROM_COMP_1          1
