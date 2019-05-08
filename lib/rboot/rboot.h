@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#define OTB_RBOOT_VERSION "v0.5a"
+
 // uncomment to use only c code
 // if you aren't using gcc you may need to do this
 //#define BOOT_NO_ASM
@@ -68,5 +70,8 @@ typedef struct {
 #ifdef __cplusplus
 }
 #endif
+
+void do_factory_reset(uint8 *buf);
+void ets_wdt_restore(uint32);
 
 #endif

@@ -232,8 +232,8 @@ static void reset(void)
   WRITE_PERI_REG(RTC_GPIO_ENABLE,
     (READ_PERI_REG(RTC_GPIO_ENABLE) & (uint32)0xfffffffe) | (uint32)0x1);        //out enable
 
-//  WRITE_PERI_REG(RTC_GPIO_OUT,
-//    (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
+  WRITE_PERI_REG(RTC_GPIO_OUT,
+    (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
 	return;
@@ -251,6 +251,54 @@ static uint8 calc_chksum(uint8 *start, uint8 *end) {
 	return chksum;
 }
 #endif
+
+void do_factory_reset(uint8 *buf)
+{
+  uint32 from_loc;
+  uint32 to_loc;
+  uint32 written;
+  uint32 *buffer = (uint32 *)buf;
+
+  // Erase config sector - that's all we need to do to clear config
+  SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
+  ets_printf("BOOT: otb-iot boot config cleared\r\n");
+
+  ets_printf("BOOT: Write factory image into slot 0\r\n");
+  for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
+       written < OTB_BOOT_ROM_2_LEN;
+       written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
+  {
+    // Feed the dog!
+    WRITE_PERI_REG(0x60000600 + 0x314, 0x73);
+		ets_printf("BOOT:    read from 0x%x\r\n", from_loc);
+    SPIRead(from_loc, buffer, 0x1000);
+		ets_printf("BOOT:        erase 0x%x\r\n", to_loc);
+    SPIEraseSector(to_loc/0x1000);
+		ets_printf("BOOT:     write to 0x%x\r\n", to_loc);
+    SPIWrite(to_loc, buffer, 0x1000);
+  }
+  while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
+  {
+    // Zero out spare space on end of slot 0 (in case recovery slot is smaller)
+		ets_printf("BOOT: .. erase 0x%d", to_loc);
+    SPIEraseSector(to_loc/0x1000);
+    to_loc += 0x1000;
+  }
+  ets_printf("BOOT: Factory image written into slot 0\r\n");
+
+	// Now rewrite SDK init data if have it
+	ets_printf("BOOT: Rewrite SDK init data\r\n");
+	if (otb_eeprom_main_board_sdk_init_data_g->hdr.magic == OTB_EEPROM_MAIN_BOARD_SDK_INIT_DATA_MAGIC)
+	{
+    SPIEraseSector(OTB_BOOT_ESP_USER_BIN/0x1000);
+		SPIWrite(OTB_BOOT_ESP_USER_BIN,
+		         otb_eeprom_main_board_sdk_init_data_g->sdk_init_data, 
+						 otb_eeprom_main_board_sdk_init_data_g->hdr.length-otb_eeprom_main_board_sdk_init_data_g->hdr.struct_size);
+	}
+  ets_printf("BOOT: SDK init data rewritten\r\n");
+
+  return;
+}
 
 // prevent this function being placed inline with main
 // to keep main's stack size as small as possible
@@ -441,17 +489,9 @@ uint32 NOINLINE find_image() {
 				}
 				else if (roms_tried == 3)
 				{
-					// Last chance saloon ... try fallback
-					// rom
-					romToBoot = 2;
-					ets_printf("BOOT: Try fallback ROM\r\n");
-				}
-				else
-				//  if (romToBoot == romconf->current_rom) {
-				{
-					// tried them all and all are bad!
-					ets_printf("BOOT: No good ROM available.\r\n");
-					updateConfig = FALSE;
+					ets_printf("BOOT: Both main ROMs are bad, rewrite ROM 0 from factory image\r\n");
+					do_factory_reset(buffer);
+
 					ets_printf("BOOT: Rebooting in 5s ");
 					for (ii=0; ii < 5; ii++)
 					{
@@ -492,57 +532,13 @@ void NOINLINE start_otb_boot(void)
 	// delay to slow boot (help see messages when debugging)
 	ets_delay_us(2000000);
 	
-	ets_printf("\r\nBOOT: OTA-BOOT v0.4a\r\n");
+	ets_printf("\r\nBOOT: OTA-BOOT %s\r\n", OTB_RBOOT_VERSION);
 
   return;
 }
 
 // otb-iot factory reset function
-#define FACTORY_RESET_LEN  15  // seconds
-
-void do_factory_reset(void)
-{
-  uint32 from_loc;
-  uint32 to_loc;
-  uint32 written;
-  uint32 buffer[0x1000/4];
-
-  // Implement factory reset
-  ets_printf("BOOT: GPIO14 triggered reset to factory defaults\r\n");
-  
-  // Erase config sector - that's all we need to do to clear config
-  SPIEraseSector(OTB_BOOT_CONF_LOCATION/0x1000);
-  ets_printf("BOOT: otb-iot boot config cleared\r\n");
-
-  for (written = 0, from_loc = OTB_BOOT_ROM_2_LOCATION, to_loc = OTB_BOOT_ROM_0_LOCATION;
-       written < OTB_BOOT_ROM_2_LEN;
-       written += 0x1000, from_loc += 0x1000, to_loc += 0x1000)
-  {
-    // Dubious this will work as from_loc is on differnet 1MB segment of flash
-    SPIRead(from_loc, buffer, 0x1000);
-    SPIEraseSector(to_loc/0x1000);
-    SPIWrite(to_loc, buffer, 0x1000);
-  }
-  while (to_loc < (OTB_BOOT_ROM_0_LOCATION+OTB_BOOT_ROM_0_LEN))
-  {
-    // Zero out spare space on end of slot 0 (recovery slot is smaller)
-    SPIEraseSector(to_loc/0x1000);
-    to_loc += 0x1000;
-  }
-  ets_printf("BOOT: Factory image written into slot 0\r\n");
-
-	// Now rewrite SDK init data if have it
-	if (otb_eeprom_main_board_sdk_init_data_g->hdr.magic == OTB_EEPROM_MAIN_BOARD_SDK_INIT_DATA_MAGIC)
-	{
-    SPIEraseSector(OTB_BOOT_ESP_USER_BIN/0x1000);
-		SPIWrite(OTB_BOOT_ESP_USER_BIN,
-		         otb_eeprom_main_board_sdk_init_data_g->sdk_init_data, 
-						 otb_eeprom_main_board_sdk_init_data_g->hdr.length-otb_eeprom_main_board_sdk_init_data_g->hdr.struct_size);
-	}
-  ets_printf("BOOT: SDK init data rewritten\r\n");
-
-  return;
-}
+#define FACTORY_RESET_LEN  5  // seconds
 
 #define OTB_EEPROM_BOOT_DATA_SIZE    1024
 void NOINLINE read_eeprom(void)
@@ -550,6 +546,7 @@ void NOINLINE read_eeprom(void)
   char rc;
 
   // Initial internal I2C bus (must be done before try and read eeprom)
+	ets_printf("BOOT: Init internal I2C bus\r\n");
   otb_i2c_initialize_bus_internal();
 
   // Setup memory to read eeprom info into
@@ -563,6 +560,7 @@ void NOINLINE read_eeprom(void)
 	// - reads flash structure from eeprom XXX Not yet implemented
 
   // Read the eeprom
+	ets_printf("BOOT: Read on board eeprom\r\n");
   otb_eeprom_read();
 
 EXIT_LABEL:
@@ -584,6 +582,10 @@ void NOINLINE factory_reset(void)
   uint32 ii;
   uint32 gpio_state;
 	uint32 gpio = OTB_RBOOT_DEFAULT_SOFT_RESET_PIN;
+	uint8 buffer[SECTOR_SIZE];
+
+	// Start up hardware watchdog just in case for some reason the following reboot doesn't work ...
+	ets_wdt_restore(1);
 
 	// Figure out which GPIO is used for soft reset
 	if (otb_eeprom_main_board_gpio_pins_g != NULL)
@@ -606,7 +608,7 @@ void NOINLINE factory_reset(void)
 		goto EXIT_LABEL;
 	}
   
-  // Check if GPIO14 is depressed
+  // Check if GPIO is depressed
 	ets_printf("BOOT: Checking GPIO%d ", gpio);
 
 	// First of all set the pin to high - in case being weakly pulled low from reboot
@@ -637,6 +639,8 @@ void NOINLINE factory_reset(void)
   }
   ets_printf("\r\n");
 
+  WRITE_PERI_REG(PERIPHS_GPIO_BASEADDR + GPIO_OUT_W1TC_ADDRESS, 1<<gpio);
+
   ets_intr_unlock();
 
   // Would be lovely to flash the status LED at this point - would require
@@ -644,10 +648,12 @@ void NOINLINE factory_reset(void)
 	// - some WS2812B comms (which really isn't very hard - see otb_led_neo_update
 	//   in otb_led.c)
   
-  // If gpio14 is zero we have looped 15 times ...
+  // If GPIO is zero we have looped enough times ...
   if (!gpio_state)
   {
-    do_factory_reset();
+	  // Implement factory reset
+		ets_printf("BOOT: GPIO triggered reset to factory defaults\r\n");
+    do_factory_reset(buffer);
     ets_delay_us(2000000);
     reset();
   }
