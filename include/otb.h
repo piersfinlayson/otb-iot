@@ -71,12 +71,7 @@
 #include "ringbuf.h"
 
 // HTTPD
-#include "platform.h"
-#include "httpd.h"
-#include "httpdespfs.h"
 #include "captdns.h"
-#include "webpages-espfs.h"
-#include "espfs.h"
 
 // DS18B20
 #include "gpio.h"
