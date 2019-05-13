@@ -48,7 +48,7 @@ SERIAL = $(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
 CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
-HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=5 -std=c99 
+HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=4 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
 OTB_CFLAGS = -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/brzo_i2c -std=c99 -DOTB_IOT_V0_3
@@ -60,7 +60,10 @@ SOFTUART_CFLAGS = $(OTB_CFLAGS) -Ilib/esp8266-software-uart/softuart/include
 LIBB64_CFLAGS = $(OTB_CFLAGS) -I lib/libb64/include
 
 # esptool.py options
-ESPBAUD = 115200
+#ESPBAUD = 115200
+#ESPBAUD = 230400
+#ESPBAUD = 460800
+ESPBAUD = 921600
 ESPPORT = $(SERIAL_PORT)
 ESPTOOL_PY_OPTS=--port $(ESPPORT) --baud $(ESPBAUD)
 
@@ -197,15 +200,7 @@ mqttObjects = $(MQTT_OBJ_DIR)/mqtt.o \
               $(MQTT_OBJ_DIR)/utils.o
 mqttDep = $(mqttObjects:%.o=%.d)
 
-httpdObjects = $(HTTPD_OBJ_DIR)/auth.o \
-               $(HTTPD_OBJ_DIR)/captdns.o \
-               $(HTTPD_OBJ_DIR)/espfs.o \
-               $(HTTPD_OBJ_DIR)/heatshrink_decoder.o \
-               $(HTTPD_OBJ_DIR)/httpd.o \
-               $(HTTPD_OBJ_DIR)/httpd-nonos.o \
-               $(HTTPD_OBJ_DIR)/httpdespfs.o \
-               $(HTTPD_OBJ_DIR)/sha1.o \
-               $(HTTPD_OBJ_DIR)/stdout.o
+httpdObjects = $(HTTPD_OBJ_DIR)/captdns.o
 httpdDep = $(httpdObjects:%.o=%.d)
 
 rbootObjects = $(RBOOT_OBJ_DIR)/rboot.o \
@@ -248,12 +243,12 @@ bin/stage_app_image.bin: bin/stage_app_image.elf $(ESPTOOL2)
 	@$(CHECK_STAGE_APP_IMAGE_FILE_SIZE)
 
 # Increment build number
-build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects obj/html/libwebpages-espfs.a
+build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
 	@if ! test -f $(BUILD_NUM_FILE); then echo 0 > $(BUILD_NUM_FILE); fi
 	@echo $$(($$(cat $(BUILD_NUM_FILE))+1)) > $(BUILD_NUM_FILE)
 
-bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects obj/html/libwebpages-espfs.a
-	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(softuartObjects) $(LDLIBS) obj/html/libwebpages-espfs.a
+bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
+	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(softuartObjects) $(LDLIBS)
 
 bin/stage_app_image.elf: build_num libmain2 stage_objects
 	$(LD) $(LDFLAGS) -o bin/stage_app_image.elf $(stageObjects) $(LDLIBS) 
@@ -319,7 +314,7 @@ $(LIBB64_OBJ_DIR)/%.o: $(LIBB64_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(LIBB64_CFLAGS) -MMD -c $< -o $@ 
 
 $(RBOOT_OBJ_DIR)/%.o: $(RBOOT_SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(RBOOT_CFLAGS) $(OTB_CFLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) $(OTB_CFLAGS) $(RBOOT_CFLAGS) -MMD -c $< -o $@
 
 $(RBOOT_OBJ_DIR)/pin_map.o: $(OTB_SRC_DIR)/pin_map.c
 	$(CC) $(RBOOT_OTHER_CFLAGS) $(RBOOT_CFLAGS) -Iinclude -I$(SDK_BASE)/sdk/include -Ilib/httpd -Ilib/mqtt -Ilib/rboot -Ilib/rboot/appcode -Ilib/i2c -Ilib/mqtt -Ilib/httpd -Ilib/brzo_i2c $(RBOOT_CFLAGS) -c $< -o $@
@@ -361,18 +356,6 @@ bin/rboot.bin: bin/rboot.elf $(ESPTOOL2)
 
 $(ESPTOOL2):
 	$(MAKE) -C external/esptool2; cp external/esptool2/esptool2 $(ESPTOOL2)
-
-webpages.espfs: mkespfsimage
-	cd html; find . | ../bin/mkespfsimage > ../obj/html/webpages.espfs; cd ..
-
-mkespfsimage:
-	$(MAKE) -C external/libesphttpd/espfs/mkespfsimage; cp external/libesphttpd/espfs/mkespfsimage/mkespfsimage bin/
-
-obj/html/libwebpages-espfs.a: webpages.espfs
-	$(OBJCOPY) -I binary -O elf32-xtensa-le -B xtensa --rename-section .data=.irom0.literal \
-                obj/html/webpages.espfs obj/html/webpages.espfs.o.tmp
-	$(LD) -nostdlib -Wl,-r obj/html/webpages.espfs.o.tmp -o obj/html/webpages.espfs.o -Wl,-T ld/webpages.espfs.ld
-	$(AR) cru $@ obj/html/webpages.espfs.o
 
 boot: directories bin/rboot.bin
 
@@ -437,7 +420,7 @@ con74:
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_mkespfsimage clean_i2c-tools clean_hwinfo clean_docs clean_stage clean_docs
+clean: clean_esptool2 clean_i2c-tools clean_hwinfo clean_docs clean_stage clean_docs
 	@rm -fr bin obj 
 
 clean_hwinfo: FORCE
@@ -448,9 +431,6 @@ clean_stage: FORCE
 
 clean_esptool2: FORCE
 	@rm -f external/esptool2/*.o esptool2
-
-clean_mkespfsimage: FORCE
-	@rm -f external/libesphttpd/espfs/mkespfsimage/*.o external/libesphttpd/espfs/mkespfsimage/mkespfsimage
 
 clean_i2c-tools: FORCE
 	$(MAKE) -C external/i2c-tools EXTRA=eeprog clean

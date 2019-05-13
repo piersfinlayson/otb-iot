@@ -1029,6 +1029,35 @@ EXIT_LABEL:
   return rc;
 }
  
+void ICACHE_FLASH_ATTR otb_util_log_heap_size_start_timer(void)
+{
+  DEBUG("UTIL: otb_util_log_heap_size_start_timer entry");
+
+  otb_util_timer_set(&otb_util_heap_timer,
+                     otb_util_log_heap_size_timer,
+                     NULL,
+                     1000,
+                     1);
+
+  DEBUG("UTIL: otb_util_log_heap_size_start_timer exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_log_heap_size_timer(void *arg)
+{
+  uint32 size;
+
+  DEBUG("UTIL: otb_util_log_heap_size_timer entry");
+  
+  size = system_get_free_heap_size();  
+  INFO("UTIL: Free heap size: %d", size);
+  
+  DEBUG("UTIL: otb_util_log_heap_size_timer exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
 {
   uint32 size;

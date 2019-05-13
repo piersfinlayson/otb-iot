@@ -16,20 +16,6 @@ Esp8266 http server - core routines
 #include "httpd.h"
 #include "httpd-platform.h"
 
-
-//Max amount of simultaneous connections
-#define MAX_CONN 8
-//Max length of request head. This is statically allocated for each connection.
-#define MAX_HEAD_LEN 1024
-//Max post buffer len. This is dynamically malloc'ed if needed.
-#define MAX_POST 1024
-//Max send buffer len. This is allocated on the stack.
-#define MAX_SENDBUFF_LEN 2048
-//If some data can't be sent because the underlaying socket doesn't accept the data (like the nonos
-//layer is prone to do), we put it in a backlog that is dynamically malloc'ed. This defines the max
-//size of the backlog.
-#define MAX_BACKLOG_SIZE (4*1024)
-
 //This gets set at init time.
 static HttpdBuiltInUrl *builtInUrls;
 
@@ -46,10 +32,11 @@ struct HttpSendBacklogItem {
 #define HFL_CHUNKED (1<<1)
 #define HFL_SENDINGBODY (1<<2)
 #define HFL_DISCONAFTERSENT (1<<3)
+#define HFL_NOCONNECTIONSTR (1<<4)
 
 //Private data for http connection
 struct HttpdPriv {
-	char head[MAX_HEAD_LEN];
+	char head[HTTPD_MAX_HEAD_LEN];
 	int headPos;
 	char *sendBuff;
 	int sendBuffLen;
@@ -84,11 +71,31 @@ static const ICACHE_RODATA_ATTR MimeMap mimeTypes[]={
 	{"jpeg", "image/jpeg"},
 	{"png", "image/png"},
 	{"svg", "image/svg+xml"},
+	{"xml", "text/xml"},
+	{"json", "application/json"},
 	{NULL, "text/html"}, //default value
 };
 
+void dump_stack(void)
+{
+	void *p = (void *)0x40000000;  // 0x3ffffffc is top of stack.  &p is bottom
+
+	ets_printf("STACK DUMP");
+
+  for (; p > (void *)&p; p = (void *)((uint32)p - 4))
+	{
+		if (!((int)p % 0x10))
+		{
+			ets_printf("\r\n%p: ", ((uint32)p)-4);
+		}
+		ets_printf("%p ", *((uint32*)p-4));
+	}
+	ets_printf("\r\n");
+}
+
 //Returns a static char* to a mime type for a given url to a file.
 const char ICACHE_FLASH_ATTR *httpdGetMimetype(char *url) {
+	httpd_printf("ENTRY: httpdGetMimetype\n");
 	int i=0;
 	//Go find the extension
 	char *ext=url+(strlen(url)-1);
@@ -97,53 +104,83 @@ const char ICACHE_FLASH_ATTR *httpdGetMimetype(char *url) {
 	
 	//ToDo: strcmp is case sensitive; we may want to do case-intensive matching here...
 	while (mimeTypes[i].ext!=NULL && strcmp(ext, mimeTypes[i].ext)!=0) i++;
+	httpd_printf("EXIT: httpdGetMimetype\n");
 	return mimeTypes[i].mimetype;
 }
 
 //Looks up the connData info for a specific connection
 static HttpdConnData ICACHE_FLASH_ATTR *httpdFindConnData(ConnTypePtr conn, char *remIp, int remPort) {
+	httpd_printf("ENTRY: httpdFindConnData\n");
 	for (int i=0; i<HTTPD_MAX_CONNECTIONS; i++) {
 		if (connData[i] && connData[i]->remote_port == remPort &&
 						memcmp(connData[i]->remote_ip, remIp, 4) == 0) {
 			connData[i]->conn=conn;
+			httpd_printf("EXIT: httpdFindConnData\n");
 			return connData[i];
 		}
 	}
 	//Shouldn't happen.
 	httpd_printf("*** Unknown connection %d.%d.%d.%d:%d\n", remIp[0]&0xff, remIp[1]&0xff, remIp[2]&0xff, remIp[3]&0xff, remPort);
 	httpdPlatDisconnect(conn);
+	httpd_printf("EXIT: httpdFindConnData\n");
 	return NULL;
 }
 
 //Retires a connection for re-use
 void ICACHE_FLASH_ATTR httpdRetireConn(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdRetireConn\n");
 	conn->cgi = NULL;
-    if (!conn->reserved)
-    {
-	if (conn->priv->sendBacklog!=NULL) {
-		HttpSendBacklogItem *i, *j;
-		i=conn->priv->sendBacklog;
-		do {
-			j=i;
-			i=i->next;
-			free(j);
-		} while (i!=NULL);
+	if (!conn->reserved)
+	{
+		if (conn->priv->sendBacklog!=NULL) {
+			HttpSendBacklogItem *i, *j;
+			i=conn->priv->sendBacklog;
+			do {
+				j=i;
+				i=i->next;
+				free(j);
+				httpd_printf("FREE: httpsendbacklogitem\n");
+			} while (i!=NULL);
+		}
+		if (conn->post->buff!=NULL) {
+			free(conn->post->buff);
+			httpd_printf("FREE: conn->post->buff\n");
+		}
+		if (conn->post!=NULL) {
+			free(conn->post);
+			httpd_printf("FREE: conn->post\n");
+		}
+		if (conn->priv!=NULL) {
+			free(conn->priv);
+			httpd_printf("FREE: conn->priv\n");
+		}
+		if (conn) {
+			free(conn);
+			httpd_printf("FREE: conn\n");
+		}
+		for (int i=0; i<HTTPD_MAX_CONNECTIONS; i++) {
+			if (connData[i]==conn) connData[i]=NULL;
+		}
 	}
-	if (conn->post->buff!=NULL) free(conn->post->buff);
-	if (conn->post!=NULL) free(conn->post);
-	if (conn->priv!=NULL) free(conn->priv);
-	if (conn) free(conn);
-	for (int i=0; i<HTTPD_MAX_CONNECTIONS; i++) {
-		if (connData[i]==conn) connData[i]=NULL;
-	}
-    }
+	httpd_printf("EXIT: httpdRetireConn\n");
 }
 
 //Stupid li'l helper function that returns the value of a hex char.
 static int ICACHE_FLASH_ATTR  httpdHexVal(char c) {
-	if (c>='0' && c<='9') return c-'0';
-	if (c>='A' && c<='F') return c-'A'+10;
-	if (c>='a' && c<='f') return c-'a'+10;
+	httpd_printf("ENTRY: httpdHexVal\n");
+	if (c>='0' && c<='9') {
+		httpd_printf("EXIT: httpdHexVal\n");
+		return c-'0';
+	}
+	if (c>='A' && c<='F') {
+		httpd_printf("EXIT: httpdHexVal\n");
+		return c-'A'+10;
+	}
+	if (c>='a' && c<='f') {
+		httpd_printf("EXIT: httpdHexVal\n");
+		return c-'a'+10;
+	}
+	httpd_printf("EXIT: httpdHexVal\n");
 	return 0;
 }
 
@@ -152,6 +189,7 @@ static int ICACHE_FLASH_ATTR  httpdHexVal(char c) {
 //are stored in the ret buffer. Returns the actual amount of bytes used in ret. Also
 //zero-terminates the ret buffer.
 int ICACHE_FLASH_ATTR httpdUrlDecode(char *val, int valLen, char *ret, int retLen) {
+	httpd_printf("ENTRY: httpdUrlDecode\n");
 	int s=0, d=0;
 	int esced=0, escVal=0;
 	while (s<valLen && d<retLen) {
@@ -172,6 +210,7 @@ int ICACHE_FLASH_ATTR httpdUrlDecode(char *val, int valLen, char *ret, int retLe
 		s++;
 	}
 	if (d<retLen) ret[d]=0;
+	httpd_printf("EXIT: httpdUrlDecode\n");
 	return d;
 }
 
@@ -181,8 +220,12 @@ int ICACHE_FLASH_ATTR httpdUrlDecode(char *val, int valLen, char *ret, int retLe
 //function returns the length of the result, or -1 if the value wasn't found. The 
 //returned string will be urldecoded already.
 int ICACHE_FLASH_ATTR httpdFindArg(char *line, char *arg, char *buff, int buffLen) {
+	httpd_printf("ENTRY: httpdFindArg\n");
 	char *p, *e;
-	if (line==NULL) return -1;
+	if (line==NULL) {
+		httpd_printf("EXIT: httpdFindArg\n");
+		return -1;
+	}
 	p=line;
 	while(p!=NULL && *p!='\n' && *p!='\r' && *p!=0) {
 //		httpd_printf("findArg: %s\n", p);
@@ -191,18 +234,21 @@ int ICACHE_FLASH_ATTR httpdFindArg(char *line, char *arg, char *buff, int buffLe
 			e=(char*)strstr(p, "&");
 			if (e==NULL) e=p+strlen(p);
 //			httpd_printf("findArg: val %s len %d\n", p, (e-p));
+			httpd_printf("EXIT: httpdFindArg\n");
 			return httpdUrlDecode(p, (e-p), buff, buffLen);
 		}
 		p=(char*)strstr(p, "&");
 		if (p!=NULL) p+=1;
 	}
 	httpd_printf("Finding %s in %s: Not found :/\n", arg, line);
+	httpd_printf("EXIT: httpdFindArg\n");
 	return -1; //not found
 }
 
 //Get the value of a certain header in the HTTP client head
 //Returns true when found, false when not found.
 int ICACHE_FLASH_ATTR httpdGetHeader(HttpdConnData *conn, char *header, char *ret, int retLen) {
+	httpd_printf("ENTRY: httpdGetHeader\n");
 	char *p=conn->priv->head;
 	p=p+strlen(p)+1; //skip GET/POST part
 	p=p+strlen(p)+1; //skip HTTP part
@@ -222,69 +268,99 @@ int ICACHE_FLASH_ATTR httpdGetHeader(HttpdConnData *conn, char *header, char *re
 			//Zero-terminate string
 			*ret=0;
 			//All done :)
+			httpd_printf("EXIT: httpdGetHeader\n");
 			return 1;
 		}
 		p+=strlen(p)+1; //Skip past end of string and \0 terminator
 	}
+	httpd_printf("EXIT: httpdGetHeader\n");
 	return 0;
 }
 
-//Call before calling httpdStartResponse to disable automatically-chosen transfer
-//encodings (specifically, for now, chunking) and fall back on Connection: Close.
-void ICACHE_FLASH_ATTR httpdDisableTransferEncoding(HttpdConnData *conn) {
-	conn->priv->flags&=~HFL_CHUNKED;
+void ICACHE_FLASH_ATTR httdSetTransferMode(HttpdConnData *conn, int mode) {
+	httpd_printf("ENTRY: httdSetTransferMode\n");
+	if (mode==HTTPD_TRANSFER_CLOSE) {
+		conn->priv->flags&=~HFL_CHUNKED;
+		conn->priv->flags&=~HFL_NOCONNECTIONSTR;
+	} else if (mode==HTTPD_TRANSFER_CHUNKED) {
+		conn->priv->flags|=HFL_CHUNKED;
+		conn->priv->flags&=~HFL_NOCONNECTIONSTR;
+	} else if (mode==HTTPD_TRANSFER_NONE) {
+		conn->priv->flags&=~HFL_CHUNKED;
+		conn->priv->flags|=HFL_NOCONNECTIONSTR;
+	}
+	httpd_printf("EXIT: httdSetTransferMode\n");
 }
 
 //Start the response headers.
 void ICACHE_FLASH_ATTR httpdStartResponse(HttpdConnData *conn, int code) {
+	httpd_printf("ENTRY: httpdStartResponse\n");
 	char buff[256];
 	int l;
-	l=sprintf(buff, "HTTP/1.%d %d OK\r\nServer: esp8266-httpd/"HTTPDVER"\r\n%s\r\n", 
+	const char *connStr="Connection: close\r\n";
+	if (conn->priv->flags&HFL_CHUNKED) connStr="Transfer-Encoding: chunked\r\n";
+	if (conn->priv->flags&HFL_NOCONNECTIONSTR) connStr="";
+	l=sprintf(buff, "HTTP/1.%d %d OK\r\nServer: esp8266-httpd/"HTTPDVER"\r\n%s", 
 			(conn->priv->flags&HFL_HTTP11)?1:0, 
 			code, 
-			(conn->priv->flags&HFL_CHUNKED)?"Transfer-Encoding: chunked":"Connection: close");
+			connStr);
 	httpdSend(conn, buff, l);
+	httpd_printf("EXIT: httpdStartResponse\n");
 }
 
 //Send a http header.
 void ICACHE_FLASH_ATTR httpdHeader(HttpdConnData *conn, const char *field, const char *val) {
+	httpd_printf("ENTRY: httpdHeader\n");
 	httpdSend(conn, field, -1);
 	httpdSend(conn, ": ", -1);
 	httpdSend(conn, val, -1);
 	httpdSend(conn, "\r\n", -1);
+	httpd_printf("EXIT: httpdHeader\n");
 }
 
 //Finish the headers.
 void ICACHE_FLASH_ATTR httpdEndHeaders(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdEndHeaders\n");
 	httpdSend(conn, "\r\n", -1);
 	conn->priv->flags|=HFL_SENDINGBODY;
+	httpd_printf("EXIT: httpdEndHeaders\n");
 }
 
 //Redirect to the given URL.
 void ICACHE_FLASH_ATTR httpdRedirect(HttpdConnData *conn, char *newUrl) {
+	httpd_printf("ENTRY: httpdRedirect\n");
 	httpdStartResponse(conn, 302);
 	httpdHeader(conn, "Location", newUrl);
 	httpdEndHeaders(conn);
 	httpdSend(conn, "Moved to ", -1);
 	httpdSend(conn, newUrl, -1);
+	httpd_printf("EXIT: httpdRedirect\n");
 }
 
 //Use this as a cgi function to redirect one url to another.
 int ICACHE_FLASH_ATTR cgiRedirect(HttpdConnData *connData) {
+	httpd_printf("ENTRY: cgiRedirect\n");
 	if (connData->conn==NULL) {
 		//Connection aborted. Clean up.
+		httpd_printf("EXIT: cgiRedirect\n");
 		return HTTPD_CGI_DONE;
 	}
 	httpdRedirect(connData, (char*)connData->cgiArg);
+	httpd_printf("EXIT: cgiRedirect\n");
 	return HTTPD_CGI_DONE;
 }
 
 //Used to spit out a 404 error
 static int ICACHE_FLASH_ATTR cgiNotFound(HttpdConnData *connData) {
-	if (connData->conn==NULL) return HTTPD_CGI_DONE;
+	httpd_printf("ENTRY: cgiNotFound\n");
+	if (connData->conn==NULL) {
+		httpd_printf("EXIT: cgiNotFound\n");
+		return HTTPD_CGI_DONE;
+	}
 	httpdStartResponse(connData, 404);
 	httpdEndHeaders(connData);
 	httpdSend(connData, "404 File not found.", -1);
+	httpd_printf("EXIT: cgiNotFound\n");
 	return HTTPD_CGI_DONE;
 }
 
@@ -294,16 +370,19 @@ static int ICACHE_FLASH_ATTR cgiNotFound(HttpdConnData *connData) {
 //this will also redirect connections when the ESP is in STA mode, potentially to a hostname that is not
 //in the 'official' DNS and so will fail.
 int ICACHE_FLASH_ATTR cgiRedirectToHostname(HttpdConnData *connData) {
+	httpd_printf("ENTRY: cgiRedirectToHostname\n");
 	static const char hostFmt[]="http://%s/";
 	char *buff;
 	int isIP=0;
 	int x;
 	if (connData->conn==NULL) {
 		//Connection aborted. Clean up.
+		httpd_printf("EXIT: cgiRedirectToHostname\n");
 		return HTTPD_CGI_DONE;
 	}
 	if (connData->hostName==NULL) {
 		httpd_printf("Huh? No hostname.\n");
+		httpd_printf("EXIT: cgiRedirectToHostname\n");
 		return HTTPD_CGI_NOTFOUND;
 	}
 
@@ -314,15 +393,30 @@ int ICACHE_FLASH_ATTR cgiRedirectToHostname(HttpdConnData *connData) {
 			if (connData->hostName[x]!='.' && (connData->hostName[x]<'0' || connData->hostName[x]>'9')) isIP=0;
 		}
 	}
-	if (isIP) return HTTPD_CGI_NOTFOUND;
+	if (isIP) {
+		httpd_printf("EXIT: cgiRedirectToHostname\n");
+		return HTTPD_CGI_NOTFOUND;
+	}
 	//Check hostname; pass on if the same
-	if (strcmp(connData->hostName, (char*)connData->cgiArg)==0) return HTTPD_CGI_NOTFOUND;
+	if (strcmp(connData->hostName, (char*)connData->cgiArg)==0) {
+		httpd_printf("EXIT: cgiRedirectToHostname\n");
+		return HTTPD_CGI_NOTFOUND;
+	}
 	//Not the same. Redirect to real hostname.
 	buff=malloc(strlen((char*)connData->cgiArg)+sizeof(hostFmt));
+	httpd_printf("MALLOC: redirect buff %d\r\n", strlen((char*)connData->cgiArg)+sizeof(hostFmt));
+	if (buff==NULL) {
+		//Bail out
+		httpd_printf("MALLOC: failed\n");
+		httpd_printf("EXIT: cgiRedirectToHostname\n");
+		return HTTPD_CGI_DONE;
+	}
 	sprintf(buff, hostFmt, (char*)connData->cgiArg);
-	httpd_printf("Redirecting to hostname url %s\n", buff);
+	httpd_printf("REDIRECT: to hostname url %s\n", buff);
 	httpdRedirect(connData, buff);
 	free(buff);
+	httpd_printf("FREE: buff\n");
+	httpd_printf("EXIT: cgiRedirectToHostname\n");
 	return HTTPD_CGI_DONE;
 }
 
@@ -331,6 +425,7 @@ int ICACHE_FLASH_ATTR cgiRedirectToHostname(HttpdConnData *connData) {
 //the SoftAP interface. This should preclude clients connected to the STA interface
 //to be redirected to nowhere.
 int ICACHE_FLASH_ATTR cgiRedirectApClientToHostname(HttpdConnData *connData) {
+	httpd_printf("ENTRY: cgiRedirectApClientToHostname\n");
 #ifndef FREERTOS
 	uint32 *remadr;
 	struct ip_info apip;
@@ -340,13 +435,16 @@ int ICACHE_FLASH_ATTR cgiRedirectApClientToHostname(HttpdConnData *connData) {
 	remadr=(uint32 *)connData->remote_ip;
 	wifi_get_ip_info(SOFTAP_IF, &apip);
 	if ((*remadr & apip.netmask.addr) == (apip.ip.addr & apip.netmask.addr)) {
+		httpd_printf("EXIT: cgiRedirectApClientToHostname\n");
 		return cgiRedirectToHostname(connData);
 	} else {
+		httpd_printf("EXIT: cgiRedirectApClientToHostname\n");
 		return HTTPD_CGI_NOTFOUND;
 	}
 #else
 	return HTTPD_CGI_NOTFOUND;
 #endif
+	httpd_printf("EXIT: cgiRedirectApClientToHostname\n");
 }
 
 
@@ -354,25 +452,72 @@ int ICACHE_FLASH_ATTR cgiRedirectApClientToHostname(HttpdConnData *connData) {
 //the data is seen as a C-string.
 //Returns 1 for success, 0 for out-of-memory.
 int ICACHE_FLASH_ATTR httpdSend(HttpdConnData *conn, const char *data, int len) {
-	if (conn->conn==NULL) return 0;
-	if (len<0) len=strlen(data);
-	if (len==0) return 0;
+	httpd_printf("ENTRY: httpdSend\n");
+	int stack;
+#if 0	
+	dump_stack();
+	ets_printf("  conn %x\r\n", conn);
+	ets_printf("  priv %x\r\n", conn->priv);
+	ets_printf("  sendBuff %x\r\n", conn->priv->sendBuff);
+	ets_printf("  sendBuffLen %d\r\n", conn->priv->sendBuffLen);
+	//ets_printf("  data %x\r\n", data);
+	ets_printf("  this len %x\r\n", len);
+	//ets_printf("  %s\r\n", data);
+  ets_printf("  free heap: %d\r\n", system_get_free_heap_size());
+	ets_printf("  send data: %s\r\n", data);
+	//ets_printf("  %s\r\n", data);
+#endif	
+	if (conn->conn==NULL) {
+		httpd_printf("EXIT: httpdSend\n");
+		return 0;
+	}
+	if (len<0)
+	{
+		len=strlen(data);
+#if 0		
+		ets_printf("  strlen: %d\r\n", len);
+#endif
+	}
+	if (len==0) {
+		httpd_printf("EXIT: httpdSend\n");
+		return 0;
+	}
 	if (conn->priv->flags&HFL_CHUNKED && conn->priv->flags&HFL_SENDINGBODY && conn->priv->chunkHdr==NULL) {
-		if (conn->priv->sendBuffLen+len+6>MAX_SENDBUFF_LEN) return 0;
+		if (conn->priv->sendBuffLen+len+6>HTTPD_MAX_SENDBUFF_LEN) {
+  		httpd_printf("EXIT: httpdSend\n");
+			return 0;
+		}
 		//Establish start of chunk
 		conn->priv->chunkHdr=&conn->priv->sendBuff[conn->priv->sendBuffLen];
 		strcpy(conn->priv->chunkHdr, "0000\r\n");
 		conn->priv->sendBuffLen+=6;
 	}
-	if (conn->priv->sendBuffLen+len>MAX_SENDBUFF_LEN) return 0;
+	if (conn->priv->sendBuffLen+len>HTTPD_MAX_SENDBUFF_LEN) {
+		httpd_printf("EXIT: httpdSend\n");
+		return 0;
+	}
+	httpd_printf("  Adding to sendBuff\n");
+	httpd_printf("    sendBuffLen %d\n", conn->priv->sendBuffLen);
+	httpd_printf("    &data %p\n", data);
+	httpd_printf("    data %s\n", data);
+	httpd_printf("    data len %d\n", len);
 	memcpy(conn->priv->sendBuff+conn->priv->sendBuffLen, data, len);
 	conn->priv->sendBuffLen+=len;
+#if 0	
+	ets_printf("  memcpy done\r\n");
+#endif
+	httpd_printf("EXIT: httpdSend\n");
 	return 1;
 }
 
 static char ICACHE_FLASH_ATTR httpdHexNibble(int val) {
+	httpd_printf("ENTRY: httpdHexNibble\n");
 	val&=0xf;
-	if (val<10) return '0'+val;
+	if (val<10) {
+		httpd_printf("EXIT: httpdHexNibble\n");
+		return '0'+val;
+	}
+	httpd_printf("EXIT: httpdHexNibble\n");
 	return 'A'+(val-10);
 }
 
@@ -380,8 +525,23 @@ static char ICACHE_FLASH_ATTR httpdHexNibble(int val) {
 //are doing! Also, if you do set conn->cgi to NULL to indicate the connection is closed, do it BEFORE
 //calling this.
 void ICACHE_FLASH_ATTR httpdFlushSendBuffer(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdFlushSendBuffer\n");
 	int r, len;
-	if (conn->conn==NULL) return;
+#if 0	
+	httpd_printf("  conn %p\n", conn);
+	httpd_printf("  conn->conn %p\n", conn->conn);
+	httpd_printf("  conn->priv %p\n", conn->priv);
+	httpd_printf("  conn->priv->chunkHdr %p\n", conn->priv->chunkHdr);
+	httpd_printf("  conn->priv->flags %x\n", conn->priv->flags);
+	httpd_printf("  conn->cgi %p\n", conn->cgi);
+#endif 	
+	if (conn->conn==NULL) {
+	  httpd_printf("EXIT: httpdFlushSendBuffer\n");
+		return;
+	}
+#if 0	
+	httpd_printf("  conn->priv->sendBuffLen %d\n", conn->priv->sendBuffLen);
+#endif	
 	if (conn->priv->chunkHdr!=NULL) {
 		//We're sending chunked data, and the chunk needs fixing up.
 		//Finish chunk with cr/lf
@@ -405,16 +565,19 @@ void ICACHE_FLASH_ATTR httpdFlushSendBuffer(HttpdConnData *conn) {
 		r=httpdPlatSendData(conn->conn, conn->priv->sendBuff, conn->priv->sendBuffLen);
 		if (!r) {
 			//Can't send this for some reason. Dump packet in backlog, we can send it later.
-			if (conn->priv->sendBacklogSize+conn->priv->sendBuffLen>MAX_BACKLOG_SIZE) {
+			if (conn->priv->sendBacklogSize+conn->priv->sendBuffLen>HTTPD_MAX_BACKLOG_SIZE) {
 				httpd_printf("Httpd: Backlog: Exceeded max backlog size, dropped %d bytes instead of sending them.\n", conn->priv->sendBuffLen);
 				conn->priv->sendBuffLen=0;
+				httpd_printf("EXIT: httpdFlushSendBuffer\n");
 				return;
 			}
 			HttpSendBacklogItem *i=malloc(sizeof(HttpSendBacklogItem)+conn->priv->sendBuffLen);
 			if (i==NULL) {
 				httpd_printf("Httpd: Backlog: malloc failed, out of memory!\n");
+				httpd_printf("EXIT: httpdFlushSendBuffer\n");
 				return;
 			}
+			httpd_printf("MALLOC: httpsendbacklogitem %d\n", sizeof(HttpSendBacklogItem)+conn->priv->sendBuffLen);
 			memcpy(i->data, conn->priv->sendBuff, conn->priv->sendBuffLen);
 			i->len=conn->priv->sendBuffLen;
 			i->next=NULL;
@@ -429,9 +592,15 @@ void ICACHE_FLASH_ATTR httpdFlushSendBuffer(HttpdConnData *conn) {
 		}
 		conn->priv->sendBuffLen=0;
 	}
+	httpd_printf("EXIT: httpdFlushSendBuffer\n");
 }
 
 void ICACHE_FLASH_ATTR httpdCgiIsDone(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdCgiIsDone\n");
+	if (conn == NULL)
+	{
+		httpd_printf("Eeep!\n");
+	}
 	conn->cgi=NULL; //no need to call this anymore
 	if (conn->priv->flags&HFL_CHUNKED) {
 		httpd_printf("Pool slot %d is done. Cleaning up for next req\n", conn->slot);
@@ -440,25 +609,44 @@ void ICACHE_FLASH_ATTR httpdCgiIsDone(HttpdConnData *conn) {
 		conn->priv->headPos=0;
 		conn->post->len=-1;
 		conn->priv->flags=0;
-		if (conn->post->buff) free(conn->post->buff);
+		if (conn->post->buff) {
+			free(conn->post->buff);
+			httpd_printf("FREE: conn->post->buff\n");
+		}
 		conn->post->buff=NULL;
 		conn->post->buffLen=0;
 		conn->post->received=0;
 		conn->hostName=NULL;
+		conn->reserved=0;
 	} else {
 		//Cannot re-use this connection. Mark to get it killed after all data is sent.
 		conn->priv->flags|=HFL_DISCONAFTERSENT;
 	}
+	httpd_printf("EXIT: httpdCgiIsDone\n");
 }
 
 //Callback called when the data on a socket has been successfully
 //sent.
 void ICACHE_FLASH_ATTR httpdSentCb(ConnTypePtr rconn, char *remIp, int remPort) {
-	int r;
+	httpd_printf("ENTRY: httpdSentCb\n");
 	HttpdConnData *conn=httpdFindConnData(rconn, remIp, remPort);
+	httpdContinue(conn);
+	httpd_printf("EXIT: httpdSentCb\n");
+}
+
+//Can be called after a CGI function has returned HTTPD_CGI_MORE to
+//resume handling an open connection asynchronously
+void ICACHE_FLASH_ATTR httpdContinue(HttpdConnData * conn) {
+	httpd_printf("ENTRY: httpdContinue\n");
+	int r;
+	httpdPlatLock();
+
 	char *sendBuff;
 
-	if (conn==NULL) return;
+	if (conn==NULL) {
+  	httpd_printf("EXIT: httpdContinue\n");
+		return;
+	}
 
 	if (conn->priv->sendBacklog!=NULL) {
 		//We have some backlog to send first.
@@ -466,20 +654,36 @@ void ICACHE_FLASH_ATTR httpdSentCb(ConnTypePtr rconn, char *remIp, int remPort) 
 		httpdPlatSendData(conn->conn, conn->priv->sendBacklog->data, conn->priv->sendBacklog->len);
 		conn->priv->sendBacklogSize-=conn->priv->sendBacklog->len;
 		free(conn->priv->sendBacklog);
+		httpd_printf("FREE: conn->priv->sendBacklog\n");
 		conn->priv->sendBacklog=next;
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdContinue\n");
 		return;
 	}
 
 	if (conn->priv->flags&HFL_DISCONAFTERSENT) { //Marked for destruction?
 		httpd_printf("Pool slot %d is done. Closing.\n", conn->slot);
 		httpdPlatDisconnect(conn->conn);
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdContinue\n");
 		return; //No need to call httpdFlushSendBuffer.
 	}
 
 	//If we don't have a CGI function, there's nothing to do but wait for something from the client.
-	if (conn->cgi==NULL) return;
+	if (conn->cgi==NULL) {
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdContinue\n");
+		return;
+	}
 
-	sendBuff=malloc(MAX_SENDBUFF_LEN);
+	sendBuff=malloc(HTTPD_MAX_SENDBUFF_LEN);
+	if (sendBuff==NULL) {
+		httpd_printf("Malloc of sendBuff failed!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdContinue\n");
+		return;
+	}
+	httpd_printf("MALLOC: sendBuff %d\n", HTTPD_MAX_SENDBUFF_LEN);
 	conn->priv->sendBuff=sendBuff;
 	conn->priv->sendBuffLen=0;
 	r=conn->cgi(conn); //Execute cgi fn.
@@ -492,6 +696,9 @@ void ICACHE_FLASH_ATTR httpdSentCb(ConnTypePtr rconn, char *remIp, int remPort) 
 	}
 	httpdFlushSendBuffer(conn);
 	free(sendBuff);
+	httpd_printf("FREE: sendBuff\n");
+	httpdPlatUnlock();
+	httpd_printf("EXIT: httpdContinue\n");
 }
 
 //This is called when the headers have been received and the connection is ready to send
@@ -499,15 +706,19 @@ void ICACHE_FLASH_ATTR httpdSentCb(ConnTypePtr rconn, char *remIp, int remPort) 
 //We need to find the CGI function to call, call it, and dependent on what it returns either
 //find the next cgi function, wait till the cgi data is sent or close up the connection.
 static void ICACHE_FLASH_ATTR httpdProcessRequest(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdProcessRequest\n");
 	int r;
 	int i=0;
+	ets_printf("httpdProcessRequest stack %p\r\n", &r);
 	if (conn->url==NULL) {
 		httpd_printf("WtF? url = NULL\n");
+		httpd_printf("EXIT: httpdProcessRequest\n");
 		return; //Shouldn't happen
 	}
+	ets_printf("httpdProcesRequest for URL: %s\r\n", conn->url);
+
 	//See if we can find a CGI that's happy to handle the request.
 	while (1) {
-		//ets_printf("HTTPD esp: Handle url: %s\r\n", conn->url);
 		//Look up URL in the built-in URL table.
 		while (builtInUrls[i].url!=NULL) {
 			int match=0;
@@ -543,10 +754,12 @@ static void ICACHE_FLASH_ATTR httpdProcessRequest(HttpdConnData *conn) {
 				httpdPlatDisableTimeout(conn->conn);
 			}
 			httpdFlushSendBuffer(conn);
+			httpd_printf("EXIT: httpdProcessRequest\n");
 			return;
 		} else if (r==HTTPD_CGI_DONE) {
 			//Yep, it's happy to do so and already is done sending data.
 			httpdCgiIsDone(conn);
+			httpd_printf("EXIT: httpdProcessRequest\n");
 			return;
 		} else if (r==HTTPD_CGI_NOTFOUND || r==HTTPD_CGI_AUTHENTICATED) {
 			//URL doesn't want to handle the request: either the data isn't found or there's no
@@ -554,15 +767,21 @@ static void ICACHE_FLASH_ATTR httpdProcessRequest(HttpdConnData *conn) {
 			i++; //look at next url the next iteration of the loop.
 		}
 	}
+	httpd_printf("EXIT: httpdProcessRequest\n");
 }
 
 //Parse a line of header data and modify the connection data accordingly.
 static void ICACHE_FLASH_ATTR httpdParseHeader(char *h, HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdParseHeader\n");
 	int i;
 	char firstLine=0;
+	httpd_printf("httpdParseHeader %s\n", h);
 	
 	if (strncmp(h, "GET ", 4)==0) {
 		conn->requestType = HTTPD_METHOD_GET;
+		firstLine=1;
+	} else if (strncmp(h, "HEAD ", 4)==0) {
+		conn->requestType = HTTPD_METHOD_HEAD;
 		firstLine=1;
 	} else if (strncmp(h, "Host:", 5)==0) {
 		i=5;
@@ -576,20 +795,27 @@ static void ICACHE_FLASH_ATTR httpdParseHeader(char *h, HttpdConnData *conn) {
 	if (firstLine) {
 		char *e;
 		
-		//Skip past the space after POST/GET
+		//Skip past the space after POST/GET/HEAD
 		i=0;
 		while (h[i]!=' ') i++;
 		conn->url=h+i+1;
 
 		//Figure out end of url.
 		e=(char*)strstr(conn->url, " ");
-		if (e==NULL) return; //wtf?
+		if (e==NULL) {
+			httpd_printf("EXIT: httpdParseHeader\n");
+			return; //wtf?
+		}
 		*e=0; //terminate url part
 		e++; //Skip to protocol indicator
 		while (*e==' ') e++; //Skip spaces.
 		//If HTTP/1.1, note that and set chunked encoding
-		if (strcasecmp(e, "HTTP/1.1")==0) conn->priv->flags|=HFL_HTTP11|HFL_CHUNKED;
+		//if (strcasecmp(e, "HTTP/1.1")==0) conn->priv->flags|=HFL_HTTP11|HFL_CHUNKED;  // XXX PDF Was
+		if (strcasecmp(e, "HTTP/1.1")==0) conn->priv->flags|=HFL_HTTP11;  // XXX PDF change
 
+		httpd_printf("Conn ptr = %p\n", conn);
+		httpd_printf("URL ptr = %x\n", conn->url);
+		httpd_printf("URL len = %d\n", strlen(conn->url));
 		httpd_printf("URL = %s\n", conn->url);
 		//Parse out the URL part before the GET parameters.
 		conn->getArgs=(char*)strstr(conn->url, "?");
@@ -613,14 +839,19 @@ static void ICACHE_FLASH_ATTR httpdParseHeader(char *h, HttpdConnData *conn) {
 		conn->post->len=atoi(h+i);
 
 		// Allocate the buffer
-		if (conn->post->len > MAX_POST) {
+		if (conn->post->len > HTTPD_MAX_POST_LEN) {
 			// we'll stream this in in chunks
-			conn->post->buffSize = MAX_POST;
+			conn->post->buffSize = HTTPD_MAX_POST_LEN;
 		} else {
 			conn->post->buffSize = conn->post->len;
 		}
-		httpd_printf("Mallocced buffer for %d + 1 bytes of post data.\n", conn->post->buffSize);
 		conn->post->buff=(char*)malloc(conn->post->buffSize + 1);
+		if (conn->post->buff==NULL) {
+			printf("...failed!\n");
+			httpd_printf("EXIT: httpdParseHeader\n");
+			return;
+		}
+		httpd_printf("MALLOC: post->buff %d\n", conn->post->buffSize + 1);
 		conn->post->buffLen=0;
 	} else if (strncmp(h, "Content-Type: ", 14)==0) {
 		if (strstr(h, "multipart/form-data")) {
@@ -634,18 +865,68 @@ static void ICACHE_FLASH_ATTR httpdParseHeader(char *h, HttpdConnData *conn) {
 			}
 		}
 	}
+	httpd_printf("EXIT: httpdParseHeader\n");
 }
 
-
-//Callback called when there's data available on a socket.
-void httpdRecvCb(ConnTypePtr rconn, char *remIp, int remPort, char *data, unsigned short len) {
-	int x, r;
-	char *p, *e;
-	char *sendBuff=malloc(MAX_SENDBUFF_LEN);
-	HttpdConnData *conn=httpdFindConnData(rconn, remIp, remPort);
-	if (conn==NULL) return;
+//Make a connection 'live' so we can do all the things a cgi can do to it.
+//ToDo: Also make httpdRecvCb/httpdContinue use these?
+//ToDo: Fail if malloc fails?
+void ICACHE_FLASH_ATTR httpdConnSendStart(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdConnSendStart\n");
+	httpdPlatLock();
+	char *sendBuff=malloc(HTTPD_MAX_SENDBUFF_LEN);
+	if (sendBuff==NULL) {
+		printf("Malloc sendBuff failed!\n");
+		httpd_printf("EXIT: httpdConnSendStart\n");
+		return;
+	}
+	httpd_printf("MALLOC: sendBuff %d\n", HTTPD_MAX_SENDBUFF_LEN);
 	conn->priv->sendBuff=sendBuff;
 	conn->priv->sendBuffLen=0;
+	httpd_printf("EXIT: httpdConnSendStart\n");
+}
+
+//Finish the live-ness of a connection. Always call this after httpdConnStart
+void ICACHE_FLASH_ATTR httpdConnSendFinish(HttpdConnData *conn) {
+	httpd_printf("ENTRY: httpdConnSendFinish\n");
+	if (conn->conn) httpdFlushSendBuffer(conn);
+	free(conn->priv->sendBuff);
+	httpd_printf("FREE: conn->priv->sendBuff\n");
+	httpdPlatUnlock();
+	httpd_printf("EXIT: httpdConnSendFinish\n");
+}
+
+//Callback called when there's data available on a socket.
+void ICACHE_FLASH_ATTR httpdRecvCb(ConnTypePtr rconn, char *remIp, int remPort, char *data, unsigned short len) {
+	httpd_printf("ENTRY: httpdRecvCb\n");
+	int x, r;
+	char *p, *e;
+
+	ets_printf("  stack %p\r\n", &x);
+	
+	httpdPlatLock();
+
+	HttpdConnData *conn=httpdFindConnData(rconn, remIp, remPort);
+	if (conn==NULL) {
+		ets_printf("couldn't find connection\r\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdRecvCb\n");
+		return;
+	}
+	ets_printf("  conn %p\r\n", conn);
+	ets_printf("  conn->priv %p\r\n", conn->priv);
+
+	char *sendBuff=malloc(HTTPD_MAX_SENDBUFF_LEN);
+	if (sendBuff==NULL) {
+		printf("Malloc sendBuff failed!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdRecvCb\n");
+		return;
+	}
+	httpd_printf("MALLOC: sendBuff %d\n", HTTPD_MAX_SENDBUFF_LEN);
+	conn->priv->sendBuff=sendBuff;
+	conn->priv->sendBuffLen=0;
+	ets_printf("  conn->priv->SendBuff %p\r\n", conn->priv->sendBuff);
 
 	//This is slightly evil/dirty: we abuse conn->post->len as a state variable for where in the http communications we are:
 	//<0 (-1): Post len unknown because we're still receiving headers
@@ -663,7 +944,7 @@ void httpdRecvCb(ConnTypePtr rconn, char *remIp, int remPort, char *data, unsign
 				}
 			}
 			//ToDo: return http error code 431 (request header too long) if this happens
-			if (conn->priv->headPos!=MAX_HEAD_LEN) conn->priv->head[conn->priv->headPos++]=data[x];
+			if (conn->priv->headPos<HTTPD_MAX_HEAD_LEN-1) conn->priv->head[conn->priv->headPos++]=data[x];
 			conn->priv->head[conn->priv->headPos]=0;
 			//Scan for /r/n/r/n. Receiving this indicate the headers end.
 			if (data[x]=='\n' && (char *)strstr(conn->priv->head, "\r\n\r\n")!=NULL) {
@@ -723,37 +1004,75 @@ void httpdRecvCb(ConnTypePtr rconn, char *remIp, int remPort, char *data, unsign
 	}
 	if (conn->conn) httpdFlushSendBuffer(conn);
 	free(sendBuff);
+	httpd_printf("FREE: sendBuff\n");
+	conn->priv->sendBuff = NULL; // XXX PDF New
+	httpdPlatUnlock();
+	httpd_printf("EXIT: httpdRecvCb\n");
 }
 
 //The platform layer should ALWAYS call this function, regardless if the connection is closed by the server
 //or by the client.
 void ICACHE_FLASH_ATTR httpdDisconCb(ConnTypePtr rconn, char *remIp, int remPort) {
+	httpd_printf("ENTRY: httpdDisconCb\n");
+	httpdPlatLock();
 	HttpdConnData *hconn=httpdFindConnData(rconn, remIp, remPort);
-	if (hconn==NULL) return;
+	if (hconn==NULL) {
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdDisconCb\n");
+		return;
+	}
 	httpd_printf("Pool slot %d: socket closed.\n", hconn->slot);
 	hconn->conn=NULL; //indicate cgi the connection is gone
 	if (hconn->cgi) hconn->cgi(hconn); //Execute cgi fn if needed
 	httpdRetireConn(hconn);
+	httpdPlatUnlock();
+	httpd_printf("EXIT: httpdDisconCb\n");
 }
 
 
 int ICACHE_FLASH_ATTR httpdConnectCb(ConnTypePtr conn, char *remIp, int remPort) {
+	httpd_printf("ENTRY: httpdConnectCb\n");
 	int i;
+	httpdPlatLock();
 	//Find empty conndata in pool
 	for (i=0; i<HTTPD_MAX_CONNECTIONS; i++) if (connData[i]==NULL) break;
 	httpd_printf("Conn req from  %d.%d.%d.%d:%d, using pool slot %d\n", remIp[0]&0xff, remIp[1]&0xff, remIp[2]&0xff, remIp[3]&0xff, remPort, i);
 	if (i==HTTPD_MAX_CONNECTIONS) {
 		httpd_printf("Aiee, conn pool overflow!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdConnectCb\n");
 		return 0;
 	}
 	connData[i]=malloc(sizeof(HttpdConnData));
+	if (connData[i]==NULL) {
+		printf("Out of memory allocating connData!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdConnectCb\n");
+		return 0;
+	}
+	httpd_printf("MALLOC: connData %d\n", sizeof(HttpdConnData));
 	memset(connData[i], 0, sizeof(HttpdConnData));
 	connData[i]->priv=malloc(sizeof(HttpdPriv));
+	if (connData[i]->priv == NULL)
+	{
+		printf("Out of memory allocating connData priv struct!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdConnectCb\n");
+		return 0;
+	}
+	httpd_printf("MALLOC: priv %d\n", sizeof(HttpdPriv));
 	memset(connData[i]->priv, 0, sizeof(HttpdPriv));
 	connData[i]->conn=conn;
 	connData[i]->slot=i;
 	connData[i]->priv->headPos=0;
 	connData[i]->post=malloc(sizeof(HttpdPostData));
+	if (connData[i]->post==NULL) {
+		printf("Out of memory allocating connData post struct!\n");
+		httpdPlatUnlock();
+		httpd_printf("EXIT: httpdConnectCb\n");
+		return 0;
+	}
+	httpd_printf("MALLOC: post %d\n", sizeof(HttpdPostData));
 	memset(connData[i]->post, 0, sizeof(HttpdPostData));
 	connData[i]->post->buff=NULL;
 	connData[i]->post->buffLen=0;
@@ -766,11 +1085,14 @@ int ICACHE_FLASH_ATTR httpdConnectCb(ConnTypePtr conn, char *remIp, int remPort)
 	memcpy(connData[i]->remote_ip, remIp, 4);
 	connData[i]->reserved = FALSE;
 
+	httpdPlatUnlock();
+	httpd_printf("EXIT: httpdConnectCb\n");
 	return 1;
 }
 
 //Httpd initialization routine. Call this to kick off webserver functionality.
 void ICACHE_FLASH_ATTR httpdInit(HttpdBuiltInUrl *fixedUrls, int port) {
+	httpd_printf("ENTRY: httpdInit\n");
 	int i;
 
 	for (i=0; i<HTTPD_MAX_CONNECTIONS; i++) {
@@ -779,5 +1101,5 @@ void ICACHE_FLASH_ATTR httpdInit(HttpdBuiltInUrl *fixedUrls, int port) {
 	builtInUrls=fixedUrls;
 
 	httpdPlatInit(port, HTTPD_MAX_CONNECTIONS);
-	httpd_printf("Httpd init\n");
+	httpd_printf("EXIT: httpdInit\n");
 }

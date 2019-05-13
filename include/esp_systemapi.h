@@ -73,9 +73,9 @@ extern void uart_tx_one_char(char ch);
 
 extern void ets_intr_lock();
 extern void ets_intr_unlock();
-int tolower(int c);
-int isspace(int c);
-int strcasecmp(const char *a, const char *b);
+extern int tolower(int c);
+extern int isspace(int c);
+extern int strcasecmp(const char *a, const char *b);
 
 // CPU Frequency
 extern void ets_update_cpu_frequency(uint32_t frq);

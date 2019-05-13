@@ -51,6 +51,7 @@
 #include "esp_systemapi.h"
 #include "uart.h"
 #include "esp_sdk_ver.h"
+#include "espconn.h"
 #else
 #include "esput.h"
 #endif // ESPUT

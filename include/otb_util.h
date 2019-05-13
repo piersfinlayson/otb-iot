@@ -80,6 +80,8 @@ bool otb_util_flash_write_string(uint32 location,
                                  uint32 *source,
                                  uint32 len);
 bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len);
+void otb_util_log_heap_size_start_timer(void);
+void otb_util_log_heap_size_timer(void *arg);
 void otb_util_get_heap_size(void);
 bool otb_util_get_vdd33(uint16 *vdd33);
 void otb_util_timer_cancel(os_timer_t *timer);
@@ -135,6 +137,8 @@ os_timer_t otb_util_reset_timer;
 unsigned char otb_util_factory_reset_reason[] = "Factory reset completed";
 
 struct otb_reset_reason otb_reset_reason_struct;
+
+os_timer_t otb_util_heap_timer;
 
 char otb_compile_date[12];
 char otb_compile_time[9];

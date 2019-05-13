@@ -12,7 +12,7 @@
 //#include <mem.h>
 //#include <osapi.h>
 
-#include <esp8266.h>
+#include "esp_systemapi.h"
 #include "rboot_ota.h"
 
 // structure to hold our internal update state

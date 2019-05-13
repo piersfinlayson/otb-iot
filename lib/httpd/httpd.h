@@ -3,6 +3,17 @@
 
 #define HTTPDVER "0.4"
 
+//Max length of request head. This is statically allocated for each connection.
+#define HTTPD_MAX_HEAD_LEN		1024
+//Max post buffer len. This is dynamically malloc'ed if needed.
+#define HTTPD_MAX_POST_LEN		2048
+//Max send buffer len. This is allocated on the stack.
+#define HTTPD_MAX_SENDBUFF_LEN	2048
+//If some data can't be sent because the underlaying socket doesn't accept the data (like the nonos
+//layer is prone to do), we put it in a backlog that is dynamically malloc'ed. This defines the max
+//size of the backlog.
+#define HTTPD_MAX_BACKLOG_SIZE	(4*1024)
+
 #define HTTPD_CGI_MORE 0
 #define HTTPD_CGI_DONE 1
 #define HTTPD_CGI_NOTFOUND 2
@@ -10,6 +21,11 @@
 
 #define HTTPD_METHOD_GET 1
 #define HTTPD_METHOD_POST 2
+#define HTTPD_METHOD_HEAD 3
+
+#define HTTPD_TRANSFER_CLOSE 0
+#define HTTPD_TRANSFER_CHUNKED 1
+#define HTTPD_TRANSFER_NONE 2
 
 typedef struct HttpdPriv HttpdPriv;
 typedef struct HttpdConnData HttpdConnData;
@@ -64,20 +80,23 @@ int httpdUrlDecode(char *val, int valLen, char *ret, int retLen);
 int httpdFindArg(char *line, char *arg, char *buff, int buffLen);
 void httpdInit(HttpdBuiltInUrl *fixedUrls, int port);
 const char *httpdGetMimetype(char *url);
-void httpdDisableTransferEncoding(HttpdConnData *conn);
+void ICACHE_FLASH_ATTR httpdRetireConn(HttpdConnData *conn);
+void httdSetTransferMode(HttpdConnData *conn, int mode);
 void httpdStartResponse(HttpdConnData *conn, int code);
 void httpdHeader(HttpdConnData *conn, const char *field, const char *val);
 void httpdEndHeaders(HttpdConnData *conn);
 int httpdGetHeader(HttpdConnData *conn, char *header, char *ret, int retLen);
 int httpdSend(HttpdConnData *conn, const char *data, int len);
 void httpdFlushSendBuffer(HttpdConnData *conn);
+void httpdContinue(HttpdConnData *conn);
+void httpdConnSendStart(HttpdConnData *conn);
+void httpdConnSendFinish(HttpdConnData *conn);
 
 //Platform dependent code should call these.
 void httpdSentCb(ConnTypePtr conn, char *remIp, int remPort);
 void httpdRecvCb(ConnTypePtr conn, char *remIp, int remPort, char *data, unsigned short len);
 void httpdDisconCb(ConnTypePtr conn, char *remIp, int remPort);
 int httpdConnectCb(ConnTypePtr conn, char *remIp, int remPort);
-void httpdRetireConn(HttpdConnData *conn);
 
 
 #endif

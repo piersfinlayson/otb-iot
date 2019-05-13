@@ -26,12 +26,16 @@ void mbus_init();
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
+  int stack;
+
   // According to docs required as first step, to enable us timer
   // Note that this means that maximum os_timer_arm (not us) value is about
   // 432s (0x689D0 in ms)
   system_timer_reinit();
 
   otb_util_init_logging();
+
+	ets_printf("  stack remaining %d\r\n", 0x40000000-(int)(&stack));
 
   DEBUG("OTB: user_init entry");
   
@@ -87,6 +91,10 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_conf_load();
   
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+
+#ifdef OTB_DEBUG
+  otb_util_log_heap_size_start_timer();
+#endif // OTB_DEBUG
 
 #if 0  
   if (otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE))
