@@ -38,6 +38,8 @@
 #define OTB_HTTPD_HEADER_KEEP_ALIVE   "Keep-Alive"
 #define OTB_HTTPD_HEADER_KEEP_ALIVE_LOWER   "keep-alive"
 
+#define OTB_HTTPD_MAX_CONNS 4
+
 #define OTB_HTTPD_ADD_HEADER(BUF, BUF_LEN, FMT, ...) \
                    os_snprintf(BUF,                  \
                                BUF_LEN,              \
@@ -78,6 +80,8 @@ typedef struct otb_httpd_connection
 {
   bool active;
   otb_httpd_request request;
+  uint8 remote_ip[4];
+  int remote_port;
 } otb_httpd_connection;
 
 void otb_httpd_start(void);
@@ -86,20 +90,20 @@ void otb_httpd_recon_callback(void *arg, sint8 err);
 void otb_httpd_discon_callback(void *arg);
 void otb_httpd_sent_callback(void *arg);
 void otb_httpd_recv_callback(void *arg, char *data, unsigned short len);
-uint16 otb_httpd_process_method(char *data, uint16 len);
-uint16 otb_httpd_process_url(char *data, uint16 len);
-uint16 otb_httpd_process_http(char *data, uint16 len);
-uint16 otb_httpd_process_start_line(char *data, uint16 len);
+uint16 otb_httpd_process_method(otb_httpd_connection *hconn, char *data, uint16 len);
+uint16 otb_httpd_process_url(otb_httpd_connection *hconn, char *data, uint16 len);
+uint16 otb_httpd_process_http(otb_httpd_connection *hconn, char *data, uint16 len);
+uint16 otb_httpd_process_start_line(otb_httpd_connection *hconn, char *data, uint16 len);
 uint16 otb_httpd_get_next_header(char *data,
                                  uint16 len,
                                  char *header_name,
                                  uint16 header_name_len,
                                  char *header_value,
                                  uint16 header_value_len);
-uint16 otb_httpd_process_headers(char *data, uint16 len);
-uint16 otb_httpd_build_core_response(char *buf, uint16 len, uint16 body_len);
+uint16 otb_httpd_process_headers(otb_httpd_connection *hconn, char *data, uint16 len);
+uint16 otb_httpd_build_core_response(otb_httpd_connection *hconn, char *buf, uint16 len, uint16 body_len);
 sint16 otb_httpd_get_arg(char *data, char *find, char *found, uint16 found_len);
-uint16 otb_httpd_station_config(uint8 method, char *buf, uint16 len);
+uint16 otb_httpd_station_config(otb_httpd_connection *hconn, uint8 method, char *buf, uint16 len);
 int otb_httpd_wifi_form(char *buffer, uint16_t buf_len);
 int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 
@@ -112,7 +116,7 @@ char otb_httpd_scratch2[OTB_HTTP_SCRATCH2_LEN];
 #define OTB_HTTP_MSG_LEN 2048
 char otb_httpd_msg[OTB_HTTP_MSG_LEN];
 
-static otb_httpd_connection otb_httpd_conn;
+static otb_httpd_connection otb_httpd_conn[OTB_HTTPD_MAX_CONNS];
 static struct espconn otb_httpd_espconn;
 static esp_tcp otb_httpd_tcp;
 

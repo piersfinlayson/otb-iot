@@ -38,7 +38,7 @@ void ICACHE_FLASH_ATTR otb_httpd_start(void)
   // Set up TCP connection handlers 
   os_memset(&otb_httpd_espconn, 0, sizeof(otb_httpd_espconn));
   os_memset(&otb_httpd_tcp, 0, sizeof(otb_httpd_tcp));
-  os_memset(&otb_httpd_conn, 0, sizeof(otb_httpd_conn));
+  os_memset(&otb_httpd_conn, 0, OTB_HTTPD_MAX_CONNS * sizeof(otb_httpd_connection));
   otb_httpd_espconn.type = ESPCONN_TCP;
   otb_httpd_espconn.state = ESPCONN_NONE;
   otb_httpd_espconn.proto.tcp = &otb_httpd_tcp;
@@ -54,13 +54,26 @@ void ICACHE_FLASH_ATTR otb_httpd_start(void)
 
 void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 {
+  int ii;
+  otb_httpd_connection *hconn = NULL;
   struct espconn *conn = arg;
 
   DEBUG("HTTPD: otb_httpd_connect_callback entry");
 
-  if (otb_httpd_conn.active)
+  // Get free otb_httpd_conn
+  for (ii = 0; ii < OTB_HTTPD_MAX_CONNS; ii++)
   {
-    INFO("HTTPD: 2nd incoming connection request - reject");
+    hconn = otb_httpd_conn + ii;
+    if (!hconn->active)
+    {
+      hconn = otb_httpd_conn + ii;
+      break;
+    }
+  }
+
+  if (hconn == NULL)
+  {
+    INFO("HTTPD: Too many incoming connection requests - reject");
     espconn_disconnect(conn);
     goto EXIT_LABEL;
   }
@@ -71,8 +84,12 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
         conn->proto.tcp->remote_ip[2],
         conn->proto.tcp->remote_ip[3],
         conn->proto.tcp->remote_port);
+  DEBUG("HTTPD: hconn: %p", hconn);
 
-  otb_httpd_conn.active = true;
+  conn->reverse = hconn;
+  hconn->active = true;
+  os_memcpy(hconn->remote_ip, conn->proto.tcp->remote_ip, 4);
+  hconn->remote_port = conn->proto.tcp->remote_port;
 
   espconn_regist_recvcb(conn, otb_httpd_recv_callback);
   espconn_regist_reconcb(conn, otb_httpd_recon_callback);
@@ -81,34 +98,48 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
 EXIT_LABEL:
 
-  DEBUG("HTTPD: otb_httpd_connect_callback exit");
+  INFO("HTTPD: otb_httpd_connect_callback exit");
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_httpd_recon_callback(void *arg, sint8 err)
 {
-  DEBUG("HTTPD: otb_httpd_recon_callback entry");
+  struct espconn *conn = arg;
+  otb_httpd_connection *hconn = conn->reverse;
 
+  INFO("HTTPD: otb_httpd_recon_callback entry");
+
+  DEBUG("HTTPD: hconn: %p", hconn);
   DEBUG("HTTPD: Recon reason %d", err);
   otb_httpd_discon_callback(arg);
 
-  DEBUG("HTTPD: otb_httpd_recon_callback exit");
+  INFO("HTTPD: otb_httpd_recon_callback exit");
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
 {
+  struct espconn *conn = arg;
+  otb_httpd_connection *hconn = conn->reverse;
+
   DEBUG("HTTPD: otb_httpd_discon_callback entry");
 
-  if (!otb_httpd_conn.active)
+  OTB_ASSERT(hconn != NULL);
+  DEBUG("HTTPD: hconn: %p", hconn);
+
+  if (!hconn->active)
   {
     WARN("HTTPD: Received disconnect when connection already disconnected");
   }
 
-  otb_httpd_conn.active = false;
-  os_memset(&otb_httpd_conn.request.post, 0, sizeof(otb_httpd_conn.request.post));
+  // Clear hconn out
+  hconn->active = false;
+  os_memset(&hconn->request.post, 0, sizeof(hconn->request.post));
+  os_memset(hconn->remote_ip, 0, 4);
+  hconn->remote_port = 0;
+  conn->reverse = NULL;
 
   DEBUG("HTTPD: otb_httpd_discon_callback exit");
 
@@ -117,9 +148,14 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
 
 void ICACHE_FLASH_ATTR otb_httpd_sent_callback(void *arg)
 {
+  struct espconn *conn = arg;
+  otb_httpd_connection *hconn = conn->reverse;
+
   DEBUG("HTTPD: otb_httpd_sent_callback entry");
 
-  if (!otb_httpd_conn.active)
+  DEBUG("HTTPD: hconn: %p", hconn);
+  OTB_ASSERT(hconn != NULL);
+  if (!hconn->active)
   {
     WARN("HTTPD: Received sent callback when connection already disconnected");
   }
@@ -129,7 +165,7 @@ void ICACHE_FLASH_ATTR otb_httpd_sent_callback(void *arg)
   return;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(char *data, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(otb_httpd_connection *hconn, char *data, uint16 len)
 {
   uint16 cur = 0;
 
@@ -139,26 +175,26 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(char *data, uint16 len)
   if (os_strncmp(data, "HEAD ", OTB_MIN(5, len)) == 0)
   {
     DEBUG("HTTPD: METHOD: HEAD");
-    otb_httpd_conn.request.method = OTB_HTTPD_METHOD_HEAD;
+    hconn->request.method = OTB_HTTPD_METHOD_HEAD;
     cur += 5;
   }
   else if (os_strncmp(data, "GET ", OTB_MIN(4, len)) == 0)
   {
     DEBUG("HTTPD: METHOD: GET");
-    otb_httpd_conn.request.method = OTB_HTTPD_METHOD_GET;
+    hconn->request.method = OTB_HTTPD_METHOD_GET;
     cur += 4;
   }
   else if (os_strncmp(data, "POST ", OTB_MIN(5, len)) == 0)
   {
     DEBUG("HTTPD: METHOD: POST");
-    otb_httpd_conn.request.method = OTB_HTTPD_METHOD_POST;
+    hconn->request.method = OTB_HTTPD_METHOD_POST;
     cur += 5;
   }
   else
   {
     WARN("HTTPD: Unsupported method");
-    otb_httpd_conn.request.status_code = 405;
-    otb_httpd_conn.request.status_str = "Method Not Allowed";
+    hconn->request.status_code = 405;
+    hconn->request.status_str = "Method Not Allowed";
   }
 
   DEBUG("HTTPD: otb_httpd_process_method exit");
@@ -166,7 +202,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(char *data, uint16 len)
   return cur;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(char *data, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char *data, uint16 len)
 {
   uint16 cur = 0;
   int jj;
@@ -197,17 +233,17 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(char *data, uint16 len)
     {
       break;
     }
-    otb_httpd_conn.request.url[jj] = data[cur];
+    hconn->request.url[jj] = data[cur];
   }
-  otb_httpd_conn.request.url[jj] = 0; // NULL terminate
-  INFO("HTTPD: URL: %s", otb_httpd_conn.request.url);
+  hconn->request.url[jj] = 0; // NULL terminate
+  INFO("HTTPD: URL: %s", hconn->request.url);
 
   DEBUG("HTTPD: otb_httpd_process_url exit");
 
   return cur;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(char *data, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(otb_httpd_connection *hconn, char *data, uint16 len)
 {
   uint16 cur = 0;
   int jj;
@@ -240,18 +276,18 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(char *data, uint16 len)
     {
       break;
     }
-    otb_httpd_conn.request.http[jj] = data[cur];
+    hconn->request.http[jj] = data[cur];
   }
-  otb_httpd_conn.request.http[jj] = 0; // NULL terminate
-  DEBUG("HTTPD: HTTP: %s", otb_httpd_conn.request.http);
+  hconn->request.http[jj] = 0; // NULL terminate
+  DEBUG("HTTPD: HTTP: %s", hconn->request.http);
 
-  if (os_strcmp(OTB_HTTPD_HTTP_1_0, otb_httpd_conn.request.http) &&
-      os_strcmp(OTB_HTTPD_HTTP_1_1, otb_httpd_conn.request.http))
+  if (os_strcmp(OTB_HTTPD_HTTP_1_0, hconn->request.http) &&
+      os_strcmp(OTB_HTTPD_HTTP_1_1, hconn->request.http))
   {
-    WARN("HTTPD: Unsupported HTTP version: %s", otb_httpd_conn.request.http);
-    otb_httpd_conn.request.status_code = 505;
-    otb_httpd_conn.request.status_str = "HTTP Version Not Supported";
-    os_snprintf(otb_httpd_conn.request.http, OTB_HTTPD_MAX_HTTP_LEN, OTB_HTTPD_HTTP_1_1); // Set version we'll use to respond
+    WARN("HTTPD: Unsupported HTTP version: %s", hconn->request.http);
+    hconn->request.status_code = 505;
+    hconn->request.status_str = "HTTP Version Not Supported";
+    os_snprintf(hconn->request.http, OTB_HTTPD_MAX_HTTP_LEN, OTB_HTTPD_HTTP_1_1); // Set version we'll use to respond
   }
 
   DEBUG("HTTPD: otb_httpd_process_http exit");
@@ -259,7 +295,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(char *data, uint16 len)
   return cur;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(char *data, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(otb_httpd_connection *hconn, char *data, uint16 len)
 {
   uint16 cur = 0;
 
@@ -268,9 +304,9 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(char *data, uint16 len)
   DEBUG("HTTPD: otb_httpd_process_start_line entry");
 
 
-  cur += otb_httpd_process_method(data+cur, len-cur);
-  cur += otb_httpd_process_url(data+cur, len-cur);
-  cur += otb_httpd_process_http(data+cur, len-cur);
+  cur += otb_httpd_process_method(hconn, data+cur, len-cur);
+  cur += otb_httpd_process_url(hconn, data+cur, len-cur);
+  cur += otb_httpd_process_http(hconn, data+cur, len-cur);
 
   DEBUG("HTTPD: otb_httpd_process_start_line exit");
 
@@ -377,7 +413,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_get_next_header(char *data,
   return cur;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(char *data, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, char *data, uint16 len)
 {
   uint16 cur = 0;
   char *end;
@@ -394,8 +430,8 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(char *data, uint16 len)
   {
     // Don't have entire string - bail out with 0 byte return which must
     // meant we don't have headers yet
-    otb_httpd_conn.request.status_code = 400;
-    otb_httpd_conn.request.status_str = "Bad Request";
+    hconn->request.status_code = 400;
+    hconn->request.status_str = "Bad Request";
     goto EXIT_LABEL;
   }
   end += 4;
@@ -409,14 +445,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(char *data, uint16 len)
                                      OTB_HTTPD_MAX_HEADER_LEN,
                                      header_value,
                                      OTB_HTTPD_MAX_HEADER_LEN);
-    if (otb_httpd_conn.request.method == OTB_HTTPD_METHOD_POST)
+    if (hconn->request.method == OTB_HTTPD_METHOD_POST)
     {
       if (!os_strncmp(OTB_HTTPD_HEADER_CONTENT_LEN,
                       header_name,
                       sizeof(OTB_HTTPD_HEADER_CONTENT_LEN)))
       {
-        otb_httpd_conn.request.post.expected_data_len = atoi(header_value);
-        DEBUG("HTTPD: Expected POST data len: %d", otb_httpd_conn.request.post.expected_data_len);
+        hconn->request.post.expected_data_len = atoi(header_value);
+        DEBUG("HTTPD: Expected POST data len: %d", hconn->request.post.expected_data_len);
       }
     }
     if (!os_strncmp(OTB_HTTPD_HEADER_CONNECTION,
@@ -433,7 +469,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(char *data, uint16 len)
 #endif
       {
         DEBUG("HTTPD: Keep-alive requested");
-        otb_httpd_conn.request.keepalive = true;
+        hconn->request.keepalive = true;
       }
     }
   }
@@ -450,6 +486,7 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned short len)
 {
   struct espconn *conn = arg;
+  otb_httpd_connection *hconn = conn->reverse;
   uint16 rsp_len = 0;
   char *body = "";
   bool station_config = false;
@@ -463,7 +500,9 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
 
   DEBUG("HTTPD: otb_httpd_recv_callback entry");
 
-  if (!otb_httpd_conn.active)
+  DEBUG("HTTPD: hconn: %p", hconn);
+  OTB_ASSERT(hconn != NULL);
+  if (!hconn->active)
   {
     WARN("HTTPD: Received data when connection disconnected");
     espconn_disconnect(conn);
@@ -473,52 +512,52 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
   DEBUG("HTTPD: REQUEST: Len %d:\n---\n%s\n---", len, data);
 
   // Assume it's a new request if we're not mid-way through processing a POST
-  if (otb_httpd_conn.request.handling)
+  if (hconn->request.handling)
   {
     // Handling a POST already
-    if ((otb_httpd_conn.request.post.current_data_len + len + 1) > otb_httpd_conn.request.post.data_capacity) // +1 for NULL term
+    if ((hconn->request.post.current_data_len + len + 1) > hconn->request.post.data_capacity) // +1 for NULL term
     {
       INFO("HTTPD: Don't have enough buffer to process entire message");
-      otb_httpd_conn.request.status_code = 413;
-      otb_httpd_conn.request.status_str = "Request Entity Too Large";
+      hconn->request.status_code = 413;
+      hconn->request.status_str = "Request Entity Too Large";
       goto EXIT_LABEL;
     }
 
-    os_memcpy(otb_httpd_conn.request.post.data+otb_httpd_conn.request.post.current_data_len, data, len);
-    otb_httpd_conn.request.post.current_data_len += len;
-    otb_httpd_conn.request.post.data[otb_httpd_conn.request.post.current_data_len] = 0; // NULL terminate
+    os_memcpy(hconn->request.post.data+hconn->request.post.current_data_len, data, len);
+    hconn->request.post.current_data_len += len;
+    hconn->request.post.data[hconn->request.post.current_data_len] = 0; // NULL terminate
 
-    data = otb_httpd_conn.request.post.data;
-    len = otb_httpd_conn.request.post.current_data_len;
+    data = hconn->request.post.data;
+    len = hconn->request.post.current_data_len;
 
     // No need to check statuses - we've processed these before
-    cur += otb_httpd_process_start_line(data+cur, len-cur);
-    cur += otb_httpd_process_headers(data+cur, len-cur);
+    cur += otb_httpd_process_start_line(hconn, data+cur, len-cur);
+    cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
 
-    if (otb_httpd_conn.request.post.expected_data_len > len-cur)
+    if (hconn->request.post.expected_data_len > len-cur)
     {
-      DEBUG("HTTPD: Waiting for %d bytes more data", otb_httpd_conn.request.post.expected_data_len-(len-cur));
+      DEBUG("HTTPD: Waiting for %d bytes more data", hconn->request.post.expected_data_len-(len-cur));
       send_rsp = false;
       goto EXIT_LABEL;
     }
 
     // Set up post data to just point at the body
     DEBUG("HTTPD: Have whole POST, so process");
-    otb_httpd_conn.request.post.data += cur;
-    otb_httpd_conn.request.post.current_data_len -= cur;
-    otb_httpd_conn.request.post.data_capacity -= cur;
-    otb_httpd_conn.request.status_code = 200;
-    otb_httpd_conn.request.status_str = "OK";
+    hconn->request.post.data += cur;
+    hconn->request.post.current_data_len -= cur;
+    hconn->request.post.data_capacity -= cur;
+    hconn->request.status_code = 200;
+    hconn->request.status_str = "OK";
     station_config = true;
   }
   else
   {
-    otb_httpd_conn.request.status_code = 200;
-    otb_httpd_conn.request.status_str = "OK";
+    hconn->request.status_code = 200;
+    hconn->request.status_str = "OK";
     cur = 0;
-    cur += otb_httpd_process_start_line(data+cur, len-cur);
+    cur += otb_httpd_process_start_line(hconn, data+cur, len-cur);
 
-    if (otb_httpd_conn.request.status_code != 200)
+    if (hconn->request.status_code != 200)
     {
       // Failed to process headers successfully
       goto EXIT_LABEL;
@@ -527,63 +566,63 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     // Ran out of message before handling it all
     if (len <= cur)
     {
-      otb_httpd_conn.request.status_code = 400;
-      otb_httpd_conn.request.status_str = "Bad Request";
+      hconn->request.status_code = 400;
+      hconn->request.status_str = "Bad Request";
       goto EXIT_LABEL;
     }
 
-    cur += otb_httpd_process_headers(data+cur, len-cur);
+    cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
     // Match URLs
-    if (os_strcmp(otb_httpd_conn.request.url, "/"))
+    if (os_strcmp(hconn->request.url, "/"))
     {
       DEBUG("HTTPD: Request for URL other than /");
-      otb_httpd_conn.request.status_code = 302;
-      otb_httpd_conn.request.status_str = "Found";
-      otb_httpd_conn.request.redirect_to = "/";
-      otb_httpd_conn.request.redirect = true;
+      hconn->request.status_code = 302;
+      hconn->request.status_str = "Found";
+      hconn->request.redirect_to = "/";
+      hconn->request.redirect = true;
       body = "Moved to <a href=\"/\">/</a>";
       goto EXIT_LABEL;
     }
 
-    if (otb_httpd_conn.request.method == OTB_HTTPD_METHOD_POST)
+    if (hconn->request.method == OTB_HTTPD_METHOD_POST)
     {
-      if (otb_httpd_conn.request.post.expected_data_len > len-cur)
+      if (hconn->request.post.expected_data_len > len-cur)
       {
         // Don't have the whole message yet
         DEBUG("HTTPD: Haven't got whole POST, so don't process");
-        if ((otb_httpd_conn.request.post.expected_data_len + 1 ) > OTB_HTTP_MSG_LEN)  // +1 for NULL term
+        if ((hconn->request.post.expected_data_len + 1 ) > OTB_HTTP_MSG_LEN)  // +1 for NULL term
         {
           DEBUG("HTTPD: Don't have enough buffer to process entire message");
-          otb_httpd_conn.request.status_code = 413;
-          otb_httpd_conn.request.status_str = "Request Entity Too Large";
+          hconn->request.status_code = 413;
+          hconn->request.status_str = "Request Entity Too Large";
         }
         else
         {
-          otb_httpd_conn.request.status_code = 200;
-          otb_httpd_conn.request.status_str = "OK";
+          hconn->request.status_code = 200;
+          hconn->request.status_str = "OK";
           send_rsp = false;
-          otb_httpd_conn.request.post.data = otb_httpd_msg;
-          os_memcpy(otb_httpd_conn.request.post.data, data, len);
-          otb_httpd_conn.request.post.data_capacity = OTB_HTTP_MSG_LEN;
-          otb_httpd_conn.request.post.current_data_len = len;
-          otb_httpd_conn.request.post.data[otb_httpd_conn.request.post.current_data_len] = 0; // NULL terminate
-          otb_httpd_conn.request.handling = true;
+          hconn->request.post.data = otb_httpd_msg;
+          os_memcpy(hconn->request.post.data, data, len);
+          hconn->request.post.data_capacity = OTB_HTTP_MSG_LEN;
+          hconn->request.post.current_data_len = len;
+          hconn->request.post.data[hconn->request.post.current_data_len] = 0; // NULL terminate
+          hconn->request.handling = true;
         }
         goto EXIT_LABEL;
       }
       else
       {
         DEBUG("HTTPD: Have whole POST, so process");
-        otb_httpd_conn.request.post.data = data+cur;
-        otb_httpd_conn.request.post.data_capacity = len-cur;
-        otb_httpd_conn.request.post.current_data_len = len-cur;
+        hconn->request.post.data = data+cur;
+        hconn->request.post.data_capacity = len-cur;
+        hconn->request.post.current_data_len = len-cur;
       }
     }
     
     // Waiting until after checking URL for this - as if a POST
     // to the wrong URL we can just return immediately whether
     // we have all this message or not
-    if (otb_httpd_conn.request.status_code != 200)
+    if (hconn->request.status_code != 200)
     {
       // Failed to process headers successfully.
       // If a POST bail out and wait for another message
@@ -605,7 +644,8 @@ EXIT_LABEL:
       buf2 = otb_httpd_scratch2;
       len2 = OTB_HTTP_SCRATCH2_LEN;
       rsp_len2 = 0;
-      rsp_len2 += otb_httpd_station_config(otb_httpd_conn.request.method,
+      rsp_len2 += otb_httpd_station_config(hconn,
+                                           hconn->request.method,
                                            buf2,
                                            len2-rsp_len2);
       body = buf2;
@@ -615,10 +655,11 @@ EXIT_LABEL:
     buf = otb_httpd_scratch;
     len = OTB_HTTP_SCRATCH_LEN;
     rsp_len = 0;
-    rsp_len += otb_httpd_build_core_response(buf+rsp_len,
+    rsp_len += otb_httpd_build_core_response(hconn,
+                                             buf+rsp_len,
                                              len-rsp_len,
                                              body_len);
-    if (otb_httpd_conn.request.method != OTB_HTTPD_METHOD_HEAD)
+    if (hconn->request.method != OTB_HTTPD_METHOD_HEAD)
     {
       // Don't send the body if HEAD (but do send the body_len)
       rsp_len += OTB_HTTPD_ADD_BODY(buf+rsp_len,
@@ -629,7 +670,7 @@ EXIT_LABEL:
     DEBUG("HTTPD: RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
     espconn_send(conn, otb_httpd_scratch, rsp_len);
 
-    if (!otb_httpd_conn.request.keepalive)
+    if (!hconn->request.keepalive)
     {
       DEBUG("HTTPD: Disconnect TCP connection");
       // Disconnect the TCP connection - we said we would if we're HTTP/1.1
@@ -642,7 +683,7 @@ EXIT_LABEL:
     }
 
     // We've handled this request, so clear it out
-    os_memset(&otb_httpd_conn.request, 0, sizeof(otb_httpd_conn.request));
+    os_memset(&hconn->request, 0, sizeof(hconn->request));
   }
 
   DEBUG("HTTPD: otb_httpd_recv_callback exit");
@@ -650,7 +691,7 @@ EXIT_LABEL:
   return;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(char *buf, uint16 len, uint16 body_len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hconn, char *buf, uint16 len, uint16 body_len)
 {
   uint16 rsp_len = 0;
 
@@ -660,26 +701,26 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(char *buf, uint16 len, ui
   rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                   len-rsp_len,
                                   "%s %d %s",
-                                  otb_httpd_conn.request.http,
-                                  otb_httpd_conn.request.status_code,
-                                  otb_httpd_conn.request.status_str);
+                                  hconn->request.http,
+                                  hconn->request.status_code,
+                                  hconn->request.status_str);
   rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                   len-rsp_len,
                                   "Server: %s",
                                   otb_mqtt_root);
-  if ((!os_strcmp(otb_httpd_conn.request.http, OTB_HTTPD_HTTP_1_1)) &&
-      (!otb_httpd_conn.request.keepalive))
+  if ((!os_strcmp(hconn->request.http, OTB_HTTPD_HTTP_1_1)) &&
+      (!hconn->request.keepalive))
   {
     rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                     len-rsp_len,
                                     "Connection: close");
   }
-  if (otb_httpd_conn.request.redirect)
+  if (hconn->request.redirect)
   {
     rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                     len-rsp_len,
                                     "Location: %s",
-                                    otb_httpd_conn.request.redirect_to);
+                                    hconn->request.redirect_to);
   }
   if (body_len > 0)
   {
@@ -767,7 +808,7 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
   return len;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(uint8 method, char *buf, uint16 len)
+uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, uint8 method, char *buf, uint16 len)
 {
   uint16 rsp_len = 0;
   uint8 wifi_rc;
@@ -803,8 +844,8 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(uint8 method, char *buf, uint1
 
     case OTB_HTTPD_METHOD_POST:
       INFO("HTTPD: POST station config");
-      OTB_ASSERT(otb_httpd_conn.request.post.data != NULL);
-      DEBUG("HTTPD: POST processing: %s", otb_httpd_conn.request.post.data);
+      OTB_ASSERT(hconn->request.post.data != NULL);
+      DEBUG("HTTPD: POST processing: %s", hconn->request.post.data);
       wifi_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_svr_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_user_rc = OTB_CONF_RC_NOT_CHANGED;
@@ -815,12 +856,12 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(uint8 method, char *buf, uint1
       mqtt_port[0] = 0;
       mqtt_user[0] = 0;
       mqtt_pass[0] = 0;      
-      ssid_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "ssid", ssid, 32);
-      password_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "password", password, 64);
-      mqtt_svr_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "mqtt_svr", mqtt_svr, OTB_MQTT_MAX_SVR_LEN);
-      mqtt_port_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "mqtt_port", mqtt_port, OTB_MQTT_MAX_SVR_LEN);
-      mqtt_user_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "mqtt_user", mqtt_user, OTB_MQTT_MAX_USER_LEN);
-      mqtt_pass_len = otb_httpd_get_arg(otb_httpd_conn.request.post.data, "mqtt_pass", mqtt_pass, OTB_MQTT_MAX_PASS_LEN);
+      ssid_len = otb_httpd_get_arg(hconn->request.post.data, "ssid", ssid, 32);
+      password_len = otb_httpd_get_arg(hconn->request.post.data, "password", password, 64);
+      mqtt_svr_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_svr", mqtt_svr, OTB_MQTT_MAX_SVR_LEN);
+      mqtt_port_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_port", mqtt_port, OTB_MQTT_MAX_SVR_LEN);
+      mqtt_user_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_user", mqtt_user, OTB_MQTT_MAX_USER_LEN);
+      mqtt_pass_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_pass", mqtt_pass, OTB_MQTT_MAX_PASS_LEN);
       
       // NULL terminate everything just in case
       ssid[31] = 0;
