@@ -239,7 +239,8 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_CODE_GENERIC      0x0 // Use for any off the shelf or non OTB-IOT ESP8266 module
 #define OTB_EEPROM_HW_CODE_MAIN_BOARD   0x001 // otb-iot main board
 #define OTB_EEPROM_HW_CODE_MAIN_MODULE  0x101 // otb-iot main module
-#define OTB_EEPROM_HW_CODE_ESPI_BOARD   0x002 // otb-iot main module
+#define OTB_EEPROM_HW_CODE_ESPI_BOARD   0x002 // ESPi main board
+#define OTB_EEPROM_HW_CODE_ESPI_HAT     0x102 // ESPI Hat
   uint32 code;
   
   // otb-iot hardware subcode
@@ -251,6 +252,16 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_PROG        0x201
 #define OTB_EEPROM_HW_SUBCODE_ESPI_BOARD_1_0A         0x001
   uint32 subcode;
+
+// Version 2 fields
+
+  // This is 40 bytes as:
+  // - otb-iot only uses 5 digit serials, but has room for expansion
+  // - espi modules use UUIDs, which are 32 hex digits, 4 dashes, and one 
+  //   NULL termination byte - which is 37 - so rounded to 39+1 for
+  //   padding
+#define OTB_EEPROM_HW_SERIAL2_LEN   40
+  unsigned char serial2[];
 
 } otb_eeprom_hw_common;
 
@@ -503,6 +514,125 @@ typedef struct otb_eeprom_main_module_info
   otb_eeprom_main_module *module;
   otb_eeprom_main_board_module *main_board_mod;
 } otb_eeprom_main_module_info;
+
+// Raspberry Pi Hat eeprom data
+//
+// See https://github.com/raspberrypi/hats/blob/master/eeprom-format.md
+//
+// Structure on eeprom is:
+// - otb_eeprom_rpi_header
+// - atom 1
+// - atom 2
+// - ...
+//
+// 
+
+typedef struct otb_eeprom_rpi_header
+{
+  // 0x52 0x2D 0x50 0x69 ("R-Pi" in ASCII)
+  uint8 signature[4];
+
+  // 0x00 is reserved, 0x01 is currently used
+  uint8 version;
+
+  // Set to 0
+  uint8 reserved;
+
+  // Not including this header
+  uint16 numatoms;
+
+  // Length of eeprom data including this header
+  uint32 eeplen;
+} otb_eeprom_rpi_header;
+
+// Note that these are unlikely to be 4 byte aligned after the first atom
+// as many atoms are not a multiple of 4 bytes.
+//
+// Must be careful not to access unless it's been verified as 4 byte
+// aligned or the ESP8266 will crash.
+typedef struct otb_eeprom_rpi_atom
+{
+#define OTB_EEPROM_RPI_ATOM_TYPE_INVALID      0x0000
+#define OTB_EEPROM_RPI_ATOM_TYPE_VENDOR_INFO  0x0001
+#define OTB_EEPROM_RPI_ATOM_TYPE_GPIO_MAP     0x0002
+#define OTB_EEPROM_RPI_ATOM_TYPE_DEV_TREE     0x0003
+#define OTB_EEPROM_RPI_ATOM_TYPE_CUSTOM       0x0004
+#define OTB_EEPROM_RPI_ATOM_TYPE_INVALID2     0xFFFF
+  uint16 type;
+
+  // Incrementing atom counter - starting at 1?
+  uint16 count;
+
+  // Length in bytes of data portion + the CRC
+  uint32 dlen;
+
+  // dlen-2 bytes of data, and 2 bytes of CRC
+  // CRC uses CRC-16-CCITT f entire atom (type, count, dlen, data)
+  uint8 data_crc[];
+
+} otb_eeprom_rpi_atom;
+
+/*
+
+This comment reproduced from: https://github.com/raspberrypi/hats/blob/master/eeprom-format.md
+
+Vendor info atom data
+
+Note that the UUID is mandatory and must be filled in correctly according to RFC 4122 (every HAT can then be uniquely identified). It protects against the case where a user accidentally stacks 2 identical HATs on top of each other - this error case is only detectable if the EEPROM data in each is different. The UUID is also useful for manufacturers as a per-board 'serial number'.
+
+  Bytes   Field
+  16      uuid        UUID (unique for every single board ever made)
+  2       pid         product ID
+  2       pver        product version
+  1       vslen       vendor string length (bytes)
+  1       pslen       product string length (bytes)
+  X       vstr        ASCII vendor string e.g. "ACME Technology Company"
+  Y       pstr        ASCII product string e.g. "Special Sensor Board"
+
+*/
+  typedef struct otb_eeprom_rpi_atom_vendor_info
+{
+  uint8 uuid[16];
+  uint16 pid;
+  uint16 pver;
+  uint8 vslen;
+  uint8 pslen;
+  char *vstr_ptr[];
+} otb_eeprom_rpi_atom_vendor_info;
+
+/*
+
+This comment reproduced from: https://github.com/raspberrypi/hats/blob/master/eeprom-format.md
+
+GPIO map atom data
+
+ Bytes   Field
+  1       bank_drive  bank drive strength/slew/hysteresis, BCM2835 can only set per bank, not per IO
+            Bits in byte:
+            [3:0] drive       0=leave at default, 1-8=drive*2mA, 9-15=reserved
+            [5:4] slew        0=leave at default, 1=slew rate limiting, 2=no slew limiting, 3=reserved
+            [7:6] hysteresis  0=leave at default, 1=hysteresis disabled, 2=hysteresis enabled, 3=reserved
+  1       power
+            [1:0] back_power  0=board does not back power Pi
+                              1=board back powers and can supply up to 1.3A to the Pi
+                              2=board back powers and can supply up to 2A to the Pi
+                              3=reserved
+                              If back_power=2 high current USB mode is automatically enabled.
+            [7:2] reserved    set to 0
+  28      1 byte per IO pin
+            Bits in each byte:
+            [2:0] func_sel    GPIO function as per FSEL GPIO register field in BCM2835 datasheet
+            [4:3] reserved    set to 0
+            [6:5] pulltype    0=leave at default setting,  1=pullup, 2=pulldown, 3=no pull
+            [  7] is_used     1=board uses this pin, 0=not connected and therefore not used
+
+*/
+typedef struct otb_eeprom_rpi_atom_gpio_map
+{
+  uint8 bank_drive;
+  uint8 power;
+  uint8 gpio[28];
+} otb_eeprom_rpi_atom_gpio_map;
 
 // Global pointers to eeprom structures (and info_comps)
 // NULL if not yet read from eeprom, or couldn't be read from eeprom.

@@ -55,6 +55,10 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
   os_memset(otb_eeprom_main_module_info_g, 0, sizeof(otb_eeprom_main_module_info) * OTB_EEPROM_MAX_MODULES);
 
+  // Read the modules.
+  // - If an non-espi device then use the standard format
+  // - If an espi device then use the raspberry pi format 
+
   if (otb_eeprom_main_board_g != NULL)
   {
     for (ii = 0; ii < otb_eeprom_main_board_g->num_modules; ii++) 

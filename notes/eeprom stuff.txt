@@ -1,0 +1,16 @@
+added headers for Raspberry Pi Hat hdr + atoms
+increased serial number length in hw common (to allow UUID)
+note uuids should be in lower case, but case insensitive input
+
+should espi have uuid (as well as serial)?
+
+for rpi hats (module) need this info:
+  2       pid         product ID
+  2       pver        product version
+  1       vslen       vendor string length (bytes)
+  1       pslen       product string length (bytes)
+  X       vstr        ASCII vendor string e.g. "ACME Technology Company"
+  Y       pstr        ASCII product string e.g. "Special Sensor Board"
+Don't have any of this - feels like we should hat version (for otb-iot hats as well).  vendor string is necessary.  product string is useful.  pid could fit into existing module_type, but some values already taken.
+Maybe add vendor string into internal structure, although tricky as no max length.
+Then existing module type can be split between pid and pver.  TBC whether to include vendor string - but feels like useful.
