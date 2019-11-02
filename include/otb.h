@@ -115,5 +115,6 @@
 #include "otb_board.h"
 #include "otb_nixie.h"
 #include "otb_intr.h"
+#include "otb_break.h"
 
 #endif

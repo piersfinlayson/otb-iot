@@ -111,6 +111,8 @@ void otb_init_ads(void *arg);
 void otb_util_uart0_rx_en(void);
 void otb_util_uart0_rx_dis(void);
 void otb_util_check_for_break(void);
+void otb_util_break_disable_timer(void);
+void otb_util_break_enable_timer(uint32_t period);
 void otb_util_break_timerfunc(void *arg);
 void otb_util_uart0_rx_intr_handler(void *para);
 

@@ -1486,16 +1486,39 @@ void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
   otb_util_uart0_rx_en();
   otb_util_break_enabled = FALSE;
   otb_util_break_checking = TRUE;
-  otb_util_uart_rx_bytes = 0;
-  os_memset(otb_util_uart_rx_buf, 0, 16);
+  otb_break_rx_buf_len = 0;
 
-  otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
-                     (os_timer_func_t *)otb_util_break_timerfunc,
-                     NULL,
-                     1000,
-                     1);
+  otb_util_break_enable_timer(1000);
 
   DEBUG("UTIL: otb_util_check_for_break exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_break_disable_timer(void)
+{
+
+  DEBUG("UTIL: otb_util_break_disable_timer entry");
+
+  otb_util_timer_cancel((os_timer_t*)&otb_util_break_timer);
+
+  DEBUG("UTIL: otb_util_break_disable_timer entry");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_break_enable_timer(uint32_t period)
+{
+
+  DEBUG("UTIL: otb_util_break_enable_timer entry");
+
+  otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
+                    (os_timer_func_t *)otb_util_break_timerfunc,
+                    NULL,
+                    period,
+                    1);
+
+  DEBUG("UTIL: otb_util_break_enable_timer entry");
 
   return;
 }
@@ -1517,19 +1540,19 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     otb_util_uart0_rx_dis();
 
     // No longer checking for break
-    otb_util_timer_cancel((os_timer_t*)&otb_util_break_timer);
+    otb_util_break_disable_timer();
     otb_util_break_checking = FALSE;
 
     // Actually check for a break
     
-    if (!os_memcmp(otb_util_uart_rx_buf, "break", 5))
+    if ((otb_break_rx_buf_len >= 5) && (!os_memcmp(otb_break_rx_buf, "break", 5)))
     {
       INFO("UTIL: !!! User break received !!!");
       otb_util_break_enabled = TRUE;
     }
     else if (otb_util_uart_rx_bytes > 0)
     {
-      INFO("UTIL: Received %d bytes of data during break checking", otb_util_uart_rx_bytes);
+      INFO("UTIL: Received %d bytes of data during break checking", otb_break_rx_buf_len);
     }
 
     // If the user didn't break then carry on with usual boot sequence
@@ -1539,14 +1562,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     }
     else
     {
-      // Set the break timer to ensure we don't stay breaked forever.
-      otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
-                        (os_timer_func_t *)otb_util_break_timerfunc,
-                        NULL,
-                        300000,
-                        1);
-
-      // XXX Do something else here
+      otb_break_start();
     }
   }
   
@@ -1584,14 +1600,17 @@ void otb_util_uart0_rx_intr_handler(void *para)
   }
 
   rx_len = (READ_PERI_REG(UART_STATUS(UART0)) >> UART_RXFIFO_CNT_S) & UART_RXFIFO_CNT;
-  rx_char;
   for (ii = 0; ii < rx_len; ii++)
   {
     rx_char = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
-    if (otb_util_uart_rx_bytes < 15)
+    if (otb_util_uart_rx_bytes < OTB_BREAK_RX_BUF_LEN)
     {
-      otb_util_uart_rx_buf[otb_util_uart_rx_bytes] = rx_char;
-      otb_util_uart_rx_bytes++;
+      otb_break_rx_buf[otb_break_rx_buf_len] = rx_char;
+      otb_break_rx_buf_len++;
+    }
+    if ((otb_util_break_enabled) && (otb_break_rx_buf_len > 0))
+    {
+      otb_break_process_char();
     }
   }
 
