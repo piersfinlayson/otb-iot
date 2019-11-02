@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <errno.h>
+#include <uart_register.h>
 
 void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 {
@@ -1438,6 +1439,165 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   DEBUG("OTB: otb_init_ads exit");
 
   return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
+{
+  DEBUG("UTIL: otb_util_uart0_rx_en entry");
+  
+  ETS_UART_INTR_ATTACH(otb_util_uart0_rx_intr_handler, &(UartDev.rcv_buff));
+  SET_PERI_REG_MASK(UART_CONF0(UART0), UART_RXFIFO_RST);
+  CLEAR_PERI_REG_MASK(UART_CONF0(UART0), UART_RXFIFO_RST);
+  WRITE_PERI_REG(UART_CONF1(UART0),
+  ((100 & UART_RXFIFO_FULL_THRHD) << UART_RXFIFO_FULL_THRHD_S) |
+  (0x02 & UART_RX_TOUT_THRHD) << UART_RX_TOUT_THRHD_S |
+  UART_RX_TOUT_EN);
+  SET_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_TOUT_INT_ENA |UART_FRM_ERR_INT_ENA);
+  WRITE_PERI_REG(UART_INT_CLR(UART0), 0xffff);
+  SET_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_OVF_INT_ENA);
+  ETS_UART_INTR_ENABLE();
+
+  DEBUG("UTIL: otb_util_uart0_rx_en exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
+{
+  DEBUG("UTIL: otb_util_uart0_rx_dis entry");
+  
+  CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_TOUT_INT_ENA |UART_FRM_ERR_INT_ENA);
+  WRITE_PERI_REG(UART_INT_CLR(UART0), 0xffff);
+  CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_OVF_INT_ENA);
+  ETS_UART_INTR_DISABLE();
+
+  DEBUG("UTIL: otb_util_uart0_rx_dis exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
+{
+
+  DEBUG("UTIL: otb_util_check_for_break entry");
+
+  INFO("UTIL: check for user break")
+
+  otb_util_uart0_rx_en();
+  otb_util_break_enabled = FALSE;
+  otb_util_break_checking = TRUE;
+  otb_util_uart_rx_bytes = 0;
+  os_memset(otb_util_uart_rx_buf, 0, 16);
+
+  otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
+                     (os_timer_func_t *)otb_util_break_timerfunc,
+                     NULL,
+                     1000,
+                     1);
+
+  DEBUG("UTIL: otb_util_check_for_break exit");
+
+  return;
+}
+
+char ALIGN4 otb_util_break_timerfunc_string[] = "UTIL: Break timer popped";
+void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
+{
+
+  DEBUG("WIFI: otb_util_break_timerfunc entry");
+
+  if (!otb_util_break_checking)
+  {
+    // We are already breaked - timer has popped so restart
+    otb_reset(otb_util_break_timerfunc_string);
+  }
+  else
+  {
+    // We were checking whether to break
+    otb_util_uart0_rx_dis();
+
+    // No longer checking for break
+    otb_util_timer_cancel((os_timer_t*)&otb_util_break_timer);
+    otb_util_break_checking = FALSE;
+
+    // Actually check for a break
+    
+    if (!os_memcmp(otb_util_uart_rx_buf, "break", 5))
+    {
+      INFO("UTIL: !!! User break received !!!");
+      otb_util_break_enabled = TRUE;
+    }
+    else if (otb_util_uart_rx_bytes > 0)
+    {
+      INFO("UTIL: Received %d bytes of data during break checking", otb_util_uart_rx_bytes);
+    }
+
+    // If the user didn't break then carry on with usual boot sequence
+    if (!otb_util_break_enabled)
+    {
+      otb_wifi_kick_off();
+    }
+    else
+    {
+      // Set the break timer to ensure we don't stay breaked forever.
+      otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
+                        (os_timer_func_t *)otb_util_break_timerfunc,
+                        NULL,
+                        300000,
+                        1);
+
+      // XXX Do something else here
+    }
+  }
+  
+  DEBUG("WIFI: otb_util_break_timerfunc exit");
+
+  return;
+}
+
+void otb_util_uart0_rx_intr_handler(void *para)
+{
+  uint8_t rx_len;
+  char rx_char;
+  uint8_t ii;
+
+  if (UART_FRM_ERR_INT_ST == (READ_PERI_REG(UART_INT_ST(UART0)) & UART_FRM_ERR_INT_ST))
+  {
+    // Error
+    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_FRM_ERR_INT_CLR);
+  }
+  else if (UART_RXFIFO_FULL_INT_ST == (READ_PERI_REG(UART_INT_ST(UART0)) & UART_RXFIFO_FULL_INT_ST))
+  {
+    // FIFO Full
+    CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_TOUT_INT_ENA);
+    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR);
+  }
+  else if (UART_RXFIFO_TOUT_INT_ST == (READ_PERI_REG(UART_INT_ST(UART0)) & UART_RXFIFO_TOUT_INT_ST))
+  {
+    // Timeout (character received)
+    CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_TOUT_INT_ENA);
+    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_TOUT_INT_CLR);
+  }
+  else if (UART_RXFIFO_OVF_INT_ST  == (READ_PERI_REG(UART_INT_ST(UART0)) & UART_RXFIFO_OVF_INT_ST))
+  {
+    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_OVF_INT_CLR);
+  }
+
+  rx_len = (READ_PERI_REG(UART_STATUS(UART0)) >> UART_RXFIFO_CNT_S) & UART_RXFIFO_CNT;
+  rx_char;
+  for (ii = 0; ii < rx_len; ii++)
+  {
+    rx_char = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
+    if (otb_util_uart_rx_bytes < 15)
+    {
+      otb_util_uart_rx_buf[otb_util_uart_rx_bytes] = rx_char;
+      otb_util_uart_rx_bytes++;
+    }
+  }
+
+  WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR | UART_RXFIFO_TOUT_INT_CLR);
+  SET_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_TOUT_INT_ENA);
+
 }
 
 size_t ICACHE_FLASH_ATTR otb_util_strnlen(const char *s, size_t maxlen)

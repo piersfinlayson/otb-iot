@@ -36,7 +36,7 @@ void ICACHE_FLASH_ATTR user_init(void)
   otb_util_init_logging();
 
   DEBUG("OTB: user_init entry");
-  
+
   // Log some useful info
   otb_util_log_useful_info(FALSE);
 
@@ -98,7 +98,7 @@ void ICACHE_FLASH_ATTR user_init(void)
   if (otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE))
   {
 #endif
-    system_init_done_cb((init_done_cb_t)otb_wifi_kick_off);
+    system_init_done_cb((init_done_cb_t)otb_util_check_for_break);
 #if 0
   }
   else

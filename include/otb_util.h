@@ -108,6 +108,11 @@ extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
 void otb_init_ads(void *arg);
+void otb_util_uart0_rx_en(void);
+void otb_util_uart0_rx_dis(void);
+void otb_util_check_for_break(void);
+void otb_util_break_timerfunc(void *arg);
+void otb_util_uart0_rx_intr_handler(void *para);
 
 int toupper(int c);
 int isxdigit(int c);
@@ -155,6 +160,14 @@ char *otb_util_log_buf;
 otb_util_log_buffer otb_util_log_buffer_struct;
 
 bool otb_util_asserting;
+bool otb_util_break_enabled;
+bool otb_util_break_checking;
+int otb_util_uart_rx_bytes;
+char otb_util_uart_rx_buf[16];
+
+os_timer_t otb_util_break_timer;
+
+extern UartDevice    UartDev;
 
 #endif // OTB_UTIL_C
 
