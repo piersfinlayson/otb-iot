@@ -88,6 +88,7 @@ void ICACHE_FLASH_ATTR otb_break_options_fan_out(char input)
       break;
 
     case OTB_BREAK_STATE_CONFIG:
+      otb_break_config_input(input);
       break;
 
     case OTB_BREAK_STATE_GPIO:
@@ -95,6 +96,7 @@ void ICACHE_FLASH_ATTR otb_break_options_fan_out(char input)
       break;
 
     case OTB_BREAK_STATE_SOFT_RESET:
+      otb_break_soft_reset_input(input);
       break;
 
     default:
@@ -126,7 +128,10 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'c':
     case 'C':
       INFO("Change config");
-      INFO(" Not yet implemented");
+      otb_break_state = OTB_BREAK_STATE_CONFIG;
+;
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+      INFO(" Select config to change");
       break;
 
     case 'x':
@@ -147,9 +152,9 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 
     case 'f':
     case 'F':
-      INFO("Factory reset");
-      INFO(" Not yet implemented");
-      //output_options = FALSE;
+      INFO("Factory reset (not yet implemented)");
+      otb_break_state = OTB_BREAK_STATE_SOFT_RESET;
+;
       break;
 
     case 'g':
@@ -162,7 +167,8 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'r':
     case 'R':
       INFO("Soft reset button test");
-      INFO(" Not yet implemented");
+      otb_break_state = OTB_BREAK_STATE_SOFT_RESET;
+      INFO(" Waiting for soft reset button to be pressed (Not yet implemented)");
       break;
 
     case 'i':
@@ -216,7 +222,6 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
   return(clear_buf);
 }
 
-// Called from within interrupts
 bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
 {
 
@@ -227,7 +232,7 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
     case 'x':
     case 'X':
       otb_break_state = OTB_BREAK_STATE_MAIN;
-      INFO(" Terminated")
+      INFO(" Exiting GPIO test")
       break;
 
     case 'h':
@@ -237,6 +242,7 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
       break;
 
     default:
+      INFO(" Invalid option selected");
       break;
   }
 
@@ -245,6 +251,163 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
   return(TRUE);
 }
 
+bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
+{
+  bool rc = TRUE;
+
+  DEBUG("BREAK: otb_break_config_input entry");
+
+  switch (otb_break_config_state)
+  {
+    case OTB_BREAK_CONFIG_STATE_MAIN:
+      rc = otb_break_config_input_main(input);
+      break;
+
+    case OTB_BREAK_CONFIG_STATE_SSID:
+      INFO(" Not yet implemented");
+      if (input == 'x')
+      {
+        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+      }
+      break;
+      
+    case OTB_BREAK_CONFIG_STATE_PASSWORD:
+      INFO(" Not yet implemented");
+      if (input == 'x')
+      {
+        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+      }
+      break;
+      
+    case OTB_BREAK_CONFIG_STATE_MQTT_SVR:
+      INFO(" Not yet implemented");
+      if (input == 'x')
+      {
+        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+      }
+      break;
+      
+    case OTB_BREAK_CONFIG_STATE_MQTT_PORT:
+      INFO(" Not yet implemented");
+      if (input == 'x')
+      {
+        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+      }
+      break;
+      
+    case OTB_BREAK_CONFIG_STATE_CHIP_ID:
+      INFO(" Not yet implemented");
+      if (input == 'x')
+      {
+        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+      }
+      break;
+
+    default:
+      OTB_ASSERT(FALSE);
+      break;
+  }
+
+  DEBUG("BREAK: otb_break_config_input exit");
+
+  return(rc);
+}
+
+bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
+{
+
+  DEBUG("BREAK: otb_break_config_input_main entry");
+
+  switch (input)
+  {
+    case 'x':
+    case 'X':
+      otb_break_state = OTB_BREAK_STATE_MAIN;
+      INFO(" Exiting config change")
+      break;
+
+    case 's':
+    case 'S':
+      INFO(" SSID");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_SSID;
+      break;
+
+    case 'p':
+    case 'P':
+      INFO(" WiFi Password");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_PASSWORD;
+      break;
+
+    case 'm':
+    case 'M':
+      INFO(" MQTT Server");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_MQTT_SVR;
+      break;
+
+    case 'r':
+    case 'R':
+      INFO(" MQTT Port");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_MQTT_PORT;
+      break;
+
+    case 'c':
+    case 'C':
+      INFO(" Chip ID");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_CHIP_ID;
+      break;
+
+    case 'h':
+    case 'H':
+    case '?':
+      INFO(" Config change options:")
+      INFO("  s - SSID");
+      INFO("  p - WiFi Password");
+      INFO("  m - MQTT Server");
+      INFO("  r - MQTT Port");
+      INFO("  c - Chip ID");
+      INFO("  x - Exit");
+      break;
+
+    default:
+      INFO("Invalid option selected");
+      break;
+  }
+
+  DEBUG("BREAK: otb_break_config_input_main exit");
+
+  return(TRUE);
+}
+
+bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
+{
+
+  DEBUG("BREAK: otb_break_soft_reset_input entry");
+
+  switch (input)
+  {
+    case 'x':
+    case 'X':
+      otb_break_state = OTB_BREAK_STATE_MAIN;
+      INFO(" Exiting soft reset test")
+      break;
+
+    case 'h':
+    case 'H':
+    case '?':
+      INFO("  x - Terminate");
+      break;
+
+    default:
+      INFO("Invalid option selected");
+      break;
+  }
+
+  DEBUG("BREAK: otb_break_soft_reset_input exit");
+
+  return(TRUE);
+}
+
+// Called from within interrupts
 void otb_break_process_char(void)
 {
   otb_util_timer_set((os_timer_t*)&otb_break_process_char_timer, 

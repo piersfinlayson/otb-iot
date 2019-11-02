@@ -1547,7 +1547,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     
     if ((otb_break_rx_buf_len >= 5) && (!os_memcmp(otb_break_rx_buf, "break", 5)))
     {
-      INFO("UTIL: !!! User break received !!!");
+      INFO("UTIL: User break received");
       otb_util_break_enabled = TRUE;
     }
     else if (otb_util_uart_rx_bytes > 0)

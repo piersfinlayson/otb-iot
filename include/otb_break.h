@@ -44,6 +44,9 @@ void otb_break_process_char_timerfunc(void *arg);
 void otb_break_options_fan_out(char input);
 bool otb_break_options_select(char option);
 bool otb_break_gpio_input(char input);
+bool otb_break_config_input(char input);
+bool otb_break_config_input_main(char input);
+bool otb_break_soft_reset_input(char input);
 void otb_break_process_char(void);
 
 #ifdef OTB_BREAK_C
@@ -51,6 +54,7 @@ os_timer_t otb_break_process_char_timer;
 char otb_break_rx_buf[OTB_BREAK_RX_BUF_LEN];
 uint8_t otb_break_rx_buf_len;
 uint8_t otb_break_state;
+uint8_t otb_break_config_state;
 #endif
 
 #endif // OTB_BREAK_H_INCLUDED
