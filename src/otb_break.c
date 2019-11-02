@@ -269,6 +269,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       {
         otb_break_config_state = OTB_BREAK_STATE_MAIN;
       }
+      // In otb_conf->ssid[OTB_CONF_WIFI_SSID_MAX_LEN]
       break;
       
     case OTB_BREAK_CONFIG_STATE_PASSWORD:
@@ -277,6 +278,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       {
         otb_break_config_state = OTB_BREAK_STATE_MAIN;
       }
+      // otb_conf->password[OTB_CONF_WIFI_PASSWORD_MAX_LEN];
       break;
       
     case OTB_BREAK_CONFIG_STATE_MQTT_SVR:
@@ -285,6 +287,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       {
         otb_break_config_state = OTB_BREAK_STATE_MAIN;
       }
+      // otb_conf->mqtt.svr[OTB_MQTT_MAX_SVR_LEN];
       break;
       
     case OTB_BREAK_CONFIG_STATE_MQTT_PORT:
@@ -293,6 +296,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       {
         otb_break_config_state = OTB_BREAK_STATE_MAIN;
       }
+      // int otb_conf->mqtt.port;
       break;
       
     case OTB_BREAK_CONFIG_STATE_CHIP_ID:
@@ -301,6 +305,9 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       {
         otb_break_config_state = OTB_BREAK_STATE_MAIN;
       }
+      // Set using:
+      // os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
+      // os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
       break;
 
     default:
