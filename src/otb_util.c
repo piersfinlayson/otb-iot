@@ -508,10 +508,10 @@ void ICACHE_FLASH_ATTR otb_util_log_store(void)
 
   // Erase the sector
   spi_rc = spi_flash_erase_sector(OTB_BOOT_LOG_LOCATION / 0x1000);
-  ets_printf("log flash erased\r\n");
+  //ets_printf("log flash erased\r\n");
 
-  ets_printf("buffer 0x%08x\r\n", otb_util_log_buffer_struct.buffer);
-  ets_printf("current 0x%08x\r\n", otb_util_log_buffer_struct.current);
+  //ets_printf("buffer 0x%08x\r\n", otb_util_log_buffer_struct.buffer);
+  //ets_printf("current 0x%08x\r\n", otb_util_log_buffer_struct.current);
 
   // Write from current position to whatever is closest to the end but a total length of
   // a multiple of 4 bytes
@@ -520,8 +520,8 @@ void ICACHE_FLASH_ATTR otb_util_log_store(void)
                       otb_util_log_buffer_struct.buffer);
   mod4 = rem_len % 4;
   rem_len -= mod4;
-  ets_printf("mod4 %d\r\n", mod4);
-  ets_printf("rem_len %d\r\n", rem_len);
+  //ets_printf("mod4 %d\r\n", mod4);
+  //ets_printf("rem_len %d\r\n", rem_len);
     
   spi_rc = spi_flash_write(OTB_BOOT_LOG_LOCATION,
                            (uint32*)otb_util_log_buffer_struct.current,

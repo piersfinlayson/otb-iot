@@ -35,8 +35,6 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   otb_util_init_logging();
 
-	ets_printf("  stack remaining %d\r\n", 0x40000000-(int)(&stack));
-
   DEBUG("OTB: user_init entry");
   
   // Log some useful info
