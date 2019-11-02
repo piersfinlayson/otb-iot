@@ -22,9 +22,10 @@
 
 void ICACHE_FLASH_ATTR otb_break_start(void)
 {
-  DEBUG("UTIL: otb_break_start entry");
+  DEBUG("BREAK: otb_break_start entry");
 
   otb_break_rx_buf_len = 0;
+  otb_break_state = OTB_BREAK_STATE_MAIN;
   INFO("Entered otb-iot break processing");
   INFO("Enable watchdog");
   otb_util_break_enable_timer(OTB_BREAK_WATCHDOG_TIMER);
@@ -32,7 +33,7 @@ void ICACHE_FLASH_ATTR otb_break_start(void)
   otb_util_uart0_rx_en();
   INFO("Press h or ? for help");
 
-  DEBUG("UTIL: otb_break_start exit");
+  DEBUG("BREAK: otb_break_start exit");
 
   return;
 }
@@ -40,7 +41,7 @@ void ICACHE_FLASH_ATTR otb_break_start(void)
 void ICACHE_FLASH_ATTR otb_break_options_output(void)
 {
 
-  DEBUG("UTIL: otb_break_options_output entry");
+  DEBUG("BREAK: otb_break_options_output entry");
 
   INFO("otb-iot break options:")
   INFO("  c - change config (changes do not persist)");
@@ -55,7 +56,7 @@ void ICACHE_FLASH_ATTR otb_break_options_output(void)
   INFO("  e - enable watchdog (device will rebot after 5 minutes)");
   INFO("  h - output this list of options");
 
-  DEBUG("UTIL: otb_break_options_output exit");
+  DEBUG("BREAK: otb_break_options_output exit");
 
 }  
 
@@ -63,25 +64,62 @@ void ICACHE_FLASH_ATTR otb_break_process_char_timerfunc(void *arg)
 {
   char rx_char;
 
-  DEBUG("UTIL: otb_break_process_char_timerfunc entry");
+  DEBUG("BREAK: otb_break_process_char_timerfunc entry");
 
   otb_util_timer_cancel((os_timer_t*)&otb_break_process_char_timer);
   OTB_ASSERT(otb_break_rx_buf > 0);
-  otb_break_options_select(otb_break_rx_buf[0]);
+  otb_break_options_fan_out(otb_break_rx_buf[0]);
 
-  DEBUG("UTIL: otb_break_process_char_timerfunc exit");
+  DEBUG("BREAK: otb_break_process_char_timerfunc exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_break_options_fan_out(char input)
+{
+  bool rc = TRUE;
+
+  DEBUG("BREAK: otb_break_options_fan_out entry");
+
+  switch (otb_break_state)
+  {
+    case OTB_BREAK_STATE_MAIN:
+      rc = otb_break_options_select(input);
+      break;
+
+    case OTB_BREAK_STATE_CONFIG:
+      break;
+
+    case OTB_BREAK_STATE_GPIO:
+      otb_break_gpio_input(input);
+      break;
+
+    case OTB_BREAK_STATE_SOFT_RESET:
+      break;
+
+    default:
+      OTB_ASSERT(FALSE);
+      break;
+  }
+
+  if (rc)
+  {
+    otb_break_rx_buf_len = 0;
+  }
+
+  DEBUG("BREAK: otb_break_options_fan_out exit");
 
   return;
 }
 
 char ALIGN4 otb_break_user_reboot_string[] = "BREAK: User triggered reboot";
 char ALIGN4 otb_break_config_reboot_string[] = "BREAK: User triggered config wipe";
-void ICACHE_FLASH_ATTR otb_break_options_select(char option)
+bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 {
   bool output_options = FALSE;
   bool clear_buf = TRUE;
 
-  DEBUG("UTIL: otb_break_options_select entry");
+  DEBUG("BREAK: otb_break_options_select entry");
 
   switch (option)
   {
@@ -117,7 +155,8 @@ void ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'g':
     case 'G':
       INFO("Run GPIO test");
-      INFO(" Not yet implemented");
+      otb_break_state = OTB_BREAK_STATE_GPIO;
+      INFO(" GPIO test running (test not yet implemented)");
       break;
 
     case 'r':
@@ -171,17 +210,41 @@ void ICACHE_FLASH_ATTR otb_break_options_select(char option)
   {
       otb_break_options_output();
   }
-  if (clear_buf)
-  {
-    otb_break_rx_buf_len = 0;
-  }
 
-  DEBUG("UTIL: otb_break_options_select exit");
+  DEBUG("BREAK: otb_break_options_select exit");
 
-  return;
+  return(clear_buf);
 }
 
 // Called from within interrupts
+bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
+{
+
+  DEBUG("BREAK: otb_break_gpio_input entry");
+
+  switch (input)
+  {
+    case 'x':
+    case 'X':
+      otb_break_state = OTB_BREAK_STATE_MAIN;
+      INFO(" Terminated")
+      break;
+
+    case 'h':
+    case 'H':
+    case '?':
+      INFO("  x - Terminate");
+      break;
+
+    default:
+      break;
+  }
+
+  DEBUG("BREAK: otb_break_gpio_input exit");
+
+  return(TRUE);
+}
+
 void otb_break_process_char(void)
 {
   otb_util_timer_set((os_timer_t*)&otb_break_process_char_timer, 
