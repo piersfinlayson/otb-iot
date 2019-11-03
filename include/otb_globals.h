@@ -27,6 +27,6 @@ extern char otb_compile_time[9];
 extern char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 extern char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 extern bool otb_wifi_ap_mode_done;
-extern char OTB_MAIN_DEVICE_ID[20];
+extern char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
 extern char otb_hw_info[10];
 

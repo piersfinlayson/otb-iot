@@ -150,7 +150,7 @@ os_timer_t otb_util_heap_timer;
 char otb_compile_date[12];
 char otb_compile_time[9];
 char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-char OTB_MAIN_DEVICE_ID[20];
+char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
 char otb_hw_info[10];
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];

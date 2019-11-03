@@ -25,7 +25,6 @@ char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 void configModeCallback();
 char ssid[32];
 char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-char OTB_MAIN_DEVICE_ID[20];
 volatile os_timer_t init_timer;
  
 extern void user_init(void);

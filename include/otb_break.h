@@ -21,6 +21,7 @@
 #define OTB_BREAK_H_INCLUDED
 
 #define OTB_BREAK_RX_BUF_LEN 16
+#define OTB_BREAK_CONFIG_STRING_LEN 64
 extern char otb_break_rx_buf[OTB_BREAK_RX_BUF_LEN];
 extern uint8_t otb_break_rx_buf_len;
 
@@ -37,6 +38,7 @@ extern uint8_t otb_break_rx_buf_len;
 #define OTB_BREAK_CONFIG_STATE_MQTT_SVR  3
 #define OTB_BREAK_CONFIG_STATE_MQTT_PORT 4
 #define OTB_BREAK_CONFIG_STATE_CHIP_ID   6
+#define OTB_BREAK_CONFIG_STATE_DEVICE_ID 7
 
 void otb_break_start(void);
 void otb_break_options_output(void);
@@ -45,6 +47,8 @@ void otb_break_options_fan_out(char input);
 bool otb_break_options_select(char option);
 bool otb_break_gpio_input(char input);
 bool otb_break_config_input(char input);
+void otb_break_clear_string(void);
+bool otb_break_collect_string(char input);
 bool otb_break_config_input_main(char input);
 bool otb_break_soft_reset_input(char input);
 void otb_break_process_char(void);
@@ -55,6 +59,7 @@ char otb_break_rx_buf[OTB_BREAK_RX_BUF_LEN];
 uint8_t otb_break_rx_buf_len;
 uint8_t otb_break_state;
 uint8_t otb_break_config_state;
+char otb_break_string[OTB_BREAK_CONFIG_STRING_LEN];
 #endif
 
 #endif // OTB_BREAK_H_INCLUDED

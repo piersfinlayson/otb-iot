@@ -45,13 +45,13 @@ void ICACHE_FLASH_ATTR otb_break_options_output(void)
 
   INFO("otb-iot break options:")
   INFO("  c - change config (changes do not persist)");
-  INFO("  x - resumes booting (with changed config is applicable");
+  INFO("  x - resumes booting (with changed config as applicable");
   INFO("  q - reboot");
   INFO("  f - factory reset");
   INFO("  g - run gpio test");
   INFO("  r - waits for soft reset button to be pressed");
   INFO("  i - outputs device info");
-  INFO("  w - wipe stored config");
+  INFO("  w - wipe stored config (auto-reboots)");
   INFO("  d - disable watchdog (device will not reboot automatically after 5 minutes)");
   INFO("  e - enable watchdog (device will rebot after 5 minutes)");
   INFO("  h - output this list of options");
@@ -120,6 +120,9 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 {
   bool output_options = FALSE;
   bool clear_buf = TRUE;
+  unsigned char mac1[3], mac2[3];
+  bool rc;
+  uint32_t chipid;
 
   DEBUG("BREAK: otb_break_options_select entry");
 
@@ -140,21 +143,18 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       otb_util_uart0_rx_dis();
       otb_util_break_disable_timer();
       otb_wifi_kick_off();
-      output_options = FALSE;
       break;
 
     case 'q':
     case 'Q':
       INFO("Reboot");
       otb_reset(otb_break_user_reboot_string);
-      output_options = FALSE;
       break;
 
     case 'f':
     case 'F':
-      INFO("Factory reset (not yet implemented)");
-      otb_break_state = OTB_BREAK_STATE_SOFT_RESET;
-;
+      INFO("Factory reset");
+      INFO(" For factory reset reboot and hold down soft reset (GPIO 14) for > 15 seconds");
       break;
 
     case 'g':
@@ -174,7 +174,31 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'i':
     case 'I':
       INFO("Output device info");
-      INFO(" Not yet implemented");
+      INFO(" SDK Version:    %s", otb_sdk_version_id);
+      chipid = system_get_chip_id();
+      INFO(" Actual Chip ID: %06x", chipid);
+      os_memset(mac1, 0, 3);
+      os_memset(mac2, 0, 3);
+      if (wifi_get_macaddr(STATION_IF, mac1))
+      {
+        INFO(" Station MAC:    %02x%02x%02x", mac1[0], mac1[1], mac1[2]);
+      }
+      if (wifi_get_macaddr(SOFTAP_IF, mac2))
+      {
+        INFO(" AP MAC:         %02x%02x%02x", mac2[0], mac2[1], mac2[2]);
+      }
+      INFO(" Eeprom args:    -i %06x -1 %02x%02x%02x -2 %02x%02x%02x", chipid, mac1[0], mac1[1], mac1[2], mac2[0], mac2[1], mac2[2]);
+      INFO(" Hardware info:  %s", otb_hw_info);
+      INFO(" Boot slot:      %d", otb_rboot_get_slot(FALSE));
+      INFO(" Free heap size: %d bytes", system_get_free_heap_size());
+      INFO(" SW Chip ID:     %s", OTB_MAIN_CHIPID);
+      INFO(" Device ID:      %s", OTB_MAIN_DEVICE_ID);
+      INFO(" Wifi SSID:      %s", otb_conf->ssid);
+      INFO(" Wifi Password:  %s", otb_conf->password);
+      INFO(" MQTT Server:    %s", otb_conf->mqtt.svr);
+      INFO(" MQTT Port:      %d", otb_conf->mqtt.port);
+      INFO(" MQTT Username:  %s", otb_conf->mqtt.user);
+      INFO(" MQTT Password:  %s", otb_conf->mqtt.pass);
       break;
 
     case 'w':
@@ -183,7 +207,6 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       uint8 spi_rc = spi_flash_erase_sector(OTB_BOOT_CONF_LOCATION / 0x1000);
       INFO(" Wiped");
       otb_reset(otb_break_config_reboot_string);
-      output_options = FALSE;
       break;
 
     case 'd':
@@ -264,50 +287,62 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       break;
 
     case OTB_BREAK_CONFIG_STATE_SSID:
-      INFO(" Not yet implemented");
-      if (input == 'x')
+      if (otb_break_collect_string(input))
       {
-        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+        os_strncpy(otb_conf->ssid, otb_break_string, OTB_CONF_WIFI_SSID_MAX_LEN);
+        otb_conf->ssid[OTB_CONF_WIFI_SSID_MAX_LEN-1] = 0;
+        INFO("  Set SSID to: %s", otb_conf->ssid);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
       }
-      // In otb_conf->ssid[OTB_CONF_WIFI_SSID_MAX_LEN]
       break;
       
     case OTB_BREAK_CONFIG_STATE_PASSWORD:
-      INFO(" Not yet implemented");
-      if (input == 'x')
+      if (otb_break_collect_string(input))
       {
-        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+        os_strncpy(otb_conf->password, otb_break_string, OTB_CONF_WIFI_PASSWORD_MAX_LEN);
+        otb_conf->password[OTB_CONF_WIFI_PASSWORD_MAX_LEN-1] = 0;
+        INFO("  Set WiFi password to: %s", otb_conf->password);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
       }
-      // otb_conf->password[OTB_CONF_WIFI_PASSWORD_MAX_LEN];
       break;
       
     case OTB_BREAK_CONFIG_STATE_MQTT_SVR:
-      INFO(" Not yet implemented");
-      if (input == 'x')
+      if (otb_break_collect_string(input))
       {
-        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+        os_strncpy(otb_conf->mqtt.svr, otb_break_string, OTB_MQTT_MAX_SVR_LEN);
+        otb_conf->mqtt.svr[OTB_MQTT_MAX_SVR_LEN-1] = 0;
+        INFO("  Set MQTT server to: %s", otb_conf->mqtt.svr);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
       }
-      // otb_conf->mqtt.svr[OTB_MQTT_MAX_SVR_LEN];
       break;
       
     case OTB_BREAK_CONFIG_STATE_MQTT_PORT:
-      INFO(" Not yet implemented");
-      if (input == 'x')
+      if (otb_break_collect_string(input))
       {
-        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+        otb_conf->mqtt.port = atoi(otb_break_string);
+        INFO("  Set MQTT port to: %d", otb_conf->mqtt.port);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
       }
-      // int otb_conf->mqtt.port;
       break;
       
     case OTB_BREAK_CONFIG_STATE_CHIP_ID:
-      INFO(" Not yet implemented");
-      if (input == 'x')
+      if (otb_break_collect_string(input))
       {
-        otb_break_config_state = OTB_BREAK_STATE_MAIN;
+        os_strncpy(OTB_MAIN_CHIPID, otb_break_string, OTB_MAIN_CHIPID_STR_LENGTH);
+        OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH-1] = 0;
+        INFO("  Set Chip ID to: %s", OTB_MAIN_CHIPID);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
       }
-      // Set using:
-      // os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
-      // os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
+      break;
+
+    case OTB_BREAK_CONFIG_STATE_DEVICE_ID:
+      if (otb_break_collect_string(input))
+      {
+        os_strncpy(OTB_MAIN_DEVICE_ID, otb_break_string, OTB_MAIN_DEVICE_ID_STR_LENGTH);
+        OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH-1] = 0;
+        INFO("  Set Device ID to: %s", OTB_MAIN_DEVICE_ID);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+      }
       break;
 
     default:
@@ -316,6 +351,52 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
   }
 
   DEBUG("BREAK: otb_break_config_input exit");
+
+  return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_break_clear_string(void)
+{
+  DEBUG("BREAK: otb_break_clear_string entry");
+  os_memset(otb_break_string, 0, OTB_BREAK_CONFIG_STRING_LEN);
+  DEBUG("BREAK: otb_break_clear_string exit");
+  return;
+}
+
+// returns TRUE if string is finished (got \r or \n)
+bool ICACHE_FLASH_ATTR otb_break_collect_string(char input)
+{
+  bool rc = FALSE;
+  size_t len;
+
+  DEBUG("BREAK: otb_break_collect_string entry");
+
+  if ((input == '\r') || (input == '\n'))
+  {
+    rc = TRUE;
+  }
+  else
+  {
+    len = os_strnlen(otb_break_string, OTB_BREAK_CONFIG_STRING_LEN);
+    if (len < (OTB_BREAK_CONFIG_STRING_LEN - 1))
+    {
+      otb_break_string[len] = input;
+      ets_printf("%c", input);
+    }
+    else
+    {
+      INFO("  Hit max config string length %d", OTB_BREAK_CONFIG_STRING_LEN-1);
+      rc = TRUE;
+      otb_break_string[OTB_BREAK_CONFIG_STRING_LEN-1] = 0;
+    }
+  }
+
+  if (rc)
+  {
+    ets_printf("\r\n");
+  }
+
+  DEBUG("BREAK: otb_break_collect_string exit");
 
   return(rc);
 }
@@ -337,30 +418,42 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
     case 'S':
       INFO(" SSID");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_SSID;
+      otb_break_clear_string();
       break;
 
     case 'p':
     case 'P':
       INFO(" WiFi Password");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_PASSWORD;
+      otb_break_clear_string();
       break;
 
     case 'm':
     case 'M':
       INFO(" MQTT Server");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_MQTT_SVR;
+      otb_break_clear_string();
       break;
 
     case 'r':
     case 'R':
       INFO(" MQTT Port");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_MQTT_PORT;
+      otb_break_clear_string();
       break;
 
     case 'c':
     case 'C':
       INFO(" Chip ID");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_CHIP_ID;
+      otb_break_clear_string();
+      break;
+
+    case 'd':
+    case 'D':
+      INFO(" Device ID");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_DEVICE_ID;
+      otb_break_clear_string();
       break;
 
     case 'h':
@@ -372,6 +465,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       INFO("  m - MQTT Server");
       INFO("  r - MQTT Port");
       INFO("  c - Chip ID");
+      INFO("  d - Device ID");
       INFO("  x - Exit");
       break;
 

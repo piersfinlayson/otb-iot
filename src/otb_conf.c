@@ -347,6 +347,7 @@ void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
 }
 
 char ALIGN4 otb_conf_load_error_string[] = "CONF: Failed to save new config";
+char ALIGN4 otb_conf_load_error_reboot_string[] = "CONF: New config stored, rebooting";
 bool ICACHE_FLASH_ATTR otb_conf_load(void)
 {
   bool rc;
@@ -369,6 +370,11 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
     if (!rc)
     {
       otb_reset_error(otb_conf_load_error_string);
+      rc = TRUE;
+    }
+    else
+    {
+      otb_reset(otb_conf_load_error_reboot_string);
       rc = TRUE;
     }
   }
