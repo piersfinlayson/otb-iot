@@ -158,7 +158,7 @@ const otb_eeprom_pin_info otb_hwinfo_main_board_espi_v1_1_main_board_pin_info[OT
    OTB_EEPROM_PIN_HEADER_NONE,
    OTB_EEPROM_PIN_USE_STATUS_LED,
    OTB_EEPROM_PIN_MODULE_1,
-   OTB_EEPROM_PIN_FINFO_LED_TYPE_LED,
+   OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B,
    OTB_EEPROM_PIN_PULLED_V0},
 
   // GPIO 16
