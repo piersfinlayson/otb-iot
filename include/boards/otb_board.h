@@ -34,6 +34,7 @@
 #include "otb_mez_board_relay_v0_2.h"
 #include "otb_mez_board_mbus_v0_1.h"
 #include "otb_main_board_espi_v1_0a.h"
+#include "otb_main_board_espi_v1_1.h"
 
 // Set up default hardware information, in case info can't be read from eeprom
 // XXX May want lots of different compile time cases in here - but for now just
@@ -55,6 +56,7 @@ const otb_hwinfo_board_info *otb_hwinfo_boards[] =
   &otb_hwinfo_main_board_otbiot_v0_4_board_info,
   &otb_hwinfo_main_board_otbiot_v0_5_board_info,
   &otb_hwinfo_main_board_espi_v1_0a_board_info,
+  &otb_hwinfo_main_board_espi_v1_1_board_info,
   &otb_hwinfo_mez_board_nixie_v0_2,
   &otb_hwinfo_mez_board_prog_v0_2,
   &otb_hwinfo_mez_board_temp_v0_2,

@@ -251,6 +251,7 @@ typedef struct otb_eeprom_hw_common
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_MEZZ        0x101
 #define OTB_EEPROM_HW_SUBCODE_MAIN_MODULE_PROG        0x201
 #define OTB_EEPROM_HW_SUBCODE_ESPI_BOARD_1_0A         0x001
+#define OTB_EEPROM_HW_SUBCODE_ESPI_BOARD_1_1         0x002
   uint32 subcode;
 
 // Version 2 fields
