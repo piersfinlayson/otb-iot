@@ -1316,6 +1316,7 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
   OTB_ASSERT(OTB_UTIL_DELAY_WAIT_MS <= OTB_ESP_MAX_DELAY_MS);
   OTB_ASSERT(strlen(OTB_MAIN_OTB_IOT) <= 8);
   OTB_ASSERT(strlen(OTB_MQTT_ROOT) <= 8);
+  OTB_ASSERT(strlen(OTB_MAIN_ESPI_PREFIX) <= 8);
   OTB_ASSERT(strlen(OTB_MAIN_FW_VERSION) <= 8);
   
   DEBUG("UTIL: otb_util_check_defs exit");
@@ -1373,7 +1374,7 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   os_snprintf(otb_mqtt_topic_s,
               OTB_MQTT_MAX_TOPIC_LENGTH,
               "/%s/%s/%s/%s/%s/%s",
-              OTB_MQTT_ROOT,
+              otb_mqtt_root,
               OTB_MQTT_LOCATION_1,
               OTB_MQTT_LOCATION_2,
               OTB_MQTT_LOCATION_3,
