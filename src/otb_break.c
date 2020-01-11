@@ -120,7 +120,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 {
   bool output_options = FALSE;
   bool clear_buf = TRUE;
-  unsigned char mac1[3], mac2[3];
+  unsigned char mac1[6], mac2[6];
   bool rc;
   uint32_t chipid;
 
@@ -177,8 +177,8 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       INFO(" SDK Version:    %s", otb_sdk_version_id);
       chipid = system_get_chip_id();
       INFO(" Actual Chip ID: %06x", chipid);
-      os_memset(mac1, 0, 3);
-      os_memset(mac2, 0, 3);
+      os_memset(mac1, 0, 6);
+      os_memset(mac2, 0, 6);
       if (wifi_get_macaddr(STATION_IF, mac1))
       {
         INFO(" Station MAC:    %02x%02x%02x", mac1[0], mac1[1], mac1[2]);
