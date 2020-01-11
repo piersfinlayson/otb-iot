@@ -549,6 +549,10 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       INFO("EEPROM:   common.serial:   %s", serial);
       INFO("EEPROM:   common.code:     0x%08x", main_board->common.code);
       INFO("EEPROM:   common.subcode:  0x%08x", main_board->common.subcode);
+      os_sprintf(otb_hw_info,
+                "%04x:%04x",
+                main_board->common.code,
+                main_board->common.subcode);
       INFO("EEPROM:   chipid:          %02x%02x%02x", main_board->chipid[0], main_board->chipid[1], main_board->chipid[2]);
       INFO("EEPROM:   mac1:            %02x%02x%02x%02x%02x%02x",
            main_board->mac1[0],

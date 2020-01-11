@@ -440,8 +440,8 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
   INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
   
-  // Need to read this!
-  os_sprintf(otb_hw_info, "%04x:%04x", 1, 1);
+  // This is updated later when the EEPROM is read
+  os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
   INFO("OTB: Hardware info: %s", otb_hw_info);
   
   if (recovery)
