@@ -352,7 +352,37 @@ Note that with the ESPi Programmer attached otb-iot may be unable to read the co
 Testing
 -------
 
-TBC
+The easiest way to test the ESPi is to enter otb-iot break processing.  To do this attach a serial monitor (like the ESPi Programming Hat) to the ESPi, boot otb-iot and when the logs say this::
+
+  UTIL: User break received
+
+Quickly enter this string:
+
+  break
+
+You should be presented with::
+
+  Entered otb-iot break processing
+  Enable watchdog
+  Watchdog enabled: 300000ms
+  Press h or ? for help
+
+First of all disable the watchdog - this will prevent the device from rebooting automatically after 5 minutes::
+
+  d
+
+  Disable watchdog
+    Watchdog disabled
+
+The devices which should be verified are:
+
+* Hard reset button (which should already have been tested by this point)
+* Soft reset button
+* Status LED (which should be showing blue in break processing, or red if fully booted and unconfigured/unconnected)
+* GPIO operation
+
+From break processing it's also possible to implement WiFi and MQTT configuration to test the device can connect to a network and MQTT server, and this config is not retained after a reboot.
+
 
 
 
