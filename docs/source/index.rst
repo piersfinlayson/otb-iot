@@ -1,6 +1,6 @@
 ..
  OTB-IOT - Out of The Box Internet Of Things
- Copyright (C) 2017 Piers Finlayson
+ Copyright (C) 2020 Piers Finlayson
 
 otb-iot
 =======
