@@ -319,7 +319,7 @@ Now on the Raspberry Pi flash the EEPROM with the file generated::
   gpio mode 10 in
   gpio mode 11 in
 
-As part of this process you should see the first few bytes of the EEPROM like this:
+As part of this process you should see the first few bytes of the EEPROM like this::
 
   0000|  7a ee 13 bc 00 00 00 00   24 00 00 00 01 00 00 00
   0010|  54 00 00 00 f0 98 2c d6   00 40 00 00 04 00 00 00
