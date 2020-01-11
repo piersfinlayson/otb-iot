@@ -347,7 +347,7 @@ From the PC run::
 
 Once the flashing has completed the ESPi should boot using the otb-iot firmware.  It may hang on the first boot, as a result of the flashing process.  If so, reset the ESPi manually using the hard reset button.
 
-Note that with the ESPi Programmer attached otb-iot will be unable to read the config EEPROM.  Disconnect the programmer, reset the ESPi and it should come up advertising a WiFi hotspot you can connect to with the SSID espi.serial_number.
+Note that with the ESPi Programmer attached otb-iot may be unable to read the config EEPROM.  Disconnect the programmer, reset the ESPi and it should come up advertising a WiFi hotspot you can connect to with the SSID espi.serial_number.
 
 Testing
 -------
