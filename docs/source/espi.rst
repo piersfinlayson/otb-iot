@@ -9,7 +9,7 @@ The ESPi is a small computer powered by an ESP8266 WiFi processor in a Raspberry
 
 It can be used to drive Hats that have been developed for the ESP8266, such as the `M-Bus Master Hat`_.
 
-.. M-Bus Master Hat: https://piers.rocks/mbus/libmbus/raspberry/pi/rpi/serial/meter/m-bus/hat/2019/03/03/m-bus-master-hat-raspberry-pi.html
+.. _M-Bus Master Hat: https://piers.rocks/mbus/libmbus/raspberry/pi/rpi/serial/meter/m-bus/hat/2019/03/03/m-bus-master-hat-raspberry-pi.html
 
 Note - this documentation refers to ESPi hardware revision v1.1 onwards.
 
@@ -18,7 +18,7 @@ GPIOs
 
 The ESPi supports nearly as many GPIOs as the standard Raspberery Pi models, by using an `MCP23017`_ GPIO expander IC.  This can be controlled by the ESP8266 using I2C - the MCP23017 is on the internal I2C busat address 0x20.
 
-.. MCP23017: https://piers.rocks/i2c/mcp23016/mcp23017/gpio/2018/09/11/differences-between-mcp23017-and-mcp23018.html
+.. _MCP23017: https://piers.rocks/i2c/mcp23016/mcp23017/gpio/2018/09/11/differences-between-mcp23017-and-mcp23018.html
 
 However, the ESPi is still 2 GPIOs short, and provides jumpers on-board to allow the user to select between exposing GPIO13 or GPIO5, and between GPIO19 or GPIO6.  The GPIO numbers here refer to the BCM GPIO numbers:
 
