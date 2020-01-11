@@ -16,7 +16,7 @@ Note - this documentation refers to ESPi hardware revision v1.1 onwards.
 GPIOs
 =====
 
-The ESPi supports nearly as many GPIOs as the standard Raspberery Pi models, by using an `MCP23017`_ GPIO expander IC.  This can be controlled by the ESP8266 using I2C - the MCP23017 is on the internal I2C busat address 0x20.
+The ESPi supports nearly as many GPIOs as the standard Raspberery Pi models, by using an MCP23017_ GPIO expander IC.  This can be controlled by the ESP8266 using I2C - the MCP23017 is on the internal I2C busat address 0x20.
 
 .. _MCP23017: https://piers.rocks/i2c/mcp23016/mcp23017/gpio/2018/09/11/differences-between-mcp23017-and-mcp23018.html
 
