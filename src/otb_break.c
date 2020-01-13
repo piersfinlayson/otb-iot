@@ -293,6 +293,8 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_init(uint8_t addr, brzo_i2c_info *inf
   // No harm in redoing repeatedly (except for undoing whatever screwed it up
   // in the first place!)
   otb_i2c_initialize_bus_internal();
+  INFO(" Disable pin 14 soft reset ...");
+  otb_intr_unreg(14);
   otb_i2c_mcp23017_init(addr, info);
 
   DEBUG("BREAK: otb_break_gpio_test_init exit");
@@ -366,6 +368,8 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
 
   DEBUG("BREAK: otb_break_gpio_test_cancel entry");
 
+  INFO(" Re-enable pin 14 soft reset ...");
+  otb_intr_register(otb_gpio_reset_button_interrupt, NULL, 14);
   info = &otb_i2c_bus_internal;
   addr = 0x20;
   otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
