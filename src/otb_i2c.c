@@ -1867,7 +1867,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq_info(uint8_t addr, uint8_t reg, uint8
   DEBUG("I2C: otb_i2c_write_reg_seq_info entry");
 
   brzo_i2c_start_transaction_info(addr, 100, info);
-  brzo_i2c_write_info(&reg, 1, FALSE, info);
+  brzo_i2c_write_info(&reg, 1, TRUE, info);
   brzo_i2c_write_info(val, count, FALSE, info);
   brzo_rc = brzo_i2c_end_transaction_info(info);
   if (!brzo_rc)
