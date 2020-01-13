@@ -20,123 +20,7 @@
 #define OTB_I2C_MCP23017_C
 #include "otb.h"
 
-void ICACHE_FLASH_ATTR otb_i2c_mcp23017_test_timerfunc(void)
-{
-  bool rc;
-  
-  DEBUG("I2C: otb_i2c_mcp23017_test_timer_func entry");
-
-  if (otb_i2c_mcp23017_led_on)
-  {
-    // Off
-    INFO("MCP23017: LED on - turn it off");
-    rc = otb_i2c_mcp23017_led_conf(otb_i2c_mcp23017_test_addr, 8, FALSE);
-    if (!rc)
-    {
-      WARN("MCP23017: Failed to communicate with MCP23017");
-    }
-    otb_i2c_mcp23017_led_on = FALSE;
-  }
-  else
-  {
-    // On
-    INFO("MCP23017: LED off - turn it on");
-    rc = otb_i2c_mcp23017_led_conf(otb_i2c_mcp23017_test_addr, 8, TRUE);
-    if (!rc)
-    {
-      WARN("MCP23017: Failed to communicate with MCP23017");
-    }
-    otb_i2c_mcp23017_led_on = TRUE;
-  }
-  
-  DEBUG("I2C: otb_i2c_mcp23017_test_timer_func entry");
-
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_i2c_mcp23017_test_init(void)
-{
-  bool rc = FALSE;
-
-  DEBUG("I2C: otb_i2c_mcp23017_test_init entry");
-
-  otb_i2c_mcp23017_led_on = FALSE;
-  otb_i2c_mcp23017_test_addr = OTB_I2C_MCP23017_BASE_ADDR;
-  rc = otb_i2c_mcp23017_init(otb_i2c_mcp23017_test_addr);
-  if (!rc)
-  {
-    WARN("MCP23017: Failed to init MCP23017 at address 0x%02x", otb_i2c_mcp23017_test_addr);
-    goto EXIT_LABEL;
-  }
-  
-  otb_util_timer_set((os_timer_t*)&otb_i2c_mcp23017_test_timer, 
-                     (os_timer_func_t *)otb_i2c_mcp23017_test_timerfunc,
-                     NULL,
-                     1000,
-                     1);
-                     
-  INFO("MCP23017: Initialized test");
-  
-EXIT_LABEL:
-  
-  DEBUG("I2C: otb_i2c_mcp23017_test_init exit");
-
-  return;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_led_conf(uint8_t addr, uint8_t led, bool on)
-{
-  bool rc = FALSE;
-  uint8_t io;
-  uint8_t gpio_reg;
-  uint8_t gpio_val;
-  int ii;
-  uint8_t reg;
-  
-  DEBUG("I2C: otb_i2c_mcp23017_led_conf entry");
-
-  // Get which register this GPIO is on
-  gpio_reg = otb_i2c_mcp23017_get_io_reg(led);
-  INFO("MCP23017: Using register 0x%02x", gpio_reg);
-  
-  // Figure out which bit within this register this led is on
-  io = 1 << (led|8);
-
-#if 0
-  rc = otb_i2c_read_one_reg(addr, gpio_reg, &gpio_val);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-#endif  
-  
-  if (on)
-  {
-    //gpio_val |= io;
-    gpio_val = 0xff;
-  }
-  else
-  {
-    //gpio_val &= ~io;
-    gpio_val = 0;
-  }
-  
-  rc = otb_i2c_write_one_reg(addr, gpio_reg, gpio_val);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-  
-EXIT_LABEL:
-
-  DEBUG("I2C: otb_i2c_mcp23017_led_conf exit");
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr)
+bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr, brzo_i2c_info *info)
 {
   bool rc = FALSE;
   uint8_t conf;
@@ -144,7 +28,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr)
   DEBUG("I2C: otb_i2c_mcp23017_init entry");
 
   // Read the mode (on power on or after reset should be set to all zeros)
-  rc = otb_i2c_read_one_reg(addr, OTB_I2C_MCP23017_REG_IOCON1, &conf);
+  rc = otb_i2c_read_one_reg_info(addr, OTB_I2C_MCP23017_REG_IOCON1, &conf, info);
   if (!rc)
   {
     WARN("MCP23017: Failed to read conf");
@@ -154,29 +38,14 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr)
 
   // Set the mode
   conf = 0;
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_IOCON1, conf);
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_IOCON1, conf, info);
   if (!rc)
   {
     WARN("MCP23017: Failed to write a reg");
     goto EXIT_LABEL;
   }
 
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_IOCON2, conf);
-  if (!rc)
-  {
-    WARN("MCP23017: Failed to write a reg");
-    goto EXIT_LABEL;
-  }
-
-  // Set direction of all ports to output  
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_IODIRA, 0);
-  if (!rc)
-  {
-    WARN("MCP23017: Failed to write a reg");
-    goto EXIT_LABEL;
-  }
-
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_GPIOA, 0);
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_IOCON2, conf, info);
   if (!rc)
   {
     WARN("MCP23017: Failed to write a reg");
@@ -184,14 +53,29 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr)
   }
 
   // Set direction of all ports to output  
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_IODIRB, 0);
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_IODIRA, 0, info);
   if (!rc)
   {
     WARN("MCP23017: Failed to write a reg");
     goto EXIT_LABEL;
   }
 
-  rc = otb_i2c_write_one_reg(addr, OTB_I2C_MCP23017_REG_GPIOB, 0);
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_GPIOA, 0, info);
+  if (!rc)
+  {
+    WARN("MCP23017: Failed to write a reg");
+    goto EXIT_LABEL;
+  }
+
+  // Set direction of all ports to output  
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_IODIRB, 0, info);
+  if (!rc)
+  {
+    WARN("MCP23017: Failed to write a reg");
+    goto EXIT_LABEL;
+  }
+
+  rc = otb_i2c_write_one_reg_info(addr, OTB_I2C_MCP23017_REG_GPIOB, 0, info);
   if (!rc)
   {
     WARN("MCP23017: Failed to write a reg");
@@ -207,27 +91,60 @@ EXIT_LABEL:
   return rc;
 }
 
-uint8_t ICACHE_FLASH_ATTR otb_i2c_mcp23017_get_io_reg(uint8_t io)
+// GPA and GPB format: 0b76543210
+bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_write_gpios(uint8_t gpa, uint8_t gpb, uint8_t addr, brzo_i2c_info *info)
 {
-  uint8_t bank_reg;
+  bool rc = FALSE;
+  uint8_t vals[3];
 
-  DEBUG("otb_i2c_mcp23017_get_io_reg entry");
-  
-  OTB_ASSERT(io < OTB_I2C_MCP23017_REG_IO_NUM);
-  
-  if (io < 8)
+  DEBUG("I2C: otb_i2c_mcp23017_write_gpios entry");
+
+  OTB_ASSERT(OTB_I2C_MCP23017_REG_GPIOB == OTB_I2C_MCP23017_REG_GPIOA+1);
+  vals[0] = OTB_I2C_MCP23017_REG_GPIOA;
+  vals[1] = gpa;
+  vals[2] = gpb;
+  rc = otb_i2c_write_seq_vals_info(addr, 3, vals, info);
+  if (!rc)
   {
-    bank_reg = OTB_I2C_MCP23017_REG_GPIOA;
+    WARN("Failed to write GPA and GPB values");
+  }
+
+  DEBUG("I2C: otb_i2c_mcp23017_write_gpios exit");
+
+  return rc;
+}
+
+// GPA and GPB format: 0b76543210
+bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_read_gpios(uint8_t *gpa, uint8_t *gpb, uint8_t addr, brzo_i2c_info *info)
+{
+  bool rc = FALSE;
+  uint8_t reg;
+  uint8_t vals[2];
+
+  DEBUG("I2C: otb_i2c_mcp23017_write_gpios entry");
+
+  OTB_ASSERT(OTB_I2C_MCP23017_REG_GPIOB == OTB_I2C_MCP23017_REG_GPIOA+1);
+  reg = OTB_I2C_MCP23017_REG_GPIOA;
+  vals[0] = 0;
+  vals[1] = 0;
+  rc = otb_i2c_read_reg_seq_info(addr, reg, 2, vals, info);
+  if (!rc)
+  {
+    WARN("Failed to write GPA and GPB values");
   }
   else
   {
-    bank_reg = OTB_I2C_MCP23017_REG_GPIOB;
+    *gpa = vals[0];
+    *gpb = vals[1];
   }
+  
 
-  DEBUG("otb_i2c_mcp23017_get_io_reg exit");
+  DEBUG("I2C: otb_i2c_mcp23017_write_gpios exit");
 
-  return bank_reg;
+  return rc;
 }
+
+
 
 
 

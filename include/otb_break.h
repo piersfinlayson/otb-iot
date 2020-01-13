@@ -45,6 +45,7 @@ void otb_break_options_output(void);
 void otb_break_process_char_timerfunc(void *arg);
 void otb_break_options_fan_out(char input);
 bool otb_break_options_select(char option);
+void otb_break_start_gpio_test(void);
 bool otb_break_gpio_input(char input);
 bool otb_break_config_input(char input);
 void otb_break_clear_string(void);

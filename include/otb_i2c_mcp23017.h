@@ -70,10 +70,8 @@ uint8_t otb_i2c_mcp23017_test_addr;
 
 #endif // OTB_I2C_MCP23017_C
 
-void otb_i2c_mcp23017_test_timerfunc(void);
-void otb_i2c_mcp23017_test_init(void);
-bool otb_i2c_mcp23017_led_conf(uint8_t, uint8_t led, bool on);
-bool otb_i2c_mcp23017_init(uint8_t addr);
-uint8_t otb_i2c_mcp23017_get_io_reg(uint8_t io);
+bool otb_i2c_mcp23017_init(uint8_t addr, brzo_i2c_info *info);
+bool otb_i2c_mcp23017_write_gpios(uint8_t gpa, uint8_t gpb, uint8_t addr, brzo_i2c_info *info);
+bool otb_i2c_mcp23017_read_gpios(uint8_t *gpa, uint8_t *gpb, uint8_t addr, brzo_i2c_info *info);
 
 #endif // OTB_I2C_MCP23017_H

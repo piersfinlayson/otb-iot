@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2019 Piers Finlayson
+ * Copyright (C) 2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,6 +19,7 @@
 
 #define OTB_BREAK_C
 #include "otb.h"
+#include "brzo_i2c.h"
 
 void ICACHE_FLASH_ATTR otb_break_start(void)
 {
@@ -161,7 +162,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'G':
       INFO("Run GPIO test");
       otb_break_state = OTB_BREAK_STATE_GPIO;
-      INFO(" GPIO test running (test not yet implemented)");
+      otb_break_start_gpio_test();
       break;
 
     case 'r':
@@ -244,6 +245,47 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 
   return(clear_buf);
 }
+
+ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
+{
+  bool rc;
+  brzo_i2c_info *info;
+  uint8_t addr;
+  uint8_t write[2];
+  uint8_t val;
+  uint8_t reg;
+  uint8_t regs[6];
+  int ii;
+  uint8_t brzo_rc;
+
+  DEBUG("BREAK: otb_break_start_gpio_test entry");
+
+  INFO(" GPIO test running");
+
+  INFO(" Init MCP23017");
+
+  info = &otb_i2c_bus_internal;
+  addr = 0x20;
+
+  INFO(" SDA pin:  %d", info->sda_pin);
+  INFO(" SCL pin:  %d", info->scl_pin);
+  INFO(" MCP addr: 0x%02x", addr);
+  INFO(" Init...");
+
+  otb_i2c_initialize_bus_internal();
+  otb_i2c_mcp23017_init(addr, info);
+  
+  // otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
+
+  // Now create timer
+
+EXIT_LABEL:
+
+  DEBUG("BREAK: otb_break_start_gpio_test exit");
+
+  return;
+}
+
 
 bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
 {
