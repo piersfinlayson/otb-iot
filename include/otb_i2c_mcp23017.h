@@ -59,17 +59,6 @@
 #define OTB_I2C_MCP23017_CONF_ODR         0b00000100
 #define OTB_I2C_MCP23017_CONF_INTPOL      0b00000010
 
-#ifndef OTB_I2C_MCP23017_C
-
-
-#else
-
-bool otb_i2c_mcp23017_led_on;
-static volatile os_timer_t otb_i2c_mcp23017_test_timer;
-uint8_t otb_i2c_mcp23017_test_addr;
-
-#endif // OTB_I2C_MCP23017_C
-
 bool otb_i2c_mcp23017_init(uint8_t addr, brzo_i2c_info *info);
 bool otb_i2c_mcp23017_write_gpios(uint8_t gpa, uint8_t gpb, uint8_t addr, brzo_i2c_info *info);
 bool otb_i2c_mcp23017_read_gpios(uint8_t *gpa, uint8_t *gpb, uint8_t addr, brzo_i2c_info *info);
