@@ -262,16 +262,16 @@ ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
 
   INFO(" GPIO test running");
 
-  INFO(" Init MCP23017");
 
   info = &otb_i2c_bus_internal;
   addr = 0x20;
 
-  INFO(" SDA pin:  %d", info->sda_pin);
-  INFO(" SCL pin:  %d", info->scl_pin);
-  INFO(" MCP addr: 0x%02x", addr);
-  INFO(" Init...");
+  DEBUG(" Init MCP23017");
+  DEBUG(" SDA pin:  %d", info->sda_pin);
+  DEBUG(" SCL pin:  %d", info->scl_pin);
+  DEBUG(" MCP addr: 0x%02x", addr);
 
+  // Need to reinitialise bus (did this in otb_main.c but something we did since has screwed it up)
   otb_i2c_initialize_bus_internal();
   otb_i2c_mcp23017_init(addr, info);
   

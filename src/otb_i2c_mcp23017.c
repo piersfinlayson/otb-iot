@@ -34,7 +34,6 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_init(uint8_t addr, brzo_i2c_info *info)
     WARN("MCP23017: Failed to read conf");
     goto EXIT_LABEL;
   }
-  INFO("MCP23017: Read conf 0x%02x", conf);
 
   // Set the mode
   conf = 0;
