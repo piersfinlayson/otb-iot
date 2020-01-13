@@ -249,8 +249,6 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
 ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
 {
   bool rc;
-  brzo_i2c_info *info;
-  uint8_t addr;
   uint8_t write[2];
   uint8_t val;
   uint8_t reg;
@@ -262,20 +260,15 @@ ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
 
   INFO(" GPIO test running");
 
+  otb_break_gpio_test_init(0x20, &otb_i2c_bus_internal);
 
-  info = &otb_i2c_bus_internal;
-  addr = 0x20;
+  otb_break_gpio_next_led = 0;
 
-  DEBUG(" Init MCP23017");
-  DEBUG(" SDA pin:  %d", info->sda_pin);
-  DEBUG(" SCL pin:  %d", info->scl_pin);
-  DEBUG(" MCP addr: 0x%02x", addr);
-
-  // Need to reinitialise bus (did this in otb_main.c but something we did since has screwed it up)
-  otb_i2c_initialize_bus_internal();
-  otb_i2c_mcp23017_init(addr, info);
-  
-  // otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
+  otb_util_timer_set((os_timer_t*)&otb_break_gpio_timer, 
+                    (os_timer_func_t *)otb_break_gpio_timerfunc,
+                    NULL,
+                    1000,
+                    1);
 
   // Now create timer
 
@@ -286,6 +279,105 @@ EXIT_LABEL:
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_break_gpio_test_init(uint8_t addr, brzo_i2c_info *info)
+{
+  DEBUG("BREAK: otb_break_gpio_test_init entry");
+
+  DEBUG(" Init MCP23017");
+  DEBUG(" SDA pin:  %d", info->sda_pin);
+  DEBUG(" SCL pin:  %d", info->scl_pin);
+  DEBUG(" MCP addr: 0x%02x", addr);
+
+  // Need to reinitialise bus.
+  // Did this in otb_main.c but something we did since has screwed it up
+  // No harm in redoing repeatedly (except for undoing whatever screwed it up
+  // in the first place!)
+  otb_i2c_initialize_bus_internal();
+  otb_i2c_mcp23017_init(addr, info);
+
+  DEBUG("BREAK: otb_break_gpio_test_init exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
+{
+  brzo_i2c_info *info;
+  uint8_t addr;
+  int ii;
+  uint8_t type;
+  uint8_t num;
+  uint8_t gpa;
+  uint8_t gpb;
+  uint8_t *gp;
+
+  DEBUG("BREAK: otb_break_gpio_timerfunc entry");
+
+  info = &otb_i2c_bus_internal;
+  addr = 0x20;
+
+  if (otb_break_gpio_next_led >= OTB_BREAK_GPIO_TEST_LED_NUM)
+  {
+    otb_break_gpio_next_led = 0;
+  }
+
+  type = otb_break_gpio_test_led_seq[otb_break_gpio_next_led].type;
+  num = otb_break_gpio_test_led_seq[otb_break_gpio_next_led].num;
+
+  otb_gpio_set(12, 0, TRUE);
+  otb_gpio_set(13, 0, TRUE);
+  otb_gpio_set(14, 0, TRUE);
+
+  if (type == OTB_BREAK_GPIO_LED_TYPE_GPIO)
+  {
+    OTB_ASSERT((num > 11) && (num < 15));
+    otb_gpio_set(num, 1, TRUE);
+  }
+  else
+  {
+    OTB_ASSERT((type == OTB_BREAK_GPIO_LED_TYPE_GPA) ||
+               (type == OTB_BREAK_GPIO_LED_TYPE_GPB));
+    OTB_ASSERT(num < 8);
+    gpa = 0;
+    gpb = 0;
+    if (type == OTB_BREAK_GPIO_LED_TYPE_GPA)
+    {
+      gp = &gpa;
+    }
+    else
+    {
+      gp = &gpb;
+    }
+    *gp = (1 << num);
+    otb_i2c_mcp23017_write_gpios(gpa, gpb, addr, info);
+  }
+
+  otb_break_gpio_next_led++;
+
+  DEBUG("BREAK: otb_break_gpio_timerfunc exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
+{
+  brzo_i2c_info *info;
+  uint8_t addr;
+
+  DEBUG("BREAK: otb_break_gpio_test_cancel entry");
+
+  info = &otb_i2c_bus_internal;
+  addr = 0x20;
+  otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
+  otb_gpio_set(12, 0, TRUE);
+  otb_gpio_set(13, 0, TRUE);
+  otb_gpio_set(14, 0, TRUE);
+  otb_util_timer_cancel((os_timer_t*)&otb_break_gpio_timer);
+
+  DEBUG("BREAK: otb_break_gpio_test_cancel exit");
+
+  return;
+}
 
 bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
 {
@@ -297,6 +389,7 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
     case 'x':
     case 'X':
       otb_break_state = OTB_BREAK_STATE_MAIN;
+      otb_break_gpio_test_cancel();
       INFO(" Exiting GPIO test")
       break;
 
