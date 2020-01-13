@@ -333,6 +333,8 @@ void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
   otb_gpio_set(13, 0, TRUE);
   otb_gpio_set(14, 0, TRUE);
 
+  INFO("BREAK: type %d num %d", type, num);
+
   if (type == OTB_BREAK_GPIO_LED_TYPE_GPIO)
   {
     OTB_ASSERT((num > 11) && (num < 15));
@@ -355,6 +357,9 @@ void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
     }
     *gp = (1 << num);
     otb_i2c_mcp23017_write_gpios(gpa, gpb, addr, info);
+    otb_i2c_mcp23017_read_gpios(&gpa, &gpb, addr, info);
+    INFO("BREAK: GPA 0x%02x 0x%02x", gpa, gpb);
+
   }
 
   otb_break_gpio_next_led++;
@@ -385,6 +390,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
   addr = 0x20;
   otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
   otb_gpio_set(12, 0, TRUE);
+  otb_util_timer_cancel((os_timer_t*)&otb_break_gpio_timer);
   DEBUG("BREAK: otb_break_gpio_test_cancel exit");
 
   return;
