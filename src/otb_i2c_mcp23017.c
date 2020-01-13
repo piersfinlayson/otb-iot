@@ -120,7 +120,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_read_gpios(uint8_t *gpa, uint8_t *gpb, u
   uint8_t reg;
   uint8_t vals[2];
 
-  DEBUG("I2C: otb_i2c_mcp23017_write_gpios entry");
+  DEBUG("I2C: otb_i2c_mcp23017_read_gpios entry");
 
   OTB_ASSERT(OTB_I2C_MCP23017_REG_GPIOB == OTB_I2C_MCP23017_REG_GPIOA+1);
   reg = OTB_I2C_MCP23017_REG_GPIOA;
@@ -138,7 +138,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mcp23017_read_gpios(uint8_t *gpa, uint8_t *gpb, u
   }
   
 
-  DEBUG("I2C: otb_i2c_mcp23017_write_gpios exit");
+  DEBUG("I2C: otb_i2c_mcp23017_read_gpios exit");
 
   return rc;
 }
