@@ -46,7 +46,7 @@ The ESPi 40-pin header is designed to be compatible and interchangeable with the
 10. GPIO15 (ESP_RX)
 11. GPIO17 (MCP_GPB6)
 12. GPIO18 (MCP_GPB4)
-13. GPIO27 (MCP_GBP5)
+13. GPIO27 (MCP_GPB5)
 14. GND
 15. GPIO22 (MCP_GPB3)
 16. GPIO23 (MCP_GPB2)
