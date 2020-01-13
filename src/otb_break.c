@@ -368,6 +368,9 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
 
   DEBUG("BREAK: otb_break_gpio_test_cancel entry");
 
+  otb_gpio_set(12, 0, TRUE);
+  otb_gpio_set(13, 0, TRUE);
+  otb_gpio_set(14, 0, TRUE);
   INFO(" Re-enable pin 14 soft reset ...");
   GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
   otb_intr_register(otb_gpio_reset_button_interrupt, NULL, otb_gpio_pins.soft_reset);
@@ -375,10 +378,6 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
   addr = 0x20;
   otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
   otb_gpio_set(12, 0, TRUE);
-  otb_gpio_set(13, 0, TRUE);
-  otb_gpio_set(14, 0, TRUE);
-  otb_util_timer_cancel((os_timer_t*)&otb_break_gpio_timer);
-
   DEBUG("BREAK: otb_break_gpio_test_cancel exit");
 
   return;
