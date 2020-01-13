@@ -156,125 +156,6 @@ bool ICACHE_FLASH_ATTR otb_ads_configure(otb_conf_ads *ads)
   return rc;
 }
 
-#if 0
-// Called from main initialization serialization
-void ICACHE_FLASH_ATTR otb_ads_initialize(void)
-{
-  bool rc;
-  int ii;
-  otb_conf_ads *ads;
-  otb_i2c_ads_samples *samples;
-  bool do_init = FALSE;
-
-  DEBUG("I2C: otb_ads_initialize entry");
-
-  os_memset(otb_i2c_ads_state, 0, sizeof(bool) * OTB_CONF_ADS_MAX_ADSS);
-
-  if (otb_conf->adss > 0)
-  {
-    do_init = TRUE;
-  }
-  else
-  {
-    do_init = otb_relay_configured();
-  }
-  
-  if (do_init)
-  {
-    INFO("I2C: Initialize I2C bus");
-    // Initialize the I2C bus
-    rc = otb_i2c_init();
-    if (!rc)
-    {
-      goto EXIT_LABEL;
-    }
-  }
-  else
-  {
-    INFO("I2C: No I2C initialization required (no ADS/ADC or relay devices)");
-    rc = TRUE;
-    goto EXIT_LABEL;
-  }
-  
-  //uint8_t addr = 0x57;
-  //rc = otb_i2c_24xxyy_init(addr);
-  if (rc)
-  {
-    INFO("I2C: 24XXYY init at address 0x%02x successful", addr);
-  }
-  else
-  {
-    INFO("I2C: 24XXYY init at address 0x%02x failed", addr);
-  }
-
-  if (otb_conf->adss > 0)
-  {
-    INFO("I2C: Initialize ADS ADC(s)");
-    // Configure each ADS    
-    for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
-    {
-      ads = &(otb_conf->ads[ii]);
-      if (ads->addr > 0)
-      {
-        // Configure with appropriate settings
-        otb_i2c_ads_state[ii] = otb_ads_configure(ads);
-        if (otb_i2c_ads_state[ii])
-        {
-          // Set ADS into conversion mode
-          otb_i2c_ads_state[ii] = otb_i2c_ads_set_read_mode(ads->addr, 0b00000000);
-          if (otb_i2c_ads_state[ii])
-          {
-            // Set up timer function to activate every period
-            if (ads->period > 0)
-            {
-              samples = os_malloc(sizeof(otb_i2c_ads_rms_samples));
-              otb_i2c_ads_samples_array[ads->index] = samples;
-              if (samples)
-              {
-                otb_i2c_ads_init_samples(ads, samples);
-                os_timer_disarm((os_timer_t*)&otb_ads_timer);
-                os_timer_setfn((os_timer_t*)&otb_ads_timer, (os_timer_func_t *)otb_i2c_ads_on_timer, samples);
-                // Set this timer up to run repeatedly, rather than reschedule each time
-                os_timer_arm((os_timer_t*)&otb_ads_timer, ads->period*1000, 1);  
-                INFO("I2C: ADS 0x%02x sampling scheduled", ads->addr);
-              }
-              else
-              {
-                ERROR("I2C: Couldn't schedule ADS 0x%02x sampling", ads->addr);
-              }
-            }
-          }
-          else
-          {
-            WARN("I2C: Failed to activate ADS #%d, address 0x%02x", ii, ads->addr);
-          }
-        }
-        else
-        {
-          WARN("I2C: Failed to configure ADS #%d, address 0x%02x", ii, ads->addr);
-        }
-      }
-      else
-      {
-        otb_i2c_ads_state[ii] = FALSE;
-      }
-    }
-  }
-  
-  otb_relay_init();
-  
-EXIT_LABEL:
-  if (!rc)
-  {
-    WARN("I2C: Failed to initialize I2C/ADS");
-  }
-
-  DEBUG("I2C: otb_ads_initialize exit");
-
-  return;
-}
-#endif
-
 void ICACHE_FLASH_ATTR otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_samples *samples)
 {
 
@@ -1116,12 +997,6 @@ bool ICACHE_RAM_ATTR otb_i2c_test(uint8 addr)
   
   DEBUG("I2C: otb_i2c_test entry");
   
-#if 0
-  i2c_master_start();
-  i2c_master_writeByte((addr << 1) | 0b0); // Write
-  rc = i2c_master_checkAck();
-  i2c_master_stop();
-#endif
   brzo_i2c_start_transaction(addr, 100);
   buffer[0] = 0b0;
   brzo_i2c_write(buffer, 1, FALSE);
@@ -1171,53 +1046,6 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 lsb)
     ERROR("I2C: brzo_rc = 0x%02x", brzo_rc);
   }
   
-#if 0
-  i2c_master_start();
-  
-  // Write to config register
-  i2c_master_writeByte((addr << 1) | 0b0); // Write
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  i2c_master_writeByte(0b00000001); // Config register
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  // MSB
-  // Bit 15        1 = begin conversion
-  // Bits 14:12  000 = AINp = AIN0 and AINn = AIN1
-  // Bits 11:9   010 = +- 2.048V (001=+-4.096V)
-  // Bit 8         0 = Continuous conversion mode
-  i2c_master_writeByte(msb); // MSB 
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  // LSB
-  // Bits 7:5    100 = 128SPS (111=860SPS)
-  // Bit 4         0 = Traditiona; comparator
-  // Bit 3         0 = Comparator active low
-  // Bit 2         0 = Non latching comparator
-  // Bits 1:0     11 = Disable comparator
-  i2c_master_writeByte(lsb); // LSB
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-  
-EXIT_LABEL:  
-  
-  i2c_master_stop();
-#endif
-
   DEBUG("I2C: otb_i2c_ads_set_cont_mode exit");
 
   return rc;
@@ -1238,28 +1066,6 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_read_mode(uint8 addr, uint8 mode)
     rc = TRUE;
   }
   
-#if 0
-  i2c_master_start();
-  i2c_master_writeByte((addr << 1) | 0b0); // Write
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  i2c_master_writeByte(mode);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-  
-EXIT_LABEL:
-
-  i2c_master_stop();
-#endif
-
   DEBUG("I2C: otb_i2c_ads_set_read_mode exit");
   
   return(rc);
@@ -1269,9 +1075,6 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_read(uint8 addr, int16_t *val)
 {
   uint8_t brzo_rc; 
   bool rc = FALSE;
-#if 0
-  uint8_t val1, val2;
-#endif
   uint8_t buffer[2];
   
   DEBUG("I2C: otb_i2c_ads_read entry");
@@ -1285,28 +1088,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_read(uint8 addr, int16_t *val)
     rc = TRUE;
   }
   
-#if 0
-  // Write to pointer register
-  i2c_master_start();
-  i2c_master_writeByte((addr << 1) | 0b1); // Read
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack");
-    goto EXIT_LABEL;
-  }
-  val1 = i2c_master_readByte();
-  i2c_master_send_ack();
-  val2 = i2c_master_readByte();
-  i2c_master_send_ack();
-  *val = (val1 << 8) | val2;
-  rc = TRUE;
-#endif
-
 EXIT_LABEL:
-
-#if 0
-  i2c_master_stop();
-#endif
 
   DEBUG("I2C: otb_i2c_ads_read exit");
 
@@ -1930,109 +1712,6 @@ EXIT_LABEL:
   return;
 }
 
-#if 0
-void ICACHE_FLASH_ATTR otb_i2c_bus_start()
-{
-  DEBUG("I2C: otb_i2c_bus_start entry");
-
-  i2c_master_start();
-  
-  DEBUG("I2C: otb_i2c_bus_start exit");
-
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_i2c_bus_stop()
-{
-  DEBUG("I2C: otb_i2c_bus_stop entry");
-
-  i2c_master_stop();
-  
-  DEBUG("I2C: otb_i2c_bus_stop exit");
-
-  return;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_bus_call(uint8_t addr, bool read)
-{
-  bool rc = FALSE;
-  uint8_t bus_read;
-
-  DEBUG("I2C: otb_i2c_bus_call entry");
-
-  DEBUG("I2C: Call addr: 0x%02x", addr);
-  
-  // Write it negative way around in case read is something other than 1 or 0!
-  bus_read = (!read) ? 0b0 : 0b1;
-
-  // Write the address and check for ack
-  i2c_master_writeByte((addr << 1) | bus_read);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack in bus call");
-    goto EXIT_LABEL;
-  }
-
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  DEBUG("I2C: otb_i2c_bus_call exit");
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_write_reg(uint8_t reg)
-{
-  bool rc = FALSE;
-  
-  DEBUG("I2C: otb_i2c_write_reg entry");
-
-  DEBUG("I2C: Write reg: 0x%02x", reg);
-
-  // Write register
-  i2c_master_writeByte(reg);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack in write reg");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  DEBUG("I2C: otb_i2c_write_reg exit");
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_i2c_write_val(uint8_t val)
-{
-  bool rc = FALSE;
-
-  DEBUG("I2C: otb_i2c_write_val entry");
-
-  DEBUG("I2C: Write val: 0x%02x", val);
-
-  // Write  value
-  i2c_master_writeByte(val);
-  if (!i2c_master_checkAck())
-  {
-    INFO("I2C: No ack in write val");
-    goto EXIT_LABEL;
-  }
-  
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  DEBUG("I2C: otb_i2c_write_val exit");
-
-  return rc;
-}
-#endif
-
 bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t val)
 {
   bool rc;
@@ -2063,46 +1742,6 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t co
   {
     rc = TRUE;
   }
-  
-#if 0
-  otb_i2c_bus_start();
-  
-  rc = otb_i2c_bus_call(addr, FALSE);
-  if (!rc)
-  {
-    WARN("I2C: Failed to call address 0x%02x", addr);
-    goto EXIT_LABEL;
-  }
-  
-  rc = otb_i2c_write_reg(reg);
-  if (!rc)
-  {
-    WARN("I2C: Failed to write reg 0x%02x", reg);
-    goto EXIT_LABEL;
-  }
-  
-  for (ii = 0; ii < count; ii++)
-  {
-    rc = otb_i2c_write_val(*(val+ii));
-    if (!rc)
-    {
-      WARN("I2C: Failed to write val #%d: 0x%02x, reg: 0x%02x", ii, *(val+ii), reg);
-      goto EXIT_LABEL;
-    }
-    else
-    {
-      DEBUG("I2C: Written reg: 0x%02x val: 0x%02x", reg, *(val+ii));
-    }
-  }
-
-  rc = TRUE;
-  
-EXIT_LABEL:
-
-  //otb_i2c_bus_start();
-
-  otb_i2c_bus_stop();
-#endif  
   
   DEBUG("I2C: otb_i2c_write_reg_seq exit");
 
@@ -2140,54 +1779,6 @@ bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t cou
     rc = TRUE;
   }
   
-#if 0
-  // Read pointer register.  To do this start the bus, write to the right address,
-  // write the reg we want to read, and then stop.
-  // Then start the bus, calling the address indicating a read, and then do the read.
-  otb_i2c_bus_start();
-  
-  rc = otb_i2c_bus_call(addr, FALSE);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-
-  rc = otb_i2c_write_reg(reg);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  // No need for the stop - a start then becomes a restart
-  // otb_i2c_bus_stop();
-
-  otb_i2c_bus_start();
-
-  rc = otb_i2c_bus_call(addr, TRUE);
-  if (!rc)
-  {
-    goto EXIT_LABEL;
-  }
-  
-  for (ii = 0; ii < count; ii++)
-  {
-    *(val+ii) = i2c_master_readByte();
-    DEBUG("I2C: Read value #%d: 0x%02x", ii, *(val+ii));
-    i2c_master_send_ack();
-  }
-  
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  // Not entirely sure why this restart is required after reading, but if we don't do it
-  // the next register write fails (for the PCA9685 at least).
-  otb_i2c_bus_start();
-
-  otb_i2c_bus_stop();
-  
-#endif
-
   DEBUG("I2C: otb_i2c_read_reg_seq exit");
   
   return rc;
@@ -2228,37 +1819,6 @@ bool ICACHE_RAM_ATTR otb_i2c_write_one_val(uint8_t addr, uint8_t val)
     rc = TRUE;
   }
   
-#if 0  
-  otb_i2c_bus_start();
-  
-  rc = otb_i2c_bus_call(addr, FALSE);
-  if (!rc)
-  {
-    WARN("I2C: Failed to call address 0x%02x", addr);
-    goto EXIT_LABEL;
-  }
-  
-  rc = otb_i2c_write_val(val);
-  if (!rc)
-  {
-    WARN("I2C: Failed to write val: 0x%02x", val);
-    goto EXIT_LABEL;
-  }
-  else
-  {
-    DEBUG("I2C: Written val: 0x%02x", val+);
-  }
-
-  rc = TRUE;
-  
-EXIT_LABEL:
-
-  otb_i2c_bus_start();
-
-  otb_i2c_bus_stop();
-  
-#endif
-  
   DEBUG("I2C: otb_i2c_write_one_val exit");
   
   return rc;
@@ -2279,31 +1839,139 @@ bool ICACHE_RAM_ATTR otb_i2c_read_one_val(uint8_t addr, uint8_t *val)
     rc = TRUE;
   }
 
-#if 0  
-  otb_i2c_bus_start();
+  DEBUG("I2C: otb_i2c_read_one_val exit");
   
-  rc = otb_i2c_bus_call(addr, TRUE);
-  if (!rc)
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg_info(uint8_t addr, uint8_t reg, uint8_t val, brzo_i2c_info *info)
+{
+  bool rc;
+
+  DEBUG("I2C: otb_i2c_write_one_reg entry");
+  
+  rc = otb_i2c_write_reg_seq_info(addr, reg, 1, &val, info);
+  
+  DEBUG("I2C: otb_i2c_write_one_reg exit");
+  
+  return rc;
+}
+
+// Device must be in write sequential mode!
+bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq_info(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val, brzo_i2c_info *info)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  int ii;
+
+  DEBUG("I2C: otb_i2c_write_reg_seq_info entry");
+
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_write_info(&reg, 1, FALSE, info);
+  brzo_i2c_write_info(val, count, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
+  if (!brzo_rc)
   {
-    goto EXIT_LABEL;
+    rc = TRUE;
   }
   
-  *val = i2c_master_readByte();
-  DEBUG("I2C: Read value: 0x%02x", *val);
-  i2c_master_send_ack();
+  DEBUG("I2C: otb_i2c_write_reg_seq_info exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_i2c_read_one_reg_info(uint8_t addr, uint8_t reg, uint8_t *val, brzo_i2c_info *info)
+{
+  bool rc;
+
+  DEBUG("I2C: otb_i2c_read_one_reg_info entry");
   
-  rc = TRUE;
+  rc = otb_i2c_read_reg_seq_info(addr, reg, 1, val, info);
+  
+  DEBUG("I2C: otb_i2c_read_one_reg_info exit");
+  
+  return rc;
+}
 
-EXIT_LABEL:
+// Note the device must be in sequential read mode for this to work!
+bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq_info(uint8_t addr, uint8_t reg, uint8_t count, uint8_t *val, brzo_i2c_info *info)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  int ii;
+  
+  DEBUG("I2C: otb_i2c_read_reg_seq_info entry");
+  
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_write_info(&reg, 1, FALSE, info);
+  brzo_i2c_read_info(val, count, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+  
+  DEBUG("I2C: otb_i2c_read_reg_seq_info exit");
+  
+  return rc;
+}
 
-  // Not entirely sure why this restart is required after reading, but if we don't do it
-  // the next register write fails.
-  otb_i2c_bus_start();
+bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals_info(uint8_t addr, uint8_t count, uint8_t *val, brzo_i2c_info *info)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_write_seq_vals_info entry");
+  
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_write_info(val, count, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+  
+  DEBUG("I2C: otb_i2c_write_seq_vals_info exit");
+  
+  return rc;
+}
 
-  otb_i2c_bus_stop();
-#endif
+bool ICACHE_RAM_ATTR otb_i2c_write_one_val_info(uint8_t addr, uint8_t val, brzo_i2c_info *info)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_write_one_val_info entry");
+  
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_write_info(&val, 1, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+  
+  DEBUG("I2C: otb_i2c_write_one_val_info exit");
+  
+  return rc;
+}
 
-  DEBUG("I2C: otb_i2c_read_one_val exit");
+bool ICACHE_RAM_ATTR otb_i2c_read_one_val_info(uint8_t addr, uint8_t *val, brzo_i2c_info *info)
+{
+  uint8_t brzo_rc;
+  bool rc = FALSE;
+  
+  DEBUG("I2C: otb_i2c_read_one_val_info entry");
+
+  brzo_i2c_start_transaction_info(addr, 100, info);
+  brzo_i2c_read_info(val, 1, FALSE, info);
+  brzo_rc = brzo_i2c_end_transaction_info(info);
+  if (!brzo_rc)
+  {
+    rc = TRUE;
+  }
+
+  DEBUG("I2C: otb_i2c_read_one_val_info exit");
   
   return rc;
 }
