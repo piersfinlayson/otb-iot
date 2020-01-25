@@ -49,6 +49,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   INFO("DS18B20: One Wire bus initialized");
   
   // Get devices
+  otb_ds18b20_count = 0;
   otb_ds18b20_device_callback(NULL);  
 
   // Set timer to periodically rescan bus for more devices
@@ -84,7 +85,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
 
   if (otb_ds18b20_count > prev_count)
   {
-    INFO("DS18B20: DS18B20 device count %u", otb_ds18b20_count);
+    INFO("DS18B20: DS18B20 device count changed was %u now %u", prev_count, otb_ds18b20_count);
     for (ii = 0; ii < otb_ds18b20_count; ii++)
     {
       // Stagger timer for each temperature sensor - and do any we already had as well
@@ -132,7 +133,7 @@ EXIT_LABEL:
 
   DEBUG("DS18B20: otb_ds18b20_check_existing_devices exit");
 
-  return (!rc);
+  return (rc);
 }
 
 // Returns TRUE if more than OTB_DS18B20_MAX_DS18B20S devices
@@ -142,8 +143,6 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
   char ds18b20[OTB_DS18B20_DEVICE_ADDRESS_LENGTH];
   char crc;
   
-  otb_ds18b20_count = 0;
-
   DEBUG("DS18B20: Get devices ...");
   
   reset_search();
