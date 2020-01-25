@@ -39,9 +39,6 @@
 void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 {
   bool rc;
-  void *vTask;
-  int ii;
-  uint32_t timer_int;
 
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
 
@@ -51,9 +48,31 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   INFO("DS18B20: One Wire bus initialized");
   
-  rc = otb_ds18b20_get_devices();
+  // Get devices
+  otb_ds18b20_device_callback(NULL);  
 
-  INFO("DS18B20: DS18B20 device count %u", otb_ds18b20_count);
+  // Set timer to periodically rescan bus for more devices
+  os_timer_disarm((os_timer_t*)&otb_ds18b20_device_timer);
+  os_timer_setfn((os_timer_t*)&otb_ds18b20_device_timer, (os_timer_func_t *)otb_ds18b20_device_callback, NULL);
+  os_timer_arm((os_timer_t*)&otb_ds18b20_device_timer, OTB_DS18B20_REFRESH_DEVICE_INTERVAL, 1);
+
+  DEBUG("DS18B20: otb_ds18b20_initialize exit");
+  
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
+{
+  bool rc;
+  uint8_t prev_count;
+  int ii;
+  uint32_t timer_int;
+  
+  DEBUG("DS18B20: otb_ds18b20_device_callback entry");
+
+  prev_count = otb_ds18b20_count;
+
+  rc = otb_ds18b20_get_devices();
   if (rc)
   {
     WARN("DS18B20: More than %d DS18B20 devices - only reading from first %d",
@@ -61,27 +80,57 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
          OTB_DS18B20_MAX_DS18B20S);
   }
 
-  for (ii = 0; ii < otb_ds18b20_count; ii++)
+  if (otb_ds18b20_count > prev_count)
   {
-    // Stagger timer for each temperature sensor
-    INFO("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
-    timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
-    otb_ds18b20_addresses[ii].timer_int = timer_int;
-    os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
-    os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
-    if (timer_int != OTB_DS18B20_REPORT_INTERVAL)
+    INFO("DS18B20: DS18B20 device count %u", otb_ds18b20_count);
+    for (ii = 0; ii < otb_ds18b20_count; ii++)
     {
-      os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 0);
-    }
-    else
-    {
-      os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 1);
+      // Stagger timer for each temperature sensor - and do any we already had as well
+      INFO("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
+      timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
+      otb_ds18b20_addresses[ii].timer_int = timer_int;
+      os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
+      os_timer_setfn((os_timer_t*)(otb_ds18b20_timer + ii), (os_timer_func_t *)otb_ds18b20_callback, otb_ds18b20_addresses + ii);
+      if (timer_int != OTB_DS18B20_REPORT_INTERVAL)
+      {
+        os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 0);
+      }
+      else
+      {
+        os_timer_arm((os_timer_t*)(otb_ds18b20_timer + ii), timer_int, 1);
+      }
     }
   }
 
-  DEBUG("DS18B20: otb_ds18b20_initialize entry");
-  
+  DEBUG("DS18B20: otb_ds18b20_device_callback exit");
+
   return;
+}
+
+// Returns TRUE if have already got this device
+bool ICACHE_FLASH_ATTR otb_ds18b20_check_existing_device(char *ds18b20)
+{
+  int ii;
+  bool rc = FALSE;
+
+  DEBUG("DS18B20: otb_ds18b20_check_existing_devices entry");
+
+  for (ii = 0; ii < otb_ds18b20_count; ii++)
+  {
+    if (!os_memcmp(otb_ds18b20_addresses[ii].addr,
+                   ds18b20, 
+                   OTB_DS18B20_DEVICE_ADDRESS_LENGTH))
+    {
+      rc = TRUE;
+      goto EXIT_LABEL;
+    }
+  }
+
+EXIT_LABEL:
+
+  DEBUG("DS18B20: otb_ds18b20_check_existing_devices exit");
+
+  return (!rc);
 }
 
 // Returns TRUE if more than OTB_DS18B20_MAX_DS18B20S devices
@@ -104,31 +153,36 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
       // I want the address format in the same format as debian/raspbian
       // Which reverses the order of all but the first byte, and drops the CRC8
       // byte at the end (which we'll check).
-      os_memcpy(otb_ds18b20_addresses[otb_ds18b20_count].addr,
-                ds18b20, 
-                OTB_DS18B20_DEVICE_ADDRESS_LENGTH);
-      os_snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
-                  OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
-                  "%02x-%02x%02x%02x%02x%02x%02x",
-                  ds18b20[0],
-                  ds18b20[6],
-                  ds18b20[5],
-                  ds18b20[4],
-                  ds18b20[3],
-                  ds18b20[2],
-                  ds18b20[1]);
-      crc = crc8(ds18b20, 7);
-			if(crc != ds18b20[7])
-			{
-				WARN("DS18B20: CRC error: %s, crc=%xd",
-				     otb_ds18b20_addresses[otb_ds18b20_count].friendly,
-				     crc);
-			}
-      otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
-      otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
-      otb_ds18b20_count++;
-      DEBUG("DS18B20: Successfully read device address %s",
-            otb_ds18b20_addresses[otb_ds18b20_count].friendly);
+      // Only actually add this device if we haven't already added it when
+      // previously scanning the bus
+      if (!otb_ds18b20_check_existing_device(ds18b20))
+      {
+        os_memcpy(otb_ds18b20_addresses[otb_ds18b20_count].addr,
+                  ds18b20, 
+                  OTB_DS18B20_DEVICE_ADDRESS_LENGTH);
+        os_snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
+                    OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
+                    "%02x-%02x%02x%02x%02x%02x%02x",
+                    ds18b20[0],
+                    ds18b20[6],
+                    ds18b20[5],
+                    ds18b20[4],
+                    ds18b20[3],
+                    ds18b20[2],
+                    ds18b20[1]);
+        crc = crc8(ds18b20, 7);
+        if(crc != ds18b20[7])
+        {
+          WARN("DS18B20: CRC error: %s, crc=%xd",
+              otb_ds18b20_addresses[otb_ds18b20_count].friendly,
+              crc);
+        }
+        otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
+        otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
+        otb_ds18b20_count++;
+        DEBUG("DS18B20: Successfully read device address %s",
+              otb_ds18b20_addresses[otb_ds18b20_count].friendly);
+      }
     }
   } while (rc && (otb_ds18b20_count < OTB_DS18B20_MAX_DS18B20S));
 

@@ -56,9 +56,12 @@ struct otbDs18b20DeviceAddress otb_ds18b20_addresses[OTB_DS18B20_MAX_DS18B20S];
 uint8_t otb_ds18b20_count = 0;
 char otb_ds18b20_last_temp_s[OTB_DS18B20_MAX_DS18B20S][OTB_DS18B20_MAX_TEMP_LEN];
 static volatile os_timer_t otb_ds18b20_timer[OTB_DS18B20_MAX_DS18B20S];
+static volatile os_timer_t otb_ds18b20_device_timer;
 #endif
 
 extern void otb_ds18b20_initialize(uint8_t bus);
+void otb_ds18b20_device_callback(void *arg);
+bool otb_ds18b20_check_existing_device(char *ds18b20);
 extern void otb_ds18b20_callback(void *arg);
 void otb_ds18b20_cmd(char *cmd0, char *cmd1, char *cmd2);
 extern bool otb_ds18b20_get_devices(void);
