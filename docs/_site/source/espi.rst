@@ -117,7 +117,7 @@ The ESPi Programmer connects to the ESPi like a hat, using the ESPi's 40-pin hea
 3. WP (write protect for the ESPi's config EEPROM, pull low to disable write protection)
 4. ~ESP_RST (GPIO16 from the ESP8266, can be pulled low to reset the ESPi)
 
-Note that when the programming board is connected to the ESPi, the ESPi cannot read devices on the internal I2C bus (ID_SD, ID_SC) as the prgrammer pulls GPIO0 to a high value.
+Note that when the programming board is connected to the ESPi, the ESPi may not be able to read devices on the internal I2C bus (ID_SD, ID_SC) as the programmer may pull GPIO0 to a high value.
 
 Manual programming
 ==================
@@ -130,7 +130,7 @@ If programming the ESP8266 on board the ESPi manually (without a dedicated progr
 * Programming header pin 4 (ESP_RST)
 * Pin 27 of the 40 pin header (ESP_GPIO0)
 * Pin 8 of the 40 pin header (ESP_TX)
-* Pin 10 of the 40 pin header (ESP_RC)
+* Pin 10 of the 40 pin header (ESP_RX)
 * A ground pin
 
 If the USB connector on the ESPi is to be used for connecting into the machine which will program the device, then also connect:
