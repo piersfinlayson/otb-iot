@@ -61,7 +61,7 @@
 # topics
 
 import paho.mqtt.client as mqtt
-import time, syslog, datetime
+import time, datetime
 from influxdb import InfluxDBClient
 from time import gmtime, strftime
 from otbiot_mqtt_influxdb_defines import *
@@ -78,41 +78,33 @@ influxdb_client = None
 # pump reboots and starts with different state
 sleep_time = 60
 
-def create_temp_topic(chipId, sensorId, location):
-  syslog.syslog(syslog.LOG_DEBUG, "Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
-  topic = "/otb-iot////%s/temp/%s" % (chipId, sensorId)
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
+otb_new = "otb-iot"
+otb_old = "otb_iot"
+espi = "espi"
+otb_types = (otb_new, otb_old, espi)
+
+def create_temp_topic(chipId, sensorId, location, otb_type):
+  print("Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
+  topic = "/%s////%s/temp/%s" % (otb_type, chipId, sensorId)
+  print("Topic: %s" % topic)
   return topic
 
-# Provide support for old versions of otb-iot
-def create_temp_topic_old(chipId, sensorId, location):
-  syslog.syslog(syslog.LOG_DEBUG, "Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
-  topic = "/otb_iot////%s/temp/%s" % (chipId, sensorId)
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
-  return topic
-
-def create_power_topic(chipId, location):
-  syslog.syslog(syslog.LOG_DEBUG, "Create power topic for chipId: %s, location: %s" % (chipId, location))
-  topic = "/otb-iot////%s/power/" % (chipId)
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
-  return topic
-
-# Provide support for old versions of otb-iot
-def create_power_topic_old(chipId, location):
-  syslog.syslog(syslog.LOG_DEBUG, "Create power topic for chipId: %s, location: %s" % (chipId, location))
-  topic = "/otb_iot////%s/power/" % (chipId)
-  syslog.syslog(syslog.LOG_DEBUG, "Topic: %s" % topic)
+def create_power_topic(chipId, location, otb_type):
+  print("Create power topic for chipId: %s, location: %s" % (chipId, location))
+  topic = "/%s////%s/power/" % (otb_type, chipId)
+  print("Topic: %s" % topic)
   return topic
 
 # Return chipId, sensorId and location if a match, None otherwise
 def process_topic(temp_sensors, power_sensors, topic, payload):
   rc = None
   substrings = topic.split('/')
+  global otb_types
   try:
     # Check the format looks correct
     if (substrings[0] != ''):
       pass
-    elif ((substrings[1] != 'otb-iot') and (substrings[1] != 'otb_iot')):
+    elif (substrings[1] not in otb_types):
       pass
     elif (substrings[6] == 'temp'):
       # Format OK - try and match chipId and sensorId
@@ -139,36 +131,33 @@ def process_topic(temp_sensors, power_sensors, topic, payload):
           rc = chipid, sensor[LOCATION]
           break
   except:
-    syslog.syslog(syslog.LOG_ERR, "Exception handling incoming message")
-  syslog.syslog(syslog.LOG_DEBUG, "Match: " + str(rc));
+    print("Exception handling incoming message")
+  print("Match: " + str(rc));
   return rc
 
 # Subscribe to all sensor topics
 def subscribe(client, temp_sensors):
+  global otb_types
   for tsensor in temp_sensors:
     for sensor in tsensor[SENSORS]:
-      topic = create_temp_topic(tsensor[CHIPID], sensor[SENSORID], sensor[LOCATION])
-      client.subscribe(topic)
-      syslog.syslog(syslog.LOG_INFO, "Subscribed to topic: %s" % topic)
-      topic = create_temp_topic_old(tsensor[CHIPID], sensor[SENSORID], sensor[LOCATION])
-      client.subscribe(topic)
-      syslog.syslog(syslog.LOG_INFO, "Subscribed to topic: %s" % topic)
+      for otb_type in otb_types:
+        topic = create_temp_topic(tsensor[CHIPID], sensor[SENSORID], sensor[LOCATION], otb_type)
+        client.subscribe(topic)
+        print("Subscribed to topic: %s" % topic)
   for psensor in power_sensors:
     for sensor in psensor[SENSORS]:
-      topic = create_power_topic(psensor[CHIPID], sensor[LOCATION])
-      client.subscribe(topic)
-      syslog.syslog(syslog.LOG_INFO, "Subscribed to topic: %s" % topic)
-      topic = create_power_topic_old(psensor[CHIPID], sensor[LOCATION])
-      client.subscribe(topic)
-      syslog.syslog(syslog.LOG_INFO, "Subscribed to topic: %s" % topic)
+      for otb_type in otb_types:
+        topic = create_power_topic(psensor[CHIPID], sensor[LOCATION], otb_type)
+        client.subscribe(topic)
+        print("Subscribed to topic: %s" % topic)
   return
 
 def on_message(client, userdata, msg):
   global temp_sensors, power_sensors
-  syslog.syslog(syslog.LOG_DEBUG, "Received MQTT message: %s %s" % (msg.topic, msg.payload))
+  print("Received MQTT message: %s %s" % (msg.topic, msg.payload))
   rc = process_topic(temp_sensors, power_sensors, msg.topic, msg.payload)
   if rc == None:
-    syslog.syslog(syslog.LOG_INFO, "No matching sensors (or invalid MQTT message) - ignoring: %s %s" % (msg.topic, msg.payload))
+    print("No matching sensors (or invalid MQTT message) - ignoring: %s %s" % (msg.topic, msg.payload))
   return
 
 def get_time():
@@ -185,9 +174,9 @@ def send_temp_to_influx(chipid, sensorid, location, temp):
                   'time':get_time(),
                   'fields':{'value':temp}}]
     influxdb_client.write_points(json_body)
-    syslog.syslog(syslog.LOG_INFO, "Written data to influxdb: " + str(json_body))
+    print("Written data to influxdb: " + str(json_body))
   except:
-    syslog.syslog(syslog.LOG_ERR, "EXCEPTION: Failed to write temp to influxdb")
+    print("EXCEPTION: Failed to write temp to influxdb")
 
 def send_power_to_influx(chipid, location, power):
   global influxdb_client
@@ -201,26 +190,26 @@ def send_power_to_influx(chipid, location, power):
                             'current':current[:-1],
                             'voltage':voltage[:-1]}}]
     influxdb_client.write_points(json_body)
-    syslog.syslog(syslog.LOG_INFO, "Written data to influxdb: " + str(json_body))
+    print("Written data to influxdb: " + str(json_body))
   except:
-    syslog.syslog(syslog.LOG_ERR, "EXCEPTION: Failed to write power to influxdb")
+    print("EXCEPTION: Failed to write power to influxdb")
 
 def on_connect(client, userdata, flags, rc):
   global temp_sensors, connected
-  syslog.syslog(syslog.LOG_INFO, "Connected to broker with result code: " + str(rc))
+  print("Connected to broker with result code: " + str(rc))
   subscribe(client, temp_sensors)
   connected = True
   was_once_connected = True
 
 def on_disconnect(client, userdata, rc):
-  syslog.syslog(syslog.LOG_ERR, "Disconnected from broker!!!")
+  print("Disconnected from broker!!!")
   run = False
 
 def main():
   global client, connected, mqtt_addr, mqtt_port, sleep_time, was_once_connected
   global influxdb_client, influxdb_host, influxdb_port, influxdb_user, influxdb_password, influxdb_dbname
 
-  syslog.syslog(syslog.LOG_INFO, "Create connection to MQTT broker: %s:%d" % (mqtt_addr, mqtt_port))
+  print("Create connection to MQTT broker: %s:%d" % (mqtt_addr, mqtt_port))
 
   client = mqtt.Client(protocol=mqtt.MQTTv31)
   client.on_connect = on_connect
@@ -242,7 +231,7 @@ def main():
       run = False
       break
 
-  syslog.syslog(syslog.LOG_ERR, "Exiting as disconnected")
+  print("Exiting as disconnected")
 
 if __name__ == "__main__":
   main()
