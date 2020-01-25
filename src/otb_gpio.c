@@ -163,7 +163,9 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
 
   // Get and act on interrupt
   get = otb_gpio_get(otb_gpio_pins.soft_reset, TRUE);
-  if (get)
+
+  // Only reset if pulled low (i.e. button pressed)
+  if (!get)
   {
     WARN("GPIO: Reset button pressed");
     otb_reset_schedule(1000, otb_gpio_reset_reason_reset, FALSE);

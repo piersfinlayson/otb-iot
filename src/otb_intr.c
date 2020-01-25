@@ -133,6 +133,7 @@ void ICACHE_FLASH_ATTR otb_intr_main_handler(void *arg)
   ETS_INTR_LOCK();
 
   gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+  //ets_printf("gpio status 0x%08x\r\n", gpio_status);
   for (gpio = 0; gpio < 17; gpio++)
   {
     if ((gpio_status >> gpio) & 1)
