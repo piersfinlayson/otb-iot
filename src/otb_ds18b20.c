@@ -72,6 +72,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
 
   prev_count = otb_ds18b20_count;
 
+  DEBUG("DS18B20: Checking for new DS18B20s");
+
   rc = otb_ds18b20_get_devices();
   if (rc)
   {
