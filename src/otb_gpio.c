@@ -159,7 +159,6 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
 void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
 {
   sint8 get;
-  uint32_t gpio_status;
 
   // Get and act on interrupt
   get = otb_gpio_get(otb_gpio_pins.soft_reset, TRUE);

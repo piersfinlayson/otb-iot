@@ -169,7 +169,19 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'R':
       INFO("Soft reset button test");
       otb_break_state = OTB_BREAK_STATE_SOFT_RESET;
-      INFO(" Waiting for soft reset button to be pressed (Not yet implemented)");
+      if (otb_gpio_pins.soft_reset != OTB_GPIO_INVALID_PIN)
+      {
+        otb_intr_unreg(otb_gpio_pins.soft_reset);
+        otb_gpio_set(otb_gpio_pins.soft_reset, 1, TRUE);
+        GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
+        otb_intr_register(otb_break_reset_button_interrupt, NULL, otb_gpio_pins.soft_reset);
+        INFO(" Waiting for soft reset button to be pressed");
+        otb_break_state = OTB_BREAK_STATE_SOFT_RESET;
+      }
+      else
+      {
+        INFO(" No soft reset pin configured - exiting");
+      }
       break;
 
     case 'i':
@@ -633,6 +645,25 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
   return(TRUE);
 }
 
+void ICACHE_FLASH_ATTR otb_break_reset_button_interrupt(void *arg)
+{
+  sint8 get;
+
+  // Get and act on interrupt
+  get = otb_gpio_get(otb_gpio_pins.soft_reset, TRUE);
+
+  if (!get)
+  {
+    INFO(" Button pressed");
+  }
+  else
+  {
+    INFO(" Button released");
+  }
+  
+  return;
+}
+
 bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
 {
 
@@ -644,6 +675,10 @@ bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
     case 'X':
       otb_break_state = OTB_BREAK_STATE_MAIN;
       INFO(" Exiting soft reset test")
+      otb_intr_unreg(otb_gpio_pins.soft_reset);
+      otb_gpio_set(otb_gpio_pins.soft_reset, 1, TRUE);
+      GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
+      otb_intr_register(otb_gpio_reset_button_interrupt, NULL, otb_gpio_pins.soft_reset);
       break;
 
     case 'h':

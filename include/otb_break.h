@@ -68,6 +68,7 @@ bool otb_break_config_input(char input);
 void otb_break_clear_string(void);
 bool otb_break_collect_string(char input);
 bool otb_break_config_input_main(char input);
+void otb_break_reset_button_interrupt(void *arg);
 bool otb_break_soft_reset_input(char input);
 void otb_break_process_char(void);
 
