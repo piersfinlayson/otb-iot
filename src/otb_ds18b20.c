@@ -152,38 +152,48 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
     rc = ds_search(ds18b20);
     if (rc)
     {
-      // I want the address format in the same format as debian/raspbian
-      // Which reverses the order of all but the first byte, and drops the CRC8
-      // byte at the end (which we'll check).
-      // Only actually add this device if we haven't already added it when
-      // previously scanning the bus
-      if (!otb_ds18b20_check_existing_device(ds18b20))
+      // Only progress if crc is good
+      crc = crc8(ds18b20, 7);
+      if (crc == ds18b20[7])
       {
-        os_memcpy(otb_ds18b20_addresses[otb_ds18b20_count].addr,
-                  ds18b20, 
-                  OTB_DS18B20_DEVICE_ADDRESS_LENGTH);
-        os_snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
-                    OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
-                    "%02x-%02x%02x%02x%02x%02x%02x",
-                    ds18b20[0],
-                    ds18b20[6],
-                    ds18b20[5],
-                    ds18b20[4],
-                    ds18b20[3],
-                    ds18b20[2],
-                    ds18b20[1]);
-        crc = crc8(ds18b20, 7);
-        if(crc != ds18b20[7])
+        // Only actually add this device if we haven't already added it when
+        // previously scanning the bus
+        if (!otb_ds18b20_check_existing_device(ds18b20))
         {
-          WARN("DS18B20: CRC error: %s, crc=%xd",
-              otb_ds18b20_addresses[otb_ds18b20_count].friendly,
-              crc);
+          os_memcpy(otb_ds18b20_addresses[otb_ds18b20_count].addr,
+                    ds18b20, 
+                    OTB_DS18B20_DEVICE_ADDRESS_LENGTH);
+          // I want the address format in the same format as debian/raspbian
+          // Which reverses the order of all but the first byte, and drops the CRC8
+          // byte at the end (which we'll check).
+          os_snprintf((char*)otb_ds18b20_addresses[otb_ds18b20_count].friendly,
+                      OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH,
+                      "%02x-%02x%02x%02x%02x%02x%02x",
+                      ds18b20[0],
+                      ds18b20[6],
+                      ds18b20[5],
+                      ds18b20[4],
+                      ds18b20[3],
+                      ds18b20[2],
+                      ds18b20[1]);
+          otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
+          otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
+          otb_ds18b20_count++;
+          DEBUG("DS18B20: Successfully added device %s",
+                otb_ds18b20_addresses[otb_ds18b20_count].friendly);
         }
-        otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
-        otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
-        otb_ds18b20_count++;
-        DEBUG("DS18B20: Successfully read device address %s",
-              otb_ds18b20_addresses[otb_ds18b20_count].friendly);
+      }
+      else
+      {
+        WARN("DS18B20: CRC error: %02x-%02x%02x%02x%02x%02x%02x, crc=0x%x",
+             ds18b20[0],
+             ds18b20[6],
+             ds18b20[5],
+             ds18b20[4],
+             ds18b20[3],
+             ds18b20[2],
+             ds18b20[1],
+             crc);
       }
     }
   }
