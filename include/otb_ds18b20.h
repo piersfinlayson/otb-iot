@@ -70,6 +70,7 @@ extern char *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds);
 bool otb_ds18b20_check_addr_format(char *addr);
 bool otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 extern void otb_ds18b20_conf_get(char *sensor, char *index);
+bool otb_ds18b20_trigger_device_refresh(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 extern void otb_ds18b20_prepare_to_read(void);
 extern bool otb_ds18b20_request_temp(char *addr, char *temp_s);
 void otb_ds18b20_init(int gpio);

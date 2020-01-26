@@ -738,6 +738,19 @@ EXIT_LABEL:
   return;
 }
 
+bool ICACHE_FLASH_ATTR otb_ds18b20_trigger_device_refresh(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = TRUE;
+
+  DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh entry");
+
+  otb_ds18b20_device_callback(NULL);
+
+  DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh exit");
+
+  return rc;
+};
+
 void ICACHE_FLASH_ATTR otb_ds18b20_prepare_to_read(void)
 {
   DEBUG("DS18B20: otb_ds18b20_prepare_to_read entry");

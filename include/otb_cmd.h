@@ -422,6 +422,9 @@ typedef struct otb_cmd_control
 //           [message colour in hex]
 //             [speed (in ms between movements)]
 //               message
+//   sensor
+//     temp
+//       ds18b20
 //  
 
 // Some macros to simplify command structure definition
@@ -487,6 +490,9 @@ extern OTB_CMD_CONTROL(otb_cmd_control_trigger_serial)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_nixie_power)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_config_wifi)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_config_mqtt)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[];
@@ -963,6 +969,7 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger)[] =
   {"nixie",             NULL, otb_cmd_control_trigger_nixie,   OTB_CMD_NO_FN},
   {"sf",                NULL, NULL,     otb_led_trigger_sf,      NULL},
   {"neo",               NULL, otb_cmd_control_trigger_neo,     OTB_CMD_NO_FN},
+  {"sensor",            NULL, otb_cmd_control_trigger_sensor,  OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -1066,6 +1073,27 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[] =
   {"rotate",           NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATE},
   {"rotateb",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_ROTATEB},
   {"message",          NULL, NULL, otb_led_trigger_neo,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->sensor commands
+OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor)[] =
+{
+  {"temp",            NULL, otb_cmd_control_trigger_sensor_temp,   OTB_CMD_NO_FN},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->sensor->temp commands
+OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp)[] =
+{
+  {"ds18b20",            NULL, otb_cmd_control_trigger_sensor_temp_ds18b20,   OTB_CMD_NO_FN},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->sensor->temp->ds18b20 commands
+OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[] =
+{
+  {"refresh",          NULL, NULL, otb_ds18b20_trigger_device_refresh,   NULL},
   {OTB_CMD_FINISH}    
 };
 
