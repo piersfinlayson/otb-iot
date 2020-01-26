@@ -731,25 +731,46 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_num(unsigned char
 bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_addr(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
-  int ii;
+  int index;
   
   DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_addr entry");
 
-  if (next_cmd != NULL)
+  index = otb_ds18b20_valid_index(next_cmd);
+  if (index >= 0)
   {
-    ii = atoi(next_cmd);
-    if ((ii >= 0) && (ii < OTB_DS18B20_MAX_DS18B20S) && (ii < otb_ds18b20_count))
-    {
-      otb_cmd_rsp_append(otb_ds18b20_addresses[ii].friendly);
-      rc = TRUE;
-    }
-    else
-    {
-      otb_cmd_rsp_append("invalid index");
-    }
+    otb_cmd_rsp_append(otb_ds18b20_addresses[index].friendly);
+    rc = TRUE;
+  }
+  else
+  {
+    otb_cmd_rsp_append("invalid index");
   }
   
   DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_addr exit");
+  
+  return rc;
+
+}
+
+bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_value(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int index;
+  
+  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_value entry");
+
+  index = otb_ds18b20_valid_index(next_cmd);
+  if (index >= 0)
+  {
+    otb_cmd_rsp_append(otb_ds18b20_last_temp_s[index]);
+    rc = TRUE;
+  }
+  else
+  {
+    otb_cmd_rsp_append("invalid index");
+  }
+  
+  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_value exit");
   
   return rc;
 

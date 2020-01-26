@@ -103,7 +103,7 @@ extern otb_cmd_handler_fn otb_cmd_set_boot_slot;
 extern otb_cmd_handler_fn otb_cmd_trigger_update;
 extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_num;
 extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_addr;
-// extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_value;
+extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_value;
 extern otb_cmd_handler_fn otb_cmd_trigger_reset;
 extern otb_cmd_handler_fn otb_cmd_trigger_ping;
 extern otb_cmd_handler_fn otb_led_trigger_sf;
@@ -201,7 +201,7 @@ typedef struct otb_cmd_control
 //     temp
 //       ds18b20
 //         num     
-//         value   // Index 0 to 7  !! Unimplemented
+//         value   // Index 0 to 7
 //         addr    // Index 0 to 7 
 //     adc
 //       ads     // ADS1115 family
@@ -562,7 +562,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp)[] =
 OTB_CMD_CONTROL(otb_cmd_control_get_sensor_temp_ds18b20)[] =
 {
   {"num",              NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_num, NULL},
-//  {"value",            NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_value, NULL},
+  {"value",            NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_value, NULL},
   {"addr",             NULL, NULL,      otb_cmd_control_get_sensor_temp_ds18b20_addr, NULL},
   {OTB_CMD_FINISH}
 };

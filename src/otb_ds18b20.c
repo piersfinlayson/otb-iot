@@ -39,6 +39,7 @@
 void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 {
   bool rc;
+  int ii;
 
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
 
@@ -48,6 +49,13 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   INFO("DS18B20: One Wire bus initialized");
   
+  // Initialize last temp
+  for (ii = 0; ii < OTB_DS18B20_MAX_DS18B20S; ii++)
+  {
+    os_strncpy(otb_ds18b20_last_temp_s[ii], OTB_DS18B20_INTERNAL_ERROR_TEMP, OTB_DS18B20_MAX_TEMP_LEN);
+    otb_ds18b20_last_temp_s[ii][OTB_DS18B20_MAX_TEMP_LEN-1] - 0;
+  }
+
   // Get devices
   otb_ds18b20_count = 0;
   otb_ds18b20_device_callback(NULL);  
@@ -60,6 +68,26 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   DEBUG("DS18B20: otb_ds18b20_initialize exit");
   
   return;
+}
+
+int ICACHE_FLASH_ATTR otb_ds18b20_valid_index(unsigned char *next_cmd)
+{
+  int index = -1;
+
+  DEBUG("CMD: otb_cmd_control_ds18b20_valid_index entry");
+
+  if (next_cmd != NULL)
+  {
+    index = atoi(next_cmd);
+    if (!((index >= 0) && (index < OTB_DS18B20_MAX_DS18B20S) && (index < otb_ds18b20_count)))
+    {
+      index = -1;
+    }
+  }
+
+  DEBUG("CMD: otb_cmd_control_ds18b20_valid_index exit");
+
+  return index;
 }
 
 void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
@@ -741,10 +769,14 @@ EXIT_LABEL:
 bool ICACHE_FLASH_ATTR otb_ds18b20_trigger_device_refresh(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = TRUE;
+  unsigned char scratch[4];
 
   DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh entry");
 
   otb_ds18b20_device_callback(NULL);
+  os_snprintf(scratch, 4, "%d", otb_ds18b20_count);
+  scratch[3] = 0;
+  otb_cmd_rsp_append(scratch);
 
   DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh exit");
 
