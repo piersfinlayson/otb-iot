@@ -120,9 +120,10 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_existing_device(char *ds18b20)
 
   for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
+    // Don't check the CRC byte
     if (!os_memcmp(otb_ds18b20_addresses[ii].addr,
                    ds18b20, 
-                   OTB_DS18B20_DEVICE_ADDRESS_LENGTH))
+                   OTB_DS18B20_DEVICE_ADDRESS_LENGTH-1))
     {
       rc = TRUE;
       goto EXIT_LABEL;
@@ -139,14 +140,14 @@ EXIT_LABEL:
 // Returns TRUE if more than OTB_DS18B20_MAX_DS18B20S devices
 bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
 {
-  int rc;
+  int rc = TRUE;
   char ds18b20[OTB_DS18B20_DEVICE_ADDRESS_LENGTH];
   char crc;
   
   DEBUG("DS18B20: Get devices ...");
   
   reset_search();
-  do
+  while (rc && (otb_ds18b20_count < OTB_DS18B20_MAX_DS18B20S))
   {
     rc = ds_search(ds18b20);
     if (rc)
@@ -185,7 +186,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
               otb_ds18b20_addresses[otb_ds18b20_count].friendly);
       }
     }
-  } while (rc && (otb_ds18b20_count < OTB_DS18B20_MAX_DS18B20S));
+  }
 
   if (rc)
   {
