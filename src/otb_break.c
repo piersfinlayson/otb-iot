@@ -46,7 +46,8 @@ void ICACHE_FLASH_ATTR otb_break_options_output(void)
 
   INFO("otb-iot break options:")
   INFO("  c - change config (changes do not persist)");
-  INFO("  x - resumes booting (with changed config as applicable");
+  INFO("  C - change config (changes persist)");
+  INFO("  x - resumes booting (with changed config as applicable)");
   INFO("  q - reboot");
   INFO("  f - factory reset");
   INFO("  g - run gpio test");
@@ -133,8 +134,17 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'C':
       INFO("Change config");
       otb_break_state = OTB_BREAK_STATE_CONFIG;
-;
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+      if (option == 'c')
+      {
+        INFO(" Changes DO NOT persist");
+        otb_break_config_persist = FALSE;
+      }
+      else
+      {
+        INFO(" Changes persist");
+        otb_break_config_persist = TRUE;
+      }
       INFO(" Select config to change");
       break;
 
@@ -443,6 +453,7 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
 bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
 {
   bool rc = TRUE;
+  bool persist = FALSE;
 
   DEBUG("BREAK: otb_break_config_input entry");
 
@@ -459,6 +470,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
         otb_conf->ssid[OTB_CONF_WIFI_SSID_MAX_LEN-1] = 0;
         INFO("  Set SSID to: %s", otb_conf->ssid);
         otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        persist = otb_break_config_persist ? TRUE : FALSE;
       }
       break;
       
@@ -469,6 +481,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
         otb_conf->password[OTB_CONF_WIFI_PASSWORD_MAX_LEN-1] = 0;
         INFO("  Set WiFi password to: %s", otb_conf->password);
         otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        persist = otb_break_config_persist ? TRUE : FALSE;
       }
       break;
       
@@ -479,6 +492,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
         otb_conf->mqtt.svr[OTB_MQTT_MAX_SVR_LEN-1] = 0;
         INFO("  Set MQTT server to: %s", otb_conf->mqtt.svr);
         otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        persist = otb_break_config_persist ? TRUE : FALSE;
       }
       break;
       
@@ -488,6 +502,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
         otb_conf->mqtt.port = atoi(otb_break_string);
         INFO("  Set MQTT port to: %d", otb_conf->mqtt.port);
         otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        persist = otb_break_config_persist ? TRUE : FALSE;
       }
       break;
       
@@ -514,6 +529,19 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
     default:
       OTB_ASSERT(FALSE);
       break;
+  }
+
+  if (persist)
+  {
+    rc = otb_conf_update(otb_conf);
+    if (rc)
+    {
+      INFO("  Change stored");
+    }
+    else
+    {
+      WARN("  Failed to store change");
+    }
   }
 
   DEBUG("BREAK: otb_break_config_input exit");

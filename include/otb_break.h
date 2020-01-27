@@ -81,6 +81,7 @@ uint8_t otb_break_state;
 uint8_t otb_break_config_state;
 char otb_break_string[OTB_BREAK_CONFIG_STRING_LEN];
 uint8_t otb_break_gpio_next_led;
+bool otb_break_config_persist;
 
 otb_break_gpio_test_led otb_break_gpio_test_led_seq[OTB_BREAK_GPIO_TEST_LED_NUM] = 
 {
