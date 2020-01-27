@@ -532,7 +532,7 @@ typedef struct otb_eeprom_main_module_info
 typedef struct otb_eeprom_rpi_header
 {
   // 0x52 0x2D 0x50 0x69 ("R-Pi" in ASCII)
-#define OTB_EEPROM_RPI_EEPROM_SIGNATURE 0x522D5069 // From above eeprom-format.md
+#define OTB_EEPROM_RPI_EEPROM_SIGNATURE 0x69502D52 // From above eeprom-format.md
   uint8 signature[4];
 
   // 0x00 is reserved, 0x01 is currently used

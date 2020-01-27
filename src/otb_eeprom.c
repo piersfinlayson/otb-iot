@@ -121,7 +121,7 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
 {
   uint32_t fn_rc;
   uint32_t rc = OTB_EEPROM_ERR;
-
+  uint32_t signature;
   uint32_t read_len;
 
   DEBUG("EEPROM: otb_eeprom_load_rpi_eeprom entry");
@@ -150,14 +150,15 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
   INFO("EEPROM:   hdr.numatoms:  0x%04x", hdr->numatoms);
   INFO("EEPROM:   hdr.eeplen:    0x%08x", hdr->eeplen);
 
-  if (*(uint32_t*)(&hdr->signature) == OTB_EEPROM_ERR_OK)
+  signature = *(uint32_t*)(&hdr->signature);
+  if (signature == OTB_EEPROM_RPI_EEPROM_SIGNATURE)
   {
     INFO("EEPROM: Valid RPi Hat EEPROM found");
     rc |= OTB_EEPROM_ERR_OK;
   }
   else
   {
-    WARN("EEPROM: Invalid RPi Hat EEPROM signature found - should be 0x%08x", OTB_EEPROM_RPI_EEPROM_SIGNATURE);
+    WARN("EEPROM: Invalid RPi Hat EEPROM signature found - should be 0x%08x was 0x%08x", OTB_EEPROM_RPI_EEPROM_SIGNATURE, signature);
     rc |= OTB_EEPROM_ERR_MAGIC;
   }
 
