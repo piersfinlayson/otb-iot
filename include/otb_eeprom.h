@@ -118,6 +118,7 @@
 #define OTB_EEPROM_INFO_TYPE_MAIN_MODULE         5 
 #define OTB_EEPROM_INFO_TYPE_MAIN_MODULE_PINS    6
 #define OTB_EEPROM_INFO_TYPE_NUM                 7
+#define OTB_EEPROM_INFO_RPI_TYPE_HEADER          100
 
 typedef struct otb_eeprom_main_comp_type
 {
@@ -531,6 +532,7 @@ typedef struct otb_eeprom_main_module_info
 typedef struct otb_eeprom_rpi_header
 {
   // 0x52 0x2D 0x50 0x69 ("R-Pi" in ASCII)
+#define OTB_EEPROM_RPI_EEPROM_SIGNATURE 0x522D5069 // From above eeprom-format.md
   uint8 signature[4];
 
   // 0x00 is reserved, 0x01 is currently used
@@ -744,6 +746,11 @@ otb_eeprom_main_comp_type otb_eeprom_main_comp_types[OTB_EEPROM_INFO_TYPE_NUM] =
 
 #ifndef OTB_HWINFO_C
 void otb_eeprom_read(void);
+uint32_t otb_eeprom_load_rpi_eeprom(uint8_t addr,
+                                    brzo_i2c_info *i2c_info,
+                                    otb_eeprom_info *eeprom_info,
+                                    uint32_t type,
+                                    otb_eeprom_rpi_header *hdr);
 bool otb_eeprom_module_present();
 void otb_eeprom_init_modules();
 char otb_eeprom_init(uint8_t addr, brzo_i2c_info *i2c_info);

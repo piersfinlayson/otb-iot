@@ -35,6 +35,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
   uint8_t ii;
   otb_eeprom_main_module *mod;
   otb_eeprom_info *eeprom_info_v;
+  uint32_t rpi_rc;
 
   DEBUG("EEPROM: otb_eeprom_read entry");
 
@@ -87,6 +88,13 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
             otb_eeprom_main_module_info_g[ii].main_board_mod = otb_eeprom_main_board_module_g[ii];
           }
         }
+        else
+        {
+          // Try reading an RPi EEPROM
+          otb_eeprom_rpi_header rpi_hdr;
+          rpi_rc = otb_eeprom_load_rpi_eeprom(otb_eeprom_main_board_module_g[ii]->address, bus, eeprom_info_v, OTB_EEPROM_INFO_RPI_TYPE_HEADER, &rpi_hdr);
+        }
+        
       }
     }
   }
@@ -102,6 +110,65 @@ EXIT_LABEL:
 
   return;
 }
+
+#ifndef OTB_RBOOT_BOOTLOADER
+
+uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
+                                                      brzo_i2c_info *i2c_info,
+                                                      otb_eeprom_info *eeprom_info,
+                                                      uint32_t type,
+                                                      otb_eeprom_rpi_header *hdr)
+{
+  uint32_t fn_rc;
+  uint32_t rc = OTB_EEPROM_ERR;
+
+  uint32_t read_len;
+
+  DEBUG("EEPROM: otb_eeprom_load_rpi_eeprom entry");
+
+  OTB_ASSERT(type == OTB_EEPROM_INFO_RPI_TYPE_HEADER);
+  read_len = sizeof(otb_eeprom_rpi_header);
+  OTB_ASSERT(read_len < OTB_EEPROM_MAX_MAIN_COMP_LENGTH);
+
+  fn_rc = otb_i2c_24xx128_read_data(addr,
+                                    0,
+                                    read_len,
+                                    (uint8_t *)hdr,
+                                    i2c_info);
+  if (!fn_rc)
+  {
+    // Error reading or reading to I2C bus
+    WARN("EEPROM: Failed to read data from I2C bus otb_eeprom_rpi_header");
+    rc |= OTB_EEPROM_ERR_I2C;
+    goto EXIT_LABEL;
+  }
+
+  INFO("EEPROM: otb_eeprom_rpi_header:");
+  INFO("EEPROM:   hdr.signature: 0x%02x%02x%02x%02x", hdr->signature[0], hdr->signature[1], hdr->signature[2], hdr->signature[3]);
+  INFO("EEPROM:   hdr.version:   0x%02x", hdr->version);
+  INFO("EEPROM:   hdr.reserved:  0x%02x", hdr->reserved);
+  INFO("EEPROM:   hdr.numatoms:  0x%04x", hdr->numatoms);
+  INFO("EEPROM:   hdr.eeplen:    0x%08x", hdr->eeplen);
+
+  if (*(uint32_t*)(&hdr->signature) == OTB_EEPROM_ERR_OK)
+  {
+    INFO("EEPROM: Valid RPi Hat EEPROM found");
+    rc |= OTB_EEPROM_ERR_OK;
+  }
+  else
+  {
+    WARN("EEPROM: Invalid RPi Hat EEPROM signature found - should be 0x%08x", OTB_EEPROM_RPI_EEPROM_SIGNATURE);
+    rc |= OTB_EEPROM_ERR_MAGIC;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_load_rpi_eeprom exit");
+
+  return rc;
+}
+
+#endif // OTB_RBOOT_BOOTLOADER
 
 #ifndef OTB_RBOOT_BOOTLOADER
 
