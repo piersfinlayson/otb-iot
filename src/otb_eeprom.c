@@ -132,7 +132,10 @@ EXIT_LABEL:
 //       - vslen/vs
 //       - pslen/ps
 //   - ignore other atoms for now
-//   - but at some point want to process the custom header (have my own serial number in - and need to figure out how to flash as well)
+//   - but at some point want to process the custom header
+//     (have my own serial number in - and need to figure out how to flash as
+//     well)
+// - Then do something with all of this info - like detect DS18B20 board, programming board, M-Bus Master Hat!
 
 uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
                                                       brzo_i2c_info *i2c_info,
