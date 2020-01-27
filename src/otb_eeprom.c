@@ -113,6 +113,27 @@ EXIT_LABEL:
 
 #ifndef OTB_RBOOT_BOOTLOADER
 
+// Logic for RPi header processing:
+// - If module type is OTB_EEPROM_MODULE_TYPE_RPI_HAT_ESPI I know I should find a RPi header
+// - Read in the RPI header and check
+//   - signature
+//   - version
+//   - numatoms
+//   - eeplen
+// - Read in the vendor info atom
+//   - atom header
+//     - type
+//     - count
+//     - dlen (inc 2 byte crc)
+//     - data
+//       - uuid
+//       - pid
+//       - pver
+//       - vslen/vs
+//       - pslen/ps
+//   - ignore other atoms for now
+//   - but at some point want to process the custom header (have my own serial number in - and need to figure out how to flash as well)
+
 uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
                                                       brzo_i2c_info *i2c_info,
                                                       otb_eeprom_info *eeprom_info,
