@@ -71,11 +71,11 @@ back_power 0
 #         ----  --------  ----
 #setgpio  2     INPUT     DEFAULT
 #setgpio  3     INPUT     DEFAULT
-setgpio  4     OUTPUT     UP # Programmer WP
+setgpio  4      INPUT     DEFAULT # Programmer WP
 #setgpio  5     INPUT     DEFAULT
 #setgpio  6     INPUT     DEFAULT
-setgpio  7     OUTPUT     UP # ESPi WP
-setgpio  8     OUTPUT     UP # ESPI RST
+setgpio  7      OUTPUT    UP # ESPi WP
+setgpio  8      OUTPUT    UP # ESPI RST
 #setgpio  9     INPUT     DEFAULT
 #setgpio  10    INPUT     DEFAULT
 #setgpio  11    INPUT     DEFAULT
