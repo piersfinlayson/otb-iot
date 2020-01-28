@@ -252,7 +252,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
       (os_strnlen(otb_eeprom_main_board_g->common.serial,
                   OTB_EEPROM_HW_SERIAL_LEN+1) > 0))
   {
-    INFO("UTIL: Using serial number as chipid");
+    DEBUG("UTIL: Using serial number as chipid");
     // Use serial number
     
     // Get rid of any spaces
@@ -392,7 +392,7 @@ EXIT_LABEL:
     os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   }
   
-  INFO("UTIL: Chip ID: %s", OTB_MAIN_CHIPID);  
+  INFO("OTB: Chip ID: %s", OTB_MAIN_CHIPID);  
   
   DEBUG("UTIL: otb_util_get_chip_id exit");
   
@@ -442,7 +442,6 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   
   // This is updated later when the EEPROM is read
   os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
-  INFO("OTB: Hardware info: %s", otb_hw_info);
   
   if (recovery)
   {
