@@ -32,7 +32,7 @@ void ICACHE_FLASH_ATTR otb_i2c_mcp23017_output_regs(uint8_t addr, brzo_i2c_info 
       WARN("MCP23017: Failed to read conf");
       goto EXIT_LABEL;
     }
-    INFO("MCP23017: Reg: 0x%02x 0x%02x", ii, conf);
+    DETAIL("MCP23017: Reg: 0x%02x 0x%02x", ii, conf);
   }
   EXIT_LABEL:
   return;

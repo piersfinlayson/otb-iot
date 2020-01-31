@@ -26,7 +26,6 @@ extern char otb_build_num;
 #define OTB_BUILD_NUM (unsigned long)&otb_build_num
 
 #define OTB_UTIL_LOG_BUFFER_LEN 1024 // 1024
-#define OTB_UTIL_REBOOT_TEXT  "UTIL: Rebooting - cause:"
 #define OTB_UTIL_NS_PER_CYCLE 12.5
 
 void ICACHE_FLASH_ATTR otb_util_factory_reset(void);
@@ -59,6 +58,7 @@ void otb_util_get_chip_id(void);
 void otb_util_convert_colon_to_period(char *text);
 extern void otb_util_log_useful_info(bool recovery);
 extern void otb_util_init_logging(void);
+void otb_util_resume_init(void);
 extern void otb_util_log_fn(char *text);
 extern void otb_util_log_store(void);
 char *otb_util_get_log_ram(uint8 index);
@@ -98,7 +98,7 @@ extern void otb_util_log_snprintf(char *log_string,
                                   uint16_t max_log_string_len,
                                   const char *format,
                                   va_list args);
-extern void otb_util_log(bool error,
+extern void otb_util_log(uint8_t error,
                          char *log_string,
                          uint16_t max_log_string_len,
                          const char *format,
@@ -110,6 +110,7 @@ extern void otb_init_ds18b20(void *arg);
 void otb_init_ads(void *arg);
 void otb_util_uart0_rx_en(void);
 void otb_util_uart0_rx_dis(void);
+void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void);
 void otb_util_check_for_break(void);
 void otb_util_break_disable_timer(void);
 void otb_util_break_enable_timer(uint32_t period);
@@ -138,8 +139,11 @@ struct otb_reset_reason
   bool error;
 } otb_reset_reason;
 
+extern uint8_t otb_util_log_level;
+
 #ifdef OTB_UTIL_C
 
+uint8_t otb_util_log_level;
 os_timer_t otb_util_reset_timer;
 unsigned char otb_util_factory_reset_reason[] = "Factory reset completed";
 
@@ -164,6 +168,7 @@ otb_util_log_buffer otb_util_log_buffer_struct;
 bool otb_util_asserting;
 bool otb_util_break_enabled;
 bool otb_util_break_checking;
+bool otb_util_log_level_checking;
 int otb_util_uart_rx_bytes;
 char otb_util_uart_rx_buf[16];
 

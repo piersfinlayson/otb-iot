@@ -73,7 +73,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
   if (hconn == NULL)
   {
-    INFO("HTTPD: Too many incoming connection requests - reject");
+    DETAIL("HTTPD: Too many incoming connection requests - reject");
     espconn_disconnect(conn);
     goto EXIT_LABEL;
   }
@@ -98,7 +98,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
 EXIT_LABEL:
 
-  INFO("HTTPD: otb_httpd_connect_callback exit");
+  DEBUG("HTTPD: otb_httpd_connect_callback exit");
 
   return;
 }
@@ -108,13 +108,13 @@ void ICACHE_FLASH_ATTR otb_httpd_recon_callback(void *arg, sint8 err)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  INFO("HTTPD: otb_httpd_recon_callback entry");
+  DEBUG("HTTPD: otb_httpd_recon_callback entry");
 
   DEBUG("HTTPD: hconn: %p", hconn);
   DEBUG("HTTPD: Recon reason %d", err);
   otb_httpd_discon_callback(arg);
 
-  INFO("HTTPD: otb_httpd_recon_callback exit");
+  DEBUG("HTTPD: otb_httpd_recon_callback exit");
 
   return;
 }
@@ -236,7 +236,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
     hconn->request.url[jj] = data[cur];
   }
   hconn->request.url[jj] = 0; // NULL terminate
-  INFO("HTTPD: URL: %s", hconn->request.url);
+  DETAIL("HTTPD: URL: %s", hconn->request.url);
 
   DEBUG("HTTPD: otb_httpd_process_url exit");
 
@@ -517,7 +517,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     // Handling a POST already
     if ((hconn->request.post.current_data_len + len + 1) > hconn->request.post.data_capacity) // +1 for NULL term
     {
-      INFO("HTTPD: Don't have enough buffer to process entire message");
+      DETAIL("HTTPD: Don't have enough buffer to process entire message");
       hconn->request.status_code = 413;
       hconn->request.status_str = "Request Entity Too Large";
       goto EXIT_LABEL;
@@ -838,12 +838,12 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
     // but is necessary to return the correct Content-Length
     case OTB_HTTPD_METHOD_HEAD:
     case OTB_HTTPD_METHOD_GET:
-      INFO("HTTPD: GET station config");
+      DETAIL("HTTPD: GET station config");
       rsp_len += otb_httpd_wifi_form(buf, len);
       break;
 
     case OTB_HTTPD_METHOD_POST:
-      INFO("HTTPD: POST station config");
+      DETAIL("HTTPD: POST station config");
       OTB_ASSERT(hconn->request.post.data != NULL);
       DEBUG("HTTPD: POST processing: %s", hconn->request.post.data);
       wifi_rc = OTB_CONF_RC_NOT_CHANGED;
@@ -871,12 +871,12 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       mqtt_user[OTB_MQTT_MAX_USER_LEN-1] = 0;
       mqtt_pass[OTB_MQTT_MAX_PASS_LEN-1] = 0;
       
-      INFO("HTTPD: ssid: %s", ssid);
-      INFO("HTTPD: password: %s", password);
-      INFO("HTTPD: mqtt_svr: %s", mqtt_svr);
-      INFO("HTTPD: mqtt_port: %s", mqtt_port);
-      INFO("HTTPD: mqtt_user: %s", mqtt_user);
-      INFO("HTTPD: mqtt_pass: %s", mqtt_pass);
+      DETAIL("HTTPD: ssid: %s", ssid);
+      DETAIL("HTTPD: password: %s", password);
+      DETAIL("HTTPD: mqtt_svr: %s", mqtt_svr);
+      DETAIL("HTTPD: mqtt_port: %s", mqtt_port);
+      DETAIL("HTTPD: mqtt_user: %s", mqtt_user);
+      DETAIL("HTTPD: mqtt_pass: %s", mqtt_pass);
 
       if ((ssid_len > 0) && (password_len >= 0))
       {
@@ -976,7 +976,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
                                len - rsp_len,
                                "<p>Rebooting shortly ... </p>");
                            
-        INFO("HTTP: Terminate AP mode");
+        DETAIL("HTTP: Terminate AP mode");
         otb_wifi_ap_mode_done_fn();          
       }
 

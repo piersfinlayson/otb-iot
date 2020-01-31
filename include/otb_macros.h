@@ -45,10 +45,17 @@
 #define OTB_UTIL_LOG_FLASH_BUFFER_LEN 128
 extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
+#define OTB_LOG_LEVEL_DEBUG  0
+#define OTB_LOG_LEVEL_DETAIL 1
+#define OTB_LOG_LEVEL_INFO   2
+#define OTB_LOG_LEVEL_WARN   3
+#define OTB_LOG_LEVEL_ERROR  4
+#define OTB_LOG_LEVEL_DEFAULT OTB_LOG_LEVEL_INFO
+
 // Used when you want to log a variable format rather than a fixed one which can be 
 // allocated and compile time and stored on flash (in which case use LOG).
-#define LOG_VAR(ERROR, FORMAT, ...) \
-                                  otb_util_log(ERROR,                          \
+#define LOG_VAR(LEVEL, FORMAT, ...) \
+                                 otb_util_log(LEVEL,                           \
                                               otb_log_s,                       \
                                               OTB_MAIN_MAX_LOG_LENGTH,         \
                                               FORMAT,                          \
@@ -68,7 +75,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 //   to after the log is null terminated).
 // - Do the copy, a 4 byte word at a time.
 // - Log it!
-#define LOG(ERROR, FORMAT, ...)                                                          \
+#define LOG(LEVEL, FORMAT, ...)                                                          \
 {                                                                                        \
   char ALIGN4 *log_tmp_str;                                                              \
   size_t log_str_size;                                                                   \
@@ -81,23 +88,25 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
     *(((uint32_t*)(&otb_util_log_flash_buffer))+log_ii) =                                \
                                                  *(((uint32_t*)(&(UNIQUE(log))))+log_ii);\
   }                                                                                      \
-  LOG_VAR(ERROR, otb_util_log_flash_buffer, ##__VA_ARGS__);                              \
+  LOG_VAR(LEVEL, otb_util_log_flash_buffer, ##__VA_ARGS__);                              \
 }
                                               
 #ifndef OTB_RBOOT_BOOTLOADER
 
-#define INFO(...)   LOG(FALSE, __VA_ARGS__)
-#define WARN(...)   LOG(FALSE, __VA_ARGS__)
-#define ERROR(...)  LOG(TRUE, __VA_ARGS__)
+#define DETAIL(...) LOG(OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define INFO(...)   LOG(OTB_LOG_LEVEL_INFO, __VA_ARGS__)
+#define WARN(...)   LOG(OTB_LOG_LEVEL_WARN, __VA_ARGS__)
+#define ERROR(...)  LOG(OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
 
-#define INFO_VAR(...)   LOG_VAR(FALSE, __VA_ARGS__)
-#define WARN_VAR(...)   LOG_VAR(FALSE, __VA_ARGS__)
-#define ERROR_VAR(...)  LOG_VAR(TRUE, __VA_ARGS__)
+#define DETAIL_VAR(...) LOG_VAR(OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define INFO_VAR(...)   LOG_VAR(OTB_LOG_LEVEL_INFO, __VA_ARGS__)
+#define WARN_VAR(...)   LOG_VAR(OTB_LOG_LEVEL_WARN, __VA_ARGS__)
+#define ERROR_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
 
 #ifndef ESPUT
 #ifdef OTB_DEBUG
-  #define DEBUG(...)      LOG(FALSE, __VA_ARGS__)
-  #define DEBUG_VAR(...)  LOG_VAR(FALSE, __VA_ARGS__)
+  #define DEBUG(...)      LOG(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
+  #define DEBUG_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else // OTB_DEBUG
   #define DEBUG(...)
   #define DEBUG_VAR(...)
@@ -127,11 +136,13 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
 // Definitely don't want DEBUG (would make bootloader very large.  Probably do want other
 // logs - but we need to call ets_printf directly, and add in CRLF.
+#define DETAIL(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define INFO(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define WARN(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define ERROR(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define DEBUG(FORMAT, ...)  
 
+#define DETAIL_VAR(FORMAT, ...)  DETAIL(FORMAT, ##__VA_ARGS__)
 #define INFO_VAR(FORMAT, ...)  INFO(FORMAT, ##__VA_ARGS__)
 #define WARN_VAR(FORMAT, ...)  WARN(FORMAT, ##__VA_ARGS__)
 #define ERROR_VAR(FORMAT, ...)  ERROR(FORMAT, ##__VA_ARGS__)

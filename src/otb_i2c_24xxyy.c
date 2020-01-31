@@ -37,7 +37,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
   if (otb_i2c_24xxyy_written)
   {
     // Off
-    INFO("24XXYY: Time to read");
+    DETAIL("24XXYY: Time to read");
     buf[0] = 0;
     rc = otb_i2c_24xxyy_read_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
@@ -46,7 +46,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     }
     else
     {
-      INFO("24XXYY: Read byte 0x%02x", buf[0]);
+      DETAIL("24XXYY: Read byte 0x%02x", buf[0]);
     }
     
     // Now toggle back
@@ -55,7 +55,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
   else
   {
     // On
-    INFO("24XXYY: Time to write");
+    DETAIL("24XXYY: Time to write");
     buf[0] = otb_i2c_24xxyy_next_byte;
     rc = otb_i2c_24xxyy_write_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
@@ -64,7 +64,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
     }
     else
     {
-      INFO("24XXYY: Written byte 0x%02x", otb_i2c_24xxyy_next_byte);
+      DETAIL("24XXYY: Written byte 0x%02x", otb_i2c_24xxyy_next_byte);
       otb_i2c_24xxyy_next_byte++;
     }
     otb_i2c_24xxyy_written = TRUE;
@@ -100,7 +100,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
                      1000,
                      1);
                      
-  INFO("24XXYY: Initialized test");
+  DETAIL("24XXYY: Initialized test");
   
 EXIT_LABEL:
   
@@ -134,7 +134,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
     }
     if (!rc)
     {
-      INFO("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
+      DETAIL("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
   
@@ -147,7 +147,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
     }
     if (!rc)
     {
-      INFO("24XXYY: Failed to read addr: 0x%02x", word_addr + ii);
+      DETAIL("24XXYY: Failed to read addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
   }
@@ -186,7 +186,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     }
     if (!rc)
     {
-      INFO("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
+      DETAIL("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
     
@@ -207,12 +207,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     }
     if (!rc)
     {
-      INFO("24XXYY: Device failed to perform write");
+      DETAIL("24XXYY: Device failed to perform write");
       break;
     }
     else
     {
-      INFO("24XXYY: Polls: %d", jj+1);
+      DETAIL("24XXYY: Polls: %d", jj+1);
     }
   }
   
@@ -247,7 +247,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info)
   }
   else
   {
-    INFO("24XXYY: Failed: %d", brzo_rc);
+    DETAIL("24XXYY: Failed: %d", brzo_rc);
   }
   
 EXIT_LABEL:

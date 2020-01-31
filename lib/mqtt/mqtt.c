@@ -92,7 +92,7 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 		client->connState = TCP_RECONNECT_REQ;
 		return;
 	}
-	INFO("DNS: found ip %d.%d.%d.%d",
+	DETAIL("DNS: found ip %d.%d.%d.%d",
 			*((uint8 *) &ipaddr->addr),
 			*((uint8 *) &ipaddr->addr + 1),
 			*((uint8 *) &ipaddr->addr + 2),
@@ -112,7 +112,7 @@ mqtt_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 		}
 
 		client->connState = TCP_CONNECTING;
-		INFO("TCP: connecting...");
+		DETAIL("TCP: connecting...");
 	}
 
 	DEBUG("os post");
@@ -175,7 +175,7 @@ READPACKET:
 						espconn_disconnect(client->pCon);
 					}
 				} else {
-					INFO("MQTT: Connected to %s:%d", client->host, client->port);
+					DETAIL("OTB: MQTT connected to %s:%d", client->host, client->port);
 					client->connState = MQTT_DATA;
 					if(client->connectedCb)
 						client->connectedCb((uint32_t*)client);
@@ -364,7 +364,7 @@ mqtt_tcpclient_connect_cb(void *arg)
 	espconn_regist_disconcb(client->pCon, mqtt_tcpclient_discon_cb);
 	espconn_regist_recvcb(client->pCon, mqtt_tcpclient_recv);////////
 	espconn_regist_sentcb(client->pCon, mqtt_tcpclient_sent_cb);///////
-	INFO("MQTT: Connected to broker %s:%d", client->host, client->port);
+	DETAIL("MQTT: Connected to broker %s:%d", client->host, client->port);
 
 	mqtt_msg_init(&client->mqtt_state.mqtt_connection, client->mqtt_state.out_buffer, client->mqtt_state.out_buffer_length);
 	client->mqtt_state.outbound_message = mqtt_msg_connect(&client->mqtt_state.mqtt_connection, client->mqtt_state.connect_info);
@@ -397,7 +397,7 @@ mqtt_tcpclient_recon_cb(void *arg, sint8 errType)
 	struct espconn *pCon = (struct espconn *)arg;
 	MQTT_Client* client = (MQTT_Client *)pCon->reverse;
 
-	INFO("TCP: Reconnect to %s:%d", client->host, client->port);
+	DETAIL("TCP: Reconnect to %s:%d", client->host, client->port);
 
 	client->connState = TCP_RECONNECT_REQ;
 
@@ -482,7 +482,7 @@ MQTT_Task(os_event_t *e)
 		break;
 	case TCP_RECONNECT:
 		MQTT_Connect(client);
-		INFO("TCP: Reconnect to: %s:%d", client->host, client->port);
+		DETAIL("TCP: Reconnect to: %s:%d", client->host, client->port);
 		client->connState = TCP_CONNECTING;
 		break;
 	case MQTT_DATA:

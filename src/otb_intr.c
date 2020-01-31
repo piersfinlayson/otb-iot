@@ -93,7 +93,7 @@ bool ICACHE_FLASH_ATTR otb_intr_register(otb_intr_handler_fn *fn, void *arg, uin
     otb_intr_set();
     ETS_INTR_UNLOCK();
     rc = TRUE;
-    INFO("INTR: Registered interrupt handler for pin %d", pin)
+    DETAIL("INTR: Registered interrupt handler for pin %d", pin)
   }
   else
   {
@@ -116,7 +116,7 @@ void ICACHE_FLASH_ATTR otb_intr_unreg(uint8_t pin)
   ETS_INTR_LOCK();
   otb_intr_set();
   gpio_pin_intr_state_set(GPIO_ID_PIN(pin), 0);  //   ETS_INTR_UNLOCK();
-  INFO("INTR: Unregistered interrupt handler for pin %d", pin)
+  DETAIL("INTR: Unregistered interrupt handler for pin %d", pin)
 
   DEBUG("INTR: otb_intr_unreg exit");
 

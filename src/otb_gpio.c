@@ -100,24 +100,26 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
       case OTB_EEPROM_PIN_USE_RESERVED:
       case OTB_EEPROM_PIN_USE_INT_SDA:
       case OTB_EEPROM_PIN_USE_INT_SCL:
-        INFO("GPIO: Reserved pin: %d", ii);
+      case OTB_EEPROM_PIN_USE_TX:
+      case OTB_EEPROM_PIN_USE_RX:
+        DETAIL("GPIO: Reserved pin: %d", ii);
         set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_HARD:
-        INFO("GPIO: Hard reset pin: %d", ii);
+        DETAIL("GPIO: Hard reset pin: %d", ii);
         set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_SOFT:
-        INFO("GPIO: Soft reset pin: %d", ii);
+        DETAIL("GPIO: Soft reset pin: %d", ii);
         otb_gpio_pins.soft_reset = pin_info->num;
         GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
         otb_intr_register(otb_gpio_reset_button_interrupt, NULL, pin_info->num);
         break;
 
       case OTB_EEPROM_PIN_USE_STATUS_LED:
-        INFO("GPIO: Status LED pin: %d", ii);
+        DETAIL("GPIO: Status LED pin: %d", ii);
         otb_gpio_pins.status = pin_info->num;
         otb_gpio_pins.status_type = pin_info->further_info;
         set_ok = otb_gpio_set(ii, 1, TRUE);
@@ -166,7 +168,7 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
   // Only reset if pulled low (i.e. button pressed)
   if (!get)
   {
-    WARN("GPIO: Reset button pressed");
+    DETAIL("GPIO: Reset button pressed");
     otb_reset_schedule(1000, otb_gpio_reset_reason_reset, FALSE);
     otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
     otb_led_wifi_blink(5);
@@ -259,7 +261,7 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
     }
     else
     {
-      WARN("GPIO: not applying boot state for reserved pin %d", ii);
+      DETAIL("GPIO: not applying boot state for reserved pin %d", ii);
     }
   }
 
@@ -687,7 +689,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       }
       else
       {
-        INFO("GPIO: no value");
+        DETAIL("GPIO: no value");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                              cmd,
                              OTB_MQTT_STATUS_ERROR,
@@ -743,7 +745,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       break;
     
     default:
-      INFO("GPIO: Unsupported command");
+      DETAIL("GPIO: Unsupported command");
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                            OTB_MQTT_STATUS_ERROR,
                            "Unsupported command",

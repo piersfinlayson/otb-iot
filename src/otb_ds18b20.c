@@ -43,11 +43,11 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 
   DEBUG("DS18B20: otb_ds18b20_initialize entry");
 
-  INFO("DS18B20: Initialize one wire bus on GPIO pin %d", bus);
+  DETAIL("DS18B20: Initialize one wire bus on GPIO pin %d", bus);
 
   otb_ds18b20_init(bus);
 
-  INFO("DS18B20: One Wire bus initialized");
+  INFO("OTB: One wire bus initialized");
   
   // Initialize last temp
   for (ii = 0; ii < OTB_DS18B20_MAX_DS18B20S; ii++)
@@ -113,11 +113,11 @@ void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
 
   if (otb_ds18b20_count > prev_count)
   {
-    INFO("DS18B20: DS18B20 device count changed was %u now %u", prev_count, otb_ds18b20_count);
+    DETAIL("DS18B20: DS18B20 device count changed was %u now %u", prev_count, otb_ds18b20_count);
     for (ii = 0; ii < otb_ds18b20_count; ii++)
     {
       // Stagger timer for each temperature sensor - and do any we already had as well
-      INFO("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
+      DETAIL("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
       timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
       otb_ds18b20_addresses[ii].timer_int = timer_int;
       os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
@@ -276,7 +276,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     os_strcpy(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP);
   }
     
-  INFO("DS18B20: Device: %s temp: %s", addr->friendly, otb_ds18b20_last_temp_s[addr->index]);
+  DETAIL("DS18B20: Device: %s temp: %s", addr->friendly, otb_ds18b20_last_temp_s[addr->index]);
 
   if (otb_mqtt_client.connState == MQTT_DATA)
   {
@@ -490,7 +490,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_valid_addr(unsigned char *to_match)
   if (!rc)
   {
     // Malformed DS18B20 sensor address
-    INFO("DS18B20: Sensor address malformed %s", to_match);
+    DETAIL("DS18B20: Sensor address malformed %s", to_match);
     otb_cmd_rsp_append("sensor address malformed");
     rc = FALSE;
     goto EXIT_LABEL;
@@ -572,14 +572,14 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
   {
     if (ds18b20->id[0] == 0)
     {
-      INFO("DS18B20: Update empty slot %d %s %s", ii, addr, next_cmd);
+      DETAIL("DS18B20: Update empty slot %d %s %s", ii, addr, next_cmd);
       // Have found an empty slot - fill it
       os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
       ds18b20->id[OTB_CONF_DS18B20_MAX_ID_LEN-1] = 0;
       os_strncpy(ds18b20->loc, next_cmd, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
       if (otb_conf->ds18b20s != ii)
       {
-        INFO("DS18B20: Conf DS18B20s not correct %d", otb_conf->ds18b20s);
+        DETAIL("DS18B20: Conf DS18B20s not correct %d", otb_conf->ds18b20s);
       }
       otb_conf->ds18b20s = (ii + 1);
       rc = TRUE;
@@ -610,7 +610,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
       if (!ds_match)
       {
         // Can use this slot
-        INFO("DS18B20: Found slot not being used");
+        DETAIL("DS18B20: Found slot not being used");
         os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
         os_strncpy(ds18b20->loc, next_cmd, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
         rc = TRUE;
@@ -829,7 +829,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   }
   else
   {
-    INFO("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
+    DETAIL("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
   }
 
   tdata = (data[1] << 8) | data[0]; 

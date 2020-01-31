@@ -42,8 +42,8 @@ void ICACHE_FLASH_ATTR otb_util_flash_init(void)
   }
   otb_flash_size_sdk = flashchip->chip_size;
   otb_flash_size_actual = actual_size;
-  INFO("UTIL: Flash size from sdk: %d bytes", otb_flash_size_sdk);
-  INFO("UTIL: Flash size actual:   %d bytes", otb_flash_size_actual);
+  DETAIL("UTIL: Flash size from sdk: %d bytes", otb_flash_size_sdk);
+  DETAIL("UTIL: Flash size actual:   %d bytes", otb_flash_size_actual);
   OTB_ASSERT(otb_flash_size_actual >= otb_flash_size_sdk); 
   if (otb_flash_size_actual == otb_flash_size_sdk)
   {
@@ -291,7 +291,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
                                       (OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1)))
     {
       // Use STA MAC address
-      INFO("UTIL: Using station MAC address as chipid");
+      DETAIL("UTIL: Using station MAC address as chipid");
       for (ii = 0, jj = 0, kk = 0;
            ii < os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH);
            ii++)
@@ -387,7 +387,7 @@ EXIT_LABEL:
   if (!rc)
   {  
     // Use ESP chip id
-    INFO("UTIL: Using ESP chipid as chipid");
+    DETAIL("UTIL: Using ESP chipid as chipid");
     os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
     os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   }
@@ -435,10 +435,10 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
               STRINGIFY(ESP_SDK_VERSION));
   otb_sdk_version_id[OTB_MAIN_SDK_MAX_VERSION_LENGTH-1] = 0;
   // First log needs a line break!
-  INFO("\nOTB: %s%s", otb_version_id, recovery_str);
+  INFO("OTB: %s%s", otb_version_id, recovery_str);
   INFO("OTB: SDK Version: %s", otb_sdk_version_id);
   INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
+  DETAIL("OTB: Free heap size: %d bytes", system_get_free_heap_size());
   
   // This is updated later when the EEPROM is read
   os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
@@ -456,6 +456,8 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
 
 void ICACHE_FLASH_ATTR otb_util_init_logging(void)
 {
+  otb_util_log_level = OTB_LOG_LEVEL_DEFAULT;
+
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
   uart_div_modify(1, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
@@ -484,6 +486,55 @@ void ICACHE_FLASH_ATTR otb_util_init_logging(void)
   OTB_ASSERT((uint32)otb_util_log_buf % 4 == 0);
   
   return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_resume_init(void)
+{
+  // Log some useful info
+  otb_util_log_useful_info(FALSE);
+
+  // Do some sanity checking
+  otb_util_check_defs();
+
+  // Initial internal I2C bus (must be done before try and read eeprom)
+  otb_i2c_initialize_bus_internal();
+  
+  // Read the eeprom (if present) - this initializes the chip ID
+  otb_eeprom_read();
+
+  // Relog heap size (now have read into eeprom)
+  DETAIL("OTB: Free heap size: %d bytes", system_get_free_heap_size());
+
+  // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
+  otb_flash_init();
+  
+  // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO), but
+  // after have populated them 
+  otb_gpio_init();
+  
+  // Reset GPIO - pull pin 16 high
+  otb_util_clear_reset();
+  
+  // Initialize serial
+  otb_serial_init();
+
+  // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
+  otb_wifi_init();
+
+  // Initialize nixie module
+  otb_nixie_module_init();
+
+  // Initialize and load config
+  otb_conf_init();
+  otb_conf_load();
+  
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+
+#ifdef OTB_DEBUG
+  otb_util_log_heap_size_start_timer();
+#endif // OTB_DEBUG
+
+  otb_util_check_for_break();
 }
 
 void ICACHE_FLASH_ATTR otb_util_log_store(void)
@@ -818,6 +869,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
 {
   bool rc;
   bool same;
+  uint8_t log_level;
 
   DEBUG("OTB: otb_reset_internal entry");
   
@@ -825,29 +877,30 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
   
   if (error)
   {
-    ERROR(OTB_UTIL_REBOOT_TEXT);
-    if (text != NULL)
-    {
-      ERROR_VAR(text);
-    }
-    if (!same)
-    {
-      // Only store logs if not the same reset reason as last time (to avoid destroying
-      // the flash)
-      otb_util_log_store();
-    }
+    log_level = OTB_LOG_LEVEL_ERROR;
   }
   else
   {
-    INFO(OTB_UTIL_REBOOT_TEXT);
-    if (text != NULL)
-    {
-      INFO_VAR(text);
-    }    
+    log_level = OTB_LOG_LEVEL_WARN;
+  }
+
+  if (text != NULL)
+  {
+    LOG(log_level, "OTB: Resetting: %s", text);
+  }
+  else
+  {
+    LOG(log_level, "OTB: Resetting");
+  }
+
+  if (error && !same)
+  {
+    // Only store logs if not the same reset reason as last time (to avoid destroying
+    // the flash)
+    otb_util_log_store();
   }
   
-  // Delay to give any serial logs time to output.  Can't use arduino delay as
-  // may be in wrong context
+  // Delay to give any serial logs time to output.
   otb_util_delay_ms(1000);
 
   #if 0
@@ -1051,7 +1104,7 @@ void ICACHE_FLASH_ATTR otb_util_log_heap_size_timer(void *arg)
   DEBUG("UTIL: otb_util_log_heap_size_timer entry");
   
   size = system_get_free_heap_size();  
-  INFO("UTIL: Free heap size: %d", size);
+  DETAIL("UTIL: Free heap size: %d", size);
   
   DEBUG("UTIL: otb_util_log_heap_size_timer exit");
 
@@ -1338,7 +1391,7 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   // DEBUG("UTIL: otb_util_log_snprintf exit");
 }
 
-void ICACHE_FLASH_ATTR otb_util_log(bool error,
+void ICACHE_FLASH_ATTR otb_util_log(uint8_t level,
                                     char *log_string,
                                     uint16_t max_log_string_len,
                                     const char *format,
@@ -1348,6 +1401,12 @@ void ICACHE_FLASH_ATTR otb_util_log(bool error,
 
   // DEBUG("UTIL: otb_util_log entry");
   
+  // Only carry on if log is at an appropriate level
+  if (level < otb_util_log_level)
+  {
+    goto EXIT_LABEL;
+  }
+
   // Bit of messing around to deal with var args, but basically snprintf log
   // into log buffer and then log it
   va_start(args, format);
@@ -1356,10 +1415,13 @@ void ICACHE_FLASH_ATTR otb_util_log(bool error,
   otb_util_log_fn(otb_log_s);
 
   // Log if MQTT if an error and we're connected
-  if (error && (otb_mqtt_client.connState == MQTT_DATA))                       \
-  {                                                                            \
-    otb_util_log_error_via_mqtt(otb_log_s);                                    \
+  if ((level >= OTB_LOG_LEVEL_ERROR) &&
+      (otb_mqtt_client.connState == MQTT_DATA))
+  {   
+    otb_util_log_error_via_mqtt(otb_log_s);
   }
+
+EXIT_LABEL:
 
   // DEBUG("UTIL: otb_util_log exit");
   
@@ -1392,7 +1454,7 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
 {
   DEBUG("OTB: otb_init_mqtt entry");
   
-  INFO("OTB: Set up MQTT stack");
+  DETAIL("OTB: Set up MQTT stack");
   otb_mqtt_initialize(otb_conf->mqtt.svr,
                       otb_conf->mqtt.port,
                       0,
@@ -1416,8 +1478,9 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
 {
   DEBUG("OTB: otb_init_ds18b20 entry");
 
-  INFO("OTB: Set up One Wire bus");
+  DETAIL("OTB: Set up One Wire bus");
   otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
+  INFO("OTB: Boot sequence completed");
 
   DEBUG("OTB: otb_init_ds18b20 exit");
 
@@ -1428,13 +1491,14 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
 {
   DEBUG("OTB: otb_init_ads entry");
 
-  INFO("OTB: Set up ADS (+I2C bus)");
+  DETAIL("OTB: Set up ADS (+I2C bus)");
 #if 0  
   otb_ads_initialize();
 #endif
 
   // Now set up ADS init
   os_timer_disarm((os_timer_t*)&init_timer);
+  INFO("OTB: Boot sequence completed");
 
   DEBUG("OTB: otb_init_ads exit");
 
@@ -1476,12 +1540,33 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void)
+{
+
+  DEBUG("UTIL: otb_util_check_for_log_level entry");
+
+  DETAIL("UTIL: check for log level input");
+
+  otb_util_uart0_rx_en();
+  otb_util_break_enabled = FALSE;
+  otb_util_log_level_checking = TRUE;
+  otb_break_rx_buf_len = 0;
+
+  // Overload the break timer as only use one at once
+  otb_util_break_enable_timer(250);
+
+  DEBUG("UTIL: otb_util_check_for_log_level exit");
+
+  return;
+}
+
+
 void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
 {
 
   DEBUG("UTIL: otb_util_check_for_break entry");
 
-  INFO("UTIL: check for user break")
+  INFO("OTB: Break checking")
 
   otb_util_uart0_rx_en();
   otb_util_break_enabled = FALSE;
@@ -1527,9 +1612,76 @@ char ALIGN4 otb_util_break_timerfunc_string[] = "UTIL: Break timer popped";
 void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
 {
 
-  DEBUG("WIFI: otb_util_break_timerfunc entry");
+  DEBUG("UTIL: otb_util_break_timerfunc entry");
 
-  if (!otb_util_break_checking)
+  if (otb_util_log_level_checking)
+  {
+    // Actually checking log level not break
+    otb_util_break_disable_timer();
+    otb_util_uart0_rx_dis();
+    otb_util_log_level_checking = FALSE;
+    if (otb_break_rx_buf_len > 0)
+    {
+      // Collected a char - look at first char
+      switch (otb_break_rx_buf[0])
+      {
+        case '0':
+          // Note DEBUG may not be compiled in - log this later
+          otb_util_log_level = OTB_LOG_LEVEL_DEBUG;
+          break;
+
+        case '1':
+          otb_util_log_level = OTB_LOG_LEVEL_DETAIL;
+          break;
+
+        case '2':
+          otb_util_log_level = OTB_LOG_LEVEL_INFO;
+          break;
+          
+        case '3':
+          otb_util_log_level = OTB_LOG_LEVEL_WARN;
+          break;
+          
+        case '4':
+          otb_util_log_level = OTB_LOG_LEVEL_ERROR;
+          break;
+
+        default:
+          WARN("UTIL: Unexpected character received when checking log level 0x%02x", otb_break_rx_buf[0]);
+      }
+    }
+
+    switch (otb_util_log_level)
+    {
+      case OTB_LOG_LEVEL_DEBUG:
+        ERROR("\nOTB: Log level selected: DEBUG");
+#ifndef OTB_DEBUG
+          ERROR("UTIL: DEBUG logging selected, but not compiled into firmware")
+#endif // OTB_DEBUG          
+        break;
+
+      case OTB_LOG_LEVEL_DETAIL:
+        ERROR("\nOTB: Log level selected: DETAIL");
+        break;
+
+      case OTB_LOG_LEVEL_INFO:
+        ERROR("\nOTB: Log level selected: INFO");
+        break;
+
+      case OTB_LOG_LEVEL_WARN:
+        ERROR("\nOTB: Log level selected: WARN");
+        break;
+
+      case OTB_LOG_LEVEL_ERROR:
+        ERROR("\nOTB: Log level selected: ERROR");
+        break;
+
+      default:
+        OTB_ASSERT(FALSE);
+    }
+    otb_util_resume_init();
+  }
+  else if (!otb_util_break_checking)
   {
     // We are already breaked - timer has popped so restart
     otb_reset(otb_util_break_timerfunc_string);
@@ -1547,12 +1699,12 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     
     if ((otb_break_rx_buf_len >= 5) && (!os_memcmp(otb_break_rx_buf, "break", 5)))
     {
-      INFO("UTIL: User break received");
+      DETAIL("UTIL: User break received");
       otb_util_break_enabled = TRUE;
     }
     else if (otb_util_uart_rx_bytes > 0)
     {
-      INFO("UTIL: Received %d bytes of data during break checking", otb_break_rx_buf_len);
+      DETAIL("UTIL: Received %d bytes of data during break checking", otb_break_rx_buf_len);
     }
 
     // If the user didn't break then carry on with usual boot sequence
@@ -1566,7 +1718,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     }
   }
   
-  DEBUG("WIFI: otb_util_break_timerfunc exit");
+  DEBUG("UTIL: otb_util_break_timerfunc exit");
 
   return;
 }

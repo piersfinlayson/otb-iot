@@ -73,6 +73,8 @@ bool otb_break_soft_reset_input(char input);
 void otb_break_process_char(void);
 
 #ifdef OTB_BREAK_C
+
+uint8_t otb_break_old_log_level;
 os_timer_t otb_break_process_char_timer;
 os_timer_t otb_break_gpio_timer;
 char otb_break_rx_buf[OTB_BREAK_RX_BUF_LEN];

@@ -37,76 +37,9 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   DEBUG("OTB: user_init entry");
 
-  // Log some useful info
-  otb_util_log_useful_info(FALSE);
-
-  // Do some sanity checking
-  otb_util_check_defs();
-
-  // Initial internal I2C bus (must be done before try and read eeprom)
-  otb_i2c_initialize_bus_internal();
-  
-  // Read the eeprom (if present) - this initializes the chip ID
-  otb_eeprom_read();
-
-  // Relog heap size (now have read into eeprom)
-  INFO("OTB: Free heap size: %d bytes", system_get_free_heap_size());
-
-  // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
-  otb_flash_init();
-  
-  // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO), but
-  // after have populated them 
-  otb_gpio_init();
-  
-  // Reset GPIO - pull pin 16 high
-  otb_util_clear_reset();
-  
-  // Initialize serial
-  otb_serial_init();
-
-  // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
-  otb_wifi_init();
-
-  // Initialize nixie module
-  otb_nixie_module_init();
-
-#if 0
-  OTB_WIFI_STATION_CONFIG wifi_conf;
-  // Some code to burn an SSID/password into the flash
-  wifi_set_opmode_current(STATION_MODE);
-  strcpy(wifi_conf.ssid, "some_ssid");
-  strcpy(wifi_conf.password, "some_password");
-  wifi_conf.bssid_set = FALSE;
-  strcpy(wifi_conf.bssid, "");
-  otb_wifi_set_stored_conf(&wifi_conf);
-  INFO("Pausing for 20s ...");
-  otb_util_delay_ms(20000);
-#endif  
-
-  // Initialize and load config
-  otb_conf_init();
-  otb_conf_load();
-  
-  otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
-
-#ifdef OTB_DEBUG
-  otb_util_log_heap_size_start_timer();
-#endif // OTB_DEBUG
-
-#if 0  
-  if (otb_gpio_get(OTB_GPIO_RESET_PIN, TRUE))
-  {
-#endif
-    system_init_done_cb((init_done_cb_t)otb_util_check_for_break);
-#if 0
-  }
-  else
-  {
-    system_init_done_cb((init_done_cb_t)otb_gpio_reset_kick_off);
-  }
-#endif
-//  system_init_done_cb((init_done_cb_t)mbus_init);
+  // See if user wants to override log level
+  system_init_done_cb((init_done_cb_t)otb_util_check_for_log_level);
+  ets_printf("\r\n");
   
   DEBUG("OTB: user_init exit");
 

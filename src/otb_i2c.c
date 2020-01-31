@@ -689,7 +689,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
   *num=0;
   if (byte != NULL)
   {
-    INFO("I2C: byte value: %s", byte);
+    DETAIL("I2C: byte value: %s", byte);
     for (ii = 0; ii < 8; ii++)
     {
       digit = 0;
@@ -719,7 +719,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
   }
   else
   {
-    INFO("I2C: Null string passed in");
+    DETAIL("I2C: Null string passed in");
     rc = FALSE;
   }
   
@@ -1165,7 +1165,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_range(uint8 addr, int num, int16_t *result, i
   
   working = sum/num;
   *result = (int16_t)working;
-  INFO("I2C: Result %d working %d", *result, working);
+  DETAIL("I2C: Result %d working %d", *result, working);
   // Check we haven't lost any data!
   OTB_ASSERT(*result == working);
   rc = TRUE;
@@ -1481,7 +1481,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
       
       if (!rc || (val < min) || (val > max))
       {
-        INFO("I2C: rc: %d min: %d max: %d val: %d", rc, min, max, val);
+        DETAIL("I2C: rc: %d min: %d max: %d val: %d", rc, min, max, val);
         otb_cmd_rsp_append("invalid value");
         rc = FALSE;
         goto EXIT_LABEL;

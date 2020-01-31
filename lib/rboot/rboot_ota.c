@@ -38,7 +38,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 
 	upgrade = (upgrade_param*)os_zalloc(sizeof(upgrade_param));
 	if (!upgrade) {
-		INFO("RBOOT OTA: No ram!");
+		WARN("RBOOT OTA: No ram!");
 		return false;
 	}
 	
@@ -61,7 +61,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 	// create connection
 	upgrade->conn = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	if (!upgrade->conn) {
-		INFO("RBOOT OTA: No ram!");
+		WARN("RBOOT OTA: No ram!");
 		os_free(upgrade);
 		return false;
 	}
@@ -69,7 +69,7 @@ static bool ICACHE_FLASH_ATTR rboot_ota_init(rboot_ota *ota) {
 	if (!upgrade->conn->proto.tcp) {
 		os_free(upgrade->conn);
 		upgrade->conn = 0;
-		INFO("RBOOT OTA: No ram!");
+		WARN("RBOOT OTA: No ram!");
 		os_free(upgrade);
 		return false;
 	}
@@ -155,9 +155,9 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 			*ptr = '\0'; // destructive
 			upgrade->content_len = atoi(ptrLen);
 			DEBUG("RBOOT OTA: content_len %d", upgrade->content_len);
-			INFO("RBOOT OTA: Kicked off update");
+			DETAIL("RBOOT OTA: Kicked off update");
 		} else {
-			INFO("RBOOT OTA: fail, not a valid http header/non-200 response/etc. %s", pusrdata);
+			DETAIL("RBOOT OTA: fail, not a valid http header/non-200 response/etc. %s", pusrdata);
 			rboot_ota_deinit();
 			return;
 		}
@@ -169,7 +169,7 @@ static void ICACHE_FLASH_ATTR upgrade_recvcb(void *arg, char *pusrdata, unsigned
 	
 	// check if we are finished
 	if (upgrade->total_len == upgrade->content_len) {
-		INFO("RBOOT OTA: finished!");
+		DETAIL("RBOOT OTA: finished!");
 		system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
 		// clean up and call user callback
 		rboot_ota_deinit();

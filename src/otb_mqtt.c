@@ -196,7 +196,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
@@ -247,7 +247,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
@@ -280,7 +280,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
@@ -314,7 +314,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  INFO("MQTT: Subscribe: %s", otb_mqtt_topic_s);
+  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
   DEBUG("MQTT:       qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
@@ -332,6 +332,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
 	
   DEBUG("MQTT: otb_mqtt_on_connected entry");
   
+  INFO("OTB: MQTT connected");
+
   otb_mqtt_connected = TRUE;
   otb_util_timer_cancel(&otb_mqtt_connected_timer);
 
@@ -397,7 +399,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 
   DEBUG("MQTT: otb_mqtt_initialize entry");
 
-  INFO("MQTT: Connect to %s:%d username:%s", hostname, port, mqtt_username);
+  INFO("OTB: MQTT connecting");
+  DETAIL("MQTT: Create MQTT connection to %server s:%d username:%s", hostname, port, mqtt_username);
 
   otb_mqtt_connected = FALSE;
   
@@ -612,7 +615,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||
       (msg_len > (OTB_MQTT_MAX_MSG_LENGTH - 1)))
   {
-    INFO("MQTT: Received topic of msg length too long: %d", topic_len);
+    DETAIL("MQTT: Received topic of msg length too long: %d", topic_len);
     otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR,
                          "Topic or message too long",
                          "",
@@ -639,7 +642,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   topic_id = otb_mqtt_pub_get_topic(otb_mqtt_topic_s);
   if (topic_id != OTB_MQTT_TOPIC_SYSTEM_)
   {
-    INFO("MQTT: Received unsupported topic");
+    DETAIL("MQTT: Received unsupported topic");
     otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported topic", "", "");
     goto EXIT_LABEL;
   }
@@ -847,7 +850,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
     port_int = atoi(port);
     if ((port_int < 0) || (port_int > 0xffff))
     {
-      INFO("MQTT: Invalid MQTT port");
+      DETAIL("MQTT: Invalid MQTT port");
       rc = OTB_CONF_RC_ERROR;
       goto EXIT_LABEL;
     }
@@ -859,7 +862,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   {
     if (os_strcmp(otb_conf->mqtt.svr, svr))
     {
-      INFO("MQTT: server changed");
+      DETAIL("MQTT: server changed");
       rc = OTB_CONF_RC_CHANGED;
     }
   }
@@ -868,7 +871,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   {
     if (port_int != otb_conf->mqtt.port)
     {
-      INFO("MQTT: port changed");
+      DETAIL("MQTT: port changed");
       rc = OTB_CONF_RC_CHANGED;
     }
   }
@@ -1031,7 +1034,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
         {
           port = next_cmd;
         }
-        INFO("MQTT: Change svr from %s to %s port from %d to %s", otb_conf->mqtt.svr, svr, otb_conf->mqtt.port, port);
+        DETAIL("MQTT: Change svr from %s to %s port from %d to %s", otb_conf->mqtt.svr, svr, otb_conf->mqtt.port, port);
         mqtt_rc = otb_mqtt_set_svr(svr, port, TRUE);
         if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
         {
@@ -1059,7 +1062,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
         {
           password = next_cmd;
         }
-        INFO("MQTT: Change username from %s to %s password from %s to %s", otb_conf->mqtt.user, username, otb_conf->mqtt.pass, password);
+        DETAIL("MQTT: Change username from %s to %s password from %s to %s", otb_conf->mqtt.user, username, otb_conf->mqtt.pass, password);
         mqtt_rc = otb_mqtt_set_user(username, password, TRUE);
         if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
         {

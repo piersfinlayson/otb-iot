@@ -323,7 +323,7 @@ void ICACHE_FLASH_ATTR otb_led_control_on_timer(void *arg)
   if (!rc)
   {
     // No need to report done - that's done in otb_led_control_step
-    INFO("LED: Hit error when doing something to an LED within callback timer");
+    DETAIL("LED: Hit error when doing something to an LED within callback timer");
   }
   
   DEBUG("LED: otb_led_control_on_timer entry");
@@ -1255,10 +1255,10 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
           otb_cmd_rsp_append("invalid char %d %d in message - only A-Z and underscore (space) supported", otb_led_msg_seq_buf->message[ii], ii);
           goto EXIT_LABEL;
         }
-        //INFO("LED: Char %d is %d", ii, otb_led_msg_seq_buf->message[ii]);
+        //DETAIL("LED: Char %d is %d", ii, otb_led_msg_seq_buf->message[ii]);
       }
-      //INFO("LED: Message: %s", otb_led_msg_seq_buf->message);
-      //INFO("LED: msg_len: %d", otb_led_msg_seq_buf->msg_len);
+      //DETAIL("LED: Message: %s", otb_led_msg_seq_buf->message);
+      //DETAIL("LED: msg_len: %d", otb_led_msg_seq_buf->msg_len);
 
       // Set up other stuff
       otb_led_msg_seq_buf->pause = speed;

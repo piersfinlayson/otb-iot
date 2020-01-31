@@ -42,10 +42,13 @@ void ICACHE_FLASH_ATTR otb_relay_init_mezz(void *arg)
 
   otb_relay_mezz.inited = TRUE;
 
-  INFO("RELAY: Initialized mezz relay board relay pin: %d led pin: %d", otb_relay_mezz.relay_gpio, otb_relay_mezz.led_gpio);
+  DETAIL("OTB: Initialize relay");
+  DETAIL("RELAY: Initialized mezz relay board relay pin: %d led pin: %d", otb_relay_mezz.relay_gpio, otb_relay_mezz.led_gpio);
 
   // "Connect" to the relay - this means pulling gpio[1] low to light the led
   otb_gpio_set(otb_relay_mezz.led_gpio, 0, FALSE);
+
+  DETAIL("OTB: Boot sequence completed");
 
   DEBUG("RELAY: otb_relay_init_mezz exit");
 
@@ -343,7 +346,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   i2c_addr = OTB_I2C_PCA9685_BASE_ADDR + relay->addr;
   pin = 9-num;
 
-  INFO("RELAY: Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
+  DETAIL("RELAY: Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
 
   bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (((9-num)-1) * 4);
   bytes[1] = 0b0;
@@ -355,7 +358,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   brzo_rc = brzo_i2c_end_transaction();
   if (brzo_rc)
   {
-    INFO("RELAY: Failed to put otb-relay PCA9685 address 0x%2x num: %d to status: %d, rc: %d", i2c_addr, num, state, brzo_rc);
+    DETAIL("RELAY: Failed to put otb-relay PCA9685 address 0x%2x num: %d to status: %d, rc: %d", i2c_addr, num, state, brzo_rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -544,7 +547,7 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
         }
         
         relay->relay_pwr_on[1] = current_state;
-        INFO("Store off state: 0x%2x", relay->relay_pwr_on[1]);
+        DETAIL("Store off state: 0x%2x", relay->relay_pwr_on[1]);
         store_conf = TRUE;
         rc = TRUE;
       }
@@ -595,7 +598,7 @@ bool ICACHE_FLASH_ATTR otb_relay_configured(void)
     if (otb_conf->relay[ii].type != OTB_CONF_RELAY_TYPE_NONE)
     {
       rc = TRUE;
-      INFO("RELAY: Have one or more relay modules configured");
+      DETAIL("RELAY: Have one or more relay modules configured");
       break;
     }
   }
@@ -637,7 +640,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
           {
             // Duplicate address
             dupe = TRUE;
-            INFO("RELAY: Found dupe relay %d %d %d", ii, jj, otb_relay_status[jj].index);
+            DETAIL("RELAY: Found dupe relay %d %d %d", ii, jj, otb_relay_status[jj].index);
             break;
           }
         }
@@ -663,7 +666,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
   
   if (otb_relay_num > 0)
   {
-    INFO("RELAY: Set up %d relay module(s)", otb_relay_num);
+    DETAIL("RELAY: Set up %d relay module(s)", otb_relay_num);
   }
   
   DEBUG("RELAY: otb_relay_init exit");
@@ -713,7 +716,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
       brzo_rc = brzo_i2c_end_transaction();
       if (brzo_rc)
       {
-        INFO("RELAY: Failed to set otb-relay PCA9685 mode: %d", rc);
+        DETAIL("RELAY: Failed to set otb-relay PCA9685 mode: %d", rc);
         rc = FALSE;
         goto EXIT_LABEL;
       }
@@ -729,7 +732,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
       brzo_rc = brzo_i2c_end_transaction();
       if (brzo_rc)
       {
-        INFO("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
+        DETAIL("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
         rc = FALSE;
         goto EXIT_LABEL;
       }
@@ -765,7 +768,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
         brzo_rc = brzo_i2c_end_transaction();
         if (brzo_rc)
         {
-          INFO("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
+          DETAIL("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
           rc = FALSE;
           goto EXIT_LABEL;
         }

@@ -33,6 +33,12 @@ void ICACHE_FLASH_ATTR otb_break_start(void)
   INFO(" Watchdog enabled: %dms", OTB_BREAK_WATCHDOG_TIMER)
   otb_util_uart0_rx_en();
   INFO("Press h or ? for help");
+  // Make sure our INFO logs get output
+  otb_break_old_log_level = otb_util_log_level;
+  if (otb_util_log_level > OTB_LOG_LEVEL_INFO)
+  {
+    otb_util_log_level = OTB_LOG_LEVEL_INFO;
+  }
 
   DEBUG("BREAK: otb_break_start exit");
 
@@ -151,6 +157,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
     case 'x':
     case 'X':
       INFO("Resume booting");
+      otb_util_log_level = otb_break_old_log_level;
       otb_util_uart0_rx_dis();
       otb_util_break_disable_timer();
       otb_wifi_kick_off();

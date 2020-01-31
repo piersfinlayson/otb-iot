@@ -217,17 +217,17 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       {
         WARN("CONF: ADS index %d something invalid", ii);
         conf->ads[ii].loc[OTB_CONF_ADS_LOCATION_MAX_LEN-1] = 0; // Null terminate just in case!
-        INFO("CONF: ADS %d index:     %d", ii, conf->ads[ii].index);
-        INFO("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
-        INFO("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
-        INFO("CONF: ADS %d pad1:      0x%x", ii, conf->ads[ii].pad1[0]);
-        INFO("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
-        INFO("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
-        INFO("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
-        INFO("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
-        INFO("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
-        INFO("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
-        INFO("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
+        DETAIL("CONF: ADS %d index:     %d", ii, conf->ads[ii].index);
+        DETAIL("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
+        DETAIL("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
+        DETAIL("CONF: ADS %d pad1:      0x%x", ii, conf->ads[ii].pad1[0]);
+        DETAIL("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
+        DETAIL("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
+        DETAIL("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
+        DETAIL("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
+        DETAIL("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
+        DETAIL("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
+        DETAIL("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
         otb_conf_ads_init_one(&(conf->ads[ii]), ii);
         modified = TRUE;
       }
@@ -279,15 +279,15 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       {
         WARN("CONF: Relay index %d something invalid", ii);
         conf->relay[ii].loc[OTB_CONF_RELAY_LOC_LEN-1] = 0; // Null terminate just in case!
-        INFO("CONF: Relay %d location:    %s", ii, conf->relay[ii].loc);
-        INFO("CONF: Relay %d index:       %d", ii, conf->relay[ii].index);
-        INFO("CONF: Relay %d type:        %d", ii, conf->relay[ii].type);
-        INFO("CONF: Relay %d addr:        0x%02x", ii, conf->relay[ii].addr);
-        INFO("CONF: Relay %d num_relays:  0x%02x", ii, conf->relay[ii].num_relays);
-        INFO("CONF: Relay %d status_led:  0x%02x", ii, conf->relay[ii].status_led);
-        INFO("CONF: Relay %d pad1[0]:     0x%02x", ii, conf->relay[ii].pad1[0]);
-        INFO("CONF: Relay %d pad1[1]:     0x%02x", ii, conf->relay[ii].pad1[1]);
-        INFO("CONF: Relay %d pad1[2]:     0x%02x", ii, conf->relay[ii].pad1[2]);
+        DETAIL("CONF: Relay %d location:    %s", ii, conf->relay[ii].loc);
+        DETAIL("CONF: Relay %d index:       %d", ii, conf->relay[ii].index);
+        DETAIL("CONF: Relay %d type:        %d", ii, conf->relay[ii].type);
+        DETAIL("CONF: Relay %d addr:        0x%02x", ii, conf->relay[ii].addr);
+        DETAIL("CONF: Relay %d num_relays:  0x%02x", ii, conf->relay[ii].num_relays);
+        DETAIL("CONF: Relay %d status_led:  0x%02x", ii, conf->relay[ii].status_led);
+        DETAIL("CONF: Relay %d pad1[0]:     0x%02x", ii, conf->relay[ii].pad1[0]);
+        DETAIL("CONF: Relay %d pad1[1]:     0x%02x", ii, conf->relay[ii].pad1[1]);
+        DETAIL("CONF: Relay %d pad1[2]:     0x%02x", ii, conf->relay[ii].pad1[2]);
         os_memset(&(conf->relay[ii]), 0, sizeof(otb_conf_relay));
         conf->relay[ii].index = ii;
         modified = TRUE;
@@ -399,36 +399,36 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
 
   DEBUG("CONF: otb_conf_log entry");
   
-  INFO("CONF: version:  %d", conf->version);
-  INFO("CONF: ssid:     %s", conf->ssid);
-  INFO("CONF: password: ********");
-  INFO("CONF: keep_ap_active: %d", conf->keep_ap_active);
-  INFO("CONF: MQTT server: %s", conf->mqtt.svr);
-  INFO("CONF: MQTT port:   %d", conf->mqtt.port);
-  INFO("CONF: MQTT user:   %s", conf->mqtt.user);
-  INFO("CONF: MQTT pass:   %s", conf->mqtt.pass);
-  INFO("CONF: location 1: %s", conf->loc.loc1);
-  INFO("CONF: location 2: %s", conf->loc.loc2);
-  INFO("CONF: location 3: %s", conf->loc.loc3);
-  INFO("CONF: DS18B20s:  %d", conf->ds18b20s);
+  DETAIL("CONF: version:  %d", conf->version);
+  DETAIL("CONF: ssid:     %s", conf->ssid);
+  DETAIL("CONF: password: ********");
+  DETAIL("CONF: keep_ap_active: %d", conf->keep_ap_active);
+  DETAIL("CONF: MQTT server: %s", conf->mqtt.svr);
+  DETAIL("CONF: MQTT port:   %d", conf->mqtt.port);
+  DETAIL("CONF: MQTT user:   %s", conf->mqtt.user);
+  DETAIL("CONF: MQTT pass:   %s", conf->mqtt.pass);
+  DETAIL("CONF: location 1: %s", conf->loc.loc1);
+  DETAIL("CONF: location 2: %s", conf->loc.loc2);
+  DETAIL("CONF: location 3: %s", conf->loc.loc3);
+  DETAIL("CONF: DS18B20s:  %d", conf->ds18b20s);
   for (ii = 0; ii < conf->ds18b20s; ii++)
   {
-    INFO("CONF: DS18B20 #%d address:  %s", ii, conf->ds18b20[ii].id);
-    INFO("CONF: DS18B20 #%d location: %s", ii, conf->ds18b20[ii].loc);
+    DETAIL("CONF: DS18B20 #%d address:  %s", ii, conf->ds18b20[ii].id);
+    DETAIL("CONF: DS18B20 #%d location: %s", ii, conf->ds18b20[ii].loc);
   }
-  INFO("CONF: Status LED behaviour: %d", conf->status_led);
-  INFO("CONF: ADSs:  %d", conf->adss);
+  DETAIL("CONF: Status LED behaviour: %d", conf->status_led);
+  DETAIL("CONF: ADSs:  %d", conf->adss);
   for (ii = 0; ii < conf->adss; ii++)
   {
-    INFO("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
-    INFO("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
-    INFO("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
-    INFO("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
-    INFO("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
-    INFO("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
-    INFO("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
-    INFO("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
-    INFO("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
+    DETAIL("CONF: ADS %d address:   0x%02x", ii, conf->ads[ii].addr);
+    DETAIL("CONF: ADS %d location:  %s", ii, conf->ads[ii].loc);
+    DETAIL("CONF: ADS %d mux:       0x%x", ii, conf->ads[ii].mux);
+    DETAIL("CONF: ADS %d gain:      0x%x", ii, conf->ads[ii].gain);
+    DETAIL("CONF: ADS %d rate:      0x%x", ii, conf->ads[ii].rate);
+    DETAIL("CONF: ADS %d cont:      0x%x", ii, conf->ads[ii].cont);
+    DETAIL("CONF: ADS %d rms:       0x%x", ii, conf->ads[ii].rms);
+    DETAIL("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
+    DETAIL("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
   }
   
   DEBUG("CONF: otb_conf_log exit");
@@ -493,7 +493,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf)
     rc = TRUE;
   }
 
-  INFO("CONF: Provided checksum: 0x%04x Calculated checksum: 0x%04x",
+  DETAIL("CONF: Provided checksum: 0x%04x Calculated checksum: 0x%04x",
        conf->checksum,
        calc_sum);
 
@@ -513,13 +513,13 @@ uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool
   if (os_strncmp(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN) ||
       os_strncmp(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN))
   {
-    INFO("CONF: New config: ssid, password");
+    DETAIL("CONF: New config: ssid, password");
     rc = OTB_CONF_RC_CHANGED;
     os_strncpy(conf->ssid, ssid, OTB_CONF_WIFI_SSID_MAX_LEN);
     os_strncpy(conf->password, password, OTB_CONF_WIFI_PASSWORD_MAX_LEN);
     if (commit)
     {
-      INFO("CONF: Committing new config: ssid, password");
+      DETAIL("CONF: Committing new config: ssid, password");
       update_rc = otb_conf_update(conf);
       if (!update_rc)
       {
@@ -543,7 +543,7 @@ bool ICACHE_FLASH_ATTR otb_conf_store_ap_enabled(bool enabled)
   
   if (conf->keep_ap_active != enabled)
   {
-    INFO("CONF: Updating config: keep_ap_active");
+    DETAIL("CONF: Updating config: keep_ap_active");
     conf->keep_ap_active = enabled;
     rc = otb_conf_update(conf);
     if (!rc)
@@ -782,7 +782,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
   
   if ((cmd1 == NULL) || (cmd2 == NULL))
   {
-    INFO("CONF: Invalid config command");
+    DETAIL("CONF: Invalid config command");
     otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
                          OTB_MQTT_STATUS_ERROR,
                          "Invalid command",
@@ -818,7 +818,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
         break;
 #endif        
       default:
-        INFO("CONF: Invalid config field");
+        DETAIL("CONF: Invalid config field");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
                              OTB_MQTT_CMD_SET,
                              OTB_MQTT_STATUS_ERROR,
@@ -946,7 +946,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
         break;
         
       default:
-        INFO("CONF: Invalid config field");
+        DETAIL("CONF: Invalid config field");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
                              OTB_MQTT_CMD_GET,
                              OTB_MQTT_STATUS_ERROR,
@@ -957,7 +957,7 @@ void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, ch
   }
   else
   {
-    INFO("CONF: Unknown config command");
+    DETAIL("CONF: Unknown config command");
     otb_mqtt_send_status(OTB_MQTT_SYSTEM_CONFIG,
                          OTB_MQTT_STATUS_ERROR,
                          "Invalid command",

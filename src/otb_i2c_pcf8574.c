@@ -29,7 +29,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_timerfunc(void)
   if (otb_i2c_pcf8574_led_on)
   {
     // Off
-    INFO("PCF8574: LED on - turn it off");
+    DETAIL("PCF8574: LED on - turn it off");
     rc = otb_i2c_pcf8574_led_conf(otb_i2c_pcf8574_test_addr, 0, FALSE);
     if (!rc)
     {
@@ -40,7 +40,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_timerfunc(void)
   else
   {
     // On
-    INFO("PCF8574: LED off - turn it on");
+    DETAIL("PCF8574: LED off - turn it on");
     rc = otb_i2c_pcf8574_led_conf(otb_i2c_pcf8574_test_addr, 0, TRUE);
     if (!rc)
     {
@@ -75,7 +75,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_init(void)
                      1000,
                      1);
                      
-  INFO("PCF8574: Initialized test");
+  DETAIL("PCF8574: Initialized test");
   
 EXIT_LABEL:
   

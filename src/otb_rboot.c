@@ -37,11 +37,11 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
   
   if (result)
   {
-    INFO("RBOOT: Update succeeded");
+    DETAIL("RBOOT: Update succeeded");
     rc = rboot_set_current_rom(otb_rboot_ota.rom_slot);
     if (rc)
     {
-      INFO("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
+      DETAIL("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
       // XXX Doesn't give system time to actually send the status
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
                            OTB_MQTT_STATUS_OK,
@@ -67,7 +67,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
                          OTB_MQTT_STATUS_ERROR,
                          "Update failed",
                          "");
-    INFO("RBOOT: Update failed");
+    DETAIL("RBOOT: Update failed");
     //otb_ads_initialize();
     goto EXIT_LABEL;
   }
@@ -189,7 +189,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path, unsign
     goto EXIT_LABEL;
   }
     
-  INFO("RBOOT: Update slot: %d from host: %d.%d.%d.%d port: %d path: /%s",
+  DETAIL("RBOOT: Update slot: %d from host: %d.%d.%d.%d port: %d path: /%s",
       update_slot,
       ota_ip[0], ota_ip[1], ota_ip[2], ota_ip[3],
       port_int,
@@ -226,7 +226,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg, unsigned char **response
   
   if (msg == NULL)
   {
-    INFO("RBOOT: No slot number");
+    DETAIL("RBOOT: No slot number");
     rc = FALSE;
     *response = "No slot number";
     goto EXIT_LABEL;
@@ -235,7 +235,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg, unsigned char **response
   slot = atoi(msg);
   if ((slot < 0) || (slot > 1))
   {
-    INFO("RBOOT: Invalid slot number");
+    DETAIL("RBOOT: Invalid slot number");
     rc = FALSE;
     *response = "Invalid slot number";
     goto EXIT_LABEL;

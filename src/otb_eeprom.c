@@ -39,7 +39,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 
   DEBUG("EEPROM: otb_eeprom_read entry");
 
-  INFO("EEPROM: Searching internal bus for EEPROMs");
+  DETAIL("EEPROM: Searching internal bus for EEPROMs");
 
   bus = &otb_i2c_bus_internal;
   fn_rc = otb_eeprom_init(otb_eeprom_main_board_addr, bus);
@@ -52,7 +52,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 
 #ifndef OTB_RBOOT_BOOTLOADER
 
-  INFO("EEPROM: Attempt to read main eeprom at address 0x%02x", otb_eeprom_main_board_addr);
+  DETAIL("EEPROM: Attempt to read main eeprom at address 0x%02x", otb_eeprom_main_board_addr);
   otb_eeprom_read_all(otb_eeprom_main_board_addr, bus);
   os_memset(otb_eeprom_main_module_info_g, 0, sizeof(otb_eeprom_main_module_info) * OTB_EEPROM_MAX_MODULES);
 
@@ -72,7 +72,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
 
       if (otb_eeprom_main_board_module_g[ii] != NULL)
       {
-        INFO("EEPROM: Look for module %d eeprom at address 0x%02x", ii, otb_eeprom_main_board_module_g[ii]->address);
+        DETAIL("EEPROM: Look for module %d eeprom at address 0x%02x", ii, otb_eeprom_main_board_module_g[ii]->address);
         
         eeprom_info_v = NULL;
         if (otb_eeprom_main_board_module_g[ii]->socket_type != OTB_EEPROM_MODULE_TYPE_RPI_HAT_ESPI)
@@ -84,7 +84,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_read(void)
             if (mod != NULL)
             {
               // No errors - so store this module info off
-              INFO("EEPROM: Found information for module %d", ii);
+              DETAIL("EEPROM: Found information for module %d", ii);
               otb_eeprom_main_module_info_g[ii].eeprom_info = eeprom_info_v;
               otb_eeprom_main_module_info_g[ii].module = mod;
               otb_eeprom_main_module_info_g[ii].main_board_mod = otb_eeprom_main_board_module_g[ii];
@@ -171,17 +171,17 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
     goto EXIT_LABEL;
   }
 
-  INFO("EEPROM: otb_eeprom_rpi_header:");
-  INFO("EEPROM:   hdr.signature: 0x%02x%02x%02x%02x", hdr->signature[0], hdr->signature[1], hdr->signature[2], hdr->signature[3]);
-  INFO("EEPROM:   hdr.version:   0x%02x", hdr->version);
-  INFO("EEPROM:   hdr.reserved:  0x%02x", hdr->reserved);
-  INFO("EEPROM:   hdr.numatoms:  0x%04x", hdr->numatoms);
-  INFO("EEPROM:   hdr.eeplen:    0x%08x", hdr->eeplen);
+  DETAIL("EEPROM: otb_eeprom_rpi_header:");
+  DETAIL("EEPROM:   hdr.signature: 0x%02x%02x%02x%02x", hdr->signature[0], hdr->signature[1], hdr->signature[2], hdr->signature[3]);
+  DETAIL("EEPROM:   hdr.version:   0x%02x", hdr->version);
+  DETAIL("EEPROM:   hdr.reserved:  0x%02x", hdr->reserved);
+  DETAIL("EEPROM:   hdr.numatoms:  0x%04x", hdr->numatoms);
+  DETAIL("EEPROM:   hdr.eeplen:    0x%08x", hdr->eeplen);
 
   signature = *(uint32_t*)(&hdr->signature);
   if (signature == OTB_EEPROM_RPI_EEPROM_SIGNATURE)
   {
-    INFO("EEPROM: Valid RPi Hat EEPROM found");
+    DETAIL("EEPROM: Valid RPi Hat EEPROM found");
     rc |= OTB_EEPROM_ERR_OK;
   }
   else
@@ -249,7 +249,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_init_modules()
   // - set up stored GPIO status
   if (!otb_eeprom_module_present())
   {
-    INFO("OTB: No modules present, initialise GPIOs and DS18B20");
+    DETAIL("OTB: No modules present, initialise GPIOs and DS18B20");
     otb_gpio_apply_boot_state();
     goto EXIT_LABEL;
   }
@@ -311,7 +311,7 @@ void ICACHE_FLASH_ATTR otb_eeprom_init_modules()
               case OTB_EEPROM_MODULE_TYPE_LL_V0_1:
               case OTB_EEPROM_MODULE_TYPE_NIXIE_V0_2:
               default:
-                INFO("EEPROM: No initialisation for module type: 0x%08x", otb_eeprom_main_module_info_g[ii].module->module_type);
+                DETAIL("EEPROM: No initialisation for module type: 0x%08x", otb_eeprom_main_module_info_g[ii].module->module_type);
                 break;
             }
           }
@@ -516,13 +516,13 @@ void ICACHE_FLASH_ATTR otb_eeprom_output_pin_info(uint32_t num_pins, otb_eeprom_
 
   for (ii = 0; ii < num_pins; ii++)
   {
-    INFO("EEPROM:   pin #%d:", ii);
-    INFO("EEPROM:     num:           %d", pin_info[ii].num);
-    INFO("EEPROM:     header_num:    %d", pin_info[ii].header_num);
-    INFO("EEPROM:     use:           %d", pin_info[ii].use);
-    INFO("EEPROM:     module:        0x%08x", pin_info[ii].module);
-    INFO("EEPROM:     further_info:  0x%08x", pin_info[ii].further_info);
-    INFO("EEPROM:     pulled:        %d", pin_info[ii].pulled);
+    DETAIL("EEPROM:   pin #%d:", ii);
+    DETAIL("EEPROM:     num:           %d", pin_info[ii].num);
+    DETAIL("EEPROM:     header_num:    %d", pin_info[ii].header_num);
+    DETAIL("EEPROM:     use:           %d", pin_info[ii].use);
+    DETAIL("EEPROM:     module:        0x%08x", pin_info[ii].module);
+    DETAIL("EEPROM:     further_info:  0x%08x", pin_info[ii].further_info);
+    DETAIL("EEPROM:     pulled:        %d", pin_info[ii].pulled);
   }
     
   DEBUG("EEPROM: otb_eeprom_output_pin_info exit");
@@ -576,7 +576,7 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       (fn_rc != (OTB_EEPROM_ERR | OTB_EEPROM_ERR_BUF_LEN_COMP)))
   {
     // Errors have already been logged
-    WARN("EEPROM: Reading main comp %s at 0x%x returned error 0x%x", struct_name, addr, fn_rc);
+    DETAIL("EEPROM: Reading main comp %s at 0x%x returned error 0x%x", struct_name, addr, fn_rc);
     goto EXIT_LABEL;
   }
 
@@ -633,9 +633,9 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
     case OTB_EEPROM_INFO_TYPE_INFO:
       ;
       otb_eeprom_info *eeprom_info = (otb_eeprom_info *)local_buf;
-      DEBUG("EEPROM:   eeprom_size:     0x%08x", eeprom_info->eeprom_size);
-      DEBUG("EEPROM:   comp_num:        %d", eeprom_info->comp_num);
-      DEBUG("EEPROM:   write_date:      0x%08x", eeprom_info->write_date);
+      DETAIL("EEPROM:   eeprom_size:     0x%08x", eeprom_info->eeprom_size);
+      DETAIL("EEPROM:   comp_num:        %d", eeprom_info->comp_num);
+      DETAIL("EEPROM:   write_date:      0x%08x", eeprom_info->write_date);
       break;
 
     case OTB_EEPROM_INFO_TYPE_MAIN_BOARD:
@@ -644,45 +644,45 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       // Guard against non NULL terminated serial!
       os_memcpy(serial, main_board->common.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
       serial[OTB_EEPROM_HW_SERIAL_LEN+1] = 0;
-      DEBUG("EEPROM:   common.serial:   %s", serial);
-      DEBUG("EEPROM:   common.code:     0x%08x", main_board->common.code);
-      DEBUG("EEPROM:   common.subcode:  0x%08x", main_board->common.subcode);
+      DETAIL("EEPROM:   common.serial:   %s", serial);
+      DETAIL("EEPROM:   common.code:     0x%08x", main_board->common.code);
+      DETAIL("EEPROM:   common.subcode:  0x%08x", main_board->common.subcode);
 #ifndef OTB_RBOOT_BOOTLOADER
       os_sprintf(otb_hw_info,
                 "%04x:%04x",
                 main_board->common.code,
                 main_board->common.subcode);
 #endif // OTB_RBOOT_BOOTLOADER
-      DEBUG("EEPROM:   chipid:          %02x%02x%02x", main_board->chipid[0], main_board->chipid[1], main_board->chipid[2]);
-      DEBUG("EEPROM:   mac1:            %02x%02x%02x%02x%02x%02x",
+      DETAIL("EEPROM:   chipid:          %02x%02x%02x", main_board->chipid[0], main_board->chipid[1], main_board->chipid[2]);
+      DETAIL("EEPROM:   mac1:            %02x%02x%02x%02x%02x%02x",
            main_board->mac1[0],
            main_board->mac1[1],
            main_board->mac1[2],
            main_board->mac1[3],
            main_board->mac1[4],
            main_board->mac1[5]);
-      DEBUG("EEPROM:   mac2:            %02x%02x%02x%02x%02x%02x",
+      DETAIL("EEPROM:   mac2:            %02x%02x%02x%02x%02x%02x",
            main_board->mac2[0],
            main_board->mac2[1],
            main_board->mac2[2],
            main_board->mac2[3],
            main_board->mac2[4],
            main_board->mac2[5]);
-      DEBUG("EEPROM:   esp_module:      %d", main_board->esp_module);
-      DEBUG("EEPROM:   flash_size:      0x%08x bytes", main_board->flash_size_bytes);
-      DEBUG("EEPROM:   i2c_adc:         %d", main_board->i2c_adc);
-      DEBUG("EEPROM:   internal_adc_type: %d", main_board->internal_adc_type);
-      DEBUG("EEPROM:   num_modules:     %d", main_board->num_modules);
+      DETAIL("EEPROM:   esp_module:      %d", main_board->esp_module);
+      DETAIL("EEPROM:   flash_size:      0x%08x bytes", main_board->flash_size_bytes);
+      DETAIL("EEPROM:   i2c_adc:         %d", main_board->i2c_adc);
+      DETAIL("EEPROM:   internal_adc_type: %d", main_board->internal_adc_type);
+      DETAIL("EEPROM:   num_modules:     %d", main_board->num_modules);
       break;
 
     case OTB_EEPROM_INFO_TYPE_MAIN_BOARD_MODULE:
       ;
       otb_eeprom_main_board_module *module = (otb_eeprom_main_board_module *)local_buf;
-      DEBUG("EEPROM:   num:             %d", module->num);
-      DEBUG("EEPROM:   socket_type:     %d", module->socket_type);
-      DEBUG("EEPROM:   num_headers:     %d", module->num_headers);
-      DEBUG("EEPROM:   num_pins:        %d", module->num_pins);
-      DEBUG("EEPROM:   address:         0x%02x", module->address);
+      DETAIL("EEPROM:   num:             %d", module->num);
+      DETAIL("EEPROM:   socket_type:     %d", module->socket_type);
+      DETAIL("EEPROM:   num_headers:     %d", module->num_headers);
+      DETAIL("EEPROM:   num_pins:        %d", module->num_pins);
+      DETAIL("EEPROM:   address:         0x%02x", module->address);
 #ifdef OTB_DEBUG      
       otb_eeprom_output_pin_info(module->num_pins, module->pin_info);
 #endif // OTB_DEBUG      
@@ -691,13 +691,13 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
     case OTB_EEPROM_INFO_TYPE_SDK_INIT_DATA:
       ;
       otb_eeprom_main_board_sdk_init_data *sdk_init_data = (otb_eeprom_main_board_sdk_init_data *)local_buf;
-      DEBUG("EEPROM:   data_len:        %d bytes", sdk_init_data->data_len);
+      DETAIL("EEPROM:   data_len:        %d bytes", sdk_init_data->data_len);
       break;
 
     case OTB_EEPROM_INFO_TYPE_GPIO_PINS:
       ;
       otb_eeprom_main_board_gpio_pins *gpio_pins = (otb_eeprom_main_board_gpio_pins *)local_buf;
-      DEBUG("EEPROM:   num_pins:        %d", gpio_pins->num_pins);
+      DETAIL("EEPROM:   num_pins:        %d", gpio_pins->num_pins);
 #ifdef OTB_DEBUG      
       otb_eeprom_output_pin_info(gpio_pins->num_pins, gpio_pins->pin_info);
 #endif // OTB_DEBUG      
@@ -709,12 +709,12 @@ void *ICACHE_FLASH_ATTR otb_eeprom_load_main_comp(uint8_t addr,
       // Guard against non NULL terminated serial!
       os_memcpy(serial, mod->common.serial, OTB_EEPROM_HW_SERIAL_LEN+1);
       serial[OTB_EEPROM_HW_SERIAL_LEN+1] = 0;
-      DEBUG("EEPROM:   common.serial:   %s", serial);
-      DEBUG("EEPROM:   common.code:     0x%08x", mod->common.code);
-      DEBUG("EEPROM:   common.subcode:  0x%08x", mod->common.subcode);
-      DEBUG("EEPROM:   module_type:     0x%08x", mod->module_type);
-      DEBUG("EEPROM:   socket_type:     0x%08x", mod->socket_type);
-      DEBUG("EEPROM:   jack_used:       0x%08x", mod->jack_used);
+      DETAIL("EEPROM:   common.serial:   %s", serial);
+      DETAIL("EEPROM:   common.code:     0x%08x", mod->common.code);
+      DETAIL("EEPROM:   common.subcode:  0x%08x", mod->common.subcode);
+      DETAIL("EEPROM:   module_type:     0x%08x", mod->module_type);
+      DETAIL("EEPROM:   socket_type:     0x%08x", mod->socket_type);
+      DETAIL("EEPROM:   jack_used:       0x%08x", mod->jack_used);
       break;
 
     default:
@@ -944,7 +944,7 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_read_main_comp(uint8_t addr,
     // Couldn't find any record of this structure on the eeprom - exit
     // Note this may be expected - if we are reading multiple instances
     // we'll hit this after we've read the last
-    WARN("EEPROM: %s not found on eeprom", struct_type);
+    DETAIL("EEPROM: %s not found on eeprom", struct_type);
     rc |= OTB_EEPROM_ERR_NOT_FOUND;
     goto EXIT_LABEL;
   }

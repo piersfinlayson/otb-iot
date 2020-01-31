@@ -100,9 +100,12 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   otb_serial_conf.mezz_info->mezz_inited = TRUE;
   otb_serial_conf.mezz_info->use_mezz = TRUE;  // default to using this mezzanine
 
-  INFO("SERIAL: Initialized mezz serial board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
+  INFO("OTB: Initialized serial board");
+  DETAIL("SERIAL: Initialized mezz serial board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
 EXIT_LABEL:
+
+  INFO("OTB: Boot sequence completed");
 
   if (!otb_serial_conf.mezz_info->mezz_inited && (otb_serial_conf.mezz_info != NULL))
   {
@@ -323,7 +326,7 @@ bool ICACHE_FLASH_ATTR otb_serial_enable_mezz()
 
   rc = TRUE;
 
-  INFO("SERIAL: Enabled serial mezz board 0x%02x at %d baud uart %d",
+  DETAIL("SERIAL: Enabled serial mezz board 0x%02x at %d baud uart %d",
        otb_serial_conf.mezz_info->i2c_addr,
        otb_serial_conf.baudrate,
        otb_serial_conf.mezz_info->uart_num);
@@ -366,7 +369,7 @@ bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
 
 EXIT_LABEL:
 
-  INFO("SERIAL: Disabled serial mezz board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
+  DETAIL("SERIAL: Disabled serial mezz board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
   DEBUG("SERIAL: otb_serial_disable_mezz exit");
 

@@ -15,7 +15,9 @@ Type   Reason
 ===== ==============================
 Boot   Messages from the bootloader
 
-Debug  Disabled by default, provides very verbose logging
+Debug  Compiled out and  by default, provides very verbose logging
+
+Debug  Disabled by default, provides verbose logging
 
 Info   An interesting event has occurred
 
@@ -51,3 +53,8 @@ Debug Logs
 
 As noted earlier, these should be used sparingly, as the binary will be very large with debugging turned on, and this will also slow the software down significantly.  The author recommends that debugging logs are only used temporarily and when absolutely necessary.
 
+Changing Log Level
+------------------
+To change the log level hold down a number key as the device boots - - corresponds to DEBUG logs, 1 to DETAIL, 2 to INFO, 3 to WARN and 4 to ERROR.  The device outputs a log like the following indicating which level has been selected (the default is INFO):
+
+  OTB: Log level selected: INFO

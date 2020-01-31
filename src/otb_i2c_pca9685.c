@@ -257,7 +257,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init2()
   brzo_rc = brzo_i2c_end_transaction_info(&otb_i2c_pca9685_brzo_i2c_info);
   if (brzo_rc)
   {
-    INFO("PCA9685: Failed to set PCA9685 mode: %d", brzo_rc);
+    WARN("PCA9685: Failed to set PCA9685 mode: %d", brzo_rc);
     goto EXIT_LABEL;
   }
 
@@ -301,7 +301,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set2()
     brzo_rc = brzo_i2c_end_transaction_info(&otb_i2c_pca9685_brzo_i2c_info);
     if (brzo_rc)
     {
-      INFO("PCA9685: Failed to set pin: %d, rc: %d", ii, brzo_rc);
+      DETAIL("PCA9685: Failed to set pin: %d, rc: %d", ii, brzo_rc);
       rc = FALSE;
       goto EXIT_LABEL;
     }
@@ -328,7 +328,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
   if (otb_i2c_pca9685_led_on)
   {
     // Off
-    INFO("PCA9685: LED on - turn it off");
+    DETAIL("PCA9685: LED on - turn it off");
     rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, 0, OTB_I2C_PCA9685_IO_FULL_OFF);
     if (!rc)
     {
@@ -339,7 +339,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
   else
   {
     // On
-    INFO("PCA9685: LED off - turn it on");
+    DETAIL("PCA9685: LED off - turn it on");
     rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, OTB_I2C_PCA9685_IO_FULL_ON, 0);
     if (!rc)
     {
@@ -374,7 +374,7 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_init(void)
                      1000,
                      1);
                      
-  INFO("PCA9685: Initialized test");
+  DETAIL("PCA9685: Initialized test");
   
 EXIT_LABEL:
   
@@ -433,7 +433,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   rc = brzo_i2c_end_transaction(); 
   if (rc)
   {
-    INFO("Failed %d", rc);
+    DETAIL("Failed %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -464,7 +464,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
     goto EXIT_LABEL;
   }
   mode = read_mode[0] & (read_mode[1] << 8);
-  INFO("PCA9685: Read mode 0x%04x", mode);
+  DETAIL("PCA9685: Read mode 0x%04x", mode);
   
 #if 0  
   // Set prescale (to default for now)
@@ -504,7 +504,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   rc = brzo_i2c_end_transaction();
   if (rc)
   {
-    INFO("sqrst failed: %d", rc);
+    DETAIL("sqrst failed: %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -516,7 +516,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   rc = brzo_i2c_end_transaction();
   if (rc)
   {
-    INFO("Failed: %d", rc);
+    DETAIL("Failed: %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }

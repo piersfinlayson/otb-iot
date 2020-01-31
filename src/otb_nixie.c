@@ -320,7 +320,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_init(unsigned char *next_cmd, void *arg, unsign
 
   DEBUG("NIXIE: otb_nixie_init entry");
 
-  INFO("NIXIE: init");
+  DETAIL("NIXIE: init");
 
   // Set pins to 1 (and using NOT gate - so is 0)
   otb_gpio_set(srck_pin, 1, FALSE);
@@ -340,7 +340,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_clear(unsigned char *next_cmd, void *arg, unsig
 
   DEBUG("NIXIE: otb_nixie_clear entry");
 
-  INFO("NIXIE: clear");
+  DETAIL("NIXIE: clear");
 
   otb_nixie_info.target.digits[0] = '_';
   otb_nixie_info.target.digits[1] = '_';
@@ -365,13 +365,13 @@ bool ICACHE_FLASH_ATTR otb_nixie_show(unsigned char *next_cmd, void *arg, unsign
   
   if (next_cmd == NULL)
   {
-    INFO("NIXIE: show");
+    DETAIL("NIXIE: show");
     otb_cmd_rsp_append("no value");
     rc = FALSE;
     goto EXIT_LABEL;
   }
 
-  INFO("NIXIE: show %s", next_cmd);
+  DETAIL("NIXIE: show %s", next_cmd);
 
   commit = otb_nixie_info.depoisoning ? FALSE : TRUE;
   rc = otb_nixie_show_value(next_cmd, os_strnlen(next_cmd, 5), commit);
@@ -395,7 +395,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_cycle(unsigned char *next_cmd, void *arg, unsig
 
   DEBUG("NIXIE: otb_nixie_cycle entry");
 
-  INFO("NIXIE: cycle");
+  DETAIL("NIXIE: cycle");
 
   if (otb_nixie_info.depoisoning)
   {
@@ -452,7 +452,7 @@ bool ICACHE_FLASH_ATTR otb_nixie_power(unsigned char *next_cmd, void *arg, unsig
 
   DEBUG("NIXIE: otb_nixie_power entry");
 
-  INFO("NIXIE: power %s", on ? "on" : "off");
+  DETAIL("NIXIE: power %s", on ? "on" : "off");
 
   if (on)
   {
