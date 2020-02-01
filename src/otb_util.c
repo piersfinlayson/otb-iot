@@ -1428,6 +1428,28 @@ EXIT_LABEL:
   return;
 }
 
+void ICACHE_FLASH_ATTR otb_util_disable_logging(void)
+{
+  // DEBUG("UTIL: otb_util_disable_logging entry");
+
+  otb_util_log_level_stored = otb_util_log_level;
+
+  // DEBUG("UTIL: otb_util_disable_logging exit");
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_util_enable_logging(void)
+{
+  // DEBUG("UTIL: otb_util_enable_logging entry");
+
+  otb_util_log_level = otb_util_log_level_stored;
+
+  // DEBUG("UTIL: otb_util_enable_logging exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
 {
   // DEBUG("UTIL: otb_util_log_error_via_mqtt entry");

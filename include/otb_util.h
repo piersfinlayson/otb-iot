@@ -103,6 +103,8 @@ extern void otb_util_log(uint8_t error,
                          uint16_t max_log_string_len,
                          const char *format,
                          ...);
+void otb_util_disable_logging(void);
+void otb_util_enable_logging(void);
 extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
 extern void otb_init_mqtt(void *arg);
@@ -144,6 +146,7 @@ extern uint8_t otb_util_log_level;
 #ifdef OTB_UTIL_C
 
 uint8_t otb_util_log_level;
+uint8_t otb_util_log_level_stored;
 os_timer_t otb_util_reset_timer;
 unsigned char otb_util_factory_reset_reason[] = "Factory reset completed";
 

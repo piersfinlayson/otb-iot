@@ -45,12 +45,13 @@
 #define OTB_UTIL_LOG_FLASH_BUFFER_LEN 128
 extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
-#define OTB_LOG_LEVEL_DEBUG  0
-#define OTB_LOG_LEVEL_DETAIL 1
-#define OTB_LOG_LEVEL_INFO   2
-#define OTB_LOG_LEVEL_WARN   3
-#define OTB_LOG_LEVEL_ERROR  4
-#define OTB_LOG_LEVEL_DEFAULT OTB_LOG_LEVEL_INFO
+#define OTB_LOG_LEVEL_DEBUG    0
+#define OTB_LOG_LEVEL_DETAIL   1
+#define OTB_LOG_LEVEL_INFO     2
+#define OTB_LOG_LEVEL_WARN     3
+#define OTB_LOG_LEVEL_ERROR    4
+#define OTB_LOG_LEVEL_DISABLE  255
+#define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_INFO
 
 // Used when you want to log a variable format rather than a fixed one which can be 
 // allocated and compile time and stored on flash (in which case use LOG).
