@@ -151,15 +151,28 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
   uint32_t rc = OTB_EEPROM_ERR;
   uint32_t signature;
   uint32_t read_len;
+  uint32_t read_pos;
+  int32_t remain_len;
+  int ii, jj, kk;
+  otb_eeprom_rpi_atom atom;
+  uint8_t data[256];
+  uint8_t uuid[(16*2)+4+1]; // 16 bytes (=32 chars), 4 -s, 1 NULL
+  uint16_t pid;
+  uint16_t pver;
+  uint8_t pslen;
+  uint8_t vstr[128];
+  uint8_t vslen;
+  uint8_t pstr[128];
 
   DEBUG("EEPROM: otb_eeprom_load_rpi_eeprom entry");
 
   OTB_ASSERT(type == OTB_EEPROM_INFO_RPI_TYPE_HEADER);
+  read_pos = 0;
   read_len = sizeof(otb_eeprom_rpi_header);
   OTB_ASSERT(read_len < OTB_EEPROM_MAX_MAIN_COMP_LENGTH);
 
   fn_rc = otb_i2c_24xx128_read_data(addr,
-                                    0,
+                                    read_pos,
                                     read_len,
                                     (uint8_t *)hdr,
                                     i2c_info);
@@ -182,13 +195,165 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
   if (signature == OTB_EEPROM_RPI_EEPROM_SIGNATURE)
   {
     DETAIL("EEPROM: Valid RPi Hat EEPROM found");
-    rc |= OTB_EEPROM_ERR_OK;
   }
   else
   {
     WARN("EEPROM: Invalid RPi Hat EEPROM signature found - should be 0x%08x was 0x%08x", OTB_EEPROM_RPI_EEPROM_SIGNATURE, signature);
     rc |= OTB_EEPROM_ERR_MAGIC;
+    goto EXIT_LABEL;
   }
+
+  remain_len = hdr->eeplen;
+  if (remain_len < 0)
+  {
+    WARN("EEPROM: Eeprom data length too long 0x%08x", hdr->eeplen);
+    rc |= OTB_EEPROM_ERR_LENGTH;
+    goto EXIT_LABEL;
+  }
+
+  // Move to the end of the header
+  read_pos += read_len;
+  remain_len -= read_len;
+
+  // Read in the atoms
+  for (ii = 0; ii < hdr->numatoms; ii++)
+  {
+    read_len = sizeof(otb_eeprom_rpi_atom);
+    DEBUG("EEPROM: Read atom header size %d", read_len);
+    if (read_len > remain_len)
+    {
+      WARN("EEPROM: Not enough data on eeprom %d to read next atom %d", remain_len, read_len);
+      rc |= OTB_EEPROM_ERR_LENGTH;
+      goto EXIT_LABEL;
+    }
+
+    fn_rc = otb_i2c_24xx128_read_data(addr,
+                                      read_pos,
+                                      read_len,
+                                      (uint8_t *)&atom,
+                                      i2c_info);
+    if (!fn_rc)
+    {
+      // Error reading or reading to I2C bus
+      WARN("EEPROM: Failed to read data from I2C bus otb_eeprom_rpi_header");
+      rc |= OTB_EEPROM_ERR_I2C;
+      goto EXIT_LABEL;
+    }
+
+    // Move to the end of the atom structure (but not any data)
+    read_pos += read_len;
+    remain_len -= read_len;
+
+    DETAIL("EEPROM: otb_eeprom_rpi_atom %d:", ii);
+    DETAIL("EEPROM:   atom.type:     0x%04x", atom.type);
+    DETAIL("EEPROM:   atom.count:    0x%04x", atom.count);
+    DETAIL("EEPROM:   atom.dlen:     0x%08x", atom.dlen);
+
+    read_len = atom.dlen;
+    if (read_len > 256)
+    {
+      WARN("EEPROM: Too much atom data %d to read %d", read_len, 256);
+      rc |= OTB_EEPROM_ERR_LENGTH;
+      goto EXIT_LABEL;
+    }
+    fn_rc = otb_i2c_24xx128_read_data(addr,
+                                      read_pos,
+                                      read_len,
+                                      data,
+                                      i2c_info);
+    if (!fn_rc)
+    {
+      // Error reading or reading to I2C bus
+      WARN("EEPROM: Failed to read data from I2C bus otb_eeprom_rpi_header");
+      rc |= OTB_EEPROM_ERR_I2C;
+      goto EXIT_LABEL;
+    }
+
+    if (atom.type == OTB_EEPROM_RPI_ATOM_TYPE_VENDOR_INFO)
+    {
+      DEBUG("EEPROM: Reading RPi vendor info");
+      // 22 comes from uuid, pid, pver, vslen, pslen
+      if (read_len < 22)
+      {
+        WARN("EEPROM: Atom data %d not long enough %d", read_len, 22);
+        rc |= OTB_EEPROM_ERR_LENGTH;
+        goto EXIT_LABEL;
+      }
+ 
+      // Build UUID string
+      for (jj = 0, kk = 0; jj < 16; jj++)
+      {
+        os_sprintf(uuid+kk, "%02x", data[jj]);
+        kk += 2;
+        if ((jj == 3) || (jj == 5) || (jj == 7) || (jj == 9))
+        {
+          os_sprintf(uuid+kk, "-");
+          kk++;
+        }
+        OTB_ASSERT(kk < (16*2)+4+1);
+      }
+      uuid[jj*2] = 0; // NULL terminate
+      DETAIL("EEPROM: RPi Hat UUID: %s", uuid);
+
+      // get pid and pver
+      pid = (data[17] << 8) | data[16];
+      pver = (data[19] << 8) | data[18];
+      DETAIL("EEPROM: RPi Hat product ID: 0x%04x", pid);
+      DETAIL("EEPROM: RPi Hat product version: 0x%04x", pver);
+
+      // Get vendor and product strings
+      vslen = data[20];
+      pslen = data[21];
+      if ((vslen > 127) || (pslen > 128))
+      {
+        WARN("EEPROM: Product or version string length too long %d", 128);
+        rc |= OTB_EEPROM_ERR_LENGTH;
+        goto EXIT_LABEL;
+      }
+      if ((vslen + pslen) > (read_len - 22))
+      {
+        WARN("EEPROM: Not enough space in atom %d for vendor and product strings %d", read_len-22, vslen+pslen);
+        rc |= OTB_EEPROM_ERR_LENGTH;
+        goto EXIT_LABEL;
+      }
+      os_memset(vstr, 0, 128);
+      os_memset(pstr, 0, 128);
+      os_memcpy(vstr, data+22, vslen);
+      os_memcpy(pstr, data+22+vslen, pslen);
+      DETAIL("EEPROM: RPi Hat Vendor: %s", vstr);
+      DETAIL("EEPROM: RPi Hat Product: %s", pstr);
+
+      if (!os_memcmp(vstr,
+                     OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
+                     os_strlen(OTB_EEPROM_RPI_HAT_VENDOR_PACKOM)))
+      {
+        DEBUG("EEPROM: Found %s Hat", vstr);
+        if (!os_memcmp(pstr,
+                       OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER,
+                       os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)))
+        {
+          DETAIL("EEPROM: M-Bus Master Hat is installed");
+          otb_mbus_hat_installed = TRUE;
+          INFO("OTB: RPi Hat: %s %s",
+               OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
+               OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)
+        }
+        if (!os_memcmp(pstr,
+                       OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG,
+                       os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG)))
+        {
+          INFO("OTB: RPi Hat: %s %s",
+               OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
+               OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)
+        }
+      }
+    }
+
+    // Skip to the end of the atom
+    read_pos += atom.dlen;
+    remain_len -= atom.dlen;
+  }
+
 
 EXIT_LABEL:
 

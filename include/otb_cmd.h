@@ -425,6 +425,14 @@ typedef struct otb_cmd_control
 //   sensor
 //     temp
 //       ds18b20
+//   mbus
+//     init    // Enables the M-Bus Hat, disables logging
+//     enable  // Powers on the M-Bus
+//     disable // Powers off the M-Bus
+//     deinit  // Disables the M-Bus Hat, re-enables logging
+//     send    // not implemented
+//       XXXXXXXX
+//     recv    // not implemented
 //  
 
 // Some macros to simplify command structure definition
@@ -493,6 +501,7 @@ extern OTB_CMD_CONTROL(otb_cmd_control_trigger_neo)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_config_wifi)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_config_mqtt)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[];
@@ -970,6 +979,7 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger)[] =
   {"sf",                NULL, NULL,     otb_led_trigger_sf,      NULL},
   {"neo",               NULL, otb_cmd_control_trigger_neo,     OTB_CMD_NO_FN},
   {"sensor",            NULL, otb_cmd_control_trigger_sensor,  OTB_CMD_NO_FN},
+  {"mbus",              NULL, otb_cmd_control_trigger_mbus,  OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -1094,6 +1104,18 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp)[] =
 OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[] =
 {
   {"refresh",          NULL, NULL, otb_ds18b20_trigger_device_refresh,   NULL},
+  {OTB_CMD_FINISH}    
+};
+
+// trigger->mbus commands
+OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[] =
+{
+  {"init",          NULL, NULL, otb_mbus_hat_init,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {"enable",        NULL, NULL, otb_mbus_hat_enable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {"on",            NULL, NULL, otb_mbus_hat_enable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {"disable",       NULL, NULL, otb_mbus_hat_disable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {"off",           NULL, NULL, otb_mbus_hat_disable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
+  {"deinit",        NULL, NULL, otb_mbus_hat_deinit,   (void *)OTB_CMD_LED_NEO_MESSAGE},
   {OTB_CMD_FINISH}    
 };
 

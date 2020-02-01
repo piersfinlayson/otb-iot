@@ -54,6 +54,10 @@
 
 #define OTB_EEPROM_MAX_MODULES    4
 
+#define OTB_EEPROM_RPI_HAT_VENDOR_PACKOM "packom.net"
+#define OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER "M-Bus Master"
+#define OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG "ESPi Programmer"
+
 /*
  * The structure of an otbiot eeprom is as follows:
  *
@@ -593,7 +597,7 @@ Note that the UUID is mandatory and must be filled in correctly according to RFC
   Y       pstr        ASCII product string e.g. "Special Sensor Board"
 
 */
-  typedef struct otb_eeprom_rpi_atom_vendor_info
+typedef struct otb_eeprom_rpi_atom_vendor_info
 {
   uint8 uuid[16];
   uint16 pid;

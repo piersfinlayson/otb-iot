@@ -1,7 +1,7 @@
 #
-# OTB-IOT - Out of The Box Internet Of Things
+# IOT - Out of The Box Internet Of Things
 #
-# Copyright (C) 2016-8 Piers Finlayson
+# Copyright (C) 2016-2020 Piers Finlayson
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -183,6 +183,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_serial.o \
              $(OTB_OBJ_DIR)/otb_nixie.o \
              $(OTB_OBJ_DIR)/otb_intr.o \
+             $(OTB_OBJ_DIR)/otb_mbus.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
