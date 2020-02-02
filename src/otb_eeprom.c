@@ -322,20 +322,18 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
                      OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
                      os_strlen(OTB_EEPROM_RPI_HAT_VENDOR_PACKOM)))
       {
-        DEBUG("EEPROM: Found %s Hat", vstr);
         INFO("OTB: RPi Hat found: %s %s", vstr, pstr) ;
         if (!os_memcmp(pstr,
                        OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER,
                        os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)))
         {
-          DETAIL("EEPROM: M-Bus Master Hat is installed");
-          otb_mbus_hat_installed = TRUE;
+          otb_mbus_hat_init();
         }
         if (!os_memcmp(pstr,
                        OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG,
                        os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG)))
         {
-          // XXX
+          // XXX Initialize ESPi Programmer (no-op)
         }
       }
 

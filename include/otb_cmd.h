@@ -437,6 +437,7 @@ typedef struct otb_cmd_control
 //     send    // not implemented
 //       XXXXXXXX
 //     recv    // not implemented
+//     scan    // not fully implemented
 //  
 
 // Some macros to simplify command structure definition
@@ -714,7 +715,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get_info)[] =
 // get->info->reason commands
 OTB_CMD_CONTROL(otb_cmd_control_get_reason)[] =
 {
-  {"reason",            NULL, NULL,     otb_cmd_get_reason_reboot, NULL},
+  {"reboot",            NULL, NULL,     otb_cmd_get_reason_reboot, NULL},
   {OTB_CMD_FINISH}    
 };
 
@@ -1129,6 +1130,7 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[] =
 {
   {"on",            NULL, NULL, otb_mbus_hat_enable,   NULL},
   {"off",           NULL, NULL, otb_mbus_hat_disable,  NULL},
+  {"scan",          NULL, NULL, otb_mbus_scan,         NULL},
 };
 
 void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()

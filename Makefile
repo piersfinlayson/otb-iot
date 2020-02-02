@@ -47,7 +47,7 @@ SERIAL_CMD = python2.7 /usr/lib/python2.7/dist-packages/serial/tools/miniterm.py
 SERIAL = $(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
-CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
+CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -I$(SDK_BASE)/ESP8266_NONOS_SDK-3.0/driver_lib/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=4 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
@@ -188,7 +188,7 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
              $(OTB_OBJ_DIR)/strcasecmp.o \
-             $(OTB_OBJ_DIR)/pin_map.o 
+             $(OTB_OBJ_DIR)/pin_map.o
 otbDep = $(otbObjects:%.o=%.d)
 
 softuartObjects = $(SOFTUART_OBJ_DIR)/softuart.o 
