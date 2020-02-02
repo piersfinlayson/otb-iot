@@ -293,13 +293,10 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
         OTB_ASSERT(kk < (16*2)+4+1);
       }
       uuid[jj*2] = 0; // NULL terminate
-      DETAIL("EEPROM: RPi Hat UUID: %s", uuid);
 
       // get pid and pver
       pid = (data[17] << 8) | data[16];
       pver = (data[19] << 8) | data[18];
-      DETAIL("EEPROM: RPi Hat product ID: 0x%04x", pid);
-      DETAIL("EEPROM: RPi Hat product version: 0x%04x", pver);
 
       // Get vendor and product strings
       vslen = data[20];
@@ -320,33 +317,28 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
       os_memset(pstr, 0, 128);
       os_memcpy(vstr, data+22, vslen);
       os_memcpy(pstr, data+22+vslen, pslen);
-      DETAIL("EEPROM: RPi Hat Vendor: %s", vstr);
-      DETAIL("EEPROM: RPi Hat Product: %s", pstr);
 
       if (!os_memcmp(vstr,
                      OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
                      os_strlen(OTB_EEPROM_RPI_HAT_VENDOR_PACKOM)))
       {
         DEBUG("EEPROM: Found %s Hat", vstr);
+        INFO("OTB: RPi Hat found: %s %s", vstr, pstr) ;
         if (!os_memcmp(pstr,
                        OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER,
                        os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)))
         {
           DETAIL("EEPROM: M-Bus Master Hat is installed");
           otb_mbus_hat_installed = TRUE;
-          INFO("OTB: RPi Hat: %s %s",
-               OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
-               OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)
         }
         if (!os_memcmp(pstr,
                        OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG,
                        os_strlen(OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG)))
         {
-          INFO("OTB: RPi Hat: %s %s",
-               OTB_EEPROM_RPI_HAT_VENDOR_PACKOM,
-               OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER)
+          // XXX
         }
       }
+
     }
 
     // Skip to the end of the atom
@@ -354,10 +346,121 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
     remain_len -= atom.dlen;
   }
 
+  rc = otb_eeprom_rpi_hat_store_info(uuid, pid, pver, vstr, pstr);
+  if (!rc)
+  {
+    WARN("EEPROM: Failed to store RPi Hat info");
+    goto EXIT_LABEL;
+  }
+  otb_eeprom_rpi_hat_log_info();
 
 EXIT_LABEL:
 
   DEBUG("EEPROM: otb_eeprom_load_rpi_eeprom exit");
+
+  return rc;
+}
+
+void ICACHE_FLASH_ATTR otb_eeprom_rpi_hat_log_info(void)
+{
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_log_info entry");
+
+  if (otb_eeprom_rpi_hat_info_g != NULL)
+  {
+    DETAIL("EEPROM: RPi Hat Info");
+    DETAIL("EEPROM:   UUID:           %s",
+           otb_eeprom_rpi_hat_info_g->uuid);
+    DETAIL("EEPROM:   Product ID:     0x%04x",
+           otb_eeprom_rpi_hat_info_g->pid);
+    DETAIL("EEPROM:   Product Ver:    0x%04x",
+           otb_eeprom_rpi_hat_info_g->pver);
+    DETAIL("EEPROM:   Vendor String:  %s",
+           otb_eeprom_rpi_hat_info_g->vstr);
+    DETAIL("EEPROM:   Product String: %s",
+           otb_eeprom_rpi_hat_info_g->pstr);
+  }
+
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_log_info exit");
+
+  return;
+}
+
+bool ICACHE_FLASH_ATTR otb_eeprom_rpi_hat_store_info(unsigned char *uuid, uint16_t pid, uint16_t pver, unsigned char *vstr, unsigned char *pstr)
+{
+  bool rc = FALSE;
+  int max_len = 256;
+  int alloc_len;
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_store_info entry");
+
+  alloc_len = sizeof(otb_eeprom_rpi_hat_info);
+  otb_eeprom_rpi_hat_info_g = (otb_eeprom_rpi_hat_info *)os_malloc(alloc_len);
+  if (otb_eeprom_rpi_hat_info_g == NULL)
+  {
+    WARN("EEEPROM: alloc failed %d", alloc_len);
+    goto EXIT_LABEL;
+  }
+
+  otb_eeprom_rpi_hat_info_g->pid = pid;
+  otb_eeprom_rpi_hat_info_g->pver = pver;
+
+  rc = otb_eeprom_alloc_and_copy_str(&(otb_eeprom_rpi_hat_info_g->uuid), uuid, max_len);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+  DEBUG("EEPROM: UUID location 0x%08x", otb_eeprom_rpi_hat_info_g->uuid);
+
+  rc = otb_eeprom_alloc_and_copy_str(&(otb_eeprom_rpi_hat_info_g->pstr), pstr, max_len);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+
+  rc = otb_eeprom_alloc_and_copy_str(&(otb_eeprom_rpi_hat_info_g->vstr), vstr, max_len);
+  if (!rc)
+  {
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_store_info exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_eeprom_alloc_and_copy_str(unsigned char **dest, unsigned char *src, int max_len)
+{
+  int alloc_len;
+  bool rc = FALSE;
+
+  DEBUG("EEPROM: otb_eeprom_alloc_and_copy_str entry");
+
+  alloc_len = os_strnlen(src, max_len);
+  alloc_len++;
+  DEBUG("EEPROM: Storing %s len %d", src, alloc_len);
+  if (alloc_len > max_len)
+  {
+    WARN("EEPROM: String too long %d to store %d", alloc_len, max_len);
+    goto EXIT_LABEL;
+  }
+  *dest = (unsigned char*)os_malloc(alloc_len);
+  if (*dest == NULL)
+  {
+    WARN("EEEPROM: alloc failed %d", alloc_len);
+    goto EXIT_LABEL;
+  }
+  DEBUG("EEPROM: Copying to 0x%08x", *dest)
+  os_memcpy(*dest, src, alloc_len);
+  (*dest)[alloc_len - 1] = 0;
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_alloc_and_copy_str exit");
 
   return rc;
 }

@@ -641,6 +641,17 @@ typedef struct otb_eeprom_rpi_atom_gpio_map
   uint8 gpio[28];
 } otb_eeprom_rpi_atom_gpio_map;
 
+// Internal structure for storing hat info
+typedef struct otb_eeprom_rpi_hat_info
+{
+  unsigned char *uuid;
+  uint16 pid;
+  uint16 pver;
+  unsigned char *vstr;
+  unsigned char *pstr;
+} otb_eeprom_rpi_hat_info;
+
+
 // Global pointers to eeprom structures (and info_comps)
 // NULL if not yet read from eeprom, or couldn't be read from eeprom.
 #ifndef OTB_EEPROM_C
@@ -651,6 +662,7 @@ extern otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_M
 extern otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
 extern otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
 extern otb_eeprom_main_module_info otb_eeprom_main_module_info_g[OTB_EEPROM_MAX_MODULES];
+extern otb_eeprom_rpi_hat_info *otb_eeprom_rpi_hat_info_g;
 #else // OTB_EEPROM_C
 
 otb_eeprom_info *otb_eeprom_info_g;
@@ -661,6 +673,7 @@ otb_eeprom_main_board_module *otb_eeprom_main_board_module_g[OTB_EEPROM_MAX_MODU
 otb_eeprom_main_board_gpio_pins *otb_eeprom_main_board_gpio_pins_g;
 otb_eeprom_main_board_sdk_init_data *otb_eeprom_main_board_sdk_init_data_g;
 otb_eeprom_main_module_info otb_eeprom_main_module_info_g[OTB_EEPROM_MAX_MODULES];
+otb_eeprom_rpi_hat_info *otb_eeprom_rpi_hat_info_g;
 #endif // OTB_EEPROM_C
 
 #ifndef OTB_EEPROM_C
@@ -755,6 +768,9 @@ uint32_t otb_eeprom_load_rpi_eeprom(uint8_t addr,
                                     otb_eeprom_info *eeprom_info,
                                     uint32_t type,
                                     otb_eeprom_rpi_header *hdr);
+void otb_eeprom_rpi_hat_log_info(void);
+bool otb_eeprom_rpi_hat_store_info(unsigned char *uuid, uint16_t pid, uint16_t pver, unsigned char *vstr, unsigned char *pstr);
+bool otb_eeprom_alloc_and_copy_str(unsigned char **dest, unsigned char *src, int max_len);
 bool otb_eeprom_module_present();
 void otb_eeprom_init_modules();
 char otb_eeprom_init(uint8_t addr, brzo_i2c_info *i2c_info);
