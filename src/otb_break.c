@@ -735,11 +735,11 @@ bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
 // Called from within interrupts
 void otb_break_process_char(void)
 {
-  otb_util_timer_set((os_timer_t*)&otb_break_process_char_timer, 
-                    (os_timer_func_t *)otb_break_process_char_timerfunc,
-                    NULL,
-                    0,
-                    0);
+  os_timer_disarm(&otb_break_process_char_timer);
+  os_timer_setfn(&otb_break_process_char_timer,
+                 otb_break_process_char_timerfunc,
+                 NULL);
+  os_timer_arm(&otb_break_process_char_timer, 0, 0);
 
   return;
 }
