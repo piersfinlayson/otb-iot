@@ -1364,6 +1364,7 @@ char ICACHE_FLASH_ATTR otb_eeprom_check_checksum(char *data, int size, int check
   return rc;
 }
 
+#ifndef OTB_RBOOT_BOOTLOADER
 bool ICACHE_FLASH_ATTR otb_eeprom_rpi_hat_get(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
@@ -1413,3 +1414,4 @@ EXIT_LABEL:
   return rc;
 
 }
+#endif // OTB_RBOOT_BOOTLOADER
