@@ -49,6 +49,7 @@ typedef struct otb_util_timeout
   uint32_t end_time;
 } otb_util_timeout;
 
+void otb_util_booted(void);
 extern size_t otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size);
 void otb_util_convert_char_to_char(char *text, int from, int to);
 int isdigit(int c);
@@ -145,6 +146,7 @@ extern uint8_t otb_util_log_level;
 
 #ifdef OTB_UTIL_C
 
+bool otb_util_booted_g;
 uint8_t otb_util_log_level;
 uint8_t otb_util_log_level_stored;
 os_timer_t otb_util_reset_timer;

@@ -24,6 +24,21 @@
 #include <errno.h>
 #include <uart_register.h>
 
+void ICACHE_FLASH_ATTR otb_util_booted(void)
+{
+  DEBUG("UTIL: otb_util_booted entry");
+
+  if (!otb_util_booted_g)
+  {
+    INFO("OTB: Boot sequence completed");
+    otb_util_booted_g = TRUE;
+  }
+
+  DEBUG("UTIL: otb_util_booted exit");
+
+  return;
+}
+
 void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 {
 
@@ -1502,7 +1517,7 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
 
   DETAIL("OTB: Set up One Wire bus");
   otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
-  INFO("OTB: Boot sequence completed");
+  otb_util_booted();
 
   DEBUG("OTB: otb_init_ds18b20 exit");
 
@@ -1520,7 +1535,7 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
 
   // Now set up ADS init
   os_timer_disarm((os_timer_t*)&init_timer);
-  INFO("OTB: Boot sequence completed");
+  otb_util_booted();
 
   DEBUG("OTB: otb_init_ads exit");
 

@@ -105,7 +105,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
 
 EXIT_LABEL:
 
-  INFO("OTB: Boot sequence completed");
+  otb_util_booted();
 
   if (!otb_serial_conf.mezz_info->mezz_inited && (otb_serial_conf.mezz_info != NULL))
   {

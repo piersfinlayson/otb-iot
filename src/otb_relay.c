@@ -48,7 +48,7 @@ void ICACHE_FLASH_ATTR otb_relay_init_mezz(void *arg)
   // "Connect" to the relay - this means pulling gpio[1] low to light the led
   otb_gpio_set(otb_relay_mezz.led_gpio, 0, FALSE);
 
-  DETAIL("OTB: Boot sequence completed");
+  otb_util_booted();
 
   DEBUG("RELAY: otb_relay_init_mezz exit");
 
