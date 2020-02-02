@@ -281,18 +281,18 @@ uint32_t ICACHE_FLASH_ATTR otb_eeprom_load_rpi_eeprom(uint8_t addr,
       }
  
       // Build UUID string
-      for (jj = 0, kk = 0; jj < 16; jj++)
+      for (jj = 15, kk = 0; jj >= 0; jj--)
       {
         os_sprintf(uuid+kk, "%02x", data[jj]);
         kk += 2;
-        if ((jj == 3) || (jj == 5) || (jj == 7) || (jj == 9))
+        if ((jj == 12) || (jj == 10) || (jj == 8) || (jj == 6))
         {
           os_sprintf(uuid+kk, "-");
           kk++;
         }
         OTB_ASSERT(kk < (16*2)+4+1);
       }
-      uuid[jj*2] = 0; // NULL terminate
+      uuid[kk] = 0; // NULL terminate
 
       // get pid and pver
       pid = (data[17] << 8) | data[16];
