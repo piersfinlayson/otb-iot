@@ -29,12 +29,9 @@ extern bool otb_mbus_hat_installed;
 bool otb_mbus_hat_installed = FALSE;
 brzo_i2c_info *otb_mbus_i2c_bus;
 uint8_t otb_mbus_mcp23017_addr;
-bool otb_mbus_inited = FALSE;
 bool otb_mbus_enabled = FALSE;
 #endif // OTB_MBUS_C
 
-bool otb_mbus_hat_init(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
-bool otb_mbus_hat_deinit(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 

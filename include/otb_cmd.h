@@ -426,10 +426,8 @@ typedef struct otb_cmd_control
 //     temp
 //       ds18b20
 //   mbus
-//     init    // Enables the M-Bus Hat, disables logging
-//     enable  // Powers on the M-Bus
-//     disable // Powers off the M-Bus
-//     deinit  // Disables the M-Bus Hat, re-enables logging
+//     on  // Powers on the M-Bus
+//     off // Powers off the M-Bus
 //     send    // not implemented
 //       XXXXXXXX
 //     recv    // not implemented
@@ -1110,13 +1108,8 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[] =
 // trigger->mbus commands
 OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[] =
 {
-  {"init",          NULL, NULL, otb_mbus_hat_init,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {"enable",        NULL, NULL, otb_mbus_hat_enable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {"on",            NULL, NULL, otb_mbus_hat_enable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {"disable",       NULL, NULL, otb_mbus_hat_disable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {"off",           NULL, NULL, otb_mbus_hat_disable,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {"deinit",        NULL, NULL, otb_mbus_hat_deinit,   (void *)OTB_CMD_LED_NEO_MESSAGE},
-  {OTB_CMD_FINISH}    
+  {"on",            NULL, NULL, otb_mbus_hat_enable,   NULL},
+  {"off",           NULL, NULL, otb_mbus_hat_disable,  NULL},
 };
 
 void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()
