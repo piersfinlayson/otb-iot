@@ -49,7 +49,8 @@ void otb_mbus_hat_init(void);
 void otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_handler, void *arg);
 bool otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
-bool ICACHE_FLASH_ATTR otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+bool otb_mbus_get_data(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_mbus_recv_data(void *arg);
 void otb_mbus_recv_intr_handler(void *arg);
 

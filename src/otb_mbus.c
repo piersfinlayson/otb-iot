@@ -228,6 +228,51 @@ EXIT_LABEL:
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  unsigned char scan_str[6];
+  int ii;
+
+  DEBUG("MBUS: otb_mbus_get_data entry");
+
+  if (!otb_mbus_enabled)
+  {
+    otb_cmd_rsp_append("not enabled");
+    goto EXIT_LABEL;
+  }
+
+  // Init the bus
+  scan_str[0] = 0x10;
+  scan_str[1] = 0x40;
+  scan_str[2] = 0xFD;
+  scan_str[3] = 0x3D;
+  scan_str[4] = 0x16;
+  scan_str[5] = 0;
+
+  ets_printf(scan_str);
+  ets_printf(scan_str);
+
+  // Query data
+  scan_str[0] = 0x10;
+  scan_str[1] = 0x5B;
+  scan_str[2] = 0x30;
+  scan_str[3] = 0x8B;
+  scan_str[4] = 0x16;
+  scan_str[5] = 0;
+  ets_printf(scan_str);
+
+  otb_cmd_rsp_append("sent message");
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("MBUS: otb_mbus_get_data exit");
+
+  return rc;
+}
+
 void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
 {
   int ii;

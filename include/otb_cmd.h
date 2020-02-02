@@ -255,6 +255,8 @@ typedef struct otb_cmd_control
 //     pver
 //     product
 //     vendor
+//    mbus
+//      data
 // set
 //   config
 //     status_led
@@ -467,6 +469,7 @@ extern OTB_CMD_CONTROL(otb_cmd_control_get_info)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_reason)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_hat)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_mbus)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_status_led)[];
@@ -556,6 +559,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get)[] =
   {"info",             NULL, otb_cmd_control_get_info,       OTB_CMD_NO_FN},
   {"gpio",             otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
   {"hat",              NULL, otb_cmd_control_get_hat,       OTB_CMD_NO_FN},
+  {"mbus",             NULL, otb_cmd_control_get_mbus,       OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -734,6 +738,13 @@ OTB_CMD_CONTROL(otb_cmd_control_get_hat)[] =
   {"pver",           NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_PVER},
   {"product",        NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_PRODUCT},
   {"vendor",         NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_VENDOR},
+  {OTB_CMD_FINISH}    
+};
+
+// get->mbus commands
+OTB_CMD_CONTROL(otb_cmd_control_get_mbus)[] =
+{
+  {"data",           NULL, NULL,     otb_mbus_get_data,     NULL},
   {OTB_CMD_FINISH}    
 };
 
