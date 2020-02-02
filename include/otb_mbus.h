@@ -23,7 +23,10 @@
 
 #define OTB_MBUS_MCP23017_ADDR 0x20
 
-#define OTB_MBUS_RCV_BUF_LEN 256
+#define OTB_MBUS_RCV_BUF_LEN 512
+
+#define OTB_BUS_ADDR_MIN  0
+#define OTB_BUS_ADDR_MAX  250
 
 extern UartDevice    UartDev;
 extern bool otb_mbus_hat_installed;

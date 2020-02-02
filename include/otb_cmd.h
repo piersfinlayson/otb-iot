@@ -257,6 +257,7 @@ typedef struct otb_cmd_control
 //     vendor
 //    mbus
 //      data
+//        <addr>
 // set
 //   config
 //     status_led

@@ -232,7 +232,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
 {
   bool rc = FALSE;
   unsigned char scan_str[6];
-  int ii;
+  int addr;
 
   DEBUG("MBUS: otb_mbus_get_data entry");
 
@@ -242,11 +242,26 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
     goto EXIT_LABEL;
   }
 
+  if ((next_cmd == NULL) || (next_cmd[0] == 0) || (next_cmd[0] == '/'))
+  {
+    otb_cmd_rsp_append("no address");
+    goto EXIT_LABEL;
+  }
+
+  addr = atoi(next_cmd);
+  if ((addr < OTB_BUS_ADDR_MIN) || (addr > OTB_BUS_ADDR_MAX))
+  {
+    otb_cmd_rsp_append("invalid address");
+    goto EXIT_LABEL;
+  }
+
+  DETAIL("MBUS: Querying slave at address %d", addr);
+
   // Init the bus
   scan_str[0] = 0x10;
   scan_str[1] = 0x40;
   scan_str[2] = 0xFD;
-  scan_str[3] = 0x3D;
+  scan_str[3] = (scan_str[1] + scan_str[2]) & 0xFF;
   scan_str[4] = 0x16;
   scan_str[5] = 0;
 
@@ -256,8 +271,8 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
   // Query data
   scan_str[0] = 0x10;
   scan_str[1] = 0x5B;
-  scan_str[2] = 0x30;
-  scan_str[3] = 0x8B;
+  scan_str[2] = addr;
+  scan_str[3] = (scan_str[1] + scan_str[2]) & 0xFF;
   scan_str[4] = 0x16;
   scan_str[5] = 0;
   ets_printf(scan_str);
