@@ -290,7 +290,8 @@ EXIT_LABEL:
 
 void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
 {
-  int ii;
+  int ii, jj;
+  uint16_t left_bytes;
   uint8_t byte;
   unsigned char scratch[(OTB_MBUS_RCV_BUF_LEN*2)+1];
   otb_mbus_rx_buf *buf = arg;
@@ -300,14 +301,32 @@ void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
   // Don't disarm timer, as it's possible interrupt has fired again and
   // re-armed timer
   OTB_ASSERT(buf != NULL); // Passed in from interrupt routine
-  for (ii = 0; ii < buf->bytes; ii++)
+  for (ii = 0; (ii < buf->bytes) && (ii < OTB_MBUS_MAX_SEND_LEN); ii++)
   {
     os_sprintf(scratch + (ii*2), "%02x", buf->buf[ii]);
   }
-  buf->bytes = 0;
+  buf->bytes -= ii;
   if (ii > 0)
   {
     otb_mqtt_send_status("mbus", "data", scratch, NULL);
+  }
+
+  // Only send a certain number of bytes at once
+  jj = 0;
+  left_bytes = buf->bytes;
+  while (jj < left_bytes)
+  {
+    os_memcpy(buf->buf+jj, buf->buf+ii, OTB_MBUS_MAX_SEND_LEN);
+    jj += OTB_MBUS_MAX_SEND_LEN;
+    ii += OTB_MBUS_MAX_SEND_LEN;
+  }
+
+  // Reschedule to send again
+  if (buf->bytes > 0)
+  {
+    os_timer_disarm(&otb_mbus_recv_buf_timer);
+    os_timer_setfn(&otb_mbus_recv_buf_timer, otb_mbus_recv_data, arg);
+    os_timer_arm(&otb_mbus_recv_buf_timer, 0, 0);
   }
 
   DEBUG("MBUS: otb_mbus_recv_data exit");
