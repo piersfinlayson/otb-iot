@@ -58,6 +58,12 @@
 #define OTB_EEPROM_RPI_HAT_PRODUCT_MBUS_MASTER "M-Bus Master"
 #define OTB_EEPROM_RPI_HAT_PRODUCT_ESPI_PROG "ESPi Programmer"
 
+#define OTB_EEPROM_RPI_HAT_INFO_UUID    1
+#define OTB_EEPROM_RPI_HAT_INFO_PID     2
+#define OTB_EEPROM_RPI_HAT_INFO_PVER    3
+#define OTB_EEPROM_RPI_HAT_INFO_PRODUCT 4
+#define OTB_EEPROM_RPI_HAT_INFO_VENDOR  5
+
 /*
  * The structure of an otbiot eeprom is as follows:
  *
@@ -811,6 +817,7 @@ char otb_eeprom_check_checksum(char *data,
                                int size,
                                int checksum_loc,
                                int checksum_size);
-#endif // OTB_HWINFO_C
+bool otb_eeprom_rpi_hat_get(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+#endif // OTB_EEPROM_C
 
 #endif // OTB_EEPROM_H_INCLUDED

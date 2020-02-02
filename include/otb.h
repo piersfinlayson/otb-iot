@@ -108,14 +108,14 @@
 #include "otb_led.h"
 #include "otb_serial.h"
 #include "otb_mbus.h"
-#include "otb_cmd.h"
+#include "otb_eeprom.h"
 #include "otb_flash.h"
 #include "otb_relay.h"
 #include "otb_brzo_i2c.h"
-#include "otb_eeprom.h"
 #include "otb_board.h"
 #include "otb_nixie.h"
 #include "otb_intr.h"
 #include "otb_break.h"
+#include "otb_cmd.h"
 
 #endif

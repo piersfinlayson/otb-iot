@@ -1364,3 +1364,52 @@ char ICACHE_FLASH_ATTR otb_eeprom_check_checksum(char *data, int size, int check
   return rc;
 }
 
+bool ICACHE_FLASH_ATTR otb_eeprom_rpi_hat_get(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  uint32_t info = (uint32_t)arg;
+  
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_get entry");
+
+  if (otb_eeprom_rpi_hat_info_g == NULL)
+  {
+    otb_cmd_rsp_append("no hat installed");
+    goto EXIT_LABEL;
+  }
+  
+  rc = TRUE;
+  switch (info)
+  {
+    case OTB_EEPROM_RPI_HAT_INFO_UUID:
+      otb_cmd_rsp_append(otb_eeprom_rpi_hat_info_g->uuid);
+      break;
+
+    case OTB_EEPROM_RPI_HAT_INFO_PID:
+      otb_cmd_rsp_append("0x%04x", otb_eeprom_rpi_hat_info_g->pid);
+      break;
+
+    case OTB_EEPROM_RPI_HAT_INFO_PVER:
+      otb_cmd_rsp_append("0x%04x", otb_eeprom_rpi_hat_info_g->pver);
+      break;
+
+    case OTB_EEPROM_RPI_HAT_INFO_PRODUCT:
+      otb_cmd_rsp_append(otb_eeprom_rpi_hat_info_g->pstr);
+      break;
+
+    case OTB_EEPROM_RPI_HAT_INFO_VENDOR:
+      otb_cmd_rsp_append(otb_eeprom_rpi_hat_info_g->vstr);
+      break;
+
+    default:
+      rc = FALSE;
+      break;
+
+  }
+  
+EXIT_LABEL:
+
+  DEBUG("EEPROM: otb_eeprom_rpi_hat_get exit");
+  
+  return rc;
+
+}

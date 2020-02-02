@@ -249,6 +249,12 @@ typedef struct otb_cmd_control
 //     chip_id
 //     hw_info
 //     vdd33
+//   hat
+//     uuid
+//     pid
+//     pver
+//     product
+//     vendor
 // set
 //   config
 //     status_led
@@ -459,6 +465,7 @@ extern OTB_CMD_CONTROL(otb_cmd_control_get_config)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_info)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_reason)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_hat)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_status_led)[];
@@ -547,6 +554,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get)[] =
   {"config",           NULL, otb_cmd_control_get_config,     OTB_CMD_NO_FN},
   {"info",             NULL, otb_cmd_control_get_info,       OTB_CMD_NO_FN},
   {"gpio",             otb_gpio_valid_pin, NULL, otb_gpio_cmd, (void *)OTB_CMD_GPIO_GET_CONFIG},
+  {"hat",              NULL, otb_cmd_control_get_hat,       OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -714,6 +722,17 @@ OTB_CMD_CONTROL(otb_cmd_control_get_reason)[] =
 OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[] =
 {
   {"ram",               NULL, NULL,     otb_cmd_get_logs_ram,      NULL},
+  {OTB_CMD_FINISH}    
+};
+
+// get->hat commands
+OTB_CMD_CONTROL(otb_cmd_control_get_hat)[] =
+{
+  {"uuid",           NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_UUID},
+  {"pid",            NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_PID},
+  {"pver",           NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_PVER},
+  {"product",        NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_PRODUCT},
+  {"vendor",         NULL, NULL,     otb_eeprom_rpi_hat_get,     (void *)OTB_EEPROM_RPI_HAT_INFO_VENDOR},
   {OTB_CMD_FINISH}    
 };
 
