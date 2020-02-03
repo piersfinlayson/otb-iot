@@ -152,7 +152,7 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       break;
   }
 
-  if (!otb_wifi_sta_connected && !otb_wifi_timeout_is_set)
+  if (!otb_wifi_sta_connected && !otb_wifi_timeout_is_set())
   {
     otb_wifi_timeout_set_timer();
   } 
