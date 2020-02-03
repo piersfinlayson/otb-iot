@@ -29,7 +29,7 @@
 #define OTB_MBUS_ADDR_MIN  0
 #define OTB_MBUS_ADDR_MAX  250
 
-#define OTB_MBUS_SCAN_TIMER 500
+#define OTB_MBUS_SCAN_TIMER 250
 
 extern UartDevice    UartDev;
 extern bool otb_mbus_hat_installed;
