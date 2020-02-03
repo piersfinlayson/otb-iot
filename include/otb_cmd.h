@@ -442,7 +442,9 @@ typedef struct otb_cmd_control
 //     off // Powers off the M-Bus
 //     send    // not implemented
 //       XXXXXXXX
-//     scan    // not fully implemented
+//     scan
+//       <address>
+//         <upper address> if range to be scanned
 //  
 
 // Some macros to simplify command structure definition
