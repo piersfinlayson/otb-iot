@@ -170,6 +170,12 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, 
     goto EXIT_LABEL;
   }
 
+  if (otb_mbus_scan_g.in_progress)
+  {
+    otb_cmd_rsp_append("scan in progress");
+    goto EXIT_LABEL;
+  }
+
   // Turn off the bus
   gpa = 0; // GPA0 = 0
   gpb = 0;
@@ -199,6 +205,9 @@ bool ICACHE_FLASH_ATTR otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigne
   bool rc = FALSE;
   unsigned char scan_str[6];
   int ii;
+  uint8_t min, max;
+  unsigned char *next_next_cmd;
+  unsigned char scratch[32];
 
   DEBUG("MBUS: otb_mbus_scan entry");
 
@@ -208,16 +217,73 @@ bool ICACHE_FLASH_ATTR otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigne
     goto EXIT_LABEL;
   }
 
+  if (otb_mbus_scan_g.in_progress)
+  {
+    otb_cmd_rsp_append("scan in progress");
+    goto EXIT_LABEL;
+  }
+
+  // Figure out what type of scan we need to
+  if ((next_cmd == NULL) || (next_cmd[0] == 0))
+  {
+    // Need to do a full range scan
+    min = OTB_MBUS_ADDR_MIN;
+    max = OTB_MBUS_ADDR_MAX;
+    rc = TRUE;
+  }
+  else
+  {
+    min = atoi(next_cmd);
+    if ((min < OTB_MBUS_ADDR_MIN) || (min > OTB_MBUS_ADDR_MAX))
+    {
+      otb_cmd_rsp_append("invalid address %s", next_cmd);
+      goto EXIT_LABEL;
+    }
+    next_next_cmd = otb_cmd_get_next_cmd(next_cmd);
+    if ((next_next_cmd == NULL) || (next_next_cmd[0] == 0))
+    {
+      // single address scan
+      max = min;
+    }
+    else
+    {
+      max = atoi(next_next_cmd);
+      if ((max < OTB_MBUS_ADDR_MIN) || (max > OTB_MBUS_ADDR_MAX))
+      {
+        otb_cmd_rsp_append("invalid address %s", next_cmd);
+        goto EXIT_LABEL;
+      }
+    }
+  }
+
+  otb_mqtt_send_status("mbus", "scan", "started", NULL);
+
+  os_memset(scan_str, 0, 6);
   scan_str[0] = 0x10;
   scan_str[1] = 0x40;
-  scan_str[2] = 0x30;
-  scan_str[3] = 0x70;
+  scan_str[2] = min;
+  scan_str[3] = otb_mbus_crc(scan_str);
   scan_str[4] = 0x16;
-  scan_str[5] = 0;
-
   ets_printf(scan_str);
+#ifdef OTB_DEBUG  
+  os_sprintf(scratch,
+             "0x%02x%02x%02x%02x%02x",
+             scan_str[0],
+             scan_str[1],
+             scan_str[2],
+             scan_str[3],
+             scan_str[4]);
+  otb_mqtt_send_status("mbus", "scan", "sent", scratch);
+#endif // OTB_DEBUG
 
-  otb_cmd_rsp_append("sent message");
+  otb_mbus_scan_g.in_progress = TRUE;
+  otb_mbus_scan_g.last = min;
+  otb_mbus_scan_g.max = max;
+  os_timer_disarm(&(otb_mbus_scan_g.timer));
+  os_timer_setfn(&(otb_mbus_scan_g.timer), otb_mbus_scan_timerfn, arg);
+  os_timer_arm(&(otb_mbus_scan_g.timer), OTB_MBUS_SCAN_TIMER, 0);
+
+  otb_cmd_rsp_clear();
 
   rc = TRUE;
 
@@ -226,6 +292,82 @@ EXIT_LABEL:
   DEBUG("MBUS: otb_mbus_scan exit");
 
   return rc;
+}
+
+void ICACHE_FLASH_ATTR otb_mbus_scan_timerfn(void *arg)
+{
+  unsigned char scan_str[6];
+  uint8_t next;
+  unsigned char scratch[32];
+
+  DEBUG("MBUS: otb_mbus_scan_timerfn entry");
+
+  if (otb_mbus_scan_g.last < otb_mbus_scan_g.max)
+  {
+    otb_mbus_scan_g.last++;
+    next = otb_mbus_scan_g.last;
+  }
+  else
+  {
+    otb_mqtt_send_status("mbus", "scan", "done", NULL);
+    otb_mbus_scan_g.in_progress = FALSE;
+    os_timer_disarm(&(otb_mbus_scan_g.timer));
+    goto EXIT_LABEL;
+  }
+
+  os_memset(scan_str, 0, 6);
+  scan_str[0] = 0x10;
+  scan_str[1] = 0x40;
+  scan_str[2] = next;
+  scan_str[3] = otb_mbus_crc(scan_str);
+  scan_str[4] = 0x16;
+  ets_printf(scan_str);
+#ifdef OTB_DEBUG  
+  os_sprintf(scratch,
+             "0x%02x%02x%02x%02x%02x",
+             scan_str[0],
+             scan_str[1],
+             scan_str[2],
+             scan_str[3],
+             scan_str[4]);
+  otb_mqtt_send_status("mbus", "scan", "sent", scratch);
+#endif // OTB_DEBUG
+
+  otb_mbus_scan_g.in_progress = TRUE;
+  os_timer_disarm(&(otb_mbus_scan_g.timer));
+  os_timer_setfn(&(otb_mbus_scan_g.timer), otb_mbus_scan_timerfn, arg);
+  os_timer_arm(&(otb_mbus_scan_g.timer), OTB_MBUS_SCAN_TIMER, 0);
+
+EXIT_LABEL:
+
+  DEBUG("MBUS: otb_mbus_scan_timerfn exit");
+
+  return;
+}
+
+// data must be NULL terminated
+uint8_t ICACHE_FLASH_ATTR otb_mbus_crc(uint8_t *data)
+{
+  uint8_t crc = 0;
+  int ii;
+
+  DEBUG("MBUS: otb_mbus_crc entry");
+
+  // Ignore first byte
+  if (data[0] == 0)
+  {
+    goto EXIT_LABEL;
+  }
+  for (ii = 1; data[ii] != 0; ii++)
+  {
+    crc = (crc + data[ii]) & 0xff;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("MBUS: otb_mbus_crc exit");
+
+  return crc;
 }
 
 bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
@@ -242,6 +384,12 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
     goto EXIT_LABEL;
   }
 
+  if (otb_mbus_scan_g.in_progress)
+  {
+    otb_cmd_rsp_append("scan in progress");
+    goto EXIT_LABEL;
+  }
+
   if ((next_cmd == NULL) || (next_cmd[0] == 0) || (next_cmd[0] == '/'))
   {
     otb_cmd_rsp_append("no address");
@@ -249,7 +397,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
   }
 
   addr = atoi(next_cmd);
-  if ((addr < OTB_BUS_ADDR_MIN) || (addr > OTB_BUS_ADDR_MAX))
+  if ((addr < OTB_MBUS_ADDR_MIN) || (addr > OTB_MBUS_ADDR_MAX))
   {
     otb_cmd_rsp_append("invalid address");
     goto EXIT_LABEL;
@@ -258,23 +406,22 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
   DETAIL("MBUS: Querying slave at address %d", addr);
 
   // Init the bus
+  os_memset(scan_str, 0, 6);
   scan_str[0] = 0x10;
   scan_str[1] = 0x40;
   scan_str[2] = 0xFD;
-  scan_str[3] = (scan_str[1] + scan_str[2]) & 0xFF;
+  scan_str[3] = otb_mbus_crc(scan_str);
   scan_str[4] = 0x16;
-  scan_str[5] = 0;
-
   ets_printf(scan_str);
   ets_printf(scan_str);
 
   // Query data
+  os_memset(scan_str, 0, 6);
   scan_str[0] = 0x10;
   scan_str[1] = 0x5B;
   scan_str[2] = addr;
-  scan_str[3] = (scan_str[1] + scan_str[2]) & 0xFF;
+  scan_str[3] = otb_mbus_crc(scan_str);
   scan_str[4] = 0x16;
-  scan_str[5] = 0;
   ets_printf(scan_str);
 
   otb_cmd_rsp_append("sent message");
@@ -301,16 +448,42 @@ void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
   // Don't disarm timer, as it's possible interrupt has fired again and
   // re-armed timer
   OTB_ASSERT(buf != NULL); // Passed in from interrupt routine
-  for (ii = 0; (ii < buf->bytes) && (ii < OTB_MBUS_MAX_SEND_LEN); ii++)
-  {
-    os_sprintf(scratch + (ii*2), "%02x", buf->buf[ii]);
-  }
-  buf->bytes -= ii;
-  if (ii > 0)
-  {
-    otb_mqtt_send_status("mbus", "data", scratch, NULL);
-  }
 
+  if (otb_mbus_scan_g.in_progress)
+  {
+    // We are doing a scan - so process this message
+    if ((buf->bytes == 1) && (buf->buf[0] == 0xE5))
+    {
+      os_sprintf(scratch, "%d", otb_mbus_scan_g.last);
+      otb_mqtt_send_status("mbus", "scan", "ok", scratch);
+    }
+    else
+    {
+      for (ii = 0; (ii < buf->bytes) && (ii < OTB_MBUS_MAX_SEND_LEN); ii++)
+      {
+        os_sprintf(scratch + (ii*2), "%02x", buf->buf[ii]);
+      }
+      buf->bytes -= ii;
+      // Ignore duff bytes while scanning
+      //if (ii > 0)
+      //{
+      //  otb_mqtt_send_status("mbus", "scan", "error", scratch);
+      //}
+    }
+  }
+  else
+  {
+    for (ii = 0; (ii < buf->bytes) && (ii < OTB_MBUS_MAX_SEND_LEN); ii++)
+    {
+      os_sprintf(scratch + (ii*2), "%02x", buf->buf[ii]);
+    }
+    buf->bytes -= ii;
+    if (ii > 0)
+    {
+      otb_mqtt_send_status("mbus", "data", scratch, NULL);
+    }
+  }
+  
   // Only send a certain number of bytes at once
   jj = 0;
   left_bytes = buf->bytes;

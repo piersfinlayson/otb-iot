@@ -258,6 +258,9 @@ typedef struct otb_cmd_control
 //    mbus
 //      data
 //        <addr>
+//   mbus
+//     data
+//       <addr>
 // set
 //   config
 //     status_led
@@ -439,7 +442,6 @@ typedef struct otb_cmd_control
 //     off // Powers off the M-Bus
 //     send    // not implemented
 //       XXXXXXXX
-//     recv    // not implemented
 //     scan    // not fully implemented
 //  
 

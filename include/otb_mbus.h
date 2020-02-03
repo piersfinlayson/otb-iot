@@ -26,8 +26,10 @@
 #define OTB_MBUS_RCV_BUF_LEN 512
 #define OTB_MBUS_MAX_SEND_LEN 32
 
-#define OTB_BUS_ADDR_MIN  0
-#define OTB_BUS_ADDR_MAX  250
+#define OTB_MBUS_ADDR_MIN  0
+#define OTB_MBUS_ADDR_MAX  250
+
+#define OTB_MBUS_SCAN_TIMER 500
 
 extern UartDevice    UartDev;
 extern bool otb_mbus_hat_installed;
@@ -39,6 +41,13 @@ typedef struct otb_mbus_rx_buf {
   uint16_t bytes;
 } otb_mbus_rx_buf;
 
+typedef struct otb_mbus_scan_t {
+  bool in_progress;
+  uint8_t last;
+  uint8_t max;
+  os_timer_t timer;
+} otb_mbus_scan_t;
+
 #ifdef OTB_MBUS_C
 bool otb_mbus_hat_installed = FALSE;
 brzo_i2c_info *otb_mbus_i2c_bus;
@@ -47,6 +56,7 @@ bool otb_mbus_enabled = FALSE;
 UartDevice uart_dev_backup;
 otb_mbus_rx_buf otb_mbus_rx_buf_g;
 os_timer_t otb_mbus_recv_buf_timer;
+otb_mbus_scan_t otb_mbus_scan_g;
 #endif // OTB_MBUS_C
 
 void otb_mbus_hat_init(void);
@@ -54,6 +64,8 @@ void otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_handler, void *arg);
 bool otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 bool otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
+void otb_mbus_scan_timerfn(void *arg);
+uint8_t otb_mbus_crc(uint8_t *data);
 bool otb_mbus_get_data(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_mbus_recv_data(void *arg);
 void otb_mbus_recv_intr_handler(void *arg);
