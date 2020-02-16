@@ -48,7 +48,24 @@ typedef struct otb_mbus_scan_t {
   os_timer_t timer;
 } otb_mbus_scan_t;
 
+#define OTB_MBUS_B_DEFAULT    OTB_SERIAL_B2400
+#define OTB_MBUS_B_NUM        6
+extern uint32_t otb_mbus_supported_baudrates[OTB_SERIAL_B_NUM];
 #ifdef OTB_MBUS_C
+uint32_t otb_mbus_supported_baudrates[OTB_SERIAL_B_NUM] =
+{
+  OTB_SERIAL_B300,
+  OTB_SERIAL_B600,
+  OTB_SERIAL_B1200,
+  OTB_SERIAL_B2400,
+  OTB_SERIAL_B4800,
+  OTB_SERIAL_B9600,
+};
+  
+#endif // OTB_MBUS_C
+
+#ifdef OTB_MBUS_C
+uint32_t otb_mbus_baudrate;
 bool otb_mbus_hat_installed = FALSE;
 brzo_i2c_info *otb_mbus_i2c_bus;
 uint8_t otb_mbus_mcp23017_addr;
@@ -69,6 +86,8 @@ uint8_t otb_mbus_crc(uint8_t *data);
 bool otb_mbus_get_data(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd);
 void otb_mbus_recv_data(void *arg);
 void otb_mbus_recv_intr_handler(void *arg);
-
+bool otb_mbus_config_handler(unsigned char *next_cmd,
+                             void *arg,
+                             unsigned char *prev_cmd);
 
 #endif // OTB_MBUS_H_INCLUDED

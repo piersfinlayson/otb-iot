@@ -255,9 +255,6 @@ typedef struct otb_cmd_control
 //     pver
 //     product
 //     vendor
-//    mbus
-//      data
-//        <addr>
 //   mbus
 //     data
 //       <addr>
@@ -329,6 +326,8 @@ typedef struct otb_cmd_control
 //         uart <uart_num>                               // 0 or 1
 //       commit                                          // no argument required
 //   boot_slot
+//   mbus
+//     baud|baudrate|baud_rate|bit_rate|bitrate|speed
 // delete
 //   config
 //     loc
@@ -516,10 +515,9 @@ extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_sensor_temp_ds18b20)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[];
-extern OTB_CMD_CONTROL(otb_cmd_control_get_config_wifi)[];
-extern OTB_CMD_CONTROL(otb_cmd_control_get_config_mqtt)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_set_mbus)[];
 
 #ifdef OTB_CMD_C
 
@@ -750,6 +748,12 @@ OTB_CMD_CONTROL(otb_cmd_control_get_hat)[] =
 OTB_CMD_CONTROL(otb_cmd_control_get_mbus)[] =
 {
   {"data",           NULL, NULL,     otb_mbus_get_data,     NULL},
+  {"baud",      NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"baudrate",  NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"baud_rate", NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"bit_rate",  NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"bitrate",   NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
+  {"speed",     NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_GET)},
   {OTB_CMD_FINISH}    
 };
 
@@ -758,6 +762,7 @@ OTB_CMD_CONTROL(otb_cmd_control_set)[] =
 {
   {"config",           NULL, otb_cmd_control_set_config,        OTB_CMD_NO_FN},
   {"boot_slot",        NULL, NULL,      otb_cmd_set_boot_slot,     NULL},
+  {"mbus",             NULL, otb_cmd_control_set_mbus,            OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -930,7 +935,7 @@ OTB_CMD_CONTROL(otb_cmd_control_set_config_wifi)[] =
   {OTB_CMD_FINISH}
 };
 
-// get->config->mqtt
+// set->config->mqtt
 OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[] =
 {
   {"svr",       NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_SERVER | OTB_MQTT_CFG_CMD_SET)},
@@ -940,6 +945,18 @@ OTB_CMD_CONTROL(otb_cmd_control_set_config_mqtt)[] =
   {"username",  NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_USERNAME | OTB_MQTT_CFG_CMD_SET)},
   {"pass",      NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_PASSWORD | OTB_MQTT_CFG_CMD_SET)},
   {"password",  NULL, NULL, otb_mqtt_config_handler, (void *)(OTB_MQTT_CONFIG_CMD_PASSWORD | OTB_MQTT_CFG_CMD_SET)},
+  {OTB_CMD_FINISH}
+};
+
+// set->mbus
+OTB_CMD_CONTROL(otb_cmd_control_set_mbus)[] =
+{
+  {"baud",      NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"baudrate",  NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"baud_rate", NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"bit_rate",  NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"bitrate",   NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
+  {"speed",     NULL, NULL, otb_mbus_config_handler, (void *)(OTB_SERIAL_CMD_BAUD    | OTB_SERIAL_CMD_SET)},
   {OTB_CMD_FINISH}
 };
 

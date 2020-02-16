@@ -43,6 +43,7 @@ void ICACHE_FLASH_ATTR otb_mbus_hat_init(void)
   otb_mbus_mcp23017_addr = OTB_MBUS_MCP23017_ADDR;
   otb_i2c_initialize_bus_internal();
   otb_i2c_mcp23017_init(otb_mbus_mcp23017_addr, otb_mbus_i2c_bus);
+  otb_mbus_baudrate = OTB_MBUS_B_DEFAULT;
 
   otb_mbus_hat_installed = TRUE;
 
@@ -127,7 +128,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, u
 
   // Store off old UART config and apply M-Bus config
   os_memcpy(&uart_dev_backup, &UartDev, sizeof(UartDev));
-  UartDev.baut_rate = 2400;
+  UartDev.baut_rate = otb_mbus_baudrate;
   UartDev.data_bits = 0b11;
   UartDev.exist_parity = 1;
   UartDev.parity = 0;
@@ -560,4 +561,94 @@ void otb_mbus_recv_intr_handler(void *arg)
 
   WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR | UART_RXFIFO_TOUT_INT_CLR);
   SET_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_TOUT_INT_ENA);
+}
+
+bool ICACHE_FLASH_ATTR otb_mbus_config_handler(unsigned char *next_cmd,
+                                               void *arg,
+                                               unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int cmd;
+  int cmd_type;
+  int baudrate;
+  bool match;
+  int ii;
+    
+  DEBUG("MBUS: otb_mbus_config_handler entry");
+
+  cmd = (int)arg;
+  cmd_type = OTB_SERIAL_CMD_TYPE_MASK & cmd;
+  cmd = OTB_SERIAL_CMD_MASK & cmd;
+  
+  OTB_ASSERT((cmd_type == OTB_SERIAL_CMD_SET) ||
+             (cmd_type == OTB_SERIAL_CMD_GET));
+  
+  if (!otb_mbus_hat_installed)
+  {
+    otb_cmd_rsp_append("hat not installed");
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  switch (cmd)
+  {
+    case OTB_SERIAL_CMD_BAUD:
+      // Valid get, set
+      if ((cmd_type != OTB_SERIAL_CMD_GET) && (cmd_type != OTB_SERIAL_CMD_SET))
+      {
+        otb_cmd_rsp_append("baudrate only valid on get or set");
+        rc = FALSE;
+        goto EXIT_LABEL;
+      }
+      if (cmd_type == OTB_SERIAL_CMD_SET)
+      {
+        if (otb_mbus_enabled)
+        {
+          otb_cmd_rsp_append("can't change baudrate when enabled");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        if ((next_cmd == NULL) || (next_cmd[0] == 0))
+        {
+          otb_cmd_rsp_append("no value provided");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        baudrate = atoi(next_cmd);
+        match = FALSE;
+        for (ii = 0; ii < OTB_SERIAL_B_NUM; ii++)
+        {
+          if (otb_mbus_supported_baudrates[ii] = baudrate)
+          {
+            match = TRUE;
+            break;
+          }
+        }
+        if (!match)
+        {
+          otb_cmd_rsp_append("invalid baudrate");
+          rc = FALSE;
+          goto EXIT_LABEL;
+        }
+        otb_mbus_baudrate = baudrate;
+        rc = TRUE;
+      }
+      else
+      {
+        otb_cmd_rsp_append("%d", otb_mbus_baudrate);
+        rc = TRUE;
+      }
+      break;
+
+    default:
+      OTB_ASSERT(FALSE);
+      otb_cmd_rsp_append("Internal error");
+      rc = FALSE;
+      goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("MBUS: otb_mbus_config_handler exit");
+  
+  return rc;
 }
