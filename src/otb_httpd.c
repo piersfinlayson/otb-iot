@@ -22,8 +22,10 @@
 #define OTB_HTTPD_C
 #include "otb.h"
 
-void ICACHE_FLASH_ATTR otb_httpd_start(void)
+bool ICACHE_FLASH_ATTR otb_httpd_start(void)
 {
+  bool rc = TRUE;
+
   DEBUG("HTTPD: otb_httpd_start entry");
   // Initialize the captive DNS service
   //stdoutInit();
@@ -46,10 +48,22 @@ void ICACHE_FLASH_ATTR otb_httpd_start(void)
   espconn_regist_connectcb(&otb_httpd_espconn, otb_httpd_connect_callback);
   espconn_tcp_set_max_con_allow(&otb_httpd_espconn, 1);
   espconn_accept(&otb_httpd_espconn);
+
+  otb_httpd_scratch = (char *)os_malloc(OTB_HTTP_SCRATCH_LEN);
+  otb_httpd_scratch2 = (char *)os_malloc(OTB_HTTP_SCRATCH2_LEN);
+  otb_httpd_msg = (char *)os_malloc(OTB_HTTP_MSG_LEN);
+
+  if ((otb_httpd_scratch == NULL) ||
+      (otb_httpd_scratch2 == NULL) ||
+      (otb_httpd_msg == NULL))
+  {
+    WARN("HTTPD: Failed to allocate scratch buffers");
+    rc = FALSE;
+  }
   
   DEBUG("HTTPD: otb_httpd_start exit");
 
-  return;
+  return(rc);
 }
 
 void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
@@ -1007,27 +1021,49 @@ EXIT_LABEL:
 int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
 {
   uint16_t output_len;
+  unsigned char *not_checked = "";
+  unsigned char *checked = "checked=\"true\"";
 
   DEBUG("HTTPD: otb_httpd_wifi_form entry");
-  
+
   output_len = 0;
   output_len += os_snprintf(buffer + output_len,
                             buf_len - output_len,
                             "<body><form name=\"otb-iot\" action=\"/\" method=\"post\">"
-                            "<p>WiFi SSID</p>"
+                            "<p/>WiFi SSID<br/>"
                             "<input type=\"text\" name=\"ssid\" value=\"%s\"/>"
-                            "<p>WiFi Password</p>"
+                            "<p/>WiFi Password<br/>"
                             "<input type=\"password\" name=\"password\" value=\"********\"/>"
                             "<p>Disable AP when station connected "
                             "<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
-                            "<p>MQTT Server (IP address only)</p>"
+                            "<p/>MQTT Server (IP address only)<br/>"
                             "<input type=\"text\" name=\"mqtt_svr\" value=\"%s\" />"
-                            "<p>MQTT Port (default 1883)</p>"
+                            "<p/>MQTT Port (default 1883)<br/>"
                             "<input type=\"number\" name=\"mqtt_port\" value=\"%d\" />"
-                            "<p>MQTT Username</p>"
+                            "<p/>MQTT Username<br/>"
                             "<input type=\"text\" name=\"mqtt_user\" value=\"%s\" />"
-                            "<p>MQTT Password</p>"
+                            "<p/>MQTT Password<br/>"
                             "<input type=\"password\" name=\"mqtt_pass\" value=\"%s\" />"
+                            "<p/>HTTP server:<br/>"
+                            "<input type=\"radio\" name=\"http_svr\" id=\"enabled\" value=\"enabled\" %s />"
+                            "<label for=\"enabled\">Enabled</label><br/>"
+                            "<input type=\"radio\" name=\"http_svr\" id=\"disabled\" value=\"disabled\" %s />"
+                            "<label for=\"disabled\">Disabled</label><br/>"
+                            "<p>IP address configuration:</p>"
+                            "<input type=\"radio\" name=\"ip_config\" id=\"dhcp\" value=\"dhcp\" %s />"
+                            "<label for=\"dhcp\">DHCP</label><br/>"
+                            "<input type=\"radio\" name=\"ip_config\" id=\"manual\" value=\"manual\" %s />"
+                            "<label for=\"manual\">Manual</label><br/>"
+                            "<p/>IP address<br/>"
+                            "<input type=\"text\" name=\"ip_addr\" value=\"%s\" />"
+                            "<p/>Subnet mask<br/>"
+                            "<input type=\"text\" name=\"subnet\" value=\"%s\" />"
+                            "<p/>Default gateway<br/>"
+                            "<input type=\"text\" name=\"gateway\" value=\"%s\" />"
+                            "<p/>DNS server 1<br/>"
+                            "<input type=\"text\" name=\"dns1\" value=\"%s\" />"
+                            "<p/>DNS server 2<br/>"
+                            "<input type=\"text\" name=\"dns2\" value=\"%s\" />"
                             "<p/>"
                             "<input type=\"submit\" value=\"Store\">"
                             "</form></body>",
@@ -1035,7 +1071,16 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                             otb_conf->mqtt.svr,
                             otb_conf->mqtt.port,
                             otb_conf->mqtt.user,
-                            otb_conf->mqtt.pass);
+                            otb_conf->mqtt.pass,
+                            not_checked,
+                            not_checked,
+                            not_checked,
+                            not_checked,
+                            "",
+                            "",
+                            "",
+                            "",
+                            "");
   
   DEBUG("HTTPD: otb_httpd_wifi_form exit");
 

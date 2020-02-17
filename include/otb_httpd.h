@@ -84,7 +84,7 @@ typedef struct otb_httpd_connection
   int remote_port;
 } otb_httpd_connection;
 
-void otb_httpd_start(void);
+bool otb_httpd_start(void);
 void otb_httpd_connect_callback(void *arg);
 void otb_httpd_recon_callback(void *arg, sint8 err);
 void otb_httpd_discon_callback(void *arg);
@@ -110,11 +110,11 @@ int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 #ifdef OTB_HTTPD_C
 
 #define OTB_HTTP_SCRATCH_LEN 2048
-char otb_httpd_scratch[OTB_HTTP_SCRATCH_LEN];
-#define OTB_HTTP_SCRATCH2_LEN 1024
-char otb_httpd_scratch2[OTB_HTTP_SCRATCH2_LEN];
+char *otb_httpd_scratch;
+#define OTB_HTTP_SCRATCH2_LEN 2048
+char *otb_httpd_scratch2;
 #define OTB_HTTP_MSG_LEN 2048
-char otb_httpd_msg[OTB_HTTP_MSG_LEN];
+char *otb_httpd_msg;
 
 static otb_httpd_connection otb_httpd_conn[OTB_HTTPD_MAX_CONNS];
 static struct espconn otb_httpd_espconn;

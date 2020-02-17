@@ -530,6 +530,8 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_quick_start(void)
   return(rc);
 }
 
+char ALIGN4 otb_wifi_httpd_start_failed_str[] = "WIFI: Failed to initialize HTTP stack";
+
 bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
 {
   struct softap_config ap_conf;
@@ -574,7 +576,10 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
   // Not testing return code - if this fails, user can try again when they connect
   // otb_wifi_station_scan(NULL, NULL);
 
-  otb_httpd_start();
+  if (!otb_httpd_start())
+  {
+    otb_reset(otb_wifi_httpd_start_failed_str);
+  }
   
   otb_wifi_timeout_set_timer();
   otb_wifi_ap_running = TRUE;
