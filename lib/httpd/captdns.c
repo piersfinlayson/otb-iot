@@ -328,4 +328,9 @@ void ICACHE_FLASH_ATTR captdnsInit(void) {
 	espconn_create(&conn);
 }
 
+void ICACHE_FLASH_ATTR captdnsTerm(void) {
+	static struct espconn conn;
+	espconn_delete(&conn);
+}
+
 #endif

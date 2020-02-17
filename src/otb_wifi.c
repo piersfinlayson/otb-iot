@@ -576,7 +576,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_try_ap(void)
   // Not testing return code - if this fails, user can try again when they connect
   // otb_wifi_station_scan(NULL, NULL);
 
-  if (!otb_httpd_start())
+  if (!otb_httpd_start(TRUE))
   {
     otb_reset(otb_wifi_httpd_start_failed_str);
   }
@@ -603,6 +603,7 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
   {
     rc = wifi_set_opmode_current(STATION_MODE);
     otb_wifi_ap_sta_con_count = 0;
+    otb_httpd_stop();
     DETAIL("WIFI: Stopped own AP");
   }
 

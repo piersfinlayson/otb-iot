@@ -84,7 +84,8 @@ typedef struct otb_httpd_connection
   int remote_port;
 } otb_httpd_connection;
 
-bool otb_httpd_start(void);
+bool otb_httpd_start(bool dns);
+void otb_httpd_stop(void);
 void otb_httpd_connect_callback(void *arg);
 void otb_httpd_recon_callback(void *arg, sint8 err);
 void otb_httpd_discon_callback(void *arg);
@@ -108,6 +109,9 @@ int otb_httpd_wifi_form(char *buffer, uint16_t buf_len);
 int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 
 #ifdef OTB_HTTPD_C
+
+bool otb_httpd_started;
+bool otb_httpd_dns_inited;
 
 #define OTB_HTTP_SCRATCH_LEN 2048
 char *otb_httpd_scratch;

@@ -22,20 +22,19 @@
 #define OTB_HTTPD_C
 #include "otb.h"
 
-bool ICACHE_FLASH_ATTR otb_httpd_start(void)
+bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
 {
   bool rc = TRUE;
 
   DEBUG("HTTPD: otb_httpd_start entry");
-  // Initialize the captive DNS service
-  //stdoutInit();
-  captdnsInit();
 
-  // Start up the file system to serve files
-  //espFsInit((void*)(webpages_espfs_start));
-  
-  // Kick of the HTTP server - otb_wifi_ap_mode_done will signal when done
-  //httpdInit(otb_httpd_ap_urls, OTB_HTTP_SERVER_PORT);
+  if (dns)
+  {
+    // Initialize the captive DNS service
+    captdnsInit();
+    otb_httpd_dns_inited = TRUE;
+    DETAIL("HTTPD: Startied Captive DNS");
+  }
 
   // Set up TCP connection handlers 
   os_memset(&otb_httpd_espconn, 0, sizeof(otb_httpd_espconn));
@@ -48,6 +47,7 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(void)
   espconn_regist_connectcb(&otb_httpd_espconn, otb_httpd_connect_callback);
   espconn_tcp_set_max_con_allow(&otb_httpd_espconn, 1);
   espconn_accept(&otb_httpd_espconn);
+  DETAIL("HTTPD: Started listening on port %d", otb_httpd_tcp.local_port);
 
   otb_httpd_scratch = (char *)os_malloc(OTB_HTTP_SCRATCH_LEN);
   otb_httpd_scratch2 = (char *)os_malloc(OTB_HTTP_SCRATCH2_LEN);
@@ -59,11 +59,64 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(void)
   {
     WARN("HTTPD: Failed to allocate scratch buffers");
     rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  otb_httpd_started = TRUE;
+
+  if (!rc)
+  {
+    otb_httpd_stop();
+    otb_httpd_started = FALSE;
   }
   
   DEBUG("HTTPD: otb_httpd_start exit");
 
   return(rc);
+}
+
+void ICACHE_FLASH_ATTR otb_httpd_stop(void)
+{
+  bool rc = TRUE;
+
+  DEBUG("HTTPD: otb_httpd_stop entry");
+
+  if (otb_httpd_dns_inited)
+  {
+    // Terminate the captive DNS service
+    captdnsTerm();
+    otb_httpd_dns_inited = FALSE;
+    DETAIL("HTTPD: Terminated Captive DNS");
+  }
+
+  if (otb_httpd_started)
+  {
+    // Terminate HTTPD TCP connection
+    espconn_disconnect(&otb_httpd_espconn);
+    DETAIL("HTTPD: Stopped listening");
+
+    // Free up scratch buffers
+    OTB_ASSERT(otb_httpd_scratch != NULL);
+    OTB_ASSERT(otb_httpd_scratch2 != NULL);
+    OTB_ASSERT(otb_httpd_msg != NULL);
+    os_free(otb_httpd_scratch);
+    os_free(otb_httpd_scratch2);
+    os_free(otb_httpd_msg);
+    otb_httpd_scratch = NULL;
+    otb_httpd_scratch2 = NULL;
+    otb_httpd_msg = NULL;
+    otb_httpd_started = FALSE;
+  }
+  else
+  {
+    WARN("HTTPD: Can't terminate HTTP stack - not started");
+  }
+
+  DEBUG("HTTPD: otb_httpd_stop exit");
+
+  return;
 }
 
 void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
