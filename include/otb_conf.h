@@ -200,6 +200,32 @@ typedef struct otb_conf_relay
   
 } otb_conf_relay;
 
+typedef struct otb_conf_ip
+{
+  // Whether to use manual IP address (alternative is DHCP)
+#define OTB_IP_DHCP_DHCP   0  
+#define OTB_IP_DHCP_MANUAL 1  
+  uint8_t manual;
+
+  // Set to zero
+  uint8_t pad[3];
+
+  // IPv4 address
+  // 0.0.0.0 and 255.255.255.255 are invalid
+  uint8_t ipv4[4];
+
+  // IPv4 subnet address
+  uint8_t ipv4_subnet[4];
+
+  // Default gateway
+  uint8_t gateway[4];
+
+  // DNS servers
+  uint8_t dns1[4];
+  uint8_t dns2[4];
+  
+} otb_conf_ip;
+
 typedef struct otb_conf_struct
 {
   // Following fields are in version 1
@@ -273,6 +299,12 @@ typedef struct otb_conf_struct
 #define OTB_CONF_RELAY_MAX_MODULES 8
   otb_conf_relay relay[OTB_CONF_RELAY_MAX_MODULES];
   
+  // Manual IP configuration
+  otb_conf_ip ip;
+
+  // Whether to run HTTP server when statio is connected
+  uint8_t httpd;  
+
   // Adding any configuration past this point needs to be supported by a different
   // version or default to 0xFF and/or 0x00
 
