@@ -33,7 +33,7 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
     // Initialize the captive DNS service
     captdnsInit();
     otb_httpd_dns_inited = TRUE;
-    DETAIL("HTTPD: Startied Captive DNS");
+    DETAIL("HTTPD: Started Captive DNS");
   }
 
   // Set up TCP connection handlers 
