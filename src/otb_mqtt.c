@@ -400,7 +400,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
   DEBUG("MQTT: otb_mqtt_initialize entry");
 
   INFO("OTB: MQTT connecting");
-  DETAIL("MQTT: Create MQTT connection to %server s:%d username:%s", hostname, port, mqtt_username);
+  DETAIL("MQTT: Create MQTT connection to server %s port:%d username:%s", hostname, port, mqtt_username);
 
   otb_mqtt_connected = FALSE;
   
