@@ -274,7 +274,7 @@ typedef struct otb_conf_struct
   otb_conf_relay relay[OTB_CONF_RELAY_MAX_MODULES];
   
   // Adding any configuration past this point needs to be supported by a different
-  // version
+  // version or default to 0xFF and/or 0x00
 
 } otb_conf_struct;
 
