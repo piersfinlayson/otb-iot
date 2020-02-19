@@ -202,7 +202,7 @@ typedef struct otb_conf_relay
 
 typedef struct otb_conf_ip
 {
-  // Whether to use manual IP address (alternative is DHCP)
+  // Whether to use manual IP address information from this struct or DHCP
 #define OTB_IP_DHCP_DHCP   0  
 #define OTB_IP_DHCP_MANUAL 1  
   uint8_t manual;

@@ -1089,7 +1089,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                             "<input type=\"password\" name=\"password\" value=\"********\"/>"
                             "<p>Disable AP when station connected "
                             "<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
-                            "<p/>MQTT Server (IP address only)<br/>"
+                            "<p/>MQTT Server (IP address or fully qualiied domain name)<br/>"
                             "<input type=\"text\" name=\"mqtt_svr\" value=\"%s\" />"
                             "<p/>MQTT Port (default 1883)<br/>"
                             "<input type=\"number\" name=\"mqtt_port\" value=\"%d\" />"
