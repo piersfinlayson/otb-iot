@@ -100,11 +100,27 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
   }
 
   // Test checksum
-  rc = otb_conf_verify_checksum(conf);
+  rc = otb_conf_verify_checksum(conf, sizeof(*conf));
   if (!rc)
   {
-    ERROR("CONF: Bad checksum - invalid config file");
-    goto EXIT_LABEL;
+    // Checksum test failed.  This either means
+    // - config is corrupt, in which case we'll wipe and start again
+    // - the otb-iot didn't know about the ip, mqtt_httpd and pad4 fields
+    //   in which case we'll let the failed check slide - and clear out
+    //   the ip, mqtt_httpd and pad4 fields
+    if (otb_conf_verify_checksum(conf, (sizeof(*conf) - sizeof(conf->ip) - 4)))
+    {
+      os_memset((void *)&(conf->ip), 0, sizeof(conf->ip));
+      conf->mqtt_httpd = OTB_CONF_MQTT_HTTPD_DISABLED;
+      os_memset((void *)(conf->pad4), 0, 3);
+      modified = TRUE;
+      WARN("CONF: IP info not in config - correcting");
+    }
+    else
+    {
+      ERROR("CONF: Bad checksum - invalid config file");
+      goto EXIT_LABEL;
+    }
   }
   
   if (otb_conf->version >= 1)
@@ -194,7 +210,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
       otb_conf_ads_init(conf);
       modified = TRUE;
     }
-    
+
     for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
     {
       // Check ADS id is right length (or 0), and location is null terminated
@@ -293,7 +309,28 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
         modified = TRUE;
       }
     }    
-  }
+
+    if (otb_conf_verify_ip(conf))
+    {
+      modified = TRUE;
+    }
+
+    if ((conf->mqtt_httpd != OTB_CONF_MQTT_HTTPD_DISABLED) &&
+        (conf->mqtt_httpd != OTB_CONF_MQTT_HTTPD_ENABLED))
+    {
+      WARN("CONF: MQTT HTTPD invalid %d", conf->mqtt_httpd);
+      conf->mqtt_httpd == OTB_CONF_MQTT_HTTPD_DISABLED;
+      modified = TRUE;
+    }
+    
+    if ((conf->pad4[0] != 0) || (conf->pad4[1] != 0) || (conf->pad4[2] != 0))
+    {
+      WARN("CONF: pad4 invalid 0x%2.2x%2.2x%2.2x", conf->pad4[0], conf->pad4[1], conf->pad4[2]);
+      os_memset((void *)(conf->pad4), 0, 3);
+      modified = TRUE;
+    }
+
+  } // if (otb_conf->version >= 1)
   
   if (otb_conf->version > 1)
   {
@@ -324,8 +361,91 @@ EXIT_LABEL:
   return(rc);
 }
 
+bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
+{
+  bool invalid = FALSE;
+  int ii;
+  uint8_t zero[4] = {0,0,0,0};
+  uint8_t ff[4] = {0xff,0xff,0xff,0xff};
+  uint32_t subnet_mask;
+
+  DEBUG("CONF: otb_conf_verify_ip entry");
+
+  if ((conf->ip.manual != OTB_IP_DHCP_DHCP) && 
+      (conf->ip.manual != OTB_IP_DHCP_MANUAL))
+  {
+    DETAIL("CONF: IP manual/dhcp configuration invalid");
+    invalid = TRUE;
+    goto EXIT_LABEL;
+  }
+
+  if ((conf->ip.pad[0] != 0) ||
+      (conf->ip.pad[1] != 0) ||
+      (conf->ip.pad[2] != 0))
+  {
+    DETAIL("CONF: IP pad something invalid");
+    invalid = TRUE;
+    goto EXIT_LABEL;
+  }
+
+  // Only check other information if manual IP addressing selected
+  if (conf->ip.manual == OTB_IP_DHCP_MANUAL)
+  {
+    // Can't cope with an invalid IP address - will set back to DHCP
+    if (!os_memcmp(conf->ip.ipv4, zero, 4) ||
+        !os_memcmp(conf->ip.ipv4, ff, 4))
+    {
+      DETAIL("CONF: IP IPv4 address invalid");
+      invalid = TRUE;
+      goto EXIT_LABEL;
+    }
+
+    // Check subnet mask is non zero
+    if (!os_memcmp(conf->ip.ipv4_subnet, zero, 4))
+    {
+      DETAIL("CONF: IP IPv4 subnet mask invalid");
+      invalid = TRUE;
+      goto EXIT_LABEL;
+    }
+    for (int ii = 0; ii < 4; ii ++)
+    {
+      if (conf->ip.ipv4_subnet[ii] & (~(conf->ip.ipv4_subnet[ii]) >> 1))
+      {
+        DETAIL("CONF: IP IPv4 subnet mask invalid");
+        invalid = TRUE;
+        goto EXIT_LABEL;
+        break;
+      }
+    }
+
+    // DNS servers of 0.0.0.0 are OK (unconfigured) but 255.255.255.255 is not
+    if (!os_memcmp(conf->ip.dns1, ff, 4) ||
+        !os_memcmp(conf->ip.dns2, ff, 4))
+    {
+      DETAIL("CONF: IP DNS server invalid");
+      invalid = TRUE;
+      goto EXIT_LABEL;
+    }
+  }
+
+EXIT_LABEL:
+
+  if (invalid)
+  {
+    WARN("CONF: IP configuration invalid");
+    otb_conf_log_ip(conf, TRUE);
+    os_memset((void *)&(conf->ip), 0, sizeof(conf->ip));
+  }
+
+  DEBUG("CONF: otb_conf_verify_ip exit");
+
+  return(invalid);
+}
+
 void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
 {
+  int ii;
+
   DEBUG("CONF: otb_conf_init_config entry");
   
   os_memset(conf, 0, sizeof(otb_conf_struct));
@@ -336,10 +456,19 @@ void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
   conf->magic = OTB_CONF_MAGIC;
   conf->version = OTB_CONF_VERSION_CURRENT;
   conf->mqtt.port = OTB_MQTT_DEFAULT_PORT;
+  for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
+  {
+    otb_conf_ads_init_one(&(conf->ads[ii]), ii);
+  }
+  for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
+  {
+    os_memset(&(conf->relay[ii]), 0, sizeof(otb_conf_relay));
+    conf->relay[ii].index = ii;
+  }
   
   // Do this last!
-  conf->checksum = otb_conf_calc_checksum(conf);
-  OTB_ASSERT(otb_conf_verify_checksum(conf));
+  conf->checksum = otb_conf_calc_checksum(conf, sizeof(*conf));
+  OTB_ASSERT(otb_conf_verify_checksum(conf, sizeof(*conf)));
 
   DEBUG("CONF: otb_conf_init_config exit");
 
@@ -430,9 +559,62 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
     DETAIL("CONF: ADS %d period:    %ds", ii, conf->ads[ii].period);
     DETAIL("CONF: ADS %d samples:   %d", ii, conf->ads[ii].samples);
   }
+  otb_conf_log_ip(conf, FALSE);
+  DETAIL("CONF: MQTT HTTPD enabled: %d", conf->mqtt_httpd);
   
   DEBUG("CONF: otb_conf_log exit");
   
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail)
+{
+  DEBUG("CONF: otb_conf_log_ip entry");
+
+  if (conf->ip.manual == OTB_IP_DHCP_DHCP)
+  {
+    DETAIL("CONF: IP addressing: DHCP");
+  }
+  else if (conf->ip.manual == OTB_IP_DHCP_MANUAL)
+  {
+    DETAIL("CONF: IP addressing: Manual");
+  }
+  else
+  {
+    DETAIL("CONF: IP Manual: %d", conf->ip.manual);
+  }
+  if (detail)
+  {
+    DETAIL("CONF: IP pad[0]: 0x%02x", conf->ip.pad[0]);
+    DETAIL("CONF: IP pad[1]: 0x%02x", conf->ip.pad[1]);
+    DETAIL("CONF: IP pad[2]: 0x%02x", conf->ip.pad[2]);
+  }
+  if ((conf->ip.manual == OTB_IP_DHCP_MANUAL) || detail)
+  {
+    DETAIL("CONF: IP IPv4:   %d.%d.%d.%d",
+            conf->ip.ipv4[0],
+            conf->ip.ipv4[1],
+            conf->ip.ipv4[2],
+            conf->ip.ipv4[3]);
+    DETAIL("CONF: IP IPv4 subnet: %d.%d.%d.%d",
+            conf->ip.ipv4_subnet[0],
+            conf->ip.ipv4_subnet[1],
+            conf->ip.ipv4_subnet[2],
+            conf->ip.ipv4_subnet[3]);
+    DETAIL("CONF: IP DNS 1:  %d.%d.%d.%d",
+            conf->ip.dns1[0],
+            conf->ip.dns1[1],
+            conf->ip.dns1[2],
+            conf->ip.dns1[3]);
+    DETAIL("CONF: IP DNS 2:  %d.%d.%d.%d",
+            conf->ip.dns2[0],
+            conf->ip.dns2[1],
+            conf->ip.dns2[2],
+            conf->ip.dns2[3]);
+  }
+
+  DEBUG("CONF: otb_conf_log_ip exit");
+
   return;
 }
 
@@ -452,7 +634,7 @@ bool ICACHE_FLASH_ATTR otb_conf_save(otb_conf_struct *conf)
   return rc;
 }
 
-uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf)
+uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf, size_t size)
 {
   uint16_t calc_sum = 0;
   uint8_t *conf_data;
@@ -461,11 +643,11 @@ uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf)
   DEBUG("CONF: otb_conf_calc_checksum entry");
 
   // Check 16-bit ii is sufficient
-  OTB_ASSERT(sizeof(otb_conf_struct) <= 2^16);
+  OTB_ASSERT(size <= 2^16);
   conf_data = (uint8_t *)conf;
   
   // Very simple checksum algorithm
-  for (ii = 0; ii < sizeof(otb_conf_struct); ii++)
+  for (ii = 0; ii < size; ii++)
   {
     calc_sum += conf_data[ii];
   }
@@ -479,14 +661,14 @@ uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf)
   return calc_sum;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf)
+bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf, size_t size)
 {
   bool rc = FALSE;
   uint16_t calc_sum;
 
   DEBUG("CONF: otb_conf_verify_checksum entry");
 
-  calc_sum = otb_conf_calc_checksum(conf);
+  calc_sum = otb_conf_calc_checksum(conf, size);
   if (calc_sum == conf->checksum)
   {
     DEBUG("CONF: Checksums match");
@@ -563,7 +745,7 @@ bool ICACHE_FLASH_ATTR otb_conf_update(otb_conf_struct *conf)
   
   DEBUG("CONF: otb_conf_update entry");
 
-  conf->checksum = otb_conf_calc_checksum(conf);
+  conf->checksum = otb_conf_calc_checksum(conf, sizeof(*conf));
   rc = otb_conf_save(conf);
 
   DEBUG("CONF: otb_conf_update exit");

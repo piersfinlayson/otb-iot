@@ -302,8 +302,11 @@ typedef struct otb_conf_struct
   // Manual IP configuration
   otb_conf_ip ip;
 
-  // Whether to run HTTP server when statio is connected
-  uint8_t httpd;  
+  // Whether to run MQTT HTTP server when station is connected
+#define OTB_CONF_MQTT_HTTPD_DISABLED  0
+#define OTB_CONF_MQTT_HTTPD_ENABLED   1
+  uint8_t mqtt_httpd;  
+  uint8_t pad4[3];
 
   // Adding any configuration past this point needs to be supported by a different
   // version or default to 0xFF and/or 0x00
@@ -320,12 +323,14 @@ void otb_conf_init(void);
 void otb_conf_ads_init_one(otb_conf_ads *ads, char ii);
 void otb_conf_ads_init(otb_conf_struct *conf);
 bool otb_conf_verify(otb_conf_struct *conf);
+bool otb_conf_verify_ip(otb_conf_struct *conf);
 void otb_conf_init_config(otb_conf_struct *conf);
 bool otb_conf_load(void);
 void otb_conf_log(otb_conf_struct *conf);
+void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail);
 bool otb_conf_save(otb_conf_struct *conf);
-uint16_t otb_conf_calc_checksum(otb_conf_struct *conf);
-bool otb_conf_verify_checksum(otb_conf_struct *conf);
+uint16_t otb_conf_calc_checksum(otb_conf_struct *conf, size_t size);
+bool otb_conf_verify_checksum(otb_conf_struct *conf, size_t size);
 uint8  otb_conf_store_sta_conf(char *ssid, char *password, bool commit);
 bool otb_conf_store_ap_enabled(bool enable);
 bool otb_conf_update(otb_conf_struct *conf);
