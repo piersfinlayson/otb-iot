@@ -1542,6 +1542,141 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   return;
 }
 
+// ip_out must be 4 byte array
+bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
+{
+#define OTB_UTIL_MAX_IPV4_STR_LEN 15
+#define OTB_UTIL_MAX_IPV4_BYTE_LEN 3
+  char ip_byte_str[4][OTB_UTIL_MAX_IPV4_BYTE_LEN+1];
+  bool rc = FALSE;
+  size_t len;
+  int ii, jj, kk;
+  int ip_byte;
+
+  DEBUG("UTIL: otb_util_parse_ipv4_str entry");
+
+  len = os_strnlen(ip_in, OTB_UTIL_MAX_IPV4_STR_LEN+1);
+  if (len > OTB_UTIL_MAX_IPV4_STR_LEN)
+  {
+    // Too long to be a valid IPv4 address (123.123.123.123 is 15 chars)
+    DETAIL("UTIL: IPv4 address too long to be valid");
+    goto EXIT_LABEL;
+  }
+
+  os_memset(ip_byte_str, 0, 4*(OTB_UTIL_MAX_IPV4_BYTE_LEN+1));
+  // ii is position in up_in string, jj is digits in current "byte", kk is byte
+  for (ii = 0, jj = 0, kk = 0; ii < len; ii++)
+  {
+    if (ip_in[ii] == '.')
+    {
+      jj = 0;
+      kk++;
+    }
+    else if (jj > 2)
+    {
+      // byte is too many digits
+      DETAIL("UTIL: IP address byte has too many digits: %d", jj);
+      goto EXIT_LABEL;
+    }
+    else if ((ip_in[ii] >= '0') && (ip_in[ii] <= '9'))
+    {
+      // Digit
+      ip_byte_str[kk][jj] = ip_in[ii];
+      jj++;
+    }
+    else
+    {
+      // invalid character in IP address
+      DETAIL("UTIL: Invalid character in IP address: %d", ip_in[ii]);
+      goto EXIT_LABEL;
+    }
+
+    if (kk > 3)
+    {
+      // Too many "bytes"
+      DETAIL("UTIL: Too many bytes in IPv4 address: %d", kk+1);
+      goto EXIT_LABEL;
+    }
+  }
+  if (kk < 3)
+  {
+    // Too few "bytes"
+    DETAIL("UTIL: Too few bytes in IPv4 address: %d", kk+1);
+    goto EXIT_LABEL;
+  }
+
+  for (ii = 0; ii < 4; ii++)
+  {
+    ip_byte = atoi(ip_byte_str[ii]);
+    if ((ip_byte < 0) || (ip_byte > 255))
+    {
+      DETAIL("UTIL: IP byte less than 0 or greater than 255: %d %s", ip_byte, ip_byte_str)
+      goto EXIT_LABEL;
+    }
+    ip_out[ii] = ip_byte;
+  }
+
+  DETAIL("UTIL: Parsed IP address: %d.%d.%d.%d",
+         ip_out[0],
+         ip_out[1],
+         ip_out[2],
+         ip_out[3]);
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  DEBUG("UTIL: otb_util_parse_ipv4_str exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_util_ip_is_all_val(uint8_t *ip, uint8_t val)
+{
+  bool rc = TRUE;
+  int ii;
+
+  DEBUG("UTIL: otb_util_ip_is_all_val entry");
+
+  for (ii = 0; ii < 4; ii++)
+  {
+    if (ip[ii] != val)
+    {
+      rc = FALSE;
+      break;
+    }
+  }
+
+  DEBUG("UTIL: otb_util_ip_is_all_zero exit");
+
+  return rc;
+}
+
+bool ICACHE_FLASH_ATTR otb_util_ip_is_subnet_valid(uint8_t *subnet)
+{
+  bool rc = TRUE;
+  uint32_t mask;
+
+  DEBUG("UTIL: otb_util_ip_is_subnet_valid entry");
+
+  if (otb_util_ip_is_all_val(subnet, 0))
+  {
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  mask = (subnet[0] << 24) | (subnet[1] << 16) | (subnet[2] << 8) | subnet[3];
+  if (mask & (~mask >> 1))
+  {
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("UTIL: otb_util_ip_is_subnet_valid exit");
+
+  return rc;
+}
+
 void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
 {
   DEBUG("UTIL: otb_util_uart0_rx_en entry");

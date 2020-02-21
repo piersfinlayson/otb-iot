@@ -220,15 +220,43 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       INFO(" Eeprom args:    -i %06x -1 %02x%02x%02x -2 %02x%02x%02x", chipid, mac1[0], mac1[1], mac1[2], mac2[0], mac2[1], mac2[2]);
       INFO(" Hardware info:  %s", otb_hw_info);
       INFO(" Boot slot:      %d", otb_rboot_get_slot(FALSE));
-      INFO(" Free heap size: %d bytes", system_get_free_heap_size());
-      INFO(" SW Chip ID:     %s", OTB_MAIN_CHIPID);
-      INFO(" Device ID:      %s", OTB_MAIN_DEVICE_ID);
-      INFO(" Wifi SSID:      %s", otb_conf->ssid);
-      INFO(" Wifi Password:  %s", otb_conf->password);
-      INFO(" MQTT Server:    %s", otb_conf->mqtt.svr);
-      INFO(" MQTT Port:      %d", otb_conf->mqtt.port);
-      INFO(" MQTT Username:  %s", otb_conf->mqtt.user);
-      INFO(" MQTT Password:  %s", otb_conf->mqtt.pass);
+      INFO(" Free heap size:  %d bytes", system_get_free_heap_size());
+      INFO(" SW Chip ID:      %s", OTB_MAIN_CHIPID);
+      INFO(" Device ID:       %s", OTB_MAIN_DEVICE_ID);
+      INFO(" Wifi SSID:       %s", otb_conf->ssid);
+      INFO(" Wifi Password:   %s", otb_conf->password);
+      INFO(" MQTT Server:     %s", otb_conf->mqtt.svr);
+      INFO(" MQTT Port:       %d", otb_conf->mqtt.port);
+      INFO(" MQTT Username:   %s", otb_conf->mqtt.user);
+      INFO(" MQTT Password:   %s", otb_conf->mqtt.pass);
+      if (otb_conf->ip.manual == OTB_IP_DHCP_DHCP)
+      {
+        INFO(" IP addressing:   DHCP");
+      }
+      else if (otb_conf->ip.manual == OTB_IP_DHCP_MANUAL)
+      {
+        INFO(" IP addressing:   Manual");
+      }
+      INFO(" IP IPv4 address: %d.%d.%d.%d",
+              otb_conf->ip.ipv4[0],
+              otb_conf->ip.ipv4[1],
+              otb_conf->ip.ipv4[2],
+              otb_conf->ip.ipv4[3]);
+      INFO(" IP IPv4 subnet:  %d.%d.%d.%d",
+              otb_conf->ip.ipv4_subnet[0],
+              otb_conf->ip.ipv4_subnet[1],
+              otb_conf->ip.ipv4_subnet[2],
+              otb_conf->ip.ipv4_subnet[3]);
+      INFO(" IP DNS server 1: %d.%d.%d.%d",
+              otb_conf->ip.dns1[0],
+              otb_conf->ip.dns1[1],
+              otb_conf->ip.dns1[2],
+              otb_conf->ip.dns1[3]);
+      INFO(" IP DNS server 2: %d.%d.%d.%d",
+              otb_conf->ip.dns2[0],
+              otb_conf->ip.dns2[1],
+              otb_conf->ip.dns2[2],
+              otb_conf->ip.dns2[3]);
       break;
 
     case 'w':
@@ -461,6 +489,8 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
 {
   bool rc = TRUE;
   bool persist = FALSE;
+  uint8_t ip[4];
+  bool fn_rc;
 
   DEBUG("BREAK: otb_break_config_input entry");
 
@@ -530,6 +560,88 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
         OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH-1] = 0;
         INFO("  Set Device ID to: %s", OTB_MAIN_DEVICE_ID);
         otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+      }
+      break;
+
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_ADDRESS:
+      if (otb_break_collect_string(input))
+      {
+        if (otb_util_parse_ipv4_str(otb_break_string, ip) &&
+            !otb_util_ip_is_all_val(ip, 0) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          os_memcpy(otb_conf->ip.ipv4, ip, 4);
+          INFO("  Set IPv4 address to: %d.%d.%d.%d",
+               ip[0],
+               ip[1],
+               ip[2],
+               ip[3]);
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+          persist = otb_break_config_persist ? TRUE : FALSE;
+        }
+        else
+        {
+          INFO("  Invalid IPv4 address entered");
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        }
+      }
+      break;
+
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_SUBNET:
+      if (otb_break_collect_string(input))
+      {
+        if (otb_util_parse_ipv4_str(otb_break_string, ip) &&
+            otb_util_ip_is_subnet_valid(ip))
+        {
+          os_memcpy(otb_conf->ip.ipv4_subnet, ip, 4);
+          INFO("  Set IPv4 subnet mask to: %d.%d.%d.%d",
+               ip[0],
+               ip[1],
+               ip[2],
+               ip[3]);
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+          persist = otb_break_config_persist ? TRUE : FALSE;
+        }
+        else
+        {
+          INFO("  Invalid IPv4 subnet mask entered");
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        }
+      }
+      break;
+
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS1:
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS2:
+      if (otb_break_collect_string(input))
+      {
+        if (otb_util_parse_ipv4_str(otb_break_string, ip) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          int svr;
+          if (otb_break_config_state == OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS1)
+          {
+            os_memcpy(otb_conf->ip.dns1, ip, 4);
+            svr = 1;
+          }
+          else
+          {
+            os_memcpy(otb_conf->ip.dns2, ip, 4);
+            svr = 2;
+          }
+          INFO("  Set DNS server %d to: %d.%d.%d.%d",
+               svr, 
+               ip[0],
+               ip[1],
+               ip[2],
+               ip[3]);
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+          persist = otb_break_config_persist ? TRUE : FALSE;
+        }
+        else
+        {
+          INFO("  Invalid IPv4 address entered");
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        }
       }
       break;
 
@@ -604,6 +716,7 @@ bool ICACHE_FLASH_ATTR otb_break_collect_string(char input)
 
 bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
 {
+  bool rc;
 
   DEBUG("BREAK: otb_break_config_input_main entry");
 
@@ -657,6 +770,60 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       otb_break_clear_string();
       break;
 
+    case 'i':
+    case 'I':
+      INFO(" Toggle Manual/DHCP IP addressing");
+      if (otb_conf->ip.manual == OTB_IP_DHCP_DHCP)
+      {
+        otb_conf->ip.manual = OTB_IP_DHCP_MANUAL;
+        INFO(" Set IP addressing to: Manual");
+      }
+      else
+      {
+        otb_conf->ip.manual = OTB_IP_DHCP_DHCP;
+        INFO(" Set IP addressing: DHCP");
+      }
+      if (otb_break_config_persist)
+      {
+        rc = otb_conf_update(otb_conf);
+        if (rc)
+        {
+          INFO("  Change stored");
+        }
+        else
+        {
+          WARN("  Failed to store change");
+        }
+      }
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+      break;
+
+    case 'a':
+    case 'A':
+      INFO(" IPv4 address");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_ADDRESS;
+      otb_break_clear_string();
+      break;
+
+    case 'n':
+    case 'N':
+      INFO(" IPv4 subnet");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_SUBNET;
+      otb_break_clear_string();
+      break;
+
+    case '1':
+      INFO(" DNS server 1");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS1;
+      otb_break_clear_string();
+      break;
+
+    case '2':
+      INFO(" DNS server 2");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS2;
+      otb_break_clear_string();
+      break;
+
     case 'h':
     case 'H':
     case '?':
@@ -667,6 +834,11 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       INFO("  r - MQTT Port");
       INFO("  c - Chip ID");
       INFO("  d - Device ID");
+      INFO("  i - Toggle Manual/DHCP IP addressing");
+      INFO("  a - IPv4 address");
+      INFO("  n - IPv4 subnet");
+      INFO("  1 - DNS server 1");
+      INFO("  2 - DNS server 2");
       INFO("  x - Exit");
       break;
 

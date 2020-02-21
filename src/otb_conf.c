@@ -365,8 +365,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
 {
   bool invalid = FALSE;
   int ii;
-  uint8_t zero[4] = {0,0,0,0};
-  uint8_t ff[4] = {0xff,0xff,0xff,0xff};
   uint32_t subnet_mask;
 
   DEBUG("CONF: otb_conf_verify_ip entry");
@@ -392,8 +390,8 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
   if (conf->ip.manual == OTB_IP_DHCP_MANUAL)
   {
     // Can't cope with an invalid IP address - will set back to DHCP
-    if (!os_memcmp(conf->ip.ipv4, zero, 4) ||
-        !os_memcmp(conf->ip.ipv4, ff, 4))
+    if (otb_util_ip_is_all_val(conf->ip.ipv4, 0) ||
+        otb_util_ip_is_all_val(conf->ip.ipv4, 0xff))
     {
       DETAIL("CONF: IP IPv4 address invalid");
       invalid = TRUE;
@@ -401,26 +399,16 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
     }
 
     // Check subnet mask is non zero
-    if (!os_memcmp(conf->ip.ipv4_subnet, zero, 4))
+    if (!otb_util_ip_is_subnet_valid(conf->ip.ipv4_subnet))
     {
       DETAIL("CONF: IP IPv4 subnet mask invalid");
       invalid = TRUE;
       goto EXIT_LABEL;
     }
-    for (int ii = 0; ii < 4; ii ++)
-    {
-      if (conf->ip.ipv4_subnet[ii] & (~(conf->ip.ipv4_subnet[ii]) >> 1))
-      {
-        DETAIL("CONF: IP IPv4 subnet mask invalid");
-        invalid = TRUE;
-        goto EXIT_LABEL;
-        break;
-      }
-    }
 
     // DNS servers of 0.0.0.0 are OK (unconfigured) but 255.255.255.255 is not
-    if (!os_memcmp(conf->ip.dns1, ff, 4) ||
-        !os_memcmp(conf->ip.dns2, ff, 4))
+    if (otb_util_ip_is_all_val(conf->ip.dns1, 0xff) ||
+        otb_util_ip_is_all_val(conf->ip.dns2, 0xff))
     {
       DETAIL("CONF: IP DNS server invalid");
       invalid = TRUE;
