@@ -20,9 +20,7 @@
 #define OTB_MAIN_C
 #include "otb.h"
 
-void configModeCallback();
-char ssid[32];
-void mbus_init();
+MLOG("MAIN");
 
 void ICACHE_FLASH_ATTR user_init(void)
 {
@@ -35,13 +33,13 @@ void ICACHE_FLASH_ATTR user_init(void)
 
   otb_util_init_logging();
 
-  DEBUG("OTB: user_init entry");
+  MDEBUG("user_init entry");
 
   // See if user wants to override log level
   system_init_done_cb((init_done_cb_t)otb_util_check_for_log_level);
   ets_printf("\r\n");
   
-  DEBUG("OTB: user_init exit");
+  MDEBUG("user_init exit");
 
   return;
 }

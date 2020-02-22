@@ -97,9 +97,11 @@ extern void otb_util_delay_ms(uint32_t value);
 extern void otb_util_check_defs(void);
 extern void otb_util_log_snprintf(char *log_string,
                                   uint16_t max_log_string_len,
+                                  const char *module,
                                   const char *format,
                                   va_list args);
-extern void otb_util_log(uint8_t error,
+extern void otb_util_log(char *module,
+                         uint8_t error,
                          char *log_string,
                          uint16_t max_log_string_len,
                          const char *format,

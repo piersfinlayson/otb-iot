@@ -22,18 +22,20 @@
 #define OTB_HTTPD_C
 #include "otb.h"
 
+MLOG("HTTPD");
+
 bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
 {
   bool rc = TRUE;
 
-  DEBUG("HTTPD: otb_httpd_start entry");
+  MDEBUG("otb_httpd_start entry");
 
   if (dns)
   {
     // Initialize the captive DNS service
     captdnsInit();
     otb_httpd_dns_inited = TRUE;
-    DETAIL("HTTPD: Started Captive DNS");
+    MDETAIL("Started Captive DNS");
   }
 
   // Set up TCP connection handlers 
@@ -47,7 +49,7 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
   espconn_regist_connectcb(&otb_httpd_espconn, otb_httpd_connect_callback);
   espconn_tcp_set_max_con_allow(&otb_httpd_espconn, 1);
   espconn_accept(&otb_httpd_espconn);
-  DETAIL("HTTPD: Started listening on port %d", otb_httpd_tcp.local_port);
+  MDETAIL("Started listening on port %d", otb_httpd_tcp.local_port);
 
   otb_httpd_scratch = (char *)os_malloc(OTB_HTTP_SCRATCH_LEN);
   otb_httpd_scratch2 = (char *)os_malloc(OTB_HTTP_SCRATCH2_LEN);
@@ -57,7 +59,7 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
       (otb_httpd_scratch2 == NULL) ||
       (otb_httpd_msg == NULL))
   {
-    WARN("HTTPD: Failed to allocate scratch buffers");
+    MWARN("Failed to allocate scratch buffers");
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -72,7 +74,7 @@ EXIT_LABEL:
     otb_httpd_started = FALSE;
   }
   
-  DEBUG("HTTPD: otb_httpd_start exit");
+  MDEBUG("otb_httpd_start exit");
 
   return(rc);
 }
@@ -81,21 +83,21 @@ void ICACHE_FLASH_ATTR otb_httpd_stop(void)
 {
   bool rc = TRUE;
 
-  DEBUG("HTTPD: otb_httpd_stop entry");
+  MDEBUG("otb_httpd_stop entry");
 
   if (otb_httpd_dns_inited)
   {
     // Terminate the captive DNS service
     captdnsTerm();
     otb_httpd_dns_inited = FALSE;
-    DETAIL("HTTPD: Terminated Captive DNS");
+    MDETAIL("Terminated Captive DNS");
   }
 
   if (otb_httpd_started)
   {
     // Terminate HTTPD TCP connection
     espconn_disconnect(&otb_httpd_espconn);
-    DETAIL("HTTPD: Stopped listening");
+    MDETAIL("Stopped listening");
 
     // Free up scratch buffers
     OTB_ASSERT(otb_httpd_scratch != NULL);
@@ -111,10 +113,10 @@ void ICACHE_FLASH_ATTR otb_httpd_stop(void)
   }
   else
   {
-    WARN("HTTPD: Can't terminate HTTP stack - not started");
+    MWARN("Can't terminate HTTP stack - not started");
   }
 
-  DEBUG("HTTPD: otb_httpd_stop exit");
+  MDEBUG("otb_httpd_stop exit");
 
   return;
 }
@@ -125,7 +127,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
   otb_httpd_connection *hconn = NULL;
   struct espconn *conn = arg;
 
-  DEBUG("HTTPD: otb_httpd_connect_callback entry");
+  MDEBUG("otb_httpd_connect_callback entry");
 
   // Get free otb_httpd_conn
   for (ii = 0; ii < OTB_HTTPD_MAX_CONNS; ii++)
@@ -140,18 +142,18 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
   if (hconn == NULL)
   {
-    DETAIL("HTTPD: Too many incoming connection requests - reject");
+    MDETAIL("Too many incoming connection requests - reject");
     espconn_disconnect(conn);
     goto EXIT_LABEL;
   }
 
-  DEBUG("HTTPD: Incoming connection from: %d.%d.%d.%d:%d",
+  MDEBUG("Incoming connection from: %d.%d.%d.%d:%d",
         conn->proto.tcp->remote_ip[0],
         conn->proto.tcp->remote_ip[1],
         conn->proto.tcp->remote_ip[2],
         conn->proto.tcp->remote_ip[3],
         conn->proto.tcp->remote_port);
-  DEBUG("HTTPD: hconn: %p", hconn);
+  MDEBUG("hconn: %p", hconn);
 
   conn->reverse = hconn;
   hconn->active = true;
@@ -165,7 +167,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
 EXIT_LABEL:
 
-  DEBUG("HTTPD: otb_httpd_connect_callback exit");
+  MDEBUG("otb_httpd_connect_callback exit");
 
   return;
 }
@@ -175,13 +177,13 @@ void ICACHE_FLASH_ATTR otb_httpd_recon_callback(void *arg, sint8 err)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  DEBUG("HTTPD: otb_httpd_recon_callback entry");
+  MDEBUG("otb_httpd_recon_callback entry");
 
-  DEBUG("HTTPD: hconn: %p", hconn);
-  DEBUG("HTTPD: Recon reason %d", err);
+  MDEBUG("hconn: %p", hconn);
+  MDEBUG("Recon reason %d", err);
   otb_httpd_discon_callback(arg);
 
-  DEBUG("HTTPD: otb_httpd_recon_callback exit");
+  MDEBUG("otb_httpd_recon_callback exit");
 
   return;
 }
@@ -191,14 +193,14 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  DEBUG("HTTPD: otb_httpd_discon_callback entry");
+  MDEBUG("otb_httpd_discon_callback entry");
 
   OTB_ASSERT(hconn != NULL);
-  DEBUG("HTTPD: hconn: %p", hconn);
+  MDEBUG("hconn: %p", hconn);
 
   if (!hconn->active)
   {
-    WARN("HTTPD: Received disconnect when connection already disconnected");
+    MWARN("Received disconnect when connection already disconnected");
   }
 
   // Clear hconn out
@@ -208,7 +210,7 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
   hconn->remote_port = 0;
   conn->reverse = NULL;
 
-  DEBUG("HTTPD: otb_httpd_discon_callback exit");
+  MDEBUG("otb_httpd_discon_callback exit");
 
   return;
 }
@@ -218,16 +220,16 @@ void ICACHE_FLASH_ATTR otb_httpd_sent_callback(void *arg)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  DEBUG("HTTPD: otb_httpd_sent_callback entry");
+  MDEBUG("otb_httpd_sent_callback entry");
 
-  DEBUG("HTTPD: hconn: %p", hconn);
+  MDEBUG("hconn: %p", hconn);
   OTB_ASSERT(hconn != NULL);
   if (!hconn->active)
   {
-    WARN("HTTPD: Received sent callback when connection already disconnected");
+    MWARN("Received sent callback when connection already disconnected");
   }
 
-  DEBUG("HTTPD: otb_httpd_sent_callback exit");
+  MDEBUG("otb_httpd_sent_callback exit");
 
   return;
 }
@@ -236,35 +238,35 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(otb_httpd_connection *hconn, c
 {
   uint16 cur = 0;
 
-  DEBUG("HTTPD: otb_httpd_process_method entry");
+  MDEBUG("otb_httpd_process_method entry");
 
   // Process method
   if (os_strncmp(data, "HEAD ", OTB_MIN(5, len)) == 0)
   {
-    DEBUG("HTTPD: METHOD: HEAD");
+    MDEBUG("METHOD: HEAD");
     hconn->request.method = OTB_HTTPD_METHOD_HEAD;
     cur += 5;
   }
   else if (os_strncmp(data, "GET ", OTB_MIN(4, len)) == 0)
   {
-    DEBUG("HTTPD: METHOD: GET");
+    MDEBUG("METHOD: GET");
     hconn->request.method = OTB_HTTPD_METHOD_GET;
     cur += 4;
   }
   else if (os_strncmp(data, "POST ", OTB_MIN(5, len)) == 0)
   {
-    DEBUG("HTTPD: METHOD: POST");
+    MDEBUG("METHOD: POST");
     hconn->request.method = OTB_HTTPD_METHOD_POST;
     cur += 5;
   }
   else
   {
-    WARN("HTTPD: Unsupported method");
+    MWARN("Unsupported method");
     hconn->request.status_code = 405;
     hconn->request.status_str = "Method Not Allowed";
   }
 
-  DEBUG("HTTPD: otb_httpd_process_method exit");
+  MDEBUG("otb_httpd_process_method exit");
 
   return cur;
 }
@@ -274,7 +276,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
   uint16 cur = 0;
   int jj;
 
-  DEBUG("HTTPD: otb_httpd_process_url entry");
+  MDEBUG("otb_httpd_process_url entry");
 
   // Process URL
   for (; cur < len; cur++)
@@ -303,9 +305,9 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
     hconn->request.url[jj] = data[cur];
   }
   hconn->request.url[jj] = 0; // NULL terminate
-  DETAIL("HTTPD: URL: %s", hconn->request.url);
+  MDETAIL("URL: %s", hconn->request.url);
 
-  DEBUG("HTTPD: otb_httpd_process_url exit");
+  MDEBUG("otb_httpd_process_url exit");
 
   return cur;
 }
@@ -315,7 +317,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(otb_httpd_connection *hconn, cha
   uint16 cur = 0;
   int jj;
 
-  DEBUG("HTTPD: otb_httpd_process_http entry");
+  MDEBUG("otb_httpd_process_http entry");
 
   // Process HTTP version
   for (; cur < len; cur++)
@@ -346,18 +348,18 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(otb_httpd_connection *hconn, cha
     hconn->request.http[jj] = data[cur];
   }
   hconn->request.http[jj] = 0; // NULL terminate
-  DEBUG("HTTPD: HTTP: %s", hconn->request.http);
+  MDEBUG("HTTP: %s", hconn->request.http);
 
   if (os_strcmp(OTB_HTTPD_HTTP_1_0, hconn->request.http) &&
       os_strcmp(OTB_HTTPD_HTTP_1_1, hconn->request.http))
   {
-    WARN("HTTPD: Unsupported HTTP version: %s", hconn->request.http);
+    MWARN("Unsupported HTTP version: %s", hconn->request.http);
     hconn->request.status_code = 505;
     hconn->request.status_str = "HTTP Version Not Supported";
     os_snprintf(hconn->request.http, OTB_HTTPD_MAX_HTTP_LEN, OTB_HTTPD_HTTP_1_1); // Set version we'll use to respond
   }
 
-  DEBUG("HTTPD: otb_httpd_process_http exit");
+  MDEBUG("otb_httpd_process_http exit");
 
   return cur;
 }
@@ -368,14 +370,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(otb_httpd_connection *hcon
 
   int jj;
 
-  DEBUG("HTTPD: otb_httpd_process_start_line entry");
+  MDEBUG("otb_httpd_process_start_line entry");
 
 
   cur += otb_httpd_process_method(hconn, data+cur, len-cur);
   cur += otb_httpd_process_url(hconn, data+cur, len-cur);
   cur += otb_httpd_process_http(hconn, data+cur, len-cur);
 
-  DEBUG("HTTPD: otb_httpd_process_start_line exit");
+  MDEBUG("otb_httpd_process_start_line exit");
 
   return cur;
 }
@@ -390,7 +392,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_get_next_header(char *data,
   uint16 cur = 0;
   int jj;
 
-  DEBUG("HTTPD: otb_httpd_process_next_header entry");
+  MDEBUG("otb_httpd_process_next_header entry");
 
   // Skip whitespace
   for (cur = 0; cur < len; cur++)
@@ -468,14 +470,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_get_next_header(char *data,
 
   if ((header_name[0] != 0) && (header_value[0] != 0))
   {
-    DEBUG("HTTPD: HEADER: Name: %s Value: %s", header_name, header_value);
+    MDEBUG("HEADER: Name: %s Value: %s", header_name, header_value);
   }
   else
   {
-    DEBUG("HTTPD: HEADER: None");
+    MDEBUG("HEADER: None");
   }
 
-  DEBUG("HTTPD: otb_httpd_process_next_header exit");
+  MDEBUG("otb_httpd_process_next_header exit");
 
   return cur;
 }
@@ -489,7 +491,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
   char header_name[OTB_HTTPD_MAX_HEADER_LEN];
   char header_value[OTB_HTTPD_MAX_HEADER_LEN];
 
-  DEBUG("HTTPD: otb_httpd_process_headers entry");
+  MDEBUG("otb_httpd_process_headers entry");
 
   // Figure out where the headers end
   end = strstr(data, "\r\n\r\n");
@@ -519,7 +521,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
                       sizeof(OTB_HTTPD_HEADER_CONTENT_LEN)))
       {
         hconn->request.post.expected_data_len = atoi(header_value);
-        DEBUG("HTTPD: Expected POST data len: %d", hconn->request.post.expected_data_len);
+        MDEBUG("Expected POST data len: %d", hconn->request.post.expected_data_len);
       }
     }
     if (!os_strncmp(OTB_HTTPD_HEADER_CONNECTION,
@@ -535,7 +537,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
                       sizeof(OTB_HTTPD_HEADER_KEEP_ALIVE_LOWER))))
 #endif
       {
-        DEBUG("HTTPD: Keep-alive requested");
+        MDEBUG("Keep-alive requested");
         hconn->request.keepalive = true;
       }
     }
@@ -545,7 +547,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
 
 EXIT_LABEL:
 
-  DEBUG("HTTPD: otb_httpd_process_headers exit");
+  MDEBUG("otb_httpd_process_headers exit");
 
   return cur;
 }
@@ -565,18 +567,18 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
   uint16 body_len;
   uint16 cur = 0;
 
-  DEBUG("HTTPD: otb_httpd_recv_callback entry");
+  MDEBUG("otb_httpd_recv_callback entry");
 
-  DEBUG("HTTPD: hconn: %p", hconn);
+  MDEBUG("hconn: %p", hconn);
   OTB_ASSERT(hconn != NULL);
   if (!hconn->active)
   {
-    WARN("HTTPD: Received data when connection disconnected");
+    MWARN("Received data when connection disconnected");
     espconn_disconnect(conn);
     goto EXIT_LABEL;
   }
 
-  DEBUG("HTTPD: REQUEST: Len %d:\n---\n%s\n---", len, data);
+  MDEBUG("REQUEST: Len %d:\n---\n%s\n---", len, data);
 
   // Assume it's a new request if we're not mid-way through processing a POST
   if (hconn->request.handling)
@@ -584,7 +586,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     // Handling a POST already
     if ((hconn->request.post.current_data_len + len + 1) > hconn->request.post.data_capacity) // +1 for NULL term
     {
-      DETAIL("HTTPD: Don't have enough buffer to process entire message");
+      MDETAIL("Don't have enough buffer to process entire message");
       hconn->request.status_code = 413;
       hconn->request.status_str = "Request Entity Too Large";
       goto EXIT_LABEL;
@@ -603,13 +605,13 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
 
     if (hconn->request.post.expected_data_len > len-cur)
     {
-      DEBUG("HTTPD: Waiting for %d bytes more data", hconn->request.post.expected_data_len-(len-cur));
+      MDEBUG("Waiting for %d bytes more data", hconn->request.post.expected_data_len-(len-cur));
       send_rsp = false;
       goto EXIT_LABEL;
     }
 
     // Set up post data to just point at the body
-    DEBUG("HTTPD: Have whole POST, so process");
+    MDEBUG("Have whole POST, so process");
     hconn->request.post.data += cur;
     hconn->request.post.current_data_len -= cur;
     hconn->request.post.data_capacity -= cur;
@@ -642,7 +644,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     // Match URLs
     if (os_strcmp(hconn->request.url, "/"))
     {
-      DEBUG("HTTPD: Request for URL other than /");
+      MDEBUG("Request for URL other than /");
       hconn->request.status_code = 302;
       hconn->request.status_str = "Found";
       hconn->request.redirect_to = "/";
@@ -656,10 +658,10 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
       if (hconn->request.post.expected_data_len > len-cur)
       {
         // Don't have the whole message yet
-        DEBUG("HTTPD: Haven't got whole POST, so don't process");
+        MDEBUG("Haven't got whole POST, so don't process");
         if ((hconn->request.post.expected_data_len + 1 ) > OTB_HTTP_MSG_LEN)  // +1 for NULL term
         {
-          DEBUG("HTTPD: Don't have enough buffer to process entire message");
+          MDEBUG("Don't have enough buffer to process entire message");
           hconn->request.status_code = 413;
           hconn->request.status_str = "Request Entity Too Large";
         }
@@ -679,7 +681,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
       }
       else
       {
-        DEBUG("HTTPD: Have whole POST, so process");
+        MDEBUG("Have whole POST, so process");
         hconn->request.post.data = data+cur;
         hconn->request.post.data_capacity = len-cur;
         hconn->request.post.current_data_len = len-cur;
@@ -734,26 +736,26 @@ EXIT_LABEL:
                                     body);
     }
 
-    DEBUG("HTTPD: RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
+    MDEBUG("RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
     espconn_send(conn, otb_httpd_scratch, rsp_len);
 
     if (!hconn->request.keepalive)
     {
-      DEBUG("HTTPD: Disconnect TCP connection");
+      MDEBUG("Disconnect TCP connection");
       // Disconnect the TCP connection - we said we would if we're HTTP/1.1
       // It's only fair as we only support a single connection simultaneously)
       espconn_disconnect(conn);
     }
     else
     {
-      DEBUG("HTTPD: Keepalive TCP connection");
+      MDEBUG("Keepalive TCP connection");
     }
 
     // We've handled this request, so clear it out
     os_memset(&hconn->request, 0, sizeof(hconn->request));
   }
 
-  DEBUG("HTTPD: otb_httpd_recv_callback exit");
+  MDEBUG("otb_httpd_recv_callback exit");
 
   return;
 }
@@ -762,7 +764,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
 {
   uint16 rsp_len = 0;
 
-  DEBUG("HTTPD: otb_httpd_build_core_response entry");
+  MDEBUG("otb_httpd_build_core_response entry");
 
 
   rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
@@ -802,7 +804,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
   rsp_len += OTB_HTTPD_END_HEADERS(buf+rsp_len,
                                    len-rsp_len);
 
-  DEBUG("HTTPD: otb_httpd_build_core_response exit");
+  MDEBUG("otb_httpd_build_core_response exit");
 
   return rsp_len;
 }
@@ -814,7 +816,7 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
   uint16 find_len;
   uint16 data_len;
 
-  DEBUG("HTTPD: otb_httpd_get_arg entry");
+  MDEBUG("otb_httpd_get_arg entry");
 
   find_len = os_strlen(find);
   data_len = os_strlen(data);
@@ -863,14 +865,14 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
 
   if (len >= 0)
   {
-    DEBUG("HTTPD: FOUND: Arg: %s Value: %s", find, found);
+    MDEBUG("FOUND: Arg: %s Value: %s", find, found);
   }
   else
   {
-    DEBUG("HTTPD: NOT FOUND: Arg: %s", find);
+    MDEBUG("NOT FOUND: Arg: %s", find);
   }
 
-  DEBUG("HTTPD: otb_httpd_get_arg exit");
+  MDEBUG("otb_httpd_get_arg exit");
 
   return len;
 }
@@ -895,7 +897,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
   sint16 mqtt_user_len;
   sint16 mqtt_pass_len;
 
-  DEBUG("HTTPD: otb_httpd_station_config entry");
+  MDEBUG("otb_httpd_station_config entry");
 
   OTB_ASSERT(buf != NULL);
 
@@ -905,14 +907,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
     // but is necessary to return the correct Content-Length
     case OTB_HTTPD_METHOD_HEAD:
     case OTB_HTTPD_METHOD_GET:
-      DETAIL("HTTPD: GET station config");
+      MDETAIL("GET station config");
       rsp_len += otb_httpd_wifi_form(buf, len);
       break;
 
     case OTB_HTTPD_METHOD_POST:
-      DETAIL("HTTPD: POST station config");
+      MDETAIL("POST station config");
       OTB_ASSERT(hconn->request.post.data != NULL);
-      DEBUG("HTTPD: POST processing: %s", hconn->request.post.data);
+      MDEBUG("POST processing: %s", hconn->request.post.data);
       wifi_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_svr_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_user_rc = OTB_CONF_RC_NOT_CHANGED;
@@ -938,16 +940,16 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       mqtt_user[OTB_MQTT_MAX_USER_LEN-1] = 0;
       mqtt_pass[OTB_MQTT_MAX_PASS_LEN-1] = 0;
       
-      DETAIL("HTTPD: ssid: %s", ssid);
-      DETAIL("HTTPD: password: %s", password);
-      DETAIL("HTTPD: mqtt_svr: %s", mqtt_svr);
-      DETAIL("HTTPD: mqtt_port: %s", mqtt_port);
-      DETAIL("HTTPD: mqtt_user: %s", mqtt_user);
-      DETAIL("HTTPD: mqtt_pass: %s", mqtt_pass);
+      MDETAIL("ssid: %s", ssid);
+      MDETAIL("password: %s", password);
+      MDETAIL("mqtt_svr: %s", mqtt_svr);
+      MDETAIL("mqtt_port: %s", mqtt_port);
+      MDETAIL("mqtt_user: %s", mqtt_user);
+      MDETAIL("mqtt_pass: %s", mqtt_pass);
 
       if ((ssid_len > 0) && (password_len >= 0))
       {
-        DEBUG("HTTPD: Valid SSID and password");
+        MDEBUG("Valid SSID and password");
         if (os_strcmp(password, "********"))
         {
           wifi_rc = otb_wifi_set_station_config(ssid, password, FALSE);
@@ -1056,7 +1058,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       break;
 
     default:
-      ERROR("HTTPD: Invalid method passed to otb_httpd_station_config");
+      MERROR("Invalid method passed to otb_httpd_station_config");
       OTB_ASSERT(false);
       break;
   }
@@ -1066,7 +1068,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       // XXX Handle configuring AP details
 EXIT_LABEL:
   
-  DEBUG("HTTPD: otb_httpd_station_config exit");
+  MDEBUG("otb_httpd_station_config exit");
 
   return(rsp_len);
 }
@@ -1121,7 +1123,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   unsigned char *form_str, *form_str_orig;
   int str_ii;
 
-  DEBUG("HTTPD: otb_httpd_wifi_form entry");
+  MDEBUG("otb_httpd_wifi_form entry");
 
   output_len = 0;
 
@@ -1165,7 +1167,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                               "Internal error");
   }
 
-  DEBUG("HTTPD: otb_httpd_wifi_form exit");
+  MDEBUG("otb_httpd_wifi_form exit");
 
   return output_len;
 }
@@ -1175,7 +1177,7 @@ int ICACHE_FLASH_ATTR otb_httpd_display_ap_list(char *buffer, uint16_t buf_len)
   uint16_t output_len;
   struct otb_wifi_ap *ap;
   
-  DEBUG("HTTPD: otb_httpd_display_ap_list entry");
+  MDEBUG("otb_httpd_display_ap_list entry");
 
   output_len = 0;
   output_len += os_snprintf(buffer + output_len,
@@ -1206,7 +1208,7 @@ int ICACHE_FLASH_ATTR otb_httpd_display_ap_list(char *buffer, uint16_t buf_len)
                             buf_len - output_len,
                             "</ul></body></html>");
   
-  DEBUG("HTTPD: otb_httpd_display_ap_list exit");
+  MDEBUG("otb_httpd_display_ap_list exit");
 
   return(output_len);
 }

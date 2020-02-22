@@ -902,11 +902,11 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
 
   if (text != NULL)
   {
-    LOG(log_level, "OTB: Resetting: %s", text);
+    LOG("OTB", log_level, "Resetting: %s", text);
   }
   else
   {
-    LOG(log_level, "OTB: Resetting");
+    LOG("OTB", log_level, "Resetting");
   }
 
   if (error && !same)
@@ -1394,12 +1394,20 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
 
 void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              uint16_t max_log_string_len,
+                                             const char *module,
                                              const char *format,
                                              va_list args)
 {
+  int len;
   // DEBUG("UTIL: otb_util_log_snprintf entry");
 
   // Need to call vsnprintf not snprintf, as passing va_list
+  if (module != NULL)
+  {
+    len = os_snprintf(log_string, max_log_string_len, "%s: ", module);
+    log_string += len;
+    max_log_string_len -= len;
+  }
   os_vsnprintf(log_string, max_log_string_len, format, args);
 
   return;
@@ -1407,7 +1415,8 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   // DEBUG("UTIL: otb_util_log_snprintf exit");
 }
 
-void ICACHE_FLASH_ATTR otb_util_log(uint8_t level,
+void ICACHE_FLASH_ATTR otb_util_log(char *module,
+                                    uint8_t level,
                                     char *log_string,
                                     uint16_t max_log_string_len,
                                     const char *format,
@@ -1426,7 +1435,7 @@ void ICACHE_FLASH_ATTR otb_util_log(uint8_t level,
   // Bit of messing around to deal with var args, but basically snprintf log
   // into log buffer and then log it
   va_start(args, format);
-  otb_util_log_snprintf(log_string, max_log_string_len, format, args);
+  otb_util_log_snprintf(log_string, max_log_string_len, module, format, args);
   va_end(args);
   otb_util_log_fn(otb_log_s);
 

@@ -53,10 +53,14 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define OTB_LOG_LEVEL_DISABLE  255
 #define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_INFO
 
+// Put at the top of the module in order to use M... log macros
+#define MLOG(X)  static char otb_log_module[] = X
+
 // Used when you want to log a variable format rather than a fixed one which can be 
 // allocated and compile time and stored on flash (in which case use LOG).
-#define LOG_VAR(LEVEL, FORMAT, ...) \
-                                 otb_util_log(LEVEL,                           \
+#define LOG_VAR(MODULE, LEVEL, FORMAT, ...)                                    \
+                                 otb_util_log(MODULE,                          \
+                                              LEVEL,                           \
                                               otb_log_s,                       \
                                               OTB_MAIN_MAX_LOG_LENGTH,         \
                                               FORMAT,                          \
@@ -76,7 +80,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 //   to after the log is null terminated).
 // - Do the copy, a 4 byte word at a time.
 // - Log it!
-#define LOG(LEVEL, FORMAT, ...)                                                          \
+#define LOG(MODULE, LEVEL, FORMAT, ...)                                                  \
 {                                                                                        \
   char ALIGN4 *log_tmp_str;                                                              \
   size_t log_str_size;                                                                   \
@@ -89,26 +93,33 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
     *(((uint32_t*)(&otb_util_log_flash_buffer))+log_ii) =                                \
                                                  *(((uint32_t*)(&(UNIQUE(log))))+log_ii);\
   }                                                                                      \
-  LOG_VAR(LEVEL, otb_util_log_flash_buffer, ##__VA_ARGS__);                              \
+  LOG_VAR(MODULE, LEVEL, otb_util_log_flash_buffer, ##__VA_ARGS__);                      \
 }
                                               
 #ifndef OTB_RBOOT_BOOTLOADER
 
-#define DETAIL(...) LOG(OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define INFO(...)   LOG(OTB_LOG_LEVEL_INFO, __VA_ARGS__)
-#define WARN(...)   LOG(OTB_LOG_LEVEL_WARN, __VA_ARGS__)
-#define ERROR(...)  LOG(OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define MDETAIL(...) LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define MINFO(...)   LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define MWARN(...)   LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define MERROR(...)  LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
 
-#define DETAIL_VAR(...) LOG_VAR(OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define INFO_VAR(...)   LOG_VAR(OTB_LOG_LEVEL_INFO, __VA_ARGS__)
-#define WARN_VAR(...)   LOG_VAR(OTB_LOG_LEVEL_WARN, __VA_ARGS__)
-#define ERROR_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define DETAIL(...)  LOG(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define INFO(...)    LOG(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
+#define WARN(...)    LOG(NULL, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
+#define ERROR(...)   LOG(NULL, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+
+#define DETAIL_VAR(...) LOG_VAR(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define INFO_VAR(...)   LOG_VAR(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
+#define WARN_VAR(...)   LOG_VAR(NULL, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
+#define ERROR_VAR(...)  LOG_VAR(NULL, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
 
 #ifndef ESPUT
 #ifdef OTB_DEBUG
-  #define DEBUG(...)      LOG(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
+  #define MDEBUG(...)     LOG(otb_log_module, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
+  #define DEBUG(...)      LOG(NULL, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
   #define DEBUG_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else // OTB_DEBUG
+  #define MDEBUG(...)
   #define DEBUG(...)
   #define DEBUG_VAR(...)
 #endif // OTB_DEBUG
