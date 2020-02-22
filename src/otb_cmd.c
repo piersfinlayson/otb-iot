@@ -690,6 +690,31 @@ bool ICACHE_FLASH_ATTR otb_cmd_set_boot_slot(unsigned char *next_cmd, void *arg,
 
 }
 
+char ALIGN4 otb_cmd_wipe_error_string[] = "Config wipe";
+bool ICACHE_FLASH_ATTR otb_cmd_trigger_wipe(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  
+  DEBUG("CMD: otb_cmd_trigger_wipe entry");
+
+  otb_conf_init_config(otb_conf);
+  rc = otb_conf_save(otb_conf);
+  if (!rc)
+  {
+    otb_cmd_rsp_append("failed to store new config");
+    rc = FALSE;
+  }
+  else
+  {
+    otb_reset_schedule(1000, otb_cmd_wipe_error_string, FALSE);
+    rc = TRUE;
+  }
+
+  DEBUG("CMD: otb_cmd_trigger_wipe exit");
+  
+  return rc;
+}
+
 bool ICACHE_FLASH_ATTR otb_cmd_trigger_update(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;

@@ -100,6 +100,7 @@ extern otb_cmd_handler_fn otb_cmd_get_logs_ram;
 extern otb_cmd_handler_fn otb_cmd_get_reason_reboot;
 extern otb_cmd_handler_fn otb_cmd_trigger_test_led_fn;
 extern otb_cmd_handler_fn otb_cmd_set_boot_slot;
+extern otb_cmd_handler_fn otb_cmd_trigger_wipe;
 extern otb_cmd_handler_fn otb_cmd_trigger_update;
 extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_num;
 extern otb_cmd_handler_fn otb_cmd_control_get_sensor_temp_ds18b20_addr;
@@ -359,6 +360,7 @@ typedef struct otb_cmd_control
 //       all
 //       <addr>
 // trigger
+//   wipe // wipes config
 //   update
 //   upgrade
 //   reset
@@ -1054,6 +1056,7 @@ OTB_CMD_CONTROL(otb_cmd_control_delete_config_ads)[] =
 // trigger commands
 OTB_CMD_CONTROL(otb_cmd_control_trigger)[] =
 {
+  {"wipe",              NULL, NULL,     otb_cmd_trigger_wipe,    NULL},
   {"update",            NULL, NULL,     otb_cmd_trigger_update,    NULL},
   {"upgrade",           NULL, NULL,     otb_cmd_trigger_update,    NULL},
   {"reset",             NULL, NULL,     otb_cmd_trigger_reset,     NULL},
