@@ -1103,6 +1103,8 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                             "<input type=\"radio\" name=\"http_svr\" id=\"disabled\" value=\"disabled\" %s />"
                             "<label for=\"disabled\">Disabled</label><br/>"
                             "<p>IP address configuration:</p>"
+                            "<p/>Domain name suffix (optional)<br/>"
+                            "<input type=\"text\" name=\"domain_name\" value=\"%s\" /><p/>"
                             "<input type=\"radio\" name=\"ip_config\" id=\"dhcp\" value=\"dhcp\" %s />"
                             "<label for=\"dhcp\">DHCP</label><br/>"
                             "<input type=\"radio\" name=\"ip_config\" id=\"manual\" value=\"manual\" %s />"
@@ -1127,6 +1129,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                             otb_conf->mqtt.pass,
                             not_checked,
                             not_checked,
+                            "",
                             not_checked,
                             not_checked,
                             "",
