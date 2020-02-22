@@ -1071,73 +1071,99 @@ EXIT_LABEL:
   return(rsp_len);
 }
 
+static const char ALIGN4 ICACHE_RODATA_ATTR otb_httpd_wifi_form_str[] =
+"<body><form name=\"otb-iot\" action=\"/\" method=\"post\">"
+"<p/>WiFi SSID<br/>"
+"<input type=\"text\" name=\"ssid\" value=\"%s\"/>"
+"<p/>WiFi Password<br/>"
+"<input type=\"password\" name=\"password\" value=\"********\"/>"
+"<p>Disable AP when station connected "
+"<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
+"<p/>MQTT Server (IP address or fully qualiied domain name)<br/>"
+"<input type=\"text\" name=\"mqtt_svr\" value=\"%s\" />"
+"<p/>MQTT Port (default 1883)<br/>"
+"<input type=\"number\" name=\"mqtt_port\" value=\"%d\" />"
+"<p/>MQTT Username<br/>"
+"<input type=\"text\" name=\"mqtt_user\" value=\"%s\" />"
+"<p/>MQTT Password<br/>"
+"<input type=\"password\" name=\"mqtt_pass\" value=\"%s\" />"
+"<p/>HTTP server:<br/>"
+"<input type=\"radio\" name=\"http_svr\" id=\"enabled\" value=\"enabled\" %s />"
+"<label for=\"enabled\">Enabled</label><br/>"
+"<input type=\"radio\" name=\"http_svr\" id=\"disabled\" value=\"disabled\" %s />"
+"<label for=\"disabled\">Disabled</label><br/>"
+"<p>IP address configuration:</p>"
+"<p/>Domain name suffix (optional)<br/>"
+"<input type=\"text\" name=\"domain_name\" value=\"%s\" /><p/>"
+"<input type=\"radio\" name=\"ip_config\" id=\"dhcp\" value=\"dhcp\" %s />"
+"<label for=\"dhcp\">DHCP</label><br/>"
+"<input type=\"radio\" name=\"ip_config\" id=\"manual\" value=\"manual\" %s />"
+"<label for=\"manual\">Manual</label><br/>"
+"<p/>IP address<br/>"
+"<input type=\"text\" name=\"ip_addr\" value=\"%s\" />"
+"<p/>Subnet mask<br/>"
+"<input type=\"text\" name=\"subnet\" value=\"%s\" />"
+"<p/>Default gateway<br/>"
+"<input type=\"text\" name=\"gateway\" value=\"%s\" />"
+"<p/>DNS server 1<br/>"
+"<input type=\"text\" name=\"dns1\" value=\"%s\" />"
+"<p/>DNS server 2<br/>"
+"<input type=\"text\" name=\"dns2\" value=\"%s\" />"
+"<p/>"
+"<input type=\"submit\" value=\"Store\">"
+"</form></body>";
+
 int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
 {
   uint16_t output_len;
   unsigned char *not_checked = "";
   unsigned char *checked = "checked=\"true\"";
+  unsigned char *form_str;
+  int str_ii;
 
   DEBUG("HTTPD: otb_httpd_wifi_form entry");
 
   output_len = 0;
-  output_len += os_snprintf(buffer + output_len,
-                            buf_len - output_len,
-                            "<body><form name=\"otb-iot\" action=\"/\" method=\"post\">"
-                            "<p/>WiFi SSID<br/>"
-                            "<input type=\"text\" name=\"ssid\" value=\"%s\"/>"
-                            "<p/>WiFi Password<br/>"
-                            "<input type=\"password\" name=\"password\" value=\"********\"/>"
-                            "<p>Disable AP when station connected "
-                            "<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
-                            "<p/>MQTT Server (IP address or fully qualiied domain name)<br/>"
-                            "<input type=\"text\" name=\"mqtt_svr\" value=\"%s\" />"
-                            "<p/>MQTT Port (default 1883)<br/>"
-                            "<input type=\"number\" name=\"mqtt_port\" value=\"%d\" />"
-                            "<p/>MQTT Username<br/>"
-                            "<input type=\"text\" name=\"mqtt_user\" value=\"%s\" />"
-                            "<p/>MQTT Password<br/>"
-                            "<input type=\"password\" name=\"mqtt_pass\" value=\"%s\" />"
-                            "<p/>HTTP server:<br/>"
-                            "<input type=\"radio\" name=\"http_svr\" id=\"enabled\" value=\"enabled\" %s />"
-                            "<label for=\"enabled\">Enabled</label><br/>"
-                            "<input type=\"radio\" name=\"http_svr\" id=\"disabled\" value=\"disabled\" %s />"
-                            "<label for=\"disabled\">Disabled</label><br/>"
-                            "<p>IP address configuration:</p>"
-                            "<p/>Domain name suffix (optional)<br/>"
-                            "<input type=\"text\" name=\"domain_name\" value=\"%s\" /><p/>"
-                            "<input type=\"radio\" name=\"ip_config\" id=\"dhcp\" value=\"dhcp\" %s />"
-                            "<label for=\"dhcp\">DHCP</label><br/>"
-                            "<input type=\"radio\" name=\"ip_config\" id=\"manual\" value=\"manual\" %s />"
-                            "<label for=\"manual\">Manual</label><br/>"
-                            "<p/>IP address<br/>"
-                            "<input type=\"text\" name=\"ip_addr\" value=\"%s\" />"
-                            "<p/>Subnet mask<br/>"
-                            "<input type=\"text\" name=\"subnet\" value=\"%s\" />"
-                            "<p/>Default gateway<br/>"
-                            "<input type=\"text\" name=\"gateway\" value=\"%s\" />"
-                            "<p/>DNS server 1<br/>"
-                            "<input type=\"text\" name=\"dns1\" value=\"%s\" />"
-                            "<p/>DNS server 2<br/>"
-                            "<input type=\"text\" name=\"dns2\" value=\"%s\" />"
-                            "<p/>"
-                            "<input type=\"submit\" value=\"Store\">"
-                            "</form></body>",
-                            otb_conf->ssid,
-                            otb_conf->mqtt.svr,
-                            otb_conf->mqtt.port,
-                            otb_conf->mqtt.user,
-                            otb_conf->mqtt.pass,
-                            not_checked,
-                            not_checked,
-                            "",
-                            not_checked,
-                            not_checked,
-                            "",
-                            "",
-                            "",
-                            "",
-                            "");
-  
+
+  // Some complicated code to pull the form out of the eeprom and put it in
+  // 4 byte aligned memory rather than doing operations on it that might not
+  // be 4 byte aligned!
+  size_t str_size;
+  str_size = sizeof(otb_httpd_wifi_form_str)/sizeof(otb_httpd_wifi_form_str[0]);
+  form_str = (unsigned char *)os_malloc(str_size + 4);
+  form_str = form_str + (4 - (((uint32_t)form_str)%4));
+  if (form_str != NULL)
+  {
+    for (str_ii = 0; str_ii < ((str_size/4)+1); str_ii++)
+    {
+      *(((uint32_t*)(form_str))+str_ii) = *(((uint32_t*)(&otb_httpd_wifi_form_str))+str_ii);
+    }
+    output_len += os_snprintf(buffer + output_len,
+                              buf_len - output_len,
+                              otb_httpd_wifi_form_str,
+                              otb_conf->ssid,
+                              otb_conf->mqtt.svr,
+                              otb_conf->mqtt.port,
+                              otb_conf->mqtt.user,
+                              otb_conf->mqtt.pass,
+                              not_checked,
+                              not_checked,
+                              "",
+                              not_checked,
+                              not_checked,
+                              "",
+                              "",
+                              "",
+                              "",
+                              "");
+  }
+  else
+  {
+    output_len += os_snprintf(buffer + output_len,
+                              buf_len - output_len,
+                              "Internal error");
+  }
+
   DEBUG("HTTPD: otb_httpd_wifi_form exit");
 
   return output_len;
