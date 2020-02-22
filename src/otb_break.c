@@ -247,6 +247,11 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
               otb_conf->ip.ipv4_subnet[1],
               otb_conf->ip.ipv4_subnet[2],
               otb_conf->ip.ipv4_subnet[3]);
+      INFO(" IP IPv4 gateway: %d.%d.%d.%d",
+              otb_conf->ip.gateway[0],
+              otb_conf->ip.gateway[1],
+              otb_conf->ip.gateway[2],
+              otb_conf->ip.gateway[3]);
       INFO(" IP DNS server 1: %d.%d.%d.%d",
               otb_conf->ip.dns1[0],
               otb_conf->ip.dns1[1],
@@ -610,6 +615,29 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       }
       break;
 
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_GATEWAY:
+      if (otb_break_collect_string(input))
+      {
+        if (otb_util_parse_ipv4_str(otb_break_string, ip) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          INFO("  Set gateway to: %d.%d.%d.%d",
+               ip[0],
+               ip[1],
+               ip[2],
+               ip[3]);
+          os_memcpy(otb_conf->ip.gateway, ip, 4);
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+          persist = otb_break_config_persist ? TRUE : FALSE;
+        }
+        else
+        {
+          INFO("  Invalid IPv4 address entered");
+          otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        }
+      }
+      break;
+
     case OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS1:
     case OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS2:
       if (otb_break_collect_string(input))
@@ -812,6 +840,13 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       otb_break_clear_string();
       break;
 
+    case 'g':
+    case 'G':
+      INFO(" IPv4 gateway");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_GATEWAY;
+      otb_break_clear_string();
+      break;
+
     case '1':
       INFO(" DNS server 1");
       otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_DNS1;
@@ -837,6 +872,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       INFO("  i - Toggle Manual/DHCP IP addressing");
       INFO("  a - IPv4 address");
       INFO("  n - IPv4 subnet");
+      INFO("  g - IPv4 gateway");
       INFO("  1 - DNS server 1");
       INFO("  2 - DNS server 2");
       INFO("  x - Exit");

@@ -53,6 +53,104 @@ void ICACHE_FLASH_ATTR otb_wifi_init(void)
   return;
 }
 
+bool ICACHE_FLASH_ATTR otb_wifi_config_sta_ip(void)
+{
+  bool rc;
+  struct ip_info ip, ipq;
+  uint8_t *dns;
+  int ii, dns_num;
+  ip_addr_t dns_server;
+
+  DEBUG("WIFI: otb_wifi_config_sta_ip entry");
+
+  // Belt and braces - make sure DHCPC not running
+  otb_wifi_dhcpc_started = FALSE;
+  wifi_station_dhcpc_stop();
+
+  // Set IP information
+  IP4_ADDR(&ip.ip,
+           otb_conf->ip.ipv4[0],
+           otb_conf->ip.ipv4[1],
+           otb_conf->ip.ipv4[2],
+           otb_conf->ip.ipv4[3]);
+  IP4_ADDR(&ip.netmask,
+           otb_conf->ip.ipv4_subnet[0],
+           otb_conf->ip.ipv4_subnet[1],
+           otb_conf->ip.ipv4_subnet[2],
+           otb_conf->ip.ipv4_subnet[3]);
+  IP4_ADDR(&ip.gw,
+           otb_conf->ip.gateway[0],
+           otb_conf->ip.gateway[1],
+           otb_conf->ip.gateway[2],
+           otb_conf->ip.gateway[3]);
+  DETAIL("WIFI: Set IP: 0x%08x Mask: 0x%08x Gw: 0x%08x", ip.ip.addr, ip.netmask.addr, ip.gw.addr);
+  rc = wifi_set_ip_info(STATION_IF, &ip);
+  if (!rc)
+  {
+    DETAIL("WIFI: Failed to set ip info");
+    goto EXIT_LABEL;
+  }
+
+  // Set DNS servers
+  for (ii = 0, dns_num = 0; ii < 2; ii++)
+  {
+    if (ii == 0)
+    {
+      dns = otb_conf->ip.dns1;
+    }
+    else
+    {
+      dns = otb_conf->ip.dns2;
+    }
+    
+    if (!otb_util_ip_is_all_val(dns, 0))
+    {
+      IP4_ADDR(&dns_server,
+               dns[0],
+               dns[1],
+               dns[2],
+               dns[3]);
+      DETAIL("WIFI: Set DNS: 0x%08x", dns_server.addr);
+      espconn_dns_setserver(dns_num, &dns_server);
+      dns_num++;
+    }
+  }
+
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  // Double check IP info provisioned
+  if (rc)
+  {
+    rc = wifi_get_ip_info(STATION_IF, &ipq);
+    if (rc)
+    {
+      if (os_memcmp(&ip, &ipq, sizeof(ip)))
+      {
+        WARN("WIFI: Provisioned IP address incorrect IP: 0x%08x Mask: 0x%08x Gw: 0x%08x", ipq.ip.addr, ipq.netmask.addr, ipq.gw.addr);
+      }
+    }
+    else
+    {
+      WARN("WIFI: Couldn't verify provisioned IP address");
+    }
+    
+  }
+
+  if (!rc)
+  {
+    WARN("WIFI: Failed to set manual IP - reverting to DHCP");
+    goto EXIT_LABEL;
+    otb_wifi_dhcpc_started = FALSE;
+    wifi_station_dhcpc_start();
+  }
+
+  DEBUG("WIFI: otb_wifi_config_sta_ip exit");
+
+  return(rc);
+}
+
 void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
 {
   DEBUG("WIFI: otb_wifi_event_handler entry");
@@ -86,6 +184,7 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       break;
       
     case EVENT_STAMODE_GOT_IP:
+      // We get this even if not running DHCP (and have set static IP)
       DEBUG("WIFI: Event - station got IP");
       otb_wifi_sta_connected = TRUE;
       otb_wifi_status = OTB_WIFI_STATUS_CONNECTED;
@@ -300,22 +399,32 @@ uint8_t ICACHE_FLASH_ATTR otb_wifi_try_sta(char *ssid,
   {
     WARN("WIFI: Failed to set station hostname to: %s", OTB_MAIN_DEVICE_ID);
   }
+  ETS_UART_INTR_ENABLE();
 
   DETAIL("WIFI: Trying to connect ...", ssid);
-  otb_wifi_station_connect();
-  ETS_UART_INTR_ENABLE();
-  
-  dhcpc_rc = wifi_station_dhcpc_start();
-  if (dhcpc_rc)
+  if (otb_wifi_use_dhcp())
   {
-    otb_wifi_dhcpc_started = TRUE;    
+    dhcpc_rc = wifi_station_dhcpc_start();
+    if (dhcpc_rc)
+    {
+      otb_wifi_dhcpc_started = TRUE;    
+    }
+    else
+    {
+      rc = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
+      goto EXIT;
+    }
   }
   else
   {
-    rc = OTB_WIFI_STATUS_PERMANENTLY_FAILED;
-    goto EXIT;
+    // Configure IP information
+    // If config_sta_ip failed it starts DHCPC so should get IP
+    // automatically - so do nothing
+    otb_wifi_config_sta_ip();
   }
   
+  otb_wifi_station_connect();
+
 EXIT:  
 
   DEBUG("WIFI: otb_wifi_try_sta exit");
@@ -363,9 +472,23 @@ void ICACHE_FLASH_ATTR otb_wifi_kick_off(void)
   return;
 }
 
+bool ICACHE_FLASH_ATTR otb_wifi_use_dhcp(void)
+{
+  bool rc;
+
+  DEBUG("WIFI: otb_wifi_use_dhcp entry");
+
+  rc = (otb_conf->ip.manual == OTB_IP_DHCP_DHCP);
+
+  DEBUG("WIFI: otb_wifi_use_dhcp exit");
+
+  return rc;
+}
+
 void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
 {
   struct ip_info ip_inf;
+  ip_addr_t dns;
   bool ip_info_rc;
   uint8_t rc;
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
@@ -375,7 +498,8 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
 
   otb_wifi_sta_second_count++;
 
-  if (!otb_wifi_dhcpc_started)
+  
+  if (otb_wifi_use_dhcp() && !otb_wifi_dhcpc_started)
   {
     dhcpc_rc = wifi_station_dhcpc_start();
     if (dhcpc_rc)
@@ -398,6 +522,12 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
       DETAIL("WIFI: Netmask: %s", addr_s);
       otb_wifi_get_ip_string(ip_inf.gw.addr, addr_s);
       DETAIL("WIFI: Gateway: %s", addr_s);
+      dns = espconn_dns_getserver(0);
+      otb_wifi_get_ip_string(dns.addr, addr_s);
+      DETAIL("WIFI: DNS server 0: %s", addr_s);
+      dns = espconn_dns_getserver(1);
+      otb_wifi_get_ip_string(dns.addr, addr_s);
+      DETAIL("WIFI: DNS server 1: %s", addr_s);
 
       // Now set up MQTT init to fire in half a second
       otb_util_timer_cancel((os_timer_t*)&otb_wifi_timer);

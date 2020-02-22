@@ -76,6 +76,7 @@ extern struct otb_wifi_ap_list otb_wifi_ap_list_struct;
 
 // Functions
 void otb_wifi_init(void);
+bool otb_wifi_config_sta_ip(void);
 void otb_wifi_event_handler(System_Event_t *event);
 void otb_wifi_timeout_cancel_timer(void);
 bool otb_wifi_timeout_is_set(void);
@@ -87,6 +88,7 @@ extern uint8_t otb_wifi_try_sta(char *ssid,
                             char *bssid);
 void otb_wifi_kick_off(void);
 uint8_t otb_wifi_process_test(uint8_t rc);
+bool otb_wifi_use_dhcp(void);
 extern void otb_wifi_timerfunc(void *arg);
 void otb_wifi_station_connect(void);
 void otb_wifi_ap_mode_done_fn(void);

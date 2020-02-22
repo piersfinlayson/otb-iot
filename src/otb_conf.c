@@ -589,6 +589,11 @@ void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail)
             conf->ip.ipv4_subnet[1],
             conf->ip.ipv4_subnet[2],
             conf->ip.ipv4_subnet[3]);
+    DETAIL("CONF: IP IPv4 gateway: %d.%d.%d.%d",
+            conf->ip.gateway[0],
+            conf->ip.gateway[1],
+            conf->ip.gateway[2],
+            conf->ip.gateway[3]);
     DETAIL("CONF: IP DNS 1:  %d.%d.%d.%d",
             conf->ip.dns1[0],
             conf->ip.dns1[1],

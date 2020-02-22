@@ -632,7 +632,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 	os_timer_arm(&mqttClient->mqttTimer, 1000, 1);
 
 	if(UTILS_StrToIP(mqttClient->host, &mqttClient->pCon->proto.tcp->remote_ip)) {
-		DEBUG("TCP: Connect to ip  %s:%d", mqttClient->host, mqttClient->port);
+		DETAIL("MQTT: Connect to ip  %s:%d", mqttClient->host, mqttClient->port);
 		if(mqttClient->security){
 			//espconn_secure_connect(mqttClient->pCon);
 		}
@@ -641,7 +641,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 		}
 	}
 	else {
-		DEBUG("TCP: Connect to domain %s:%d", mqttClient->host, mqttClient->port);
+		DETAIL("MQTT: Connect to domain %s:%d", mqttClient->host, mqttClient->port);
 		error = espconn_gethostbyname(mqttClient->pCon, mqttClient->host, &mqttClient->ip, mqtt_dns_found);
 		if (error == ESPCONN_ARG) ERROR("MQTT esp: Failed to lookup MQTT hostname: %s", mqttClient->host);
 	}

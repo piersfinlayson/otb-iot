@@ -447,7 +447,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 
 void ICACHE_FLASH_ATTR otb_mqtt_connected_timerfunc(void *arg)
 {
-
+  
   DEBUG("MQTT: otb_mqtt_connected_timerfunc entry");
   
   if (otb_mqtt_connected)
