@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -490,7 +490,6 @@ void ICACHE_FLASH_ATTR otb_wifi_timerfunc(void *arg)
   struct ip_info ip_inf;
   ip_addr_t dns;
   bool ip_info_rc;
-  uint8_t rc;
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
   bool dhcpc_rc;
 

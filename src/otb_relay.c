@@ -398,7 +398,6 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
   OTB_ASSERT((cmd >= OTB_CMD_RELAY_MIN) && (cmd < OTB_CMD_RELAY_TOTAL));
   
   // No need to check whether the pin is valid or reserved - this has already been done
-  // No need to check whether the pin is valid or reserved - this has already been done
   index = otb_relay_id;
   OTB_ASSERT((index > 0) && (index <= OTB_CONF_RELAY_MAX_MODULES));
   id = index-1;

@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -891,6 +891,92 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_sensor_adc_ads(unsigned char *next_cmd, void 
   return rc;
 
 }
+
+bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
+                                           void *arg,
+                                           unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  int cmd;
+  struct ip_info ip_inf;
+  ip_addr_t dns;
+  bool ip_info_rc;
+  char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
+  int dns_num;
+    
+  DEBUG("CMD: otb_cmd_get_ip_info entry");
+  
+  // Double check what we're being asked to do is valid
+  cmd = (int)arg;
+  OTB_ASSERT((cmd >= OTB_CMD_IP_MIN) && (cmd < OTB_CMD_IP_TOTAL));
+  
+  switch(cmd)
+  {
+    case OTB_CMD_IP_IP:
+    case OTB_CMD_IP_MASK:
+    case OTB_CMD_IP_GATEWAY:
+      ip_info_rc = wifi_get_ip_info(STATION_IF, &ip_inf);
+      if (!ip_info_rc)
+      {
+        rc = FALSE;
+        otb_cmd_rsp_append("Internal error");
+        goto EXIT_LABEL;
+      }
+      if (cmd == OTB_CMD_IP_IP)
+      {
+        otb_wifi_get_ip_string(ip_inf.ip.addr, addr_s);
+      }
+      else if (cmd == OTB_CMD_IP_MASK)
+      {
+        otb_wifi_get_ip_string(ip_inf.netmask.addr, addr_s);
+      }
+      else // Gateway
+      {
+        otb_wifi_get_ip_string(ip_inf.gw.addr, addr_s);
+      }
+      otb_cmd_rsp_append(addr_s);
+      rc = TRUE;
+      break;
+
+    case OTB_CMD_IP_DNS1:
+    case OTB_CMD_IP_DNS2:
+      OTB_ASSERT(OTB_CMD_IP_DNS1 == (OTB_CMD_IP_DNS2 - 1));
+      dns_num = cmd - OTB_CMD_IP_DNS1;
+      dns = espconn_dns_getserver(dns_num);
+      otb_wifi_get_ip_string(dns.addr, addr_s);
+      otb_cmd_rsp_append(addr_s);
+      rc = TRUE;
+      break;
+
+    case OTB_CMD_IP_DHCP:
+      if (otb_conf->ip.manual == OTB_IP_DHCP_DHCP)
+      {
+        otb_cmd_rsp_append("DHCP");
+      }
+      else
+      {
+        otb_cmd_rsp_append("manual");
+      }
+      rc = TRUE;
+      break;
+
+    default:
+      // Shouldn't get here
+      OTB_ASSERT(FALSE);
+      rc = FALSE;
+      otb_cmd_rsp_append("Invalid command");
+      goto EXIT_LABEL;
+      break;
+  }
+
+EXIT_LABEL:
+
+  DEBUG("CMD: otb_cmd_get_ip_info exit");
+  
+  return rc;
+}
+
+
 
 // XXX Dummy
 bool ICACHE_FLASH_ATTR xxx(unsigned char *next_cmd, void *arg)

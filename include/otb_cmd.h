@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017-8 Piers Finlayson
+ * Copyright (C) 2017-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -131,6 +131,7 @@ extern otb_cmd_handler_fn otb_nixie_show;
 extern otb_cmd_handler_fn otb_nixie_cycle;
 extern otb_cmd_handler_fn otb_nixie_power;
 extern otb_cmd_handler_fn otb_i2c_pca_gpio_cmd;
+extern otb_cmd_handler_fn otb_cmd_get_ip_info;
 
 #define OTB_CMD_GPIO_MIN         0
 #define OTB_CMD_GPIO_GET         0
@@ -154,6 +155,15 @@ extern otb_cmd_handler_fn otb_i2c_pca_gpio_cmd;
 #define OTB_CMD_RELAY_STATUS   4
 #define OTB_CMD_RELAY_PWR_ON   5
 #define OTB_CMD_RELAY_TOTAL    6
+
+#define OTB_CMD_IP_MIN      0
+#define OTB_CMD_IP_IP       0
+#define OTB_CMD_IP_MASK     1
+#define OTB_CMD_IP_GATEWAY  2
+#define OTB_CMD_IP_DNS1     3
+#define OTB_CMD_IP_DNS2     4
+#define OTB_CMD_IP_DHCP     5
+#define OTB_CMD_IP_TOTAL    6
 
 // otb_cmd_control struct
 // 
@@ -249,6 +259,13 @@ typedef struct otb_cmd_control
 //     chip_id
 //     hw_info
 //     vdd33
+//     ip
+//       ip|addr
+//       mask|netmask
+//       gw|gateway
+//       dns1
+//       dns2
+//       dhcp|manual
 //   hat
 //     uuid
 //     pid
@@ -470,6 +487,7 @@ extern OTB_CMD_CONTROL(otb_cmd_control_get_sensor_adc_ads)[];
 // extern OTB_CMD_CONTROL(otb_cmd_control_get_gpio_pca)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_config)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_info)[];
+extern OTB_CMD_CONTROL(otb_cmd_control_get_info_ip)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_reason)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[];
 extern OTB_CMD_CONTROL(otb_cmd_control_get_hat)[];
@@ -716,6 +734,7 @@ OTB_CMD_CONTROL(otb_cmd_control_get_info)[] =
   {"chip_id",           NULL, NULL,     otb_cmd_get_string,        OTB_MAIN_CHIPID},
   {"hw_info",           NULL, NULL,     otb_cmd_get_string,        otb_hw_info},
   {"vdd33",             NULL, NULL,     otb_cmd_get_vdd33,         NULL},
+  {"ip",                NULL, otb_cmd_control_get_info_ip,         OTB_CMD_NO_FN},
   {OTB_CMD_FINISH}    
 };
 
@@ -730,6 +749,22 @@ OTB_CMD_CONTROL(otb_cmd_control_get_reason)[] =
 OTB_CMD_CONTROL(otb_cmd_control_get_info_logs)[] =
 {
   {"ram",               NULL, NULL,     otb_cmd_get_logs_ram,      NULL},
+  {OTB_CMD_FINISH}    
+};
+
+// get->info->ip commands
+OTB_CMD_CONTROL(otb_cmd_control_get_info_ip)[] =
+{
+  {"addr",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_IP},
+  {"ip",                NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_IP},
+  {"mask",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_MASK},
+  {"netmask",           NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_MASK},
+  {"gw",                NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_GATEWAY},
+  {"gateway",           NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_GATEWAY},
+  {"dns1",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DNS1},
+  {"dns2",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DNS2},
+  {"dhcp",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DHCP},
+  {"manual",            NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DHCP},
   {OTB_CMD_FINISH}    
 };
 

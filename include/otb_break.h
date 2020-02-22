@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2019 Piers Finlayson
+ * Copyright (C) 2019-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
