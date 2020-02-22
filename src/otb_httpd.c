@@ -1118,7 +1118,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   uint16_t output_len;
   unsigned char *not_checked = "";
   unsigned char *checked = "checked=\"true\"";
-  unsigned char *form_str;
+  unsigned char *form_str, *form_str_orig;
   int str_ii;
 
   DEBUG("HTTPD: otb_httpd_wifi_form entry");
@@ -1130,8 +1130,8 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   // be 4 byte aligned!
   size_t str_size;
   str_size = sizeof(otb_httpd_wifi_form_str)/sizeof(otb_httpd_wifi_form_str[0]);
-  form_str = (unsigned char *)os_malloc(str_size + 4);
-  form_str = form_str + (4 - (((uint32_t)form_str)%4));
+  form_str_orig = (unsigned char *)os_malloc(str_size + 4);
+  form_str = form_str_orig + (4 - (((uint32_t)form_str_orig)%4));
   if (form_str != NULL)
   {
     for (str_ii = 0; str_ii < ((str_size/4)+1); str_ii++)
@@ -1156,6 +1156,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                               "",
                               "",
                               "");
+    os_free(form_str_orig);
   }
   else
   {
