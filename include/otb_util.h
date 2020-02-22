@@ -64,7 +64,7 @@ extern void otb_util_log_fn(char *text);
 extern void otb_util_log_store(void);
 char *otb_util_get_log_ram(uint8 index);
 extern void otb_util_log_save(char *text);
-extern void otb_util_assert(bool value, char *value_s);
+void otb_util_assert(bool value, char *value_s, char *file, uint32_t line);
 void otb_reset_schedule(uint32_t timeout,
                         const char *reason,
                         bool error);

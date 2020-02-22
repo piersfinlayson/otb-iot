@@ -690,6 +690,20 @@ bool ICACHE_FLASH_ATTR otb_cmd_set_boot_slot(unsigned char *next_cmd, void *arg,
 
 }
 
+bool ICACHE_FLASH_ATTR otb_cmd_trigger_assert(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+{
+  bool rc = FALSE;
+  
+  DEBUG("CMD: otb_cmd_trigger_assert entry");
+
+  OTB_ASSERT(FALSE);
+  rc = TRUE;
+
+  DEBUG("CMD: otb_cmd_trigger_assert exit");
+  
+  return rc;
+}
+
 char ALIGN4 otb_cmd_wipe_error_string[] = "Config wipe";
 bool ICACHE_FLASH_ATTR otb_cmd_trigger_wipe(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {

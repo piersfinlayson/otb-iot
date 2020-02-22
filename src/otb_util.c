@@ -802,7 +802,7 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
 }
 
 char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
-void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
+void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
 {
   DEBUG("UTIL: otb_util_assert entry");
 
@@ -811,6 +811,7 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s)
     otb_util_asserting = TRUE;
     ERROR("------------- ASSERTION FAILED -------------");
     ERROR_VAR(value_s);
+    ERROR("File: %s Line: %d", file, line);
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
     otb_reset_error(otb_util_assert_error_string);

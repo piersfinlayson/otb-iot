@@ -119,7 +119,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
 #ifndef ESPUT
 // #X passes a stringified version of X, which is used for logging purposes
-#define OTB_ASSERT(X) otb_util_assert(X, (char *)#X)
+#define OTB_ASSERT(X) otb_util_assert(X, (char *)#X, __FILE__, __LINE__)
 #else
 #define OTB_ASSERT(X)                                                     \
 {                                                                         \
