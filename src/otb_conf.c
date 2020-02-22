@@ -416,6 +416,20 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
     }
   }
 
+  for (ii = 0; ii < OTB_IP_MAX_DOMAIN_NAME_LEN; ii++)
+  {
+    if (conf->ip.domain_name[ii] == 0)
+    {
+      break;
+    }
+  }
+  if (ii >= OTB_IP_MAX_DOMAIN_NAME_LEN)
+  {
+    DETAIL("CONF: IP domain name invalid");
+    invalid = TRUE;
+    goto EXIT_LABEL;
+  }
+
 EXIT_LABEL:
 
   if (invalid)
@@ -559,6 +573,7 @@ void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail)
 {
   DEBUG("CONF: otb_conf_log_ip entry");
 
+  DETAIL("CONF: IP domain name:  %s", conf->ip.domain_name);
   if (conf->ip.manual == OTB_IP_DHCP_DHCP)
   {
     DETAIL("CONF: IP addressing: DHCP");

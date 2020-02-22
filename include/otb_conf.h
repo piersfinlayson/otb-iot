@@ -202,7 +202,11 @@ typedef struct otb_conf_relay
 
 typedef struct otb_conf_ip
 {
-  // Whether to use manual IP address information from this struct or DHCP
+  // Domain name valid for DHCP and manual
+#define OTB_IP_MAX_DOMAIN_NAME_LEN 64
+  char domain_name[OTB_IP_MAX_DOMAIN_NAME_LEN];
+  
+// Whether to use manual IP address information from this struct or DHCP
 #define OTB_IP_DHCP_DHCP   0  
 #define OTB_IP_DHCP_MANUAL 1  
   uint8_t manual;
@@ -223,7 +227,7 @@ typedef struct otb_conf_ip
   // DNS servers
   uint8_t dns1[4];
   uint8_t dns2[4];
-  
+
 } otb_conf_ip;
 
 typedef struct otb_conf_struct

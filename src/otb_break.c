@@ -229,6 +229,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       INFO(" MQTT Port:       %d", otb_conf->mqtt.port);
       INFO(" MQTT Username:   %s", otb_conf->mqtt.user);
       INFO(" MQTT Password:   %s", otb_conf->mqtt.pass);
+      INFO(" IP domain name:  %s", otb_conf->ip.domain_name);
       if (otb_conf->ip.manual == OTB_IP_DHCP_DHCP)
       {
         INFO(" IP addressing:   DHCP");
@@ -673,6 +674,17 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
       }
       break;
 
+    case OTB_BREAK_CONFIG_STATE_IP_IPV4_DOMAIN_NAME:
+      if (otb_break_collect_string(input))
+      {
+        os_strncpy(otb_conf->ip.domain_name, otb_break_string, OTB_IP_MAX_DOMAIN_NAME_LEN);
+        otb_conf->ip.domain_name[OTB_IP_MAX_DOMAIN_NAME_LEN-1] = 0;
+        INFO("  Set domain name to: %s", otb_conf->ip.domain_name);
+        otb_break_config_state = OTB_BREAK_CONFIG_STATE_MAIN;
+        persist = otb_break_config_persist ? TRUE : FALSE;
+      }
+      break;
+      
     default:
       OTB_ASSERT(FALSE);
       break;
@@ -859,6 +871,13 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       otb_break_clear_string();
       break;
 
+    case 'o':
+    case 'O':
+      INFO(" Domain name");
+      otb_break_config_state = OTB_BREAK_CONFIG_STATE_IP_IPV4_DOMAIN_NAME;
+      otb_break_clear_string();
+      break;
+
     case 'h':
     case 'H':
     case '?':
@@ -875,6 +894,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       INFO("  g - IPv4 gateway");
       INFO("  1 - DNS server 1");
       INFO("  2 - DNS server 2");
+      INFO("  o - Domain name suffix (not hostname)")
       INFO("  x - Exit");
       break;
 

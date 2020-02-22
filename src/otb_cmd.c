@@ -960,6 +960,11 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
       rc = TRUE;
       break;
 
+    case OTB_CMD_IP_DOMAIN:
+      otb_cmd_rsp_append(otb_conf->ip.domain_name);
+      rc = TRUE;
+      break;
+
     default:
       // Shouldn't get here
       OTB_ASSERT(FALSE);

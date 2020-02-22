@@ -163,7 +163,8 @@ extern otb_cmd_handler_fn otb_cmd_get_ip_info;
 #define OTB_CMD_IP_DNS1     3
 #define OTB_CMD_IP_DNS2     4
 #define OTB_CMD_IP_DHCP     5
-#define OTB_CMD_IP_TOTAL    6
+#define OTB_CMD_IP_DOMAIN     6
+#define OTB_CMD_IP_TOTAL    7
 
 // otb_cmd_control struct
 // 
@@ -266,6 +267,7 @@ typedef struct otb_cmd_control
 //       dns1
 //       dns2
 //       dhcp|manual
+//       domain|domain_name
 //   hat
 //     uuid
 //     pid
@@ -765,6 +767,8 @@ OTB_CMD_CONTROL(otb_cmd_control_get_info_ip)[] =
   {"dns2",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DNS2},
   {"dhcp",              NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DHCP},
   {"manual",            NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DHCP},
+  {"domain",            NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DOMAIN},
+  {"domain_name",       NULL, NULL,     otb_cmd_get_ip_info,       (void *)OTB_CMD_IP_DOMAIN},
   {OTB_CMD_FINISH}    
 };
 

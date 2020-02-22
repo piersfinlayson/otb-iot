@@ -108,6 +108,8 @@ void otb_util_disable_logging(void);
 void otb_util_enable_logging(void);
 extern void otb_util_log_error_via_mqtt(char *);
 extern size_t otb_util_strnlen(const char *s, size_t maxlen);
+bool otb_util_is_fqdn(unsigned char *dn);
+bool otb_util_is_ip(unsigned char *ip);
 extern void otb_init_mqtt(void *arg);
 extern void otb_init_ds18b20(void *arg);
 void otb_init_ads(void *arg);

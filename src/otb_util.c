@@ -1487,12 +1487,78 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   return;
 }
 
+// Returns true if is a fully qualified domain name
+bool ICACHE_FLASH_ATTR otb_util_is_fqdn(unsigned char *dn)
+{
+  int len;
+  bool is_dn = FALSE;
+  bool has_period = FALSE;
+  bool is_fqdn = FALSE;
+  int ii;
+
+  DEBUG("UTIL: otb_util_is_fqdn entry");
+
+  len = os_strlen(dn);
+  for (ii = 0; ii < len; ii++)
+  {
+    if (dn[ii] == '.')
+    {
+      has_period = TRUE;
+    }
+    else if ((dn[ii] < '0') || (dn[ii] > '9'))
+    {
+      is_dn = TRUE;
+    }
+  }
+
+  if (is_dn && has_period)
+  {
+    is_fqdn = TRUE;
+  }
+
+  DEBUG("UTIL: otb_util_is_fqdn exit");
+
+  return(is_fqdn);
+}
+
+bool ICACHE_FLASH_ATTR otb_util_is_ip(unsigned char *ip)
+{
+  uint8_t ipb[4];
+  bool rc;
+
+  DEBUG("UTIL: otb_util_is_ip entry");
+
+  rc = otb_util_parse_ipv4_str(ip, ipb);
+
+  DEBUG("UTIL: otb_util_is_ip exit");
+
+  return(rc);
+}
+
 void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
 {
+  unsigned char mqtt_svr[OTB_MQTT_MAX_SVR_LEN + OTB_IP_MAX_DOMAIN_NAME_LEN];
   DEBUG("OTB: otb_init_mqtt entry");
   
   DETAIL("OTB: Set up MQTT stack");
-  otb_mqtt_initialize(otb_conf->mqtt.svr,
+
+  // If the MQTT server isn't an IP
+  // and it isn't a fully qualified domain name
+  // and we do have a domain name suffix
+  // make a FQDN!
+  DETAIL("UTIL: Testing if we have an FQDN or IP address");
+  if (!otb_util_is_ip(otb_conf->mqtt.svr) &&
+      !otb_util_is_fqdn(otb_conf->mqtt.svr) &&
+      (otb_conf->ip.domain_name[0] != 0))
+  {
+    os_sprintf(mqtt_svr, "%s.%s", otb_conf->mqtt.svr, otb_conf->ip.domain_name);
+  }
+  else
+  {
+    os_sprintf(mqtt_svr, "%s", otb_conf->mqtt.svr);
+  }
+
+  otb_mqtt_initialize(mqtt_svr,
                       otb_conf->mqtt.port,
                       0,
                       OTB_MAIN_DEVICE_ID,
