@@ -204,7 +204,11 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_PINK, TRUE);
       if (otb_wifi_ap_enabled)
       {
-        OTB_ASSERT(otb_wifi_ap_sta_con_count >= 0);
+        if (otb_wifi_ap_sta_con_count < 0)
+        {
+          WARN("WIFI: WiFi AP stations connected was negative");
+        }
+        otb_wifi_ap_sta_con_count = 0;
         otb_wifi_ap_sta_con_count++;
       };
       goto EXIT_LABEL;
@@ -216,8 +220,14 @@ void ICACHE_FLASH_ATTR otb_wifi_event_handler(System_Event_t *event)
       otb_led_wifi_update(OTB_LED_NEO_COLOUR_RED, TRUE);
       if (otb_wifi_ap_enabled)
       {
+        // This seems to happen if station is connected when otb-iot reboots
+        // When it comes back we get a disconnection triggered
         otb_wifi_ap_sta_con_count--;
-        OTB_ASSERT(otb_wifi_ap_sta_con_count >= 0);
+        if (otb_wifi_ap_sta_con_count < 0)
+        {
+          DETAIL("WIFI: WiFi AP stations connected went negative");
+        }
+        otb_wifi_ap_sta_con_count = 0;
       };
       goto EXIT_LABEL;
       break;
