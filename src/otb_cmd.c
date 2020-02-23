@@ -1037,5 +1037,3 @@ bool ICACHE_FLASH_ATTR xxx(unsigned char *next_cmd, void *arg)
   return rc;
 
 }
-
-
