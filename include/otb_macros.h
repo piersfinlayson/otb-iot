@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -99,9 +99,9 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #ifndef OTB_RBOOT_BOOTLOADER
 
 #define MDETAIL(...) LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define MINFO(...)   LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define MWARN(...)   LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define MERROR(...)  LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
+#define MINFO(...)   LOG(otb_log_module, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
+#define MWARN(...)   LOG(otb_log_module, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
+#define MERROR(...)  LOG(otb_log_module, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
 
 #define DETAIL(...)  LOG(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
 #define INFO(...)    LOG(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
@@ -154,6 +154,12 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define ERROR(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define DEBUG(FORMAT, ...)  
 
+#define MDETAIL(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MINFO(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MWARN(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MERROR(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MDEBUG(FORMAT, ...)  
+
 #define DETAIL_VAR(FORMAT, ...)  DETAIL(FORMAT, ##__VA_ARGS__)
 #define INFO_VAR(FORMAT, ...)  INFO(FORMAT, ##__VA_ARGS__)
 #define WARN_VAR(FORMAT, ...)  WARN(FORMAT, ##__VA_ARGS__)
@@ -176,6 +182,9 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 }
 
 #endif // OTB_RBOOT_BOOTLOADER
+
+#define ENTRY  MDEBUG("Function: %s %s", __FUNCTION__, "entry")
+#define EXIT   MDEBUG("Function: %s %s", __FUNCTION__, "exit")
 
 #ifndef ESPUT
 #define os_vsnprintf(A, B, ...)  ets_vsnprintf(A, B, __VA_ARGS__)

@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,6 +21,8 @@
 #include "otb.h"
 #include "brzo_i2c.h"
 
+MLOG("24XXYY");
+
 #ifdef OTB_RBOOT_BOOTLOADER
 #undef ICACHE_FLASH_ATTR
 #define ICACHE_FLASH_ATTR
@@ -32,21 +34,21 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
   uint8_t buf[1];
   uint8_t word_addr = 0;
   
-  DEBUG("24XXYY: otb_i2c_24xxyy_test_timer_func entry");
+  ENTRY;
 
   if (otb_i2c_24xxyy_written)
   {
     // Off
-    DETAIL("24XXYY: Time to read");
+    MDETAIL("Time to read");
     buf[0] = 0;
     rc = otb_i2c_24xxyy_read_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
     {
-      WARN("24XXYY: Failed to communicate with 24XXYY");
+      MWARN("Failed to communicate with 24XXYY");
     }
     else
     {
-      DETAIL("24XXYY: Read byte 0x%02x", buf[0]);
+      MDETAIL("Read byte 0x%02x", buf[0]);
     }
     
     // Now toggle back
@@ -55,22 +57,22 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_timerfunc(void)
   else
   {
     // On
-    DETAIL("24XXYY: Time to write");
+    MDETAIL("Time to write");
     buf[0] = otb_i2c_24xxyy_next_byte;
     rc = otb_i2c_24xxyy_write_bytes(otb_i2c_24xxyy_test_addr, word_addr, buf, 1, &otb_i2c_bus_internal);
     if (!rc)
     {
-      WARN("24XXYY: Failed to communicate with 24XXYY");
+      MWARN("Failed to communicate with 24XXYY");
     }
     else
     {
-      DETAIL("24XXYY: Written byte 0x%02x", otb_i2c_24xxyy_next_byte);
+      MDETAIL("Written byte 0x%02x", otb_i2c_24xxyy_next_byte);
       otb_i2c_24xxyy_next_byte++;
     }
     otb_i2c_24xxyy_written = TRUE;
   }
   
-  DEBUG("24XXYY: otb_i2c_24xxyy_test_timer_func entry");
+  ENTRY;
 
   return;
 }
@@ -81,7 +83,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
 {
   bool rc = FALSE;
 
-  DEBUG("24XXYY: otb_i2c_24xxyy_test_init entry");
+  ENTRY;
 
   // Start off with a read
   otb_i2c_24xxyy_written = TRUE;
@@ -90,7 +92,7 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
   rc = otb_i2c_24xxyy_init(otb_i2c_24xxyy_test_addr, &otb_i2c_bus_internal);
   if (!rc)
   {
-    WARN("24XXYY: Failed to init 24XXYY at address 0x%02x", otb_i2c_24xxyy_test_addr);
+    MWARN("Failed to init 24XXYY at address 0x%02x", otb_i2c_24xxyy_test_addr);
     goto EXIT_LABEL;
   }
   
@@ -100,11 +102,11 @@ void ICACHE_FLASH_ATTR otb_i2c_24xxyy_test_init(void)
                      1000,
                      1);
                      
-  DETAIL("24XXYY: Initialized test");
+  MDETAIL("Initialized test");
   
 EXIT_LABEL:
   
-  DEBUG("24XXYY: otb_i2c_24xxyy_test_init exit");
+  EXIT;
 
   return;
 }
@@ -118,7 +120,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
   int ii;
   uint8_t reg;
   
-  DEBUG("24XXYY: otb_i2c_24xxyy_read_bytes entry");
+  ENTRY;
 
   // Need to write underlying functions to do sequential reads
   for (ii = 0; ii < num_bytes; ii++)
@@ -134,7 +136,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
     }
     if (!rc)
     {
-      DETAIL("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
+      MDETAIL("Failed to write addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
   
@@ -147,7 +149,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
     }
     if (!rc)
     {
-      DETAIL("24XXYY: Failed to read addr: 0x%02x", word_addr + ii);
+      MDETAIL("Failed to read addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
   }
@@ -156,7 +158,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr
   
 EXIT_LABEL:
 
-  DEBUG("24XXYY: otb_i2c_24xxyy_read_bytes exit");
+  EXIT;
 
   return rc;
 }
@@ -170,7 +172,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
   uint8_t buf[2];
   uint8_t reg;
   
-  DEBUG("24XXYY: otb_i2c_24xxyy_write_bytes entry");
+  ENTRY;
 
   // Need to write underlying functions to do sequential reads
   for (ii = 0; ii < num_bytes; ii++)
@@ -186,7 +188,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     }
     if (!rc)
     {
-      DETAIL("24XXYY: Failed to write addr: 0x%02x", word_addr + ii);
+      MDETAIL("Failed to write addr: 0x%02x", word_addr + ii);
       goto EXIT_LABEL;
     }
     
@@ -207,12 +209,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
     }
     if (!rc)
     {
-      DETAIL("24XXYY: Device failed to perform write");
+      MDETAIL("Device failed to perform write");
       break;
     }
     else
     {
-      DETAIL("24XXYY: Polls: %d", jj+1);
+      MDETAIL("Polls: %d", jj+1);
     }
   }
   
@@ -220,7 +222,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_add
   
 EXIT_LABEL:
 
-  DEBUG("24XXYY: otb_i2c_24xxyy_write_bytes exit");
+  EXIT;
 
   return rc;
 }
@@ -235,7 +237,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info)
   bool rc = FALSE;
   uint8_t val;
 
-  DEBUG("24XXYY: otb_i2c_24xxyy_init entry");
+  ENTRY;
 
   // Just try and read the current word (0x0?)
   brzo_i2c_start_transaction_info(addr, 100, info);
@@ -247,12 +249,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info)
   }
   else
   {
-    DETAIL("24XXYY: Failed: %d", brzo_rc);
+    MDETAIL("Failed: %d", brzo_rc);
   }
   
 EXIT_LABEL:
 
-  DEBUG("24XXYY: otb_i2c_24xxyy_init exit");
+  EXIT;
 
   return rc;
 }
@@ -267,7 +269,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_ad
   // Perform a write operation, with the MSB folllowed by LSB of start_addr
   // Perform read operations, for the total number of bytes required
 
-  DEBUG("24XXYY: otb_i2c_24xx128_read_data entry");
+  ENTRY;
   
   // 16 KB (128kbit) eeprom
   OTB_ASSERT(bytes <= (128*1024/8));
@@ -279,7 +281,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_ad
   brzo_rc = brzo_i2c_end_transaction_info(info);
   if (brzo_rc)
   {
-    DEBUG("24XXYY: write of address to read from failed: %d", brzo_rc);
+    MDEBUG("write of address to read from failed: %d", brzo_rc);
     goto EXIT_LABEL;
   }
   
@@ -288,7 +290,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_ad
   brzo_rc = brzo_i2c_end_transaction_info(info);
   if (brzo_rc)
   {
-    DEBUG("24XXYY: read failed: %d", brzo_rc);
+    MDEBUG("read failed: %d", brzo_rc);
     goto EXIT_LABEL;
   }
   
@@ -296,7 +298,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_ad
   
 EXIT_LABEL:
   
-  DEBUG("24XXYY: otb_i2c_24xx128_read_data exit");
+  EXIT;
   
   return rc;
 }

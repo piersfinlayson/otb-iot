@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,6 +20,8 @@
 #define OTB_I2C_C
 #include "otb.h"
 #include "brzo_i2c.h"
+
+MLOG("I2C");
 
 #ifdef OTB_RBOOT_BOOTLOADER
 #undef ICACHE_FLASH_ATTR
@@ -51,13 +53,13 @@ otb_i2c_ads_samples *otb_i2c_ads_samples_array[OTB_CONF_ADS_MAX_ADSS] = { 0 };
 void ICACHE_FLASH_ATTR otb_i2c_initialize_bus_internal()
 {
   
-  DEBUG("I2C: otb_i2c_initialize_bus_internal entry");
+  ENTRY;
 
   otb_i2c_initialize_bus(&otb_i2c_bus_internal,
                          OTB_I2C_BUS_INTERNAL_SDA_PIN,
                          OTB_I2C_BUS_INTERNAL_SCL_PIN);
 
-  DEBUG("I2C: otb_i2c_initialize_bus_internal exit");
+  EXIT;
   
 }
 
@@ -66,7 +68,7 @@ void ICACHE_FLASH_ATTR otb_i2c_initialize_bus(brzo_i2c_info *info,
                                               uint8_t scl_pin)
 {
 
-  DEBUG("I2C: otb_i2c_initialize_bus entry");
+  ENTRY;
   
   OTB_ASSERT(info != NULL);
 
@@ -86,7 +88,7 @@ void ICACHE_FLASH_ATTR otb_i2c_initialize_bus(brzo_i2c_info *info,
 
   brzo_i2c_setup_info(info);
 
-  DEBUG("I2C: otb_i2c_initialize_bus exit");
+  EXIT;
 
   return;
 }
@@ -98,7 +100,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_disable_all_timers(void)
   otb_i2c_ads_samples *samples;
   int ii;
   
-  DEBUG("I2C: otb_i2c_ads_disable_all_timers entry");
+  ENTRY;
   
   os_timer_disarm((os_timer_t*)&otb_ads_timer);
   for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
@@ -110,13 +112,13 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_disable_all_timers(void)
   }
   
   
-  DEBUG("I2C: otb_i2c_ads_disable_all_timers exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_ads_build_msb_lsb_conf(otb_conf_ads *ads, uint8 *msb, uint8 *lsb)
 {
   
-  DEBUG("I2C: otb_ads_build_msb_lsb_conf entry");
+  ENTRY;
 
   // MSB
   // Bit 15        1 = begin conversion
@@ -133,9 +135,9 @@ void ICACHE_FLASH_ATTR otb_ads_build_msb_lsb_conf(otb_conf_ads *ads, uint8 *msb,
   // Bits 1:0     11 = Disable comparator
   *lsb = (ads->rate << 5) | (0b00000) | (0b0000) | (0b000) | (0b11);
   
-  DEBUG("I2C: msb 0x%02x lsb 0x%02x", *msb, *lsb);
+  MDEBUG("msb 0x%02x lsb 0x%02x", *msb, *lsb);
 
-  DEBUG("I2C: otb_ads_build_msb_lsb_conf exit");
+  EXIT;
   
   return;
 }
@@ -146,12 +148,12 @@ bool ICACHE_FLASH_ATTR otb_ads_configure(otb_conf_ads *ads)
   uint8 msb;
   uint8 lsb;
 
-  DEBUG("I2C: otb_ads_configure entry");
+  ENTRY;
   
   otb_ads_build_msb_lsb_conf(ads, &msb, &lsb);
   rc = otb_i2c_ads_set_cont_mode(ads->addr, msb, lsb);
 
-  DEBUG("I2C: otb_ads_configure exit");
+  EXIT;
   
   return rc;
 }
@@ -159,7 +161,7 @@ bool ICACHE_FLASH_ATTR otb_ads_configure(otb_conf_ads *ads)
 void ICACHE_FLASH_ATTR otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_samples *samples)
 {
 
-  DEBUG("I2C: otb_i2c_ads_init_samples entry");
+  ENTRY;
   
   OTB_ASSERT(sizeof(otb_i2c_ads_rms_samples) == sizeof(otb_i2c_ads_nonrms_samples));
 
@@ -167,7 +169,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_init_samples(otb_conf_ads *ads, otb_i2c_ads_s
   os_memset(samples, 0, sizeof(otb_i2c_ads_samples));
   samples->ads = ads;
   
-  DEBUG("I2C: otb_i2c_ads_init_samples exit");
+  EXIT;
 
   return;
 }
@@ -176,13 +178,13 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_on_timer(void *arg)
 {
   otb_i2c_ads_samples *samples;
   
-  DEBUG("I2C: otb_i2c_ads_on_timer entry");
+  ENTRY;
   
   OTB_ASSERT(arg != NULL);
   samples = (otb_i2c_ads_samples *)arg;
   otb_i2c_ads_start_sample(samples);
   
-  DEBUG("I2C: otb_i2c_ads_on_timer exit");
+  EXIT;
   
   return;
 }
@@ -191,13 +193,13 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_sample_timer(void *arg)
 {
   otb_i2c_ads_samples *samples;
   
-  DEBUG("I2C: otb_i2c_ads_sample_timer entry");
+  ENTRY;
   
   OTB_ASSERT(arg != NULL);
   samples = (otb_i2c_ads_samples *)arg;
   otb_i2c_ads_get_sample(samples);
   
-  DEBUG("I2C: otb_i2c_ads_sample_timer exit");
+  EXIT;
   
   return;
 }
@@ -206,7 +208,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_start_sample(otb_i2c_ads_samples *samples)
 {
   bool rc;
 
-  DEBUG("I2C: otb_i2c_ads_start_sample entry");
+  ENTRY;
   
   os_timer_disarm((os_timer_t*)&(samples->timer));
   os_timer_setfn((os_timer_t*)&(samples->timer), (os_timer_func_t *)otb_i2c_ads_sample_timer, samples);
@@ -224,7 +226,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_start_sample(otb_i2c_ads_samples *samples)
     os_timer_arm_us((os_timer_t*)&(samples->timer), (1000000/860)+1, 1);  
   }
 
-  DEBUG("I2C: otb_i2c_ads_start_sample exit");
+  EXIT;
   
   return;
 }
@@ -234,12 +236,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_read_rms_sample(otb_i2c_ads_samples *samples)
   bool rc;
   otb_i2c_ads_rms_samples *rms_samples;
   
-  DEBUG("I2c: otb_i2c_ads_read_rms_sample entry");
+  ENTRY;
   
   rms_samples = (otb_i2c_ads_rms_samples *)samples;
   rc = otb_i2c_ads_read(samples->ads->addr, &(rms_samples->samples[samples->next_sample]));
   
-  DEBUG("I2c: otb_i2c_ads_read_rms_sample exit");
+  EXIT;
 
   return rc;
 }
@@ -249,12 +251,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_read_nonrms_sample(otb_i2c_ads_samples *sampl
   bool rc;
   otb_i2c_ads_nonrms_samples *nonrms_samples;
   
-  DEBUG("I2c: otb_i2c_ads_read_nonrms_sample entry");
+  ENTRY;
   
   nonrms_samples = (otb_i2c_ads_nonrms_samples *)samples;
   rc = otb_i2c_ads_read(samples->ads->addr, &(nonrms_samples->samples[samples->next_sample]));
   
-  DEBUG("I2c: otb_i2c_ads_read_nonrms_sample exit");
+  EXIT;
 
   return rc;
 }
@@ -267,7 +269,7 @@ uint16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_rms_samples(otb_i2c_ads_samples *s
   int ii;
   uint32_t working;
 
-  DEBUG("I2C: otb_i2c_ads_finish_rms_samples entry");
+  ENTRY;
 
   rms_samples = (otb_i2c_ads_rms_samples *)samples;
   sum = 0;
@@ -281,7 +283,7 @@ uint16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_rms_samples(otb_i2c_ads_samples *s
   OTB_ASSERT(working < 0xffff);
   val = (uint16_t)working;
 
-  DEBUG("I2C: otb_i2c_ads_finish_rms_samples exit");
+  EXIT;
   
   return val;
 }
@@ -294,7 +296,7 @@ int16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_nonrms_samples(otb_i2c_ads_samples 
   int ii;
   int working;
 
-  DEBUG("I2C: otb_i2c_ads_finish_nonrms_samples entry");
+  ENTRY;
 
   nonrms_samples = (otb_i2c_ads_nonrms_samples *)samples;
   sum = 0;
@@ -306,7 +308,7 @@ int16_t ICACHE_FLASH_ATTR otb_i2c_ads_finish_nonrms_samples(otb_i2c_ads_samples 
   working = sum/(samples->ads->samples);
   val = (int16_t)working;
 
-  DEBUG("I2C: otb_i2c_ads_finish_nonrms_samples exit");
+  EXIT;
   
   return val;
 }
@@ -318,7 +320,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_sample(otb_i2c_ads_samples *samples)
   otb_i2c_ads_rms_samples rms_samples;
   otb_i2c_ads_nonrms_samples nonrms_samples;
   
-  DEBUG("I2C: otb_i2c_ads_get_sample entry");
+  ENTRY;
 
   // Get a sample
   if (samples->ads->rms)
@@ -365,13 +367,13 @@ EXIT_LABEL:
   else
   {
     // Failed, give up this time around - will sent MQTT message if connected
-    ERROR("I2C: Failed to collect samples from ADS %d 0x%02x", samples->ads->index, samples->ads->addr);
+    MERROR("Failed to collect samples from ADS %d 0x%02x", samples->ads->index, samples->ads->addr);
     os_timer_disarm((os_timer_t*)&(samples->timer));
     // Reinitialise samples!    
     otb_i2c_ads_init_samples(samples->ads, samples);
   }
 
-  DEBUG("I2C: otb_i2c_ads_get_sample exit");
+  EXIT;
 
   return rc;
 }
@@ -399,7 +401,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples)
 #define OTB_I2C_ADS_ON_TIMER_TRANSFORMER_TURNS 2000
 #define OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE 245 // measured with isotech dmm, but will vary
 
-  DEBUG("I2C: otb_i2c_ads_finish_sample entry");
+  ENTRY;
   
   ads = samples->ads;
   // Different messages if RMS or not (in latter case may be negative)
@@ -463,8 +465,8 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples)
               OTB_MAIN_CHIPID,
               OTB_MQTT_ADC,
               ads->loc);
-  DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
-  DEBUG("I2C:       message: %s", message);
+  MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
+  MDEBUG("      message: %s", message);
   MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message, chars, 0, 0);
 
   os_snprintf(otb_mqtt_topic_s,
@@ -477,11 +479,11 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples)
               OTB_MAIN_CHIPID,
               OTB_MQTT_POWER,
               ads->loc);
-  DEBUG("I2C: Publish topic: %s", otb_mqtt_topic_s);
-  DEBUG("I2C:       message: %s", message_mains);
+  MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
+  MDEBUG("      message: %s", message_mains);
   MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message_mains, chars_mains, 0, 0);
 
-  DEBUG("I2C: otb_i2c_ads_finish_sample exit");
+  EXIT;
   
   return;
 }
@@ -490,14 +492,14 @@ bool ICACHE_FLASH_ATTR otb_i2c_init()
 {
   bool rc = FALSE;
 
-  DEBUG("I2C: otb_i2c_init entry");
+  ENTRY;
 
   //i2c_master_gpio_init();
   otb_brzo_i2c_setup(0);
   otb_i2c_initialized = TRUE;
   rc = TRUE;
 
-  DEBUG("I2C: otb_i2c_init exit");
+  EXIT;
 
   return(rc);
 }
@@ -507,7 +509,7 @@ char ICACHE_FLASH_ATTR *otb_i2c_mqtt_error_write(char *error)
   int len = 0;
   //char buffer[128];
   
-  // DEBUG("I2C: otb_i2c_mqtt_error_write entry");
+  ENTRY;
   
   //otb_util_copy_flash_to_ram(buffer, error, 128);
   
@@ -515,7 +517,7 @@ char ICACHE_FLASH_ATTR *otb_i2c_mqtt_error_write(char *error)
   otb_i2c_mqtt_error[0] = 0;
   len = os_snprintf(otb_i2c_mqtt_error, OTB_I2C_MQTT_ERROR_LEN, "%s", error);
   
-  // DEBUG("I2C: otb_i2c_mqtt_error_write exit");
+  EXIT;
   
   return(otb_i2c_mqtt_error);
 }
@@ -526,9 +528,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_mqtt_get_addr(char *byte, uint8 *addr)
   int ii;
   bool rc = FALSE;
 
-  DEBUG("I2C: otb_i2c_mqtt_get_addr entry");
+  ENTRY;
   
-  DEBUG("I2C: Decode bytes: %c %c", byte[0], byte[1]);
+  MDEBUG("Decode bytes: %c %c", byte[0], byte[1]);
   if (byte != NULL)
   {
     if ((byte[0] != 0) && (byte[1] != 0))
@@ -599,9 +601,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_mqtt_get_addr(char *byte, uint8 *addr)
   
 EXIT_LABEL:  
 
-  DEBUG("I2C: address 0x%02x", *addr);
+  MDEBUG("address 0x%02x", *addr);
 
-  DEBUG("I2C: otb_i2c_mqtt_get_addr exit");
+  EXIT;
 
   return(rc);      
 }
@@ -612,7 +614,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_mqtt_get_num(char *byte, int *num)
   int ii;
   bool rc = TRUE;
 
-  DEBUG("I2C: otb_i2c_mqtt_get_num entry");
+  ENTRY;
   
   *num=0;
   if (byte != NULL)
@@ -671,9 +673,9 @@ bool ICACHE_FLASH_ATTR otb_i2c_mqtt_get_num(char *byte, int *num)
   
 EXIT_LABEL:  
 
-  DEBUG("I2C: num %d", *num);
+  MDEBUG("num %d", *num);
 
-  DEBUG("I2C: otb_i2c_mqtt_get_num exit");
+  EXIT;
 
   return(rc);      
 }
@@ -684,12 +686,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
   int ii;
   bool rc = TRUE;
 
-  DEBUG("I2C: otb_i2c_mqtt_get_binary_val entry");
+  ENTRY;
   
   *num=0;
   if (byte != NULL)
   {
-    DETAIL("I2C: byte value: %s", byte);
+    MDETAIL("byte value: %s", byte);
     for (ii = 0; ii < 8; ii++)
     {
       digit = 0;
@@ -719,15 +721,15 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_get_binary_val(char *byte, uint8_t *num)
   }
   else
   {
-    DETAIL("I2C: Null string passed in");
+    MDETAIL("Null string passed in");
     rc = FALSE;
   }
   
 EXIT_LABEL:  
 
-  DEBUG("I2C: num %d", *num);
+  MDEBUG("num %d", *num);
 
-  DEBUG("I2C: otb_i2c_mqtt_get_binary_val exit");
+  EXIT;
 
   return(rc);      
 }
@@ -739,7 +741,7 @@ void ICACHE_FLASH_ATTR otb_i2c_mqtt(char *cmd, char **sub_cmd)
   rc = FALSE;
   uint8 addr;
   
-  DEBUG("I2C: otb_i2c_mqtt entry");
+  ENTRY;
   
   if (sub_cmd[0] == NULL)
   {
@@ -807,7 +809,7 @@ void ICACHE_FLASH_ATTR otb_i2c_mqtt(char *cmd, char **sub_cmd)
     otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
   }
 
-  DEBUG("I2C: otb_i2c_mqtt exit");
+  EXIT;
 
 }
 
@@ -818,7 +820,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_mqtt(char *cmd, char **sub_cmd)
   rc = FALSE;
   uint8 addr;
   
-  DEBUG("I2C: otb_i2c_ads_mqtt entry");
+  ENTRY;
   
   error = "";
   if (sub_cmd[1] != NULL)
@@ -985,7 +987,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_mqtt(char *cmd, char **sub_cmd)
     otb_mqtt_send_status(cmd, OTB_MQTT_STATUS_ERROR, error, "");
   }
 
-  DEBUG("I2C: otb_i2c_ads_mqtt exit");
+  EXIT;
 
 }
 
@@ -995,7 +997,7 @@ bool ICACHE_RAM_ATTR otb_i2c_test(uint8 addr)
   bool rc = FALSE;
   uint8_t buffer[1];
   
-  DEBUG("I2C: otb_i2c_test entry");
+  ENTRY;
   
   brzo_i2c_start_transaction(addr, 100);
   buffer[0] = 0b0;
@@ -1007,7 +1009,7 @@ bool ICACHE_RAM_ATTR otb_i2c_test(uint8 addr)
     rc = TRUE;
   }
     
-  DEBUG("I2C: otb_i2c_test exit");
+  EXIT;
   
   return(rc);
 }
@@ -1018,7 +1020,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 lsb)
   uint8_t brzo_rc;
   uint8_t buffer[3];
 
-  DEBUG("I2C: otb_i2c_ads_set_cont_mode entry");
+  ENTRY;
   
   brzo_i2c_start_transaction(addr, 100);
   buffer[0] = 0b00000001;
@@ -1043,10 +1045,10 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_cont_mode(uint8 addr, uint8 msb, uint8 lsb)
   }
   else
   {
-    ERROR("I2C: brzo_rc = 0x%02x", brzo_rc);
+    MERROR("brzo_rc = 0x%02x", brzo_rc);
   }
   
-  DEBUG("I2C: otb_i2c_ads_set_cont_mode exit");
+  EXIT;
 
   return rc;
 }
@@ -1056,7 +1058,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_read_mode(uint8 addr, uint8 mode)
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_ads_set_read_mode entry");
+  ENTRY;
 
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(&mode, 1, FALSE);
@@ -1066,7 +1068,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_set_read_mode(uint8 addr, uint8 mode)
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_ads_set_read_mode exit");
+  EXIT;
   
   return(rc);
 }
@@ -1077,7 +1079,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_read(uint8 addr, int16_t *val)
   bool rc = FALSE;
   uint8_t buffer[2];
   
-  DEBUG("I2C: otb_i2c_ads_read entry");
+  ENTRY;
 
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_read(buffer, 2, FALSE);
@@ -1090,7 +1092,7 @@ bool ICACHE_RAM_ATTR otb_i2c_ads_read(uint8 addr, int16_t *val)
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_ads_read exit");
+  EXIT;
 
   return rc;
 }
@@ -1129,13 +1131,13 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_range(uint8 addr, int num, int16_t *result, i
   uint32 start_time;
   uint32 end_time;
   
-  DEBUG("I2C: otb_i2c_ads_range entry");
+  ENTRY;
   
-  DEBUG("I2C: Get range %d", num);
+  MDEBUG("Get range %d", num);
   
   if (num > 1024)
   {
-    WARN("I2C: Too many samples requested - max is 1024");
+    MWARN("Too many samples requested - max is 1024");
     goto EXIT_LABEL;
   }
   
@@ -1146,7 +1148,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_range(uint8 addr, int num, int16_t *result, i
     rc = otb_i2c_ads_read(addr, &(samples[ii]));
     if (!rc)
     {
-      WARN("I2C: Failed to read sample num %d", ii+1);
+      MWARN("Failed to read sample num %d", ii+1);
       goto EXIT_LABEL;
     }
     // Worked out experimentally base don 860SPS.
@@ -1165,14 +1167,14 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_range(uint8 addr, int num, int16_t *result, i
   
   working = sum/num;
   *result = (int16_t)working;
-  DETAIL("I2C: Result %d working %d", *result, working);
+  MDETAIL("Result %d working %d", *result, working);
   // Check we haven't lost any data!
   OTB_ASSERT(*result == working);
   rc = TRUE;
 
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_ads_range exit");
+  EXIT;
   
   return rc;
 }
@@ -1189,13 +1191,13 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_rms_range(uint8 addr, int num, uint16_t *resu
   uint32 start_time;
   uint32 end_time;
   
-  DEBUG("I2C: otb_i2c_ads_rms_range entry");
+  ENTRY;
   
-  DEBUG("I2C: Get range %d", num);
+  MDEBUG("Get range %d", num);
   
   if (num > 1024)
   {
-    WARN("I2C: Too many samples requested - max is 1024");
+    MWARN("Too many samples requested - max is 1024");
     goto EXIT_LABEL;
   }
   
@@ -1206,7 +1208,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_rms_range(uint8 addr, int num, uint16_t *resu
     rc = otb_i2c_ads_read(addr, &sample);
     if (!rc)
     {
-      WARN("I2C: Failed to read sample num %d", ii+1);
+      MWARN("Failed to read sample num %d", ii+1);
       goto EXIT_LABEL;
     }
     samples[ii] = sample * sample;
@@ -1232,7 +1234,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_rms_range(uint8 addr, int num, uint16_t *resu
 
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_ads_rms_range exit");
+  EXIT;
   
   return rc;
 }
@@ -1242,7 +1244,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_get_addr(uint8_t addr, otb_conf_ads **ad
   bool rc = FALSE;
   int ii;
 
-  DEBUG("I2C: otb_i2c_ads_conf_get_addr entry");
+  ENTRY;
   
   for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
   {
@@ -1254,7 +1256,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_get_addr(uint8_t addr, otb_conf_ads **ad
     }
   }
   
-  DEBUG("I2C: otb_i2c_ads_conf_get_addr exit");
+  EXIT;
   
   return rc;
 }
@@ -1264,7 +1266,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_get_loc(char *loc, otb_conf_ads **ads)
   bool rc = FALSE;
   int ii;
 
-  DEBUG("I2C: otb_i2c_ads_conf_get_loc entry");
+  ENTRY;
 
   // Only match a non empty location
   if (loc[0] != 0)
@@ -1280,7 +1282,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_get_loc(char *loc, otb_conf_ads **ads)
     }
   }
   
-  DEBUG("I2C: otb_i2c_ads_conf_get_loc exit");
+  EXIT;
   
   return rc;
 }
@@ -1290,7 +1292,7 @@ int8_t ICACHE_FLASH_ATTR otb_i2c_ads_conf_field_match(char *field)
   int8_t match = -1; 
   int ii;
   
-  DEBUG("I2C: otb_i2c_ads_conf_field_match exit");
+  EXIT;
 
   for (ii = 0; ii < OTB_MQTT_I2C_ADS_FIELD_LAST_+1; ii++)
   {
@@ -1301,7 +1303,7 @@ int8_t ICACHE_FLASH_ATTR otb_i2c_ads_conf_field_match(char *field)
     }
   }
 
-  DEBUG("I2C: otb_i2c_ads_conf_field_match exit");
+  EXIT;
 
   return match;
 }
@@ -1311,7 +1313,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_valid_addr(unsigned char *to_match)
   bool rc = FALSE;
   uint8_t addr_b;
   
-  DEBUG("I2C: otb_i2c_ads_valid_addr entry");
+  ENTRY;
 
   if (!otb_i2c_mqtt_get_addr(to_match, &addr_b) ||
       (addr_b < 0x48) ||
@@ -1327,7 +1329,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_valid_addr(unsigned char *to_match)
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_ads_valid_addr exit");
+  EXIT;
 
  return rc;
 
@@ -1339,7 +1341,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_configured_addr(unsigned char *to_match)
   uint8_t addr_b;
   otb_conf_ads *ads;
 
-  DEBUG("I2C: otb_i2c_ads_configured_addr entry");
+  ENTRY;
   
   if (!otb_i2c_mqtt_get_addr(to_match, &addr_b) ||
       (addr_b < 0x48) ||
@@ -1361,7 +1363,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_configured_addr(unsigned char *to_match)
   
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_ads_configured_addr exit");
+  EXIT;
   
   return rc;
   
@@ -1387,7 +1389,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
   uint8_t type;
   int offset;
     
-  DEBUG("I2C: otb_i2c_ads_conf_set entry");
+  ENTRY;
 
   cmd = (int)arg;
   OTB_ASSERT((cmd >= 0) && (cmd < OTB_CMD_ADS_NUM));
@@ -1413,7 +1415,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
     {
       if (otb_conf->ads[slot].addr == 0)
       {
-        DEBUG("I2C: Found empty slot %d", slot);
+        MDEBUG("Found empty slot %d", slot);
         ads = otb_conf->ads + slot;
         break;
       }
@@ -1481,7 +1483,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_set(unsigned char *next_cmd, void *arg, 
       
       if (!rc || (val < min) || (val > max))
       {
-        DETAIL("I2C: rc: %d min: %d max: %d val: %d", rc, min, max, val);
+        MDETAIL("rc: %d min: %d max: %d val: %d", rc, min, max, val);
         otb_cmd_rsp_append("invalid value");
         rc = FALSE;
         goto EXIT_LABEL;
@@ -1517,7 +1519,7 @@ EXIT_LABEL:
     }
   }
 
-  DEBUG("I2C: otb_i2c_ads_conf_set exit");
+  EXIT;
   
   return rc;
   
@@ -1533,7 +1535,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_ads_conf_delete(unsigned char *next_cmd,
   char *addr;
   uint8_t addr_b;
   
-  DEBUG("I2C: otb_i2c_ads_conf_delete entry");
+  ENTRY;
   
   cmd = (int)arg;
 
@@ -1572,7 +1574,7 @@ EXIT_LABEL:
     }
   }
 
-  DEBUG("I2C: otb_i2c_ads_conf_delete exit");
+  EXIT;
   
   return rc;
 }
@@ -1588,7 +1590,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_conf_get(char *addr, char *field, char *field
   char *real_field = field;
   int8_t field_i;
 
-  DEBUG("I2C: otb_i2c_ads_conf_get entry");
+  ENTRY;
   
   // Check "addr" isn't really an index
   if (addr == NULL)
@@ -1608,7 +1610,7 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_conf_get(char *addr, char *field, char *field
     }
     // Get slot number
     slot_num = atoi(field);
-    DEBUG("I2C: index %d", slot_num);
+    MDEBUG("index %d", slot_num);
     if ((slot_num >= 0) && (slot_num < otb_conf->adss))
     {
       ads = otb_conf->ads + slot_num;
@@ -1707,7 +1709,7 @@ EXIT_LABEL:
                          response);
   }
   
-  DEBUG("I2C: otb_i2c_ads_conf_get exit");
+  EXIT;
   
   return;
 }
@@ -1716,11 +1718,11 @@ bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg(uint8_t addr, uint8_t reg, uint8_t 
 {
   bool rc;
 
-  DEBUG("I2C: otb_i2c_write_one_reg entry");
+  ENTRY;
   
   rc = otb_i2c_write_reg_seq(addr, reg, 1, &val);
   
-  DEBUG("I2C: otb_i2c_write_one_reg exit");
+  EXIT;
   
   return rc;
 }
@@ -1732,7 +1734,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t co
   bool rc = FALSE;
   int ii;
 
-  DEBUG("I2C: otb_i2c_write_reg_seq entry");
+  ENTRY;
 
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(&reg, 1, FALSE);
@@ -1743,7 +1745,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq(uint8_t addr, uint8_t reg, uint8_t co
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_reg_seq exit");
+  EXIT;
 
   return rc;
 }
@@ -1752,11 +1754,11 @@ bool ICACHE_FLASH_ATTR otb_i2c_read_one_reg(uint8_t addr, uint8_t reg, uint8_t *
 {
   bool rc;
 
-  DEBUG("I2C: otb_i2c_read_one_reg entry");
+  ENTRY;
   
   rc = otb_i2c_read_reg_seq(addr, reg, 1, val);
   
-  DEBUG("I2C: otb_i2c_read_one_reg exit");
+  EXIT;
   
   return rc;
 }
@@ -1768,7 +1770,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t cou
   bool rc = FALSE;
   int ii;
   
-  DEBUG("I2C: otb_i2c_read_reg_seq entry");
+  ENTRY;
   
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(&reg, 1, FALSE);
@@ -1779,7 +1781,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq(uint8_t addr, uint8_t reg, uint8_t cou
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_read_reg_seq exit");
+  EXIT;
   
   return rc;
 }
@@ -1789,7 +1791,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals(uint8_t addr, uint8_t count, uint8_t
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_write_seq_vals entry");
+  ENTRY;
   
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(val, count, FALSE);
@@ -1799,7 +1801,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals(uint8_t addr, uint8_t count, uint8_t
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_seq_vals exit");
+  EXIT;
   
   return rc;
 }
@@ -1809,7 +1811,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_one_val(uint8_t addr, uint8_t val)
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_write_one_val entry");
+  ENTRY;
   
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_write(&val, 1, FALSE);
@@ -1819,7 +1821,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_one_val(uint8_t addr, uint8_t val)
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_one_val exit");
+  EXIT;
   
   return rc;
 }
@@ -1829,7 +1831,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_one_val(uint8_t addr, uint8_t *val)
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_read_one_val entry");
+  ENTRY;
 
   brzo_i2c_start_transaction(addr, 100);
   brzo_i2c_read(val, 1, FALSE);
@@ -1839,7 +1841,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_one_val(uint8_t addr, uint8_t *val)
     rc = TRUE;
   }
 
-  DEBUG("I2C: otb_i2c_read_one_val exit");
+  EXIT;
   
   return rc;
 }
@@ -1848,11 +1850,11 @@ bool ICACHE_FLASH_ATTR otb_i2c_write_one_reg_info(uint8_t addr, uint8_t reg, uin
 {
   bool rc;
 
-  DEBUG("I2C: otb_i2c_write_one_reg entry");
+  ENTRY;
   
   rc = otb_i2c_write_reg_seq_info(addr, reg, 1, &val, info);
   
-  DEBUG("I2C: otb_i2c_write_one_reg exit");
+  EXIT;
   
   return rc;
 }
@@ -1864,7 +1866,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq_info(uint8_t addr, uint8_t reg, uint8
   bool rc = FALSE;
   int ii;
 
-  DEBUG("I2C: otb_i2c_write_reg_seq_info entry");
+  ENTRY;
 
   brzo_i2c_start_transaction_info(addr, 100, info);
   brzo_i2c_write_info(&reg, 1, TRUE, info);
@@ -1875,7 +1877,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_reg_seq_info(uint8_t addr, uint8_t reg, uint8
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_reg_seq_info exit");
+  EXIT;
 
   return rc;
 }
@@ -1884,11 +1886,11 @@ bool ICACHE_FLASH_ATTR otb_i2c_read_one_reg_info(uint8_t addr, uint8_t reg, uint
 {
   bool rc;
 
-  DEBUG("I2C: otb_i2c_read_one_reg_info entry");
+  ENTRY;
   
   rc = otb_i2c_read_reg_seq_info(addr, reg, 1, val, info);
   
-  DEBUG("I2C: otb_i2c_read_one_reg_info exit");
+  EXIT;
   
   return rc;
 }
@@ -1900,7 +1902,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq_info(uint8_t addr, uint8_t reg, uint8_
   bool rc = FALSE;
   int ii;
   
-  DEBUG("I2C: otb_i2c_read_reg_seq_info entry");
+  ENTRY;
   
   brzo_i2c_start_transaction_info(addr, 100, info);
   brzo_i2c_write_info(&reg, 1, FALSE, info);
@@ -1911,7 +1913,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_reg_seq_info(uint8_t addr, uint8_t reg, uint8_
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_read_reg_seq_info exit");
+  EXIT;
   
   return rc;
 }
@@ -1921,7 +1923,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals_info(uint8_t addr, uint8_t count, ui
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_write_seq_vals_info entry");
+  ENTRY;
   
   brzo_i2c_start_transaction_info(addr, 100, info);
   brzo_i2c_write_info(val, count, FALSE, info);
@@ -1931,7 +1933,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_seq_vals_info(uint8_t addr, uint8_t count, ui
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_seq_vals_info exit");
+  EXIT;
   
   return rc;
 }
@@ -1941,7 +1943,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_one_val_info(uint8_t addr, uint8_t val, brzo_
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_write_one_val_info entry");
+  ENTRY;
   
   brzo_i2c_start_transaction_info(addr, 100, info);
   brzo_i2c_write_info(&val, 1, FALSE, info);
@@ -1951,7 +1953,7 @@ bool ICACHE_RAM_ATTR otb_i2c_write_one_val_info(uint8_t addr, uint8_t val, brzo_
     rc = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_write_one_val_info exit");
+  EXIT;
   
   return rc;
 }
@@ -1961,7 +1963,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_one_val_info(uint8_t addr, uint8_t *val, brzo_
   uint8_t brzo_rc;
   bool rc = FALSE;
   
-  DEBUG("I2C: otb_i2c_read_one_val_info entry");
+  ENTRY;
 
   brzo_i2c_start_transaction_info(addr, 100, info);
   brzo_i2c_read_info(val, 1, FALSE, info);
@@ -1971,7 +1973,7 @@ bool ICACHE_RAM_ATTR otb_i2c_read_one_val_info(uint8_t addr, uint8_t *val, brzo_
     rc = TRUE;
   }
 
-  DEBUG("I2C: otb_i2c_read_one_val_info exit");
+  EXIT;
   
   return rc;
 }

@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2018 Piers Finlayson
+ * Copyright (C) 2018-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,3 +20,5 @@
 
 #define OTB_FONT_C
 #include "otb.h"
+
+MLOG("FONT");

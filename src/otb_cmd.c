@@ -23,12 +23,14 @@
 #include "otb.h"
 #include <stdarg.h>
 
+MLOG("CMD");
+
 otb_cmd_control ICACHE_FLASH_ATTR *otb_cmd_load_cmd_control_from_flash(otb_cmd_control *ctrl)
 {
   otb_cmd_control *rc = (otb_cmd_control *)&otb_cmd_control_flash_buf;
   int ii;
 
-  DEBUG("CMD: otb_cmd_load_cmd_control_from_flash entry");
+  ENTRY;
 
   // This is a bit inefficient - we always read in whole of buf size even though
   // cmd_control structure is unlikely to be that long.  <Shrugs> - it's easier
@@ -39,7 +41,7 @@ otb_cmd_control ICACHE_FLASH_ATTR *otb_cmd_load_cmd_control_from_flash(otb_cmd_c
     *(((uint32_t*)(&otb_cmd_control_flash_buf))+ii) = *(((uint32_t*)(ctrl))+ii);
   }
 
-  DEBUG("CMD: otb_cmd_load_cmd_control_from_flash exit");
+  EXIT;
 
   return rc;
 }
@@ -61,10 +63,10 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
   int ii;
   int jj;
 
-  DEBUG("CMD: otb_cmd_mqtt_received entry");
+  ENTRY;
   
-  DEBUG("CMD: topic len %d", topic_len);
-  DEBUG("CMD: msg len %d", msg_len);
+  MDEBUG("topic len %d", topic_len);
+  MDEBUG("msg len %d", msg_len);
   
   // Zero out response
   otb_cmd_rsp_clear();
@@ -92,12 +94,12 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
   // While cur_cmd is not a null terminated string
   while ((cur_cmd[0] != 0) && (depth < OTB_CMD_MAX_CMDS))
   {
-    DEBUG("CMD: Current cmd %s", cur_cmd);
+    MDEBUG("Current cmd %s", cur_cmd);
     match = FALSE;
     
     for (ii = 0; !match; ii++)
     {
-      DEBUG("CMD: cur_cmd: %s", cur_cmd);
+      MDEBUG("cur_cmd: %s", cur_cmd);
       // perform match
       if (cur_control[ii].match_cmd != NULL)
       {
@@ -113,7 +115,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
         }
         if (!os_strcmp(match_cmd, cur_cmd))
         {
-          DEBUG("CMD: Match");
+          MDEBUG("Match");
           match = TRUE;
           break;
         }
@@ -121,7 +123,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
       else if (cur_control[ii].match_fn != NULL)
       {
         match = cur_control[ii].match_fn(cur_cmd);
-        DEBUG("CMD: match func result %d", match);
+        MDEBUG("match func result %d", match);
         if (match)
         {
           break;
@@ -212,7 +214,7 @@ EXIT_LABEL:
                        "",
                        "");
   
-  DEBUG("CMD: otb_cmd_mqtt_received exit");
+  EXIT;
 
   return;
 }
@@ -220,13 +222,13 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_cmd_rsp_clear(void)
 {
 
-  DEBUG("CMD: otb_cmd_rsp_clear entry");
+  ENTRY;
   
   // Clear it out - no point doing a memset
   otb_cmd_rsp_next = 0;
   otb_cmd_rsp[0] = 0;
   
-  DEBUG("CMD: otb_cmd_rsp_clear exit");
+  EXIT;
   
   return;
 }
@@ -236,7 +238,7 @@ void ICACHE_FLASH_ATTR otb_cmd_rsp_append(char *format, ...)
   int written;
   va_list args;
 
-  DEBUG("CMD: otb_cmd_rsp_append entry");
+  ENTRY;
   
   // If something already in string, add a / delimiter
   if (otb_cmd_rsp_next > 0)
@@ -256,12 +258,12 @@ void ICACHE_FLASH_ATTR otb_cmd_rsp_append(char *format, ...)
                          
   otb_cmd_rsp_next += written;
   
-  DEBUG("CMD: rsp_append now %s", otb_cmd_rsp);
+  MDEBUG("rsp_append now %s", otb_cmd_rsp);
 
   // Assert to check we didn't write over the end of the available space  
   OTB_ASSERT(otb_cmd_rsp_next < OTB_CMD_RSP_MAX_LEN);
 
-  DEBUG("CMD: otb_cmd_rsp_append exit");
+  EXIT;
   
   return;
 }
@@ -269,9 +271,9 @@ void ICACHE_FLASH_ATTR otb_cmd_rsp_append(char *format, ...)
 unsigned char ICACHE_FLASH_ATTR *otb_cmd_rsp_get(void)
 {
 
-  DEBUG("CMD: otb_cmd_rsp_append entry");
+  ENTRY;
   
-  DEBUG("CMD: otb_cmd_rsp_append exit");
+  EXIT;
   
   return otb_cmd_rsp;
 }
@@ -288,7 +290,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_all(const char *topic,
   int len;
   uint8_t written;
 
-  DEBUG("I2C: otb_cmd_populate_all entry");
+  ENTRY;
   
   // Two things to populate - topics and cmds.  Do both, into same array.
   
@@ -325,7 +327,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_all(const char *topic,
 
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_cmd_populate_all exit");
+  EXIT;
   
   return rc;
 }
@@ -354,14 +356,14 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_one(unsigned char store[][OTB_CMD_MAX_CM
   bool rc = FALSE;
   int ii;
   
-  DEBUG("CMD: otb_cmd_populate_one entry");
+  ENTRY;
 
-  DEBUG("CMD: populate_one store 0x%08x", store);
-  DEBUG("CMD: populate_one store_num %d", store_num);
-  DEBUG("CMD: populate_one store_str_len %d", store_str_len);
-  DEBUG("CMD: populate_one input_str 0x%08x", input_str);
-  DEBUG("CMD: populate_one input_str_len %d", input_str_len);
-  DEBUG("CMD: populate_one written 0x%08x", written);
+  MDEBUG("populate_one store 0x%08x", store);
+  MDEBUG("populate_one store_num %d", store_num);
+  MDEBUG("populate_one store_str_len %d", store_str_len);
+  MDEBUG("populate_one input_str 0x%08x", input_str);
+  MDEBUG("populate_one input_str_len %d", input_str_len);
+  MDEBUG("populate_one written 0x%08x", written);
 
   input_index = 0;
   store_index = 0;
@@ -372,18 +374,18 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_one(unsigned char store[][OTB_CMD_MAX_CM
   {
     if (store_index >= store_num)
     {
-      DEBUG("CMD: store_index >= store_num");
+      MDEBUG("store_index >= store_num");
       otb_cmd_rsp_append("Invalid MQTT command (too many segments)");
       goto EXIT_LABEL;
     }
     
     if (input_str[input_index] == '/')
     {
-      DEBUG("CMD: Skip a /");
+      MDEBUG("Skip a /");
       if (started_storing_segment)
       {
         // Finish off last segment
-        DEBUG("CMD: Terminate segment");
+        MDEBUG("Terminate segment");
         store[store_index][store_string_index] = 0;
         started_storing_segment = FALSE;
         store_index++;
@@ -396,13 +398,13 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_one(unsigned char store[][OTB_CMD_MAX_CM
       started_storing_segment = TRUE;
       if (store_string_index >= (store_str_len-1))
       {
-        DEBUG("CMD: store_string_index >= store_str_len-1");
+        MDEBUG("store_string_index >= store_str_len-1");
         otb_cmd_rsp_append("Invalid MQTT command (segment too long)");
         goto EXIT_LABEL;
       }
       else
       {
-        DEBUG("CMD: Store char %c", input_str[input_index]);
+        MDEBUG("Store char %c", input_str[input_index]);
         store[store_index][store_string_index] = input_str[input_index];
       }
       store_string_index++;
@@ -413,7 +415,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_populate_one(unsigned char store[][OTB_CMD_MAX_CM
   if (started_storing_segment)
   {
     // Finish off the last one
-    DEBUG("CMD: Terminate segment");
+    MDEBUG("Terminate segment");
     store[store_index][store_string_index] = 0;
     (*written)++;
   }
@@ -426,14 +428,14 @@ EXIT_LABEL:
   // Log result
   if (rc)
   {
-    DEBUG("CMD: Populated: %d", *written);
+    MDEBUG("Populated: %d", *written);
     for (ii = 0; ii < *written; ii++)
     {
-      DEBUG("CMD:           %s", store[ii]);
+      MDEBUG("          %s", store[ii]);
     }
   }
   
-  DEBUG("CMD: otb_cmd_populate_one exit");
+  EXIT;
 
   return rc;
 }
@@ -445,7 +447,7 @@ unsigned char *otb_cmd_get_next_cmd(unsigned char *cmd)
   unsigned char *cur_cmd;
   bool next = FALSE;
 
-  DEBUG("CMD: otb_cmd_get_next_cmd entry");
+  ENTRY;
   
   // Go through the command stack looking for a match and return the next
   depth = 0;
@@ -467,7 +469,7 @@ unsigned char *otb_cmd_get_next_cmd(unsigned char *cmd)
     }
   }
   
-  DEBUG("CMD: otb_cmd_get_next_cmd exit");
+  EXIT;
 
   return next_cmd;
 }
@@ -476,7 +478,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_match_chipid(unsigned char *to_match)
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_match_chipid entry");
+  ENTRY;
 
   if (!os_strcmp(OTB_MAIN_CHIPID, to_match))
   {
@@ -487,7 +489,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_match_chipid(unsigned char *to_match)
     rc = TRUE;
   }
 
-  DEBUG("CMD: otb_cmd_match_chipid exit");
+  EXIT;
 
   return rc;
   
@@ -497,12 +499,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_string(unsigned char *next_cmd, void *arg, un
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_string entry");        
+  ENTRY;        
 
   otb_cmd_rsp_append((unsigned char *)arg);
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_get_string exit");        
+  EXIT;        
 
   return rc;
   
@@ -512,12 +514,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_boot_slot(unsigned char *next_cmd, void *arg,
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_boot_slot entry");
+  ENTRY;
   
   otb_cmd_rsp_append("%d", otb_rboot_get_slot(FALSE));
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_get_boot_slot exit");
+  EXIT;
   
   return rc;
 
@@ -527,12 +529,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_rssi(unsigned char *next_cmd, void *arg, unsi
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_rssi entry");
+  ENTRY;
   
   otb_cmd_rsp_append("%d", otb_wifi_get_rssi());
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_get_rssi exit");
+  EXIT;
   
   return rc;
 
@@ -542,12 +544,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_heap_size(unsigned char *next_cmd, void *arg,
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_heap_size entry");
+  ENTRY;
   
   otb_cmd_rsp_append("%d", system_get_free_heap_size());
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_get_heap_size exit");
+  EXIT;
   
   return rc;
 
@@ -561,7 +563,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_vdd33(unsigned char *next_cmd, void *arg, uns
   int voltage_thou;
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_vdd33 entry");
+  ENTRY;
   
   rc = otb_util_get_vdd33(&vdd33);
   if (rc)
@@ -574,7 +576,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_vdd33(unsigned char *next_cmd, void *arg, uns
     rc = TRUE;
   }
   
-  DEBUG("CMD: otb_cmd_get_vdd33 exit");
+  EXIT;
   
   return rc;
 
@@ -586,7 +588,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_logs_ram(unsigned char *next_cmd, void *arg, 
   int ii;
   char *error;
   
-  DEBUG("CMD: otb_cmd_get_logs_ram entry");
+  ENTRY;
 
   if ((next_cmd != NULL) && (next_cmd[0] != 0))
   {
@@ -607,7 +609,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_logs_ram(unsigned char *next_cmd, void *arg, 
     otb_cmd_rsp_append("invalid index");
   }
 
-  DEBUG("CMD: otb_cmd_get_logs_ram exit");
+  EXIT;
   
   return rc;
 
@@ -619,7 +621,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_reason_reboot(unsigned char *next_cmd, void *
   unsigned char *reason;
   char ALIGN4 flash_reason[48];
   
-  DEBUG("CMD: otb_cmd_get_reason_reboot entry");
+  ENTRY;
   
   reason = "error getting reason: failed to read from flash";
   rc = otb_util_flash_read(OTB_BOOT_LAST_REBOOT_REASON, (uint32 *)flash_reason, 48);
@@ -634,7 +636,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_reason_reboot(unsigned char *next_cmd, void *
     otb_cmd_rsp_append("error getting reason");
   }
   
-  DEBUG("CMD: otb_cmd_get_reason_reboot exit");
+  EXIT;
   
   return rc;
 
@@ -646,7 +648,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_test_led_fn(unsigned char *next_cmd, void
   uint32 type;
   unsigned char *error;
   
-  DEBUG("CMD: otb_cmd_trigger_test_led_fn entry");
+  ENTRY;
   
   type = (uint32)arg;
   OTB_ASSERT(type < OTB_CMD_TRIGGER_TEST_LED_TYPES);
@@ -668,7 +670,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_test_led_fn(unsigned char *next_cmd, void
   
   otb_cmd_rsp_append(error);
   
-  DEBUG("CMD: otb_cmd_trigger_test_led_fn exit");
+  EXIT;
   
   return rc;
 
@@ -679,12 +681,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_set_boot_slot(unsigned char *next_cmd, void *arg,
   bool rc = FALSE;
   unsigned char *error;
   
-  DEBUG("CMD: otb_cmd_set_boot_slot entry");
+  ENTRY;
   
   rc = otb_rboot_update_slot(next_cmd, &error);
   otb_cmd_rsp_append(error);
   
-  DEBUG("CMD: otb_cmd_set_boot_slot exit");
+  EXIT;
   
   return rc;
 
@@ -693,13 +695,13 @@ bool ICACHE_FLASH_ATTR otb_cmd_set_boot_slot(unsigned char *next_cmd, void *arg,
 bool ICACHE_FLASH_ATTR otb_cmd_trigger_assert(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
-  
-  DEBUG("CMD: otb_cmd_trigger_assert entry");
+
+  ENTRY;
 
   OTB_ASSERT(FALSE);
   rc = TRUE;
 
-  DEBUG("CMD: otb_cmd_trigger_assert exit");
+  EXIT;
   
   return rc;
 }
@@ -709,7 +711,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_wipe(unsigned char *next_cmd, void *arg, 
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_trigger_wipe entry");
+  ENTRY;
 
   otb_conf_init_config(otb_conf);
   rc = otb_conf_save(otb_conf);
@@ -724,7 +726,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_wipe(unsigned char *next_cmd, void *arg, 
     rc = TRUE;
   }
 
-  DEBUG("CMD: otb_cmd_trigger_wipe exit");
+  EXIT;
   
   return rc;
 }
@@ -736,7 +738,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_update(unsigned char *next_cmd, void *arg
   unsigned char *next_cmd3 = NULL;
   unsigned char *error = "invalid upgrade source";
   
-  DEBUG("CMD: otb_cmd_trigger_update entry");
+  ENTRY;
   
   next_cmd2 = otb_cmd_get_next_cmd(next_cmd);
   if (next_cmd2 != NULL)
@@ -746,7 +748,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_update(unsigned char *next_cmd, void *arg
   rc = otb_rboot_update(next_cmd, next_cmd2, next_cmd3, &error);
   otb_cmd_rsp_append(error);
   
-  DEBUG("CMD: otb_cmd_trigger_update exit");
+  EXIT;
   
   return rc;
 
@@ -756,12 +758,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_num(unsigned char
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_num entry");
+  ENTRY;
 
   otb_cmd_rsp_append("%d", otb_ds18b20_count);
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_num exit");
+  EXIT;
   
   return rc;
 
@@ -772,7 +774,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_addr(unsigned cha
   bool rc = FALSE;
   int index;
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_addr entry");
+  ENTRY;
 
   index = otb_ds18b20_valid_index(next_cmd);
   if (index >= 0)
@@ -785,7 +787,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_addr(unsigned cha
     otb_cmd_rsp_append("invalid index");
   }
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_addr exit");
+  EXIT;
   
   return rc;
 
@@ -796,7 +798,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_value(unsigned ch
   bool rc = FALSE;
   int index;
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_value entry");
+  ENTRY;
 
   index = otb_ds18b20_valid_index(next_cmd);
   if (index >= 0)
@@ -809,7 +811,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_control_get_sensor_temp_ds18b20_value(unsigned ch
     otb_cmd_rsp_append("invalid index");
   }
   
-  DEBUG("CMD: otb_cmd_control_get_sensor_temp_ds18b20_value exit");
+  EXIT;
   
   return rc;
 
@@ -820,13 +822,13 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_reset(unsigned char *next_cmd, void *arg,
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_trigger_reset entry");
+  ENTRY;
   
   otb_reset(otb_cmd_reset_error_string);
   otb_cmd_rsp_append("ok");
   rc = TRUE;
 
-  DEBUG("CMD: otb_cmd_trigger_reset exit");
+  EXIT;
   
   return rc;
 
@@ -836,12 +838,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_trigger_ping(unsigned char *next_cmd, void *arg, 
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_trigger_ping entry");
+  ENTRY;
   
   otb_cmd_rsp_append("pong");
   rc = TRUE;
   
-  DEBUG("CMD: otb_cmd_trigger_ping exit");
+  EXIT;
   
   return rc;
 
@@ -853,7 +855,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_config_all(unsigned char *next_cmd, void *arg
   int jj;
   unsigned char kk = 0;
   
-  DEBUG("CMD: otb_cmd_get_config_all entry");
+  ENTRY;
   
   //
   // Output format of this is:
@@ -910,7 +912,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_config_all(unsigned char *next_cmd, void *arg
   }
   otb_cmd_rsp_append("end");
    
-  DEBUG("CMD: otb_cmd_get_config_all exit");
+  EXIT;
   
   return rc;
 
@@ -920,12 +922,12 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_sensor_adc_ads(unsigned char *next_cmd, void 
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: otb_cmd_get_sensor_adc_ads entry");
+  ENTRY;
   
   // XXX not implemented
   otb_cmd_rsp_append("not implemented");
   
-  DEBUG("CMD: otb_cmd_get_sensor_adc_ads exit");
+  EXIT;
   
   return rc;
 
@@ -943,7 +945,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
   int dns_num;
     
-  DEBUG("CMD: otb_cmd_get_ip_info entry");
+  ENTRY;
   
   // Double check what we're being asked to do is valid
   cmd = (int)arg;
@@ -1015,7 +1017,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
 
 EXIT_LABEL:
 
-  DEBUG("CMD: otb_cmd_get_ip_info exit");
+  EXIT;
   
   return rc;
 }
@@ -1027,12 +1029,12 @@ bool ICACHE_FLASH_ATTR xxx(unsigned char *next_cmd, void *arg)
 {
   bool rc = FALSE;
   
-  DEBUG("CMD: xxx entry");
+  ENTRY;
   
   otb_cmd_rsp_append("%d", system_get_free_heap_size());
   rc = TRUE;
   
-  DEBUG("CMD: xxx exit");
+  EXIT;
   
   return rc;
 

@@ -20,6 +20,8 @@
 #define OTB_MQTT_C
 #include "otb.h"
 
+MLOG("MQTT");
+
 void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                                         char *subtopic,
                                         char *extra_subtopic,
@@ -32,7 +34,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   int chars;
   int ii;
 
-  DEBUG("MQTT: otb_mqtt_publish entry");
+  ENTRY;
 
   otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
   
@@ -87,14 +89,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   }
   
   // We don't "INFO" this as can be retrieved from MQTT broker
-  DEBUG("MQTT: Publish: %s %s qos: %d retain: %d",
+  MDEBUG("Publish: %s %s qos: %d retain: %d",
        otb_mqtt_topic_s,
        otb_mqtt_msg_s,
        qos,
        retain);
   MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
 
-  DEBUG("MQTT: otb_mqtt_publish exit");
+  EXIT;
 
   return;
 }
@@ -107,7 +109,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
                                            char **loc3_)
 {
 
-  DEBUG("MQTT: otb_mqtt_handle_loc entry");
+  ENTRY;
   
   // Initialize
   *loc1 = OTB_MQTT_EMPTY;
@@ -134,7 +136,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
     *loc3 = OTB_MQTT_LOCATION_3;
   }
 
-  DEBUG("MQTT: otb_mqtt_handle_loc exit");
+  EXIT;
 
   return;
 }
@@ -146,7 +148,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
 {
   char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
 
-  DEBUG("MQTT: otb_mqtt_subscribe entry");
+  ENTRY;
 
   otb_mqtt_handle_loc(&loc1, &loc1_, &loc2, &loc2_, &loc3, &loc3_);
 
@@ -196,8 +198,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:       qos: %d", qos);
+  MDETAIL("Subscribe: %s", otb_mqtt_topic_s);
+  MDEBUG("      qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
@@ -247,8 +249,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:       qos: %d", qos);
+  MDETAIL("Subscribe: %s", otb_mqtt_topic_s);
+  MDEBUG("      qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
 
   // Also subscribe to system commands for ALL devices at this location
@@ -280,8 +282,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:       qos: %d", qos);
+  MDETAIL("Subscribe: %s", otb_mqtt_topic_s);
+  MDEBUG("      qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
   // Also subscribe to system commands for this devices which no location
@@ -314,11 +316,11 @@ void ICACHE_FLASH_ATTR otb_mqtt_subscribe(MQTT_Client *mqtt_client,
                 extra_subtopic);
   }
   
-  DETAIL("MQTT: Subscribe: %s", otb_mqtt_topic_s);
-  DEBUG("MQTT:       qos: %d", qos);
+  MDETAIL("Subscribe: %s", otb_mqtt_topic_s);
+  MDEBUG("      qos: %d", qos);
   MQTT_Subscribe(mqtt_client, otb_mqtt_topic_s, qos);
   
-  DEBUG("MQTT: otb_mqtt_subscribe exit");
+  EXIT;
 
   return;
 }
@@ -330,7 +332,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
   char slot_s[4];
 	MQTT_Client* mqtt_client;
 	
-  DEBUG("MQTT: otb_mqtt_on_connected entry");
+  ENTRY;
   
   INFO("OTB: MQTT connected");
 
@@ -355,7 +357,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_connected(uint32_t *client)
                      "",
                      1);
 
-  DEBUG("MQTT: otb_mqtt_on_connected exit");
+  EXIT;
 
   return;
 }
@@ -364,24 +366,24 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_disconnected(uint32_t *client)
 {
 	MQTT_Client* mqtt_client;
 	
-	DEBUG("MQTT: otb_mqtt_on_disconnected entry");
+  ENTRY;
 	
   mqtt_client = (MQTT_Client*)client;
   otb_mqtt_connected = FALSE;
 	
-	DEBUG("MQTT: otb_mqtt_on_disconnected exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_mqtt_on_published(uint32_t *client)
 {
 	MQTT_Client* mqtt_client;
 	
-	DEBUG("MQTT: otb_mqtt_on_published entry");
+  ENTRY;
 	
   mqtt_client = (MQTT_Client*)client;
   otb_led_wifi_blink(OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_PUBLISHED);
 	
-	DEBUG("MQTT: otb_mqtt_on_published exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
@@ -397,10 +399,10 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
   int chars;
   int ii;
 
-  DEBUG("MQTT: otb_mqtt_initialize entry");
+  ENTRY;
 
   INFO("OTB: MQTT connecting");
-  DETAIL("MQTT: Create MQTT connection to server %s port:%d username:%s", hostname, port, mqtt_username);
+  MDETAIL("Create MQTT connection to server %s port:%d username:%s", hostname, port, mqtt_username);
 
   otb_mqtt_connected = FALSE;
   
@@ -441,14 +443,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_initialize(char *hostname,
 	// Connect to server
 	MQTT_Connect(mqtt_client);
 
-	DEBUG("MQTT: otb_mqtt_initialize exit");
+  EXIT;
 
 }
 
 void ICACHE_FLASH_ATTR otb_mqtt_connected_timerfunc(void *arg)
 {
   
-  DEBUG("MQTT: otb_mqtt_connected_timerfunc entry");
+  ENTRY;
   
   if (otb_mqtt_connected)
   {
@@ -456,7 +458,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_connected_timerfunc(void *arg)
     goto EXIT_LABEL;
   }
 
-  INFO("MQTT: Failed to connect, so starting AP to allow manual recovery");
+  MINFO("Failed to connect, so starting AP to allow manual recovery");
   // If can't connect over MQTT better kick off the wireless AP
   if (!otb_wifi_ap_running)
   {
@@ -464,7 +466,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_connected_timerfunc(void *arg)
   }
   otb_mqtt_wifi_timeout_set_timer();
   
-  DEBUG("MQTT: otb_mqtt_connected_timerfunc exit");
+  EXIT;
 
 EXIT_LABEL:
 
@@ -474,7 +476,7 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_set_timer(void)
 {
 
-  DEBUG("WIFI: otb_wifi_set_timeout_timer entry");
+  ENTRY;
 
   // No args (NULL arg) and don't repeat this (the 0 arg)  
   otb_util_timer_set((os_timer_t*)&otb_mqtt_wifi_timeout_timer,
@@ -483,7 +485,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_set_timer(void)
                      OTB_WIFI_DEFAULT_DISCONNECTED_TIMEOUT, // reuse wifi timer (5 mins)
                      0);
   
-  DEBUG("WIFI: otb_wifi_set_timeout_timer exit");
+  EXIT;
   
   return;
 }
@@ -492,14 +494,14 @@ char ALIGN4 otb_mqtt_wifi_timeout_timerfunc_string[] = "MQTT: Failed to connect 
 void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_timerfunc(void *arg)
 {
 
-  DEBUG("WIFI: otb_wifi_timeout_timerfunc entry");
+  ENTRY;
   
   if (!otb_mqtt_connected)
   {
     otb_reset(otb_mqtt_wifi_timeout_timerfunc_string);
   }
   
-  DEBUG("WIFI: otb_wifi_timeout_timerfunc exit");
+  EXIT;
   
   return;
 }
@@ -507,7 +509,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_wifi_timeout_timerfunc(void *arg)
 void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
 {
 
-  DEBUG("MQTT: otb_mqtt_report_error entry");
+  ENTRY;
   
   otb_mqtt_publish(&otb_mqtt_client,
                    OTB_MQTT_TOPIC_ERROR,
@@ -517,7 +519,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
                    2,
                    0);  
 
-  DEBUG("MQTT: otb_mqtt_report_error exit");
+  EXIT;
 
   return;
 }
@@ -531,7 +533,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
   int max_len;
   int len = 0;
 
-  DEBUG("MQTT: otb_mqtt_send_status entry");
+  ENTRY;
   
   if ((val2 != NULL) && (os_strlen(val2) > 0))
   {
@@ -573,7 +575,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
                    2,
                    0);  
 
-  DEBUG("MQTT: otb_mqtt_send_status exit");
+  EXIT;
 
   return;
 }
@@ -604,7 +606,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   char *cmd;
   char *error;
 
-  DEBUG("MQTT: otb_mqtt_on_receive_publish entry");
+  ENTRY;
 
   // This function is currently written to expect 5 SUB commands (6 commands)
   OTB_ASSERT(OTB_MQTT_MAX_CMDS == 6);
@@ -615,7 +617,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
   if ((topic_len > (OTB_MQTT_MAX_TOPIC_LENGTH - 1)) ||
       (msg_len > (OTB_MQTT_MAX_MSG_LENGTH - 1)))
   {
-    DETAIL("MQTT: Received topic of msg length too long: %d", topic_len);
+    MDETAIL("Received topic of msg length too long: %d", topic_len);
     otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR,
                          "Topic or message too long",
                          "",
@@ -637,12 +639,12 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
     otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
   }
 
-  DEBUG("MQTT: Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
+  MDEBUG("Received publish: %s %s", otb_mqtt_topic_s, otb_mqtt_msg_s);
 
   topic_id = otb_mqtt_pub_get_topic(otb_mqtt_topic_s);
   if (topic_id != OTB_MQTT_TOPIC_SYSTEM_)
   {
-    DETAIL("MQTT: Received unsupported topic");
+    MDETAIL("Received unsupported topic");
     otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported topic", "", "");
     goto EXIT_LABEL;
   }
@@ -678,14 +680,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_on_receive_publish(uint32_t *client,
       break;
 
     default:
-      DEBUG("MQTT: Unknown command");
+      MDEBUG("Unknown command");
       otb_mqtt_send_status(OTB_MQTT_STATUS_ERROR, "Unsupported message type", "", "");
       goto EXIT_LABEL;
   }
 
 EXIT_LABEL:  
   
-  DEBUG("MQTT: otb_mqtt_on_receive_publish exit");
+  EXIT;
   
   return;
 }
@@ -696,7 +698,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_topic(char *topic)
   char *next_sub_topic;
   uint8 topic_id = OTB_MQTT_TOPIC_INVALID_;
 
-  DEBUG("MQTT: otb_mqtt_pub_get_topic entry");
+  ENTRY;
   
   // This function finds the last "sub-topic", and expects there to be more than 1 (i.e.
   // it won't match on the first
@@ -722,7 +724,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_topic(char *topic)
     }
   }  
 
-  DEBUG("MQTT: otb_mqtt_pub_get_topic exit");
+  EXIT;
   
   return(topic_id);
 }  
@@ -731,11 +733,11 @@ int ICACHE_FLASH_ATTR otb_mqtt_get_cmd_len(char *cmd)
 {
   int len;
   
-  DEBUG("MQTT: otb_mqtt_get_cmd_len entry");
+  ENTRY;
 
   for (len = 0; ((cmd[len] != ':') && (cmd[len] != 0)); len++);
    
-  DEBUG("MQTT: otb_mqtt_get_cmd_len exit");
+  EXIT;
 
   return(len);
 }
@@ -745,12 +747,12 @@ bool ICACHE_FLASH_ATTR otb_mqtt_match(char *msg, char *cmd)
   bool match = FALSE;
   int len;
 
-  DEBUG("MQTT: otb_mqtt_match entry");
+  ENTRY;
   
   len = otb_mqtt_get_cmd_len(msg);
 
-  DEBUG("MQTT: match msg %s len %d", msg, len);
-  DEBUG("MQTT: match cmd %s", cmd);
+  MDEBUG("match msg %s len %d", msg, len);
+  MDEBUG("match cmd %s", cmd);
   
   if (os_strlen(cmd) == len)
   {
@@ -764,9 +766,9 @@ bool ICACHE_FLASH_ATTR otb_mqtt_match(char *msg, char *cmd)
     match = FALSE;
   }
 
-  DEBUG("MQTT: match %s vs %s = %d", msg, cmd, match);
+  MDEBUG("match %s vs %s = %d", msg, cmd, match);
   
-  DEBUG("MQTT: otb_mqtt_match exit");
+  EXIT;
   
   return match;
 }
@@ -777,7 +779,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_command(char *msg, char *val[])
   uint8 cmd_id = OTB_MQTT_SYSTEM_INVALID_;
   char *temp;
 
-  DEBUG("MQTT: otb_mqtt_pub_get_command entry");
+  ENTRY;
   
   for (ii = 0; ii < (OTB_MQTT_MAX_CMDS - 1); ii++)
   {
@@ -805,7 +807,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_pub_get_command(char *msg, char *val[])
     }
   }  
   
-  DEBUG("MQTT: otb_mqtt_pub_get_command exit");
+  EXIT;
   
   return(cmd_id);
 }
@@ -815,7 +817,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_get_reason(char *msg)
   uint8 ii;
   uint8 reason_id = OTB_MQTT_REASON_INVALID_;
 
-  DEBUG("MQTT: otb_mqtt_get_reason entry");
+  ENTRY;
   
   for (ii = OTB_MQTT_REASON_FIRST_; ii <= OTB_MQTT_REASON_LAST_; ii++)
   {
@@ -826,7 +828,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_get_reason(char *msg)
     }
   }
     
-  DEBUG("MQTT: otb_mqtt_get_reason exit");
+  EXIT;
   
   return(reason_id);
 }
@@ -840,7 +842,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   int port_int;
   bool conf_rc;
 
-  DEBUG("MQTT: otb_mqtt_set_svr entry");
+  ENTRY;
 
   // First of all check the validity of the stuff passed in.
   // Don't bother checking the address as can be a DN, FQDN or IP address
@@ -850,7 +852,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
     port_int = atoi(port);
     if ((port_int < 0) || (port_int > 0xffff))
     {
-      DETAIL("MQTT: Invalid MQTT port");
+      MDETAIL("Invalid MQTT port");
       rc = OTB_CONF_RC_ERROR;
       goto EXIT_LABEL;
     }
@@ -862,7 +864,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   {
     if (os_strcmp(otb_conf->mqtt.svr, svr))
     {
-      DETAIL("MQTT: server changed");
+      MDETAIL("server changed");
       rc = OTB_CONF_RC_CHANGED;
     }
   }
@@ -871,7 +873,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_svr(char *svr, char *port, bool commit)
   {
     if (port_int != otb_conf->mqtt.port)
     {
-      DETAIL("MQTT: port changed");
+      MDETAIL("port changed");
       rc = OTB_CONF_RC_CHANGED;
     }
   }
@@ -896,13 +898,13 @@ EXIT_LABEL:
       conf_rc = otb_conf_update(otb_conf);
       if (!conf_rc)
       {
-        ERROR("CONF: Failed to update config");
+        MERROR("Failed to update config");
         rc = OTB_CONF_RC_ERROR;
       }
     }
   }
   
-  DEBUG("MQTT: otb_mqtt_set_svr exit");
+  EXIT;
   
   return(rc);
 }
@@ -912,7 +914,7 @@ uint8 ICACHE_FLASH_ATTR otb_mqtt_set_user(char *user, char *pass, bool commit)
   uint8 rc = OTB_CONF_RC_NOT_CHANGED;
   bool conf_rc;
 
-  DEBUG("MQTT: otb_mqtt_set_user enty");
+  MDEBUG("otb_mqtt_set_user enty");
 
   // First of all check validity of what's passed in - nothing to do here
   
@@ -949,12 +951,12 @@ EXIT_LABEL:
       if (!conf_rc)
       {
         rc = OTB_CONF_RC_ERROR;
-        ERROR("CONF: Failed to update config");
+        MERROR("Failed to update config");
       }
     }
   }
 
-  DEBUG("MQTT: otb_mqtt_set_user exit");
+  EXIT;
   
   return(rc);
 }
@@ -967,7 +969,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
   char port_exist[8];
   uint8 mqtt_rc;
   
-  DEBUG("CMD: otb_mqtt_config_handler entry");
+  ENTRY;
 
   OTB_ASSERT(((cmd & 0xff) >= OTB_MQTT_CONFIG_CMD_MIN) &&
              ((cmd & 0xff) <= OTB_MQTT_CONFIG_CMD_MAX));
@@ -1034,7 +1036,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
         {
           port = next_cmd;
         }
-        DETAIL("MQTT: Change svr from %s to %s port from %d to %s", otb_conf->mqtt.svr, svr, otb_conf->mqtt.port, port);
+        MDETAIL("Change svr from %s to %s port from %d to %s", otb_conf->mqtt.svr, svr, otb_conf->mqtt.port, port);
         mqtt_rc = otb_mqtt_set_svr(svr, port, TRUE);
         if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
         {
@@ -1062,7 +1064,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
         {
           password = next_cmd;
         }
-        DETAIL("MQTT: Change username from %s to %s password from %s to %s", otb_conf->mqtt.user, username, otb_conf->mqtt.pass, password);
+        MDETAIL("Change username from %s to %s password from %s to %s", otb_conf->mqtt.user, username, otb_conf->mqtt.pass, password);
         mqtt_rc = otb_mqtt_set_user(username, password, TRUE);
         if (mqtt_rc == OTB_CONF_RC_NOT_CHANGED)
         {
@@ -1090,7 +1092,7 @@ bool ICACHE_FLASH_ATTR otb_mqtt_config_handler(unsigned char *next_cmd, void *ar
 
 EXIT_LABEL:
   
-  DEBUG("CMD: otb_mqtt_config_handler exit");
+  EXIT;
   
   return rc;
 

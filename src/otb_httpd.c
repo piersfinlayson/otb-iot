@@ -28,7 +28,7 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
 {
   bool rc = TRUE;
 
-  MDEBUG("otb_httpd_start entry");
+  ENTRY;
 
   if (dns)
   {
@@ -74,7 +74,7 @@ EXIT_LABEL:
     otb_httpd_started = FALSE;
   }
   
-  MDEBUG("otb_httpd_start exit");
+  EXIT;
 
   return(rc);
 }
@@ -83,7 +83,7 @@ void ICACHE_FLASH_ATTR otb_httpd_stop(void)
 {
   bool rc = TRUE;
 
-  MDEBUG("otb_httpd_stop entry");
+  ENTRY;
 
   if (otb_httpd_dns_inited)
   {
@@ -116,7 +116,7 @@ void ICACHE_FLASH_ATTR otb_httpd_stop(void)
     MWARN("Can't terminate HTTP stack - not started");
   }
 
-  MDEBUG("otb_httpd_stop exit");
+  EXIT;
 
   return;
 }
@@ -127,7 +127,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
   otb_httpd_connection *hconn = NULL;
   struct espconn *conn = arg;
 
-  MDEBUG("otb_httpd_connect_callback entry");
+  ENTRY;
 
   // Get free otb_httpd_conn
   for (ii = 0; ii < OTB_HTTPD_MAX_CONNS; ii++)
@@ -167,7 +167,7 @@ void ICACHE_FLASH_ATTR otb_httpd_connect_callback(void *arg)
 
 EXIT_LABEL:
 
-  MDEBUG("otb_httpd_connect_callback exit");
+  EXIT;
 
   return;
 }
@@ -177,13 +177,13 @@ void ICACHE_FLASH_ATTR otb_httpd_recon_callback(void *arg, sint8 err)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  MDEBUG("otb_httpd_recon_callback entry");
+  ENTRY;
 
   MDEBUG("hconn: %p", hconn);
   MDEBUG("Recon reason %d", err);
   otb_httpd_discon_callback(arg);
 
-  MDEBUG("otb_httpd_recon_callback exit");
+  EXIT;
 
   return;
 }
@@ -193,7 +193,7 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  MDEBUG("otb_httpd_discon_callback entry");
+  ENTRY;
 
   OTB_ASSERT(hconn != NULL);
   MDEBUG("hconn: %p", hconn);
@@ -210,7 +210,7 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
   hconn->remote_port = 0;
   conn->reverse = NULL;
 
-  MDEBUG("otb_httpd_discon_callback exit");
+  EXIT;
 
   return;
 }
@@ -220,7 +220,7 @@ void ICACHE_FLASH_ATTR otb_httpd_sent_callback(void *arg)
   struct espconn *conn = arg;
   otb_httpd_connection *hconn = conn->reverse;
 
-  MDEBUG("otb_httpd_sent_callback entry");
+  ENTRY;
 
   MDEBUG("hconn: %p", hconn);
   OTB_ASSERT(hconn != NULL);
@@ -229,7 +229,7 @@ void ICACHE_FLASH_ATTR otb_httpd_sent_callback(void *arg)
     MWARN("Received sent callback when connection already disconnected");
   }
 
-  MDEBUG("otb_httpd_sent_callback exit");
+  EXIT;
 
   return;
 }
@@ -238,7 +238,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(otb_httpd_connection *hconn, c
 {
   uint16 cur = 0;
 
-  MDEBUG("otb_httpd_process_method entry");
+  ENTRY;
 
   // Process method
   if (os_strncmp(data, "HEAD ", OTB_MIN(5, len)) == 0)
@@ -266,7 +266,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_method(otb_httpd_connection *hconn, c
     hconn->request.status_str = "Method Not Allowed";
   }
 
-  MDEBUG("otb_httpd_process_method exit");
+  EXIT;
 
   return cur;
 }
@@ -276,7 +276,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
   uint16 cur = 0;
   int jj;
 
-  MDEBUG("otb_httpd_process_url entry");
+  ENTRY;
 
   // Process URL
   for (; cur < len; cur++)
@@ -307,7 +307,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
   hconn->request.url[jj] = 0; // NULL terminate
   MDETAIL("URL: %s", hconn->request.url);
 
-  MDEBUG("otb_httpd_process_url exit");
+  EXIT;
 
   return cur;
 }
@@ -317,7 +317,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(otb_httpd_connection *hconn, cha
   uint16 cur = 0;
   int jj;
 
-  MDEBUG("otb_httpd_process_http entry");
+  ENTRY;
 
   // Process HTTP version
   for (; cur < len; cur++)
@@ -359,7 +359,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_http(otb_httpd_connection *hconn, cha
     os_snprintf(hconn->request.http, OTB_HTTPD_MAX_HTTP_LEN, OTB_HTTPD_HTTP_1_1); // Set version we'll use to respond
   }
 
-  MDEBUG("otb_httpd_process_http exit");
+  EXIT;
 
   return cur;
 }
@@ -370,14 +370,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(otb_httpd_connection *hcon
 
   int jj;
 
-  MDEBUG("otb_httpd_process_start_line entry");
+  ENTRY;
 
 
   cur += otb_httpd_process_method(hconn, data+cur, len-cur);
   cur += otb_httpd_process_url(hconn, data+cur, len-cur);
   cur += otb_httpd_process_http(hconn, data+cur, len-cur);
 
-  MDEBUG("otb_httpd_process_start_line exit");
+  EXIT;
 
   return cur;
 }
@@ -392,7 +392,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_get_next_header(char *data,
   uint16 cur = 0;
   int jj;
 
-  MDEBUG("otb_httpd_process_next_header entry");
+  ENTRY;
 
   // Skip whitespace
   for (cur = 0; cur < len; cur++)
@@ -477,7 +477,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_get_next_header(char *data,
     MDEBUG("HEADER: None");
   }
 
-  MDEBUG("otb_httpd_process_next_header exit");
+  EXIT;
 
   return cur;
 }
@@ -491,7 +491,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
   char header_name[OTB_HTTPD_MAX_HEADER_LEN];
   char header_value[OTB_HTTPD_MAX_HEADER_LEN];
 
-  MDEBUG("otb_httpd_process_headers entry");
+  ENTRY;
 
   // Figure out where the headers end
   end = strstr(data, "\r\n\r\n");
@@ -547,7 +547,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
 
 EXIT_LABEL:
 
-  MDEBUG("otb_httpd_process_headers exit");
+  EXIT;
 
   return cur;
 }
@@ -567,7 +567,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
   uint16 body_len;
   uint16 cur = 0;
 
-  MDEBUG("otb_httpd_recv_callback entry");
+  ENTRY;
 
   MDEBUG("hconn: %p", hconn);
   OTB_ASSERT(hconn != NULL);
@@ -755,7 +755,7 @@ EXIT_LABEL:
     os_memset(&hconn->request, 0, sizeof(hconn->request));
   }
 
-  MDEBUG("otb_httpd_recv_callback exit");
+  EXIT;
 
   return;
 }
@@ -764,7 +764,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
 {
   uint16 rsp_len = 0;
 
-  MDEBUG("otb_httpd_build_core_response entry");
+  ENTRY;
 
 
   rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
@@ -804,7 +804,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
   rsp_len += OTB_HTTPD_END_HEADERS(buf+rsp_len,
                                    len-rsp_len);
 
-  MDEBUG("otb_httpd_build_core_response exit");
+  EXIT;
 
   return rsp_len;
 }
@@ -816,7 +816,7 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
   uint16 find_len;
   uint16 data_len;
 
-  MDEBUG("otb_httpd_get_arg entry");
+  ENTRY;
 
   find_len = os_strlen(find);
   data_len = os_strlen(data);
@@ -872,7 +872,7 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
     MDEBUG("NOT FOUND: Arg: %s", find);
   }
 
-  MDEBUG("otb_httpd_get_arg exit");
+  EXIT;
 
   return len;
 }
@@ -897,7 +897,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
   sint16 mqtt_user_len;
   sint16 mqtt_pass_len;
 
-  MDEBUG("otb_httpd_station_config entry");
+  ENTRY;
 
   OTB_ASSERT(buf != NULL);
 
@@ -971,12 +971,12 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
         mqtt_user_rc = otb_mqtt_set_user(mqtt_user, mqtt_pass, FALSE);
       }
       
-      DEBUG("HTTP: Add body");
+      MDEBUG("Add body");
         rsp_len += os_snprintf(buf + rsp_len,
                                len - rsp_len,
                                "<body>");
 
-      DEBUG("HTTP: Add wifi");
+      MDEBUG("Add wifi");
 
       if (wifi_rc == OTB_CONF_RC_CHANGED)
       {
@@ -993,7 +993,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
                                "<p>Wifi details not changed</p>");
       }
       
-      DEBUG("HTTP: Add MQTT svr");
+      MDEBUG("Add MQTT svr");
 
       if (mqtt_svr_rc == OTB_CONF_RC_CHANGED)
       {
@@ -1009,7 +1009,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
                                "<p>MQTT server not changed</p>");
       }
       
-      DEBUG("HTTP: Add MQTT user");
+      MDEBUG("Add MQTT user");
       if (mqtt_user_rc == OTB_CONF_RC_CHANGED)
       {
         rsp_len += os_snprintf(buf + rsp_len,
@@ -1026,7 +1026,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
                                "<p>MQTT username/password not changed</p>");
       }
       
-      DEBUG("HTTP: Update config");
+      MDEBUG("Update config");
 
       if ((wifi_rc == OTB_CONF_RC_CHANGED) ||
           (mqtt_svr_rc == OTB_CONF_RC_CHANGED) ||
@@ -1038,18 +1038,18 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
         rsp_len += os_snprintf(buf + rsp_len,
                                len - rsp_len,
                                "<p><b>Failed to commit new config to flash!</b></p>");
-          ERROR("CONF: Failed to update config");
+          MERROR("Failed to update config");
         }
         // Will cause device to reboot
         rsp_len += os_snprintf(buf + rsp_len,
                                len - rsp_len,
                                "<p>Rebooting shortly ... </p>");
                            
-        DETAIL("HTTP: Terminate AP mode");
+        MDETAIL("Terminate AP mode");
         otb_wifi_ap_mode_done_fn();          
       }
 
-      DEBUG("HTTP: Finish body");
+      MDEBUG("Finish body");
 
       rsp_len += os_snprintf(buf + rsp_len,
                              len - rsp_len,
@@ -1068,7 +1068,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       // XXX Handle configuring AP details
 EXIT_LABEL:
   
-  MDEBUG("otb_httpd_station_config exit");
+  EXIT;
 
   return(rsp_len);
 }
@@ -1123,7 +1123,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   unsigned char *form_str, *form_str_orig;
   int str_ii;
 
-  MDEBUG("otb_httpd_wifi_form entry");
+  ENTRY;
 
   output_len = 0;
 
@@ -1167,7 +1167,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                               "Internal error");
   }
 
-  MDEBUG("otb_httpd_wifi_form exit");
+  EXIT;
 
   return output_len;
 }
@@ -1177,7 +1177,7 @@ int ICACHE_FLASH_ATTR otb_httpd_display_ap_list(char *buffer, uint16_t buf_len)
   uint16_t output_len;
   struct otb_wifi_ap *ap;
   
-  MDEBUG("otb_httpd_display_ap_list entry");
+  ENTRY;
 
   output_len = 0;
   output_len += os_snprintf(buffer + output_len,
@@ -1208,7 +1208,7 @@ int ICACHE_FLASH_ATTR otb_httpd_display_ap_list(char *buffer, uint16_t buf_len)
                             buf_len - output_len,
                             "</ul></body></html>");
   
-  MDEBUG("otb_httpd_display_ap_list exit");
+  EXIT;
 
   return(output_len);
 }

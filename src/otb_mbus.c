@@ -21,17 +21,19 @@
 #define OTB_MBUS_C
 #include "otb.h"
 
+MLOG("MBUS");
+
 void ICACHE_FLASH_ATTR otb_mbus_hat_init(void)
 {
-  DEBUG("MBUS: otb_mbus_hat_init entry");
+  ENTRY;
 
-  DETAIL("MBUS: M-Bus Master Hat is installed");
+  MDETAIL("M-Bus Master Hat is installed");
   otb_mbus_rx_buf_g.len = OTB_MBUS_RCV_BUF_LEN;
   otb_mbus_rx_buf_g.buf = os_malloc(otb_mbus_rx_buf_g.len);
   if (otb_mbus_rx_buf_g.buf == NULL)
   {
-    ERROR("MBUS: Failed to initialize M-bus Master Hat");
-    DETAIL("MBUS: Failed to allocate receive buffer %d",
+    MERROR("Failed to initialize M-bus Master Hat");
+    MDETAIL("Failed to allocate receive buffer %d",
            otb_mbus_rx_buf_g.len);
     otb_mbus_hat_installed = FALSE;
     goto EXIT_LABEL;
@@ -49,7 +51,7 @@ void ICACHE_FLASH_ATTR otb_mbus_hat_init(void)
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_hat_init exit");
+  EXIT;
 
   return;
 }
@@ -57,7 +59,7 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_handler, void *arg)
 {
   uint8_t conf0;
-  DEBUG("MBUS: otb_mbus_uart_conf entry");
+  ENTRY;
   
   // Attach interrupt handler
   if (intr_handler != NULL)
@@ -99,7 +101,7 @@ void ICACHE_FLASH_ATTR otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_ha
     ETS_UART_INTR_DISABLE();
   }
 
-  DEBUG("MBUS: otb_mbus_uart_conf exit");
+  EXIT;
 
   return;
 }
@@ -109,7 +111,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, u
   bool rc = FALSE;
   uint8_t gpa, gpb;
 
-  // DEBUG("MBUS: otb_mbus_hat_enable entry");
+  ENTRY;
 
   if (!otb_mbus_hat_installed)
   {
@@ -151,7 +153,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_enable(unsigned char *next_cmd, void *arg, u
 
 EXIT_LABEL:
 
-  // DEBUG("MBUS: otb_mbus_hat_enable exit");
+  EXIT;
   
   return rc;
 }
@@ -161,7 +163,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, 
   bool rc = FALSE;
   uint8_t gpa, gpb;
 
-  DEBUG("MBUS: otb_mbus_hat_disable entry");
+  ENTRY;
 
   // Need to enable GPIO26 (GPA0 on MCP23017)  
 
@@ -196,7 +198,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_hat_disable(unsigned char *next_cmd, void *arg, 
 
 EXIT_LABEL:  
 
-  DEBUG("MBUS: otb_mbus_hat_disable exit");
+  EXIT;
   
   return rc;
 }
@@ -210,7 +212,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigne
   unsigned char *next_next_cmd;
   unsigned char scratch[32];
 
-  DEBUG("MBUS: otb_mbus_scan entry");
+  ENTRY;
 
   if (!otb_mbus_enabled)
   {
@@ -290,7 +292,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_scan(unsigned char *next_cmd, void *arg, unsigne
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_scan exit");
+  EXIT;
 
   return rc;
 }
@@ -301,7 +303,7 @@ void ICACHE_FLASH_ATTR otb_mbus_scan_timerfn(void *arg)
   uint8_t next;
   unsigned char scratch[32];
 
-  DEBUG("MBUS: otb_mbus_scan_timerfn entry");
+  ENTRY;
 
   if (otb_mbus_scan_g.last < otb_mbus_scan_g.max)
   {
@@ -341,7 +343,7 @@ void ICACHE_FLASH_ATTR otb_mbus_scan_timerfn(void *arg)
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_scan_timerfn exit");
+  EXIT;
 
   return;
 }
@@ -352,7 +354,7 @@ uint8_t ICACHE_FLASH_ATTR otb_mbus_crc(uint8_t *data)
   uint8_t crc = 0;
   int ii;
 
-  DEBUG("MBUS: otb_mbus_crc entry");
+  ENTRY;
 
   // Ignore first byte
   if (data[0] == 0)
@@ -366,7 +368,7 @@ uint8_t ICACHE_FLASH_ATTR otb_mbus_crc(uint8_t *data)
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_crc exit");
+  EXIT;
 
   return crc;
 }
@@ -377,7 +379,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
   unsigned char scan_str[6];
   int addr;
 
-  DEBUG("MBUS: otb_mbus_get_data entry");
+  ENTRY;
 
   if (!otb_mbus_enabled)
   {
@@ -404,7 +406,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
     goto EXIT_LABEL;
   }
 
-  DETAIL("MBUS: Querying slave at address %d", addr);
+  MDETAIL("Querying slave at address %d", addr);
 
   // Init the bus
   os_memset(scan_str, 0, 6);
@@ -431,7 +433,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_get_data(unsigned char *next_cmd, void *arg, uns
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_get_data exit");
+  EXIT;
 
   return rc;
 }
@@ -444,7 +446,7 @@ void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
   unsigned char scratch[(OTB_MBUS_RCV_BUF_LEN*2)+1];
   otb_mbus_rx_buf *buf = arg;
 
-  DEBUG("MBUS: otb_mbus_recv_data entry");
+  ENTRY;
 
   // Don't disarm timer, as it's possible interrupt has fired again and
   // re-armed timer
@@ -503,7 +505,7 @@ void ICACHE_FLASH_ATTR otb_mbus_recv_data(void *arg)
     os_timer_arm(&otb_mbus_recv_buf_timer, 0, 0);
   }
 
-  DEBUG("MBUS: otb_mbus_recv_data exit");
+  EXIT;
 
   return;
 }
@@ -574,7 +576,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_config_handler(unsigned char *next_cmd,
   bool match;
   int ii;
     
-  DEBUG("MBUS: otb_mbus_config_handler entry");
+  ENTRY;
 
   cmd = (int)arg;
   cmd_type = OTB_SERIAL_CMD_TYPE_MASK & cmd;
@@ -648,7 +650,7 @@ bool ICACHE_FLASH_ATTR otb_mbus_config_handler(unsigned char *next_cmd,
 
 EXIT_LABEL:
 
-  DEBUG("MBUS: otb_mbus_config_handler exit");
+  EXIT;
   
   return rc;
 }

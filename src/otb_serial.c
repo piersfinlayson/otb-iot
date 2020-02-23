@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2017-2018 Piers Finlayson
+ * Copyright (C) 2017-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,9 +21,11 @@
 #define OTB_SERIAL_C
 #include "otb.h"
 
+MLOG("SERIAL");
+
 void ICACHE_FLASH_ATTR otb_serial_init(void)
 {
-  DEBUG("SERIAL: otb_serial_init entry");
+  ENTRY;
   
   // While this is a global so should be initialized to zero, we might be
   // called later on to reinit.
@@ -34,7 +36,7 @@ void ICACHE_FLASH_ATTR otb_serial_init(void)
   otb_serial_conf.tx = OTB_SERIAL_PIN_INVALID;
   otb_serial_conf.mezz_info = NULL;
   
-  DEBUG("SERIAL: otb_serial_init exit");
+  EXIT;
   
   return;
 }
@@ -46,7 +48,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   uint32 mezz_type = (uint32)arg;
   int ii;
 
-  DEBUG("SERIAL: otb_serial_init_mbus_mezz entry");
+  ENTRY;
 
   // Assert a supported mezzanine type (otherwise this function shouldn't be called)
   OTB_ASSERT(mezz_type == OTB_EEPROM_MODULE_TYPE_MBUS_V0_1);
@@ -55,7 +57,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   otb_serial_conf.mezz_info = (otb_serial_mezz_info *)os_malloc(sizeof(otb_serial_mezz_info));
   if (!otb_serial_conf.mezz_info)
   {
-    ERROR("SERIAL: Failed to allocate memory for serial mezz");
+    MERROR("Failed to allocate memory for serial mezz");
     goto EXIT_LABEL;
   }
   os_memset(otb_serial_conf.mezz_info, 0, sizeof(otb_serial_mezz_info));
@@ -79,7 +81,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   // Hard reset SC16IS752
   if (!otb_serial_mezz_reset(TRUE))
   {
-    ERROR("SERIAL: Failed to reset serial mezz");
+    MERROR("Failed to reset serial mezz");
     goto EXIT_LABEL;
   }
 
@@ -92,7 +94,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   // Now turn on connected LED
   if (!otb_serial_mezz_gpio(0b10))  // GPIO1 state 1
   {
-    ERROR("SERIAL: Failed to turn on serial mezz GPIO0");
+    MERROR("Failed to turn on serial mezz GPIO0");
     goto EXIT_LABEL;
   }
 
@@ -101,7 +103,7 @@ void ICACHE_FLASH_ATTR otb_serial_init_mbus_mezz(void *arg)
   otb_serial_conf.mezz_info->use_mezz = TRUE;  // default to using this mezzanine
 
   INFO("OTB: Initialized serial board");
-  DETAIL("SERIAL: Initialized mezz serial board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
+  MDETAIL("Initialized mezz serial board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
 EXIT_LABEL:
 
@@ -114,7 +116,7 @@ EXIT_LABEL:
     otb_serial_conf.mezz_info = NULL;
   }
 
-  DEBUG("SERIAL: otb_serial_init_mbus_mezz exit");
+  EXIT;
 
   return;
 }
@@ -124,7 +126,7 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_write_reg(uint8_t reg, uint8_t val)
   uint8_t brc;
   uint8 bytes[2];
 
-  DEBUG("SERIAL: otb_serial_mezz_write_reg entry");
+  ENTRY;
 
   bytes[0] = OTB_SERIAL_SC16IS_REG(reg);
   bytes[1] = val;
@@ -135,10 +137,10 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_write_reg(uint8_t reg, uint8_t val)
   brc = brzo_i2c_end_transaction_info(&(otb_serial_conf.mezz_info->i2c_info));
   if (brc)
   {
-    DEBUG("SERIAL: Failed to write reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x val: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], val, brc)
+    MDEBUG("Failed to write reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x val: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], val, brc)
   }
   
-  DEBUG("SERIAL: otb_serial_mezz_write_reg exit");
+  EXIT;
 
   return brc;
 }
@@ -148,7 +150,7 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_read_reg(uint8_t reg, uint8_t *val)
   uint8_t brc;
   uint8 bytes[1];
 
-  DEBUG("SERIAL: otb_serial_mezz_read_reg entry");
+  ENTRY;
 
   bytes[0] = OTB_SERIAL_SC16IS_REG(reg);
   brzo_i2c_start_transaction_info(otb_serial_conf.mezz_info->i2c_addr,
@@ -159,10 +161,10 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_read_reg(uint8_t reg, uint8_t *val)
   brc = brzo_i2c_end_transaction_info(&(otb_serial_conf.mezz_info->i2c_info));
   if (brc)
   {
-    DEBUG("SERIAL: Failed to read reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], brc)
+    MDEBUG("Failed to read reg addr: 0x%02x reg: 0x%02x real_reg: 0x%02x rc: %d", otb_serial_conf.mezz_info->i2c_addr, reg, bytes[0], brc)
   }
   
-  DEBUG("SERIAL: otb_serial_mezz_read_reg exit");
+  EXIT;
 
   return brc;
 }
@@ -175,7 +177,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_gpio(uint8 gpios)
   uint8_t brc;
   int ii;
   
-  DEBUG("SERIAL: otb_serial_mezz_gpio entry");
+  ENTRY;
 
   // Reg 0x0b is "IOState"
   brc = otb_serial_mezz_write_reg(0x0B, gpios);
@@ -184,7 +186,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_gpio(uint8 gpios)
     rc = TRUE;
   }
 
-  DEBUG("SERIAL: otb_serial_mezz_gpio exit");
+  EXIT;
 
   return rc;
 }
@@ -196,7 +198,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_reset(bool hard)
   uint8_t brc;
   int ii;
 
-  DEBUG("SERIAL: otb_serial_mezz_reset entry");
+  ENTRY;
 
   if (hard)
   {
@@ -235,7 +237,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_reset(bool hard)
 
 EXIT_LABEL:
 
-  DEBUG("SERIAL: otb_serial_mezz_reset exit");
+  EXIT;
 
   return rc;
 }
@@ -252,7 +254,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
   uint8_t br_lo, br_ho;
   uint8_t lcr = 0b11;
 
-  DEBUG("SERIAL: otb_serial_mezz_configure entry");
+  ENTRY;
 
   baudrate = 115200 / otb_serial_conf.baudrate; // Assumes a 1.8432 MHz crystal, generating 16x clock
   OTB_ASSERT(baudrate <= 0xffff);
@@ -275,7 +277,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
   val[7] = lcr | 0b10000000; // divisor latch enable
   val[10] = lcr;
 
-  DEBUG("SERIAL: LCR 0x%02x br_lo 0x%02x br_hi: 0x%02x", lcr, br_lo, br_ho);
+  MDEBUG("LCR 0x%02x br_lo 0x%02x br_hi: 0x%02x", lcr, br_lo, br_ho);
 
   for (ii = 0; ii < OTB_SERIAL_MEZZ_CONFIGURE_REGS; ii++)
   {
@@ -290,7 +292,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_configure(void)
 
 EXIT_LABEL:  
 
-  DEBUG("SERIAL: otb_serial_mezz_configure exit");
+  EXIT;
 
   return rc;
 }
@@ -299,7 +301,7 @@ bool ICACHE_FLASH_ATTR otb_serial_enable_mezz()
 {
   bool rc = FALSE;
 
-  DEBUG("SERIAL: otb_serial_enable_mezz entry");
+  ENTRY;
 
   // Reset
   if (!otb_serial_mezz_reset(TRUE))
@@ -326,14 +328,14 @@ bool ICACHE_FLASH_ATTR otb_serial_enable_mezz()
 
   rc = TRUE;
 
-  DETAIL("SERIAL: Enabled serial mezz board 0x%02x at %d baud uart %d",
+  MDETAIL("Enabled serial mezz board 0x%02x at %d baud uart %d",
        otb_serial_conf.mezz_info->i2c_addr,
        otb_serial_conf.baudrate,
        otb_serial_conf.mezz_info->uart_num);
 
 EXIT_LABEL:
 
-  DEBUG("SERIAL: otb_serial_enable_mezz exit");
+  EXIT;
 
   return rc;
 }
@@ -342,7 +344,7 @@ bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
 {
   bool rc = TRUE;
 
-  DEBUG("SERIAL: otb_serial_disable_mezz entry");
+  ENTRY;
 
   otb_intr_unreg(OTB_SERIAL_MBUS_V0_1_IRQ_PIN);
   
@@ -369,9 +371,9 @@ bool ICACHE_FLASH_ATTR otb_serial_disable_mezz()
 
 EXIT_LABEL:
 
-  DETAIL("SERIAL: Disabled serial mezz board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
+  MDETAIL("Disabled serial mezz board 0x%02x", otb_serial_conf.mezz_info->i2c_addr);
 
-  DEBUG("SERIAL: otb_serial_disable_mezz exit");
+  EXIT;
 
   return rc;
 }
@@ -382,7 +384,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_byte_to_read(void)
   uint8_t brc;
   uint8_t rval;
 
-  DEBUG("SERIAL: otb_serial_mezz_byte_to_read entry");
+  ENTRY;
 
   brc = otb_serial_mezz_read_reg(0x05, &rval);
   if (!rc)
@@ -393,7 +395,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_byte_to_read(void)
     }
   }
 
-  DEBUG("SERIAL: otb_serial_mezz_byte_to_read exit");
+  EXIT;
 
   return rc;
 }
@@ -403,13 +405,13 @@ void ICACHE_FLASH_ATTR otb_serial_mezz_read_data(void *arg)
   uint8_t brc;
   uint16_t pos;
 
-  DEBUG("SERIAL: otb_serial_mezz_read_data entry");
+  ENTRY;
 
   while (otb_serial_mezz_byte_to_read())
   {
     pos = otb_serial_conf.mezz_info->buf.tail;
     brc = otb_serial_mezz_read_reg(0x00, otb_serial_conf.mezz_info->buf.buf+pos);
-    DEBUG("SERIAL: Read 0x%02x into positon: %d", otb_serial_conf.mezz_info->buf.buf[pos], pos);
+    MDEBUG("Read 0x%02x into positon: %d", otb_serial_conf.mezz_info->buf.buf[pos], pos);
     if (!brc)
     {
       // Succeeded
@@ -437,7 +439,7 @@ void ICACHE_FLASH_ATTR otb_serial_mezz_read_data(void *arg)
     }
   }
 
-  DEBUG("SERIAL: otb_serial_mezz_read_data exit");
+  EXIT;
 
   return;
 }
@@ -446,7 +448,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_buf_data_avail(void)
 { 
   bool rc = FALSE;
 
-  DEBUG("SERIAL: otb_serial_mezz_buf_data_avail entry");
+  ENTRY;
 
   OTB_ASSERT(otb_serial_conf.mezz_info != NULL);
 
@@ -459,7 +461,7 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_buf_data_avail(void)
     rc = TRUE;
   }
 
-  DEBUG("SERIAL: otb_serial_mezz_buf_data_avail exit");
+  EXIT;
 
   return rc;
 }
@@ -468,13 +470,13 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_buf_get_next_byte(void)
 {
   uint8_t byte;
 
-  DEBUG("SERIAL: otb_serial_mezz_buf_get_next_byte entry");
+  ENTRY;
 
   OTB_ASSERT(otb_serial_conf.mezz_info != NULL);
   OTB_ASSERT(otb_serial_mezz_buf_data_avail());
 
   byte = otb_serial_conf.mezz_info->buf.buf[otb_serial_conf.mezz_info->buf.head];
-  DEBUG("SERIAL: Read 0x%02x from positon: %d", byte, otb_serial_conf.mezz_info->buf.head);
+  MDEBUG("Read 0x%02x from positon: %d", byte, otb_serial_conf.mezz_info->buf.head);
   otb_serial_conf.mezz_info->buf.head++;
   if (otb_serial_conf.mezz_info->buf.head >= otb_serial_conf.mezz_info->buf.buf_size)
   {
@@ -482,14 +484,14 @@ uint8_t ICACHE_FLASH_ATTR otb_serial_mezz_buf_get_next_byte(void)
   }
   otb_serial_conf.mezz_info->buf.overflow = FALSE;
 
-  DEBUG("SERIAL: otb_serial_mezz_buf_get_next_byte exit");
+  EXIT;
 
   return byte;
 }
 
 void ICACHE_FLASH_ATTR otb_serial_mezz_intr_handler(void *arg)
 {
-  DEBUG("SERIAL: otb_serial_mezz_intr_handler entry");
+  ENTRY;
 
   // Schedule timer immediately to read data from the SC16IS
   // (Don't do it in this interrupt handler)
@@ -498,7 +500,7 @@ void ICACHE_FLASH_ATTR otb_serial_mezz_intr_handler(void *arg)
   os_timer_setfn(&otb_serial_conf.mezz_info->timer, otb_serial_mezz_read_data, NULL);
   os_timer_arm(&otb_serial_conf.mezz_info->timer, 0, 0);
 
-  DEBUG("SERIAL: otb_serial_mezz_intr_handler exit");
+  EXIT;
 
   return;
 }
@@ -508,16 +510,16 @@ bool ICACHE_FLASH_ATTR otb_serial_mezz_send_byte(uint8_t byte)
   bool rc = FALSE;
   uint8_t brc;
 
-  DEBUG("SERIAL: otb_serial_mezz_send_byte entry");
+  ENTRY;
 
   brc = otb_serial_mezz_write_reg(0x00, byte);
-  DEBUG("SERIAL: Sent 0x%02x", byte);
+  MDEBUG("Sent 0x%02x", byte);
   if (!brc)
   {
     rc = TRUE;
   }
 
-  DEBUG("SERIAL: otb_serial_mezz_send_byte exit");
+  EXIT;
 
   return rc;
 }
@@ -542,7 +544,7 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
   int num;
   char *error;
     
-  DEBUG("SERIAL: otb_serial_config_handler entry");
+  ENTRY;
   
   cmd = (int)arg;
   cmd_type = OTB_SERIAL_CMD_TYPE_MASK & cmd;
@@ -1177,7 +1179,7 @@ bool ICACHE_FLASH_ATTR otb_serial_config_handler(unsigned char *next_cmd,
 
 EXIT_LABEL:
 
-  DEBUG("SERIAL: otb_serial_config_handler exit");
+  EXIT;
   
   return rc;
 }

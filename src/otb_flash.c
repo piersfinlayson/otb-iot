@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,4 +20,7 @@
 #define OTB_FLASH_C
 #define OTB_FLASH_INC_FUNCS
 #include "otb.h"
+
+MLOG("FLASH");
+
 

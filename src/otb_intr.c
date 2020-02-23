@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2018 Piers Finlayson
+ * Copyright (C) 2018-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,11 +20,13 @@
 #define OTB_INTR_C
 #include "otb.h"
 
+MLOG("INTR");
+
 void ICACHE_FLASH_ATTR otb_intr_init(void)
 {
   int ii;
 
-  DEBUG("INTR: otb_intr_init entry");
+  ENTRY;
 
   for (ii=0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
   {
@@ -32,18 +34,18 @@ void ICACHE_FLASH_ATTR otb_intr_init(void)
     otb_intr_reg_info[ii].arg = NULL;
   }
 
-  DEBUG("INTR: otb_intr_init exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_intr_clear(uint32_t gpio_status)
 {
-  DEBUG("INTR: otb_intr_clear entry");
+  ENTRY;
 
   GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 
-  DEBUG("INTR: otb_intr_clear exit");
+  EXIT;
 
   return;  
 }
@@ -53,7 +55,7 @@ void ICACHE_FLASH_ATTR otb_intr_set()
   int ii;
   bool have_intr = FALSE;
 
-  DEBUG("INTR: otb_intr_set entry");
+  ENTRY;
 
   for (ii=0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
   {
@@ -73,7 +75,7 @@ void ICACHE_FLASH_ATTR otb_intr_set()
     
   }
 
-  DEBUG("INTR: otb_intr_set exit");
+  EXIT;
 
   return;  
 }
@@ -82,7 +84,7 @@ bool ICACHE_FLASH_ATTR otb_intr_register(otb_intr_handler_fn *fn, void *arg, uin
 {
   bool rc = FALSE;
 
-  DEBUG("INTR: otb_intr_register entry");
+  ENTRY;
 
   OTB_ASSERT(pin < OTB_GPIO_ESP_GPIO_PINS);
   if (otb_intr_reg_info[pin].fn == NULL)
@@ -93,14 +95,14 @@ bool ICACHE_FLASH_ATTR otb_intr_register(otb_intr_handler_fn *fn, void *arg, uin
     otb_intr_set();
     ETS_INTR_UNLOCK();
     rc = TRUE;
-    DETAIL("INTR: Registered interrupt handler for pin %d", pin)
+    MDETAIL("Registered interrupt handler for pin %d", pin)
   }
   else
   {
-    ERROR("INTR: Already have interrupt handler for pin %d", pin);
+    MERROR("Already have interrupt handler for pin %d", pin);
   }
 
-  DEBUG("INTR: otb_intr_register exit");
+  EXIT;
 
   return rc;
 }
@@ -108,7 +110,7 @@ bool ICACHE_FLASH_ATTR otb_intr_register(otb_intr_handler_fn *fn, void *arg, uin
 void ICACHE_FLASH_ATTR otb_intr_unreg(uint8_t pin)
 {
 
-  DEBUG("INTR: otb_intr_unreg entry");
+  ENTRY;
 
   OTB_ASSERT(pin < OTB_GPIO_ESP_GPIO_PINS);
   otb_intr_reg_info[pin].fn = NULL;
@@ -116,9 +118,9 @@ void ICACHE_FLASH_ATTR otb_intr_unreg(uint8_t pin)
   ETS_INTR_LOCK();
   otb_intr_set();
   gpio_pin_intr_state_set(GPIO_ID_PIN(pin), 0);  //   ETS_INTR_UNLOCK();
-  DETAIL("INTR: Unregistered interrupt handler for pin %d", pin)
+  MDETAIL("Unregistered interrupt handler for pin %d", pin)
 
-  DEBUG("INTR: otb_intr_unreg exit");
+  EXIT;
 
   return;
 }
@@ -128,7 +130,7 @@ void ICACHE_FLASH_ATTR otb_intr_main_handler(void *arg)
   uint32_t gpio_status;
   uint8_t gpio;
 
-  DEBUG("INTR: otb_intr_main_handler entry");
+  ENTRY;
 
   ETS_INTR_LOCK();
 
@@ -148,7 +150,7 @@ void ICACHE_FLASH_ATTR otb_intr_main_handler(void *arg)
 
   ETS_INTR_UNLOCK();
 
-  DEBUG("INTR: otb_intr_main_handler exit");
+  EXIT;
 
   return;
 }

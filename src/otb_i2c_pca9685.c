@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,6 +21,8 @@
 #include "otb.h"
 #include "brzo_i2c.h"
 
+MLOG("PCA9685");
+
 // TRIGGER - just sets a gpio
 // SET - SDA or SCL, valid pin provided
 // SET - addr, need to get next_cmd
@@ -38,12 +40,12 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca_gpio_cmd(unsigned char *next_cmd,
   bool store_conf = FALSE;
   uint8_t addr_b;
     
-  DEBUG("GPIO: otb_i2c_pca_gpio_cmd entry");
+  ENTRY;
   
   // Double check what we're being asked to do is valid
   cmd = (int)arg;
 
-  DEBUG("PCA9685: cmd: 0x%08x", cmd);
+  MDEBUG("cmd: 0x%08x", cmd);
 
   OTB_ASSERT(((cmd & OTB_CMD_GPIO_TRIGGER) &&
               ((cmd & OTB_CMD_GPIO_PCA_INIT) ||
@@ -159,7 +161,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca_gpio_cmd(unsigned char *next_cmd,
         goto EXIT_LABEL;
       }
       otb_i2c_pca9685_desired_state[pin] = value;
-      DEBUG("PCA9685: set pin %d to value %d", pin, value);
+      MDEBUG("set pin %d to value %d", pin, value);
       rc = otb_i2c_pca9685_set2();
       if (!rc)
       {
@@ -171,19 +173,19 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca_gpio_cmd(unsigned char *next_cmd,
       break;
       
     case OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_ADDR:
-      DEBUG("PCA9685: Use addr: 0x%02x", addr_b);
+      MDEBUG("Use addr: 0x%02x", addr_b);
       otb_i2c_pca9685_addr = addr_b;
       rc = TRUE;
       break;
     
     case OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SDA:
-      DEBUG("PCA9685: SDA pin: %d", pin);
+      MDEBUG("SDA pin: %d", pin);
       otb_i2c_pca9685_sda = pin;
       rc = TRUE;
       break;
 
     case OTB_CMD_GPIO_SET_CONFIG|OTB_CMD_GPIO_PCA_SCL:
-      DEBUG("PCA9685: SCL pin: %d", pin);
+      MDEBUG("SCL pin: %d", pin);
       otb_i2c_pca9685_scl = pin;
       rc = TRUE;
       break;
@@ -213,7 +215,7 @@ EXIT_LABEL:
     }
   }
 
-  DEBUG("GPIO: otb_i2c_pca_gpio_cmd exit");
+  EXIT;
   
   return rc;
 }
@@ -223,7 +225,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_valid_pin(unsigned char *to_match)
   bool rc = FALSE;
   int8_t pin;
   
-  DEBUG("GPIO: otb_i2c_pca9685_valid_pin entry");
+  ENTRY;
 
   pin = atoi(to_match);
 
@@ -236,7 +238,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_valid_pin(unsigned char *to_match)
 
 EXIT_LABEL:  
 
-  DEBUG("GPIO: otb_i2c_pca9685_valid_pin exit");
+  EXIT;
 
  return rc;
 }
@@ -247,7 +249,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init2()
   uint8_t bytes[5];
   uint8_t brzo_rc;
 
-  DEBUG("PCA9685: otb_i2c_pca9685_init2 entry");
+  ENTRY;
 
   // Set the mode
   bytes[0] = 0x00; // MODE1 register
@@ -257,7 +259,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init2()
   brzo_rc = brzo_i2c_end_transaction_info(&otb_i2c_pca9685_brzo_i2c_info);
   if (brzo_rc)
   {
-    WARN("PCA9685: Failed to set PCA9685 mode: %d", brzo_rc);
+    MWARN("Failed to set PCA9685 mode: %d", brzo_rc);
     goto EXIT_LABEL;
   }
 
@@ -265,7 +267,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init2()
 
 EXIT_LABEL:
 
-  DEBUG("PCA9685: otb_i2c_pca9685_init2 exit");
+  EXIT;
 
   return rc;
 }
@@ -278,7 +280,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set2()
   int ii;
   uint8_t desired_state;
 
-  DEBUG("PCA9685: otb_i2c_pca9685_set2 entry");
+  ENTRY;
 
   bytes[1] = 0b0;
   bytes[3] = 0b0;
@@ -301,7 +303,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set2()
     brzo_rc = brzo_i2c_end_transaction_info(&otb_i2c_pca9685_brzo_i2c_info);
     if (brzo_rc)
     {
-      DETAIL("PCA9685: Failed to set pin: %d, rc: %d", ii, brzo_rc);
+      MDETAIL("Failed to set pin: %d, rc: %d", ii, brzo_rc);
       rc = FALSE;
       goto EXIT_LABEL;
     }
@@ -314,7 +316,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set2()
 
 EXIT_LABEL:
 
-  DEBUG("PCA9685: otb_i2c_pca9685_set2 exit");
+  EXIT;
 
   return rc;
 }
@@ -323,32 +325,32 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_timerfunc(void)
 {
   bool rc;
   
-  DEBUG("I2C: otb_i2c_pca9685_test_timer_func entry");
+  ENTRY;
 
   if (otb_i2c_pca9685_led_on)
   {
     // Off
-    DETAIL("PCA9685: LED on - turn it off");
+    MDETAIL("LED on - turn it off");
     rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, 0, OTB_I2C_PCA9685_IO_FULL_OFF);
     if (!rc)
     {
-      WARN("PCA9685: Failed to communicate with PCA9685");
+      MWARN("Failed to communicate with PCA9685");
     }
     otb_i2c_pca9685_led_on = FALSE;
   }
   else
   {
     // On
-    DETAIL("PCA9685: LED off - turn it on");
+    MDETAIL("LED off - turn it on");
     rc = otb_i2c_pca9685_led_conf(otb_i2c_pca9685_test_addr, 15, OTB_I2C_PCA9685_IO_FULL_ON, 0);
     if (!rc)
     {
-      WARN("PCA9685: Failed to communicate with PCA9685");
+      MWARN("Failed to communicate with PCA9685");
     }
     otb_i2c_pca9685_led_on = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_pca9685_test_timer_func entry");
+  ENTRY;
 
   return;
 }
@@ -357,14 +359,14 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_init(void)
 {
   bool rc = FALSE;
 
-  DEBUG("I2C: otb_i2c_pca9685_test_init entry");
+  ENTRY;
 
   otb_i2c_pca9685_led_on = FALSE;
   otb_i2c_pca9685_test_addr = OTB_I2C_PCA9685_BASE_ADDR;
   rc = otb_i2c_pca9685_init(otb_i2c_pca9685_test_addr);
   if (!rc)
   {
-    WARN("PCA9685: Failed to init PCA9685 at address 0x%02x", otb_i2c_pca9685_test_addr);
+    MWARN("Failed to init PCA9685 at address 0x%02x", otb_i2c_pca9685_test_addr);
     goto EXIT_LABEL;
   }
   
@@ -374,11 +376,11 @@ void ICACHE_FLASH_ATTR otb_i2c_pca9685_test_init(void)
                      1000,
                      1);
                      
-  DETAIL("PCA9685: Initialized test");
+  MDETAIL("Initialized test");
   
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_pca9685_test_init exit");
+  EXIT;
 
   return;
 }
@@ -390,7 +392,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   int ii;
   uint8_t reg;
   
-  DEBUG("I2C: otb_i2c_pca9685_led_conf entry");
+  ENTRY;
 
   // on and off are only 13-bit values
   OTB_ASSERT(!(on & 0b1110000000000000));
@@ -433,7 +435,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   rc = brzo_i2c_end_transaction(); 
   if (rc)
   {
-    DETAIL("Failed %d", rc);
+    MDETAIL("Failed %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -442,7 +444,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_led_conf(uint8_t addr, uint8_t led, uint1
   
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_pca9685_led_conf exit");
+  EXIT;
 
   return rc;
 }
@@ -453,18 +455,18 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   uint8_t read_mode[2];
   uint16_t mode;
 
-  DEBUG("I2C: otb_i2c_pca9685_init entry");
+  ENTRY;
 
   // XXX This is bugged - for some reason the second read doesn't work
   // Read the mode
   rc = otb_i2c_read_reg_seq(addr, OTB_I2C_PCA9685_REG_MODE1, 2, read_mode);
   if (!rc)
   {
-    WARN("PCA9685: Failed to read mode");
+    MWARN("Failed to read mode");
     goto EXIT_LABEL;
   }
   mode = read_mode[0] & (read_mode[1] << 8);
-  DETAIL("PCA9685: Read mode 0x%04x", mode);
+  MDETAIL("Read mode 0x%04x", mode);
   
 #if 0  
   // Set prescale (to default for now)
@@ -504,7 +506,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   rc = brzo_i2c_end_transaction();
   if (rc)
   {
-    DETAIL("sqrst failed: %d", rc);
+    MDETAIL("sqrst failed: %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -516,7 +518,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   rc = brzo_i2c_end_transaction();
   if (rc)
   {
-    DETAIL("Failed: %d", rc);
+    MDETAIL("Failed: %d", rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -525,7 +527,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_init(uint8_t addr)
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_pca9685_init exit");
+  EXIT;
 
   return rc;
 }
@@ -536,7 +538,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set_mode(uint8_t addr, uint16_t mode)
   int ii;
   uint8_t mode_byte[2];
 
-  DEBUG("I2C: otb_i2c_pca9685_set_mode entry");
+  ENTRY;
 
   mode_byte[0] = mode & 0xff;
   mode_byte[1] = mode >> 8;
@@ -553,7 +555,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pca9685_set_mode(uint8_t addr, uint16_t mode)
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_pca9685_set_mode exit");
+  EXIT;
 
   return rc;
 }

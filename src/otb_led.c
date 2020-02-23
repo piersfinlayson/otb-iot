@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-8 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,6 +21,8 @@
 #define OTB_LED_C
 #include "otb.h"
 
+MLOG("LED");
+
 bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned char **error_text)
 {
   bool rc = FALSE;
@@ -28,7 +30,7 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
   otb_led_type_info *led_type = NULL;
   otb_led_sequence *seq = NULL;
   
-  DEBUG("LED: otb_led_test entry");
+  ENTRY;
 
   *error_text = "";
   for (ii = 0; ii < OTB_LED_TYPE_NUM; ii++)
@@ -76,7 +78,7 @@ bool ICACHE_FLASH_ATTR otb_led_test(unsigned char *name, bool repeat, unsigned c
 
 EXIT_LABEL:
 
-  DEBUG("LED: otb_led_test exit");
+  EXIT;
   
   return rc;
 }
@@ -88,7 +90,7 @@ bool ICACHE_FLASH_ATTR otb_led_test_stop(unsigned char *name, unsigned char **er
   otb_led_type_info *led_type = NULL;
   otb_led_sequence *seq = NULL;
   
-  DEBUG("LED: otb_led_test_stop entry");
+  ENTRY;
 
   *error_text = "";
   for (ii = 0; ii < OTB_LED_TYPE_NUM; ii++)
@@ -123,7 +125,7 @@ bool ICACHE_FLASH_ATTR otb_led_test_stop(unsigned char *name, unsigned char **er
 
 EXIT_LABEL:
 
-  DEBUG("LED: otb_led_test_stop exit");
+  EXIT;
   
   return rc;
 }
@@ -133,7 +135,7 @@ void ICACHE_FLASH_ATTR otb_led_get_colours(uint32_t colour,
                                            uint8_t *green,
                                            uint8_t *blue)
 {
-  DEBUG("LED: otb_led_get_colours entry");
+  ENTRY;
     
   // Colour is 0xrrggbb where rr = one byte of hex info for red, gg = one byte of hex
   // for green and bb = one byte of hex for blue
@@ -143,7 +145,7 @@ void ICACHE_FLASH_ATTR otb_led_get_colours(uint32_t colour,
   *green = (colour >> 8) & 0xff;
   *blue = colour & 0xff;
 
-  DEBUG("LED: otb_led_get_colours entry");
+  ENTRY;
 
   return;
 }
@@ -158,7 +160,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_once(uint8_t type,
   otb_led_sequence_step sseq_step;
   bool rc;
 
-  DEBUG("LED: otb_led_control_once entry");
+  ENTRY;
   
   // It's only OK to use a seq struct on the stack as we aren't doing a loop
   otb_led_control_init(&sseq);
@@ -171,7 +173,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_once(uint8_t type,
   sseq_step.blue = blue;
   rc = otb_led_control_seq(&sseq);
   
-  DEBUG("otb_led_control_once exit");
+  EXIT;
   
   return rc;
 }
@@ -182,7 +184,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_step(otb_led_sequence *seq)
   otb_led_sequence_step *step;
   otb_led_type_info *type_info;
 
-  DEBUG("LED: otb_led_control_step entry");
+  ENTRY;
   
   OTB_ASSERT(seq != NULL);
   OTB_ASSERT(seq->steps > 0);
@@ -303,7 +305,7 @@ EXIT_LABEL:
     }
   }
   
-  DEBUG("LED: otb_led_control_step exit");
+  EXIT;
   
   return rc;
 }
@@ -313,7 +315,7 @@ void ICACHE_FLASH_ATTR otb_led_control_on_timer(void *arg)
   otb_led_sequence *seq;
   bool rc;
 
-  DEBUG("LED: otb_led_control_on_timer entry");
+  ENTRY;
 
   OTB_ASSERT(arg != NULL);
   seq = (otb_led_sequence *)arg;
@@ -323,10 +325,10 @@ void ICACHE_FLASH_ATTR otb_led_control_on_timer(void *arg)
   if (!rc)
   {
     // No need to report done - that's done in otb_led_control_step
-    DETAIL("LED: Hit error when doing something to an LED within callback timer");
+    MDETAIL("Hit error when doing something to an LED within callback timer");
   }
   
-  DEBUG("LED: otb_led_control_on_timer entry");
+  ENTRY;
   
   return;
 }
@@ -334,7 +336,7 @@ void ICACHE_FLASH_ATTR otb_led_control_on_timer(void *arg)
 void ICACHE_FLASH_ATTR otb_led_control_init(otb_led_sequence *seq)
 {
 
-  DEBUG("LED: otb_led_control_init entry");
+  ENTRY;
   
   // No need to do anything fancier
   os_memset(seq, 0, sizeof(otb_led_sequence));
@@ -347,7 +349,7 @@ void ICACHE_FLASH_ATTR otb_led_control_init(otb_led_sequence *seq)
   // - on_done (if want callback)
   // - handle (if required for callback)
   
-  DEBUG("LED: otb_led_control_init exit");
+  EXIT;
   
   return;
 }
@@ -359,7 +361,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
   uint8_t blue;
   bool rc = FALSE;
   
-  DEBUG("LED: otb_led_control_seq entry");
+  ENTRY;
   
   OTB_ASSERT(seq->type < OTB_LED_TYPE_NUM);
   OTB_ASSERT(seq != NULL);
@@ -383,7 +385,7 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
   os_timer_setfn((os_timer_t*)&(seq->timer), (os_timer_func_t *)otb_led_control_on_timer, seq);
   rc = otb_led_control_step(seq);
 
-  DEBUG("LED: otb_led_control_seq exit");
+  EXIT;
   
   return rc;
 }
@@ -391,9 +393,9 @@ bool ICACHE_FLASH_ATTR otb_led_control_seq(otb_led_sequence *seq)
 void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
 {
 
-  DEBUG("LED: otb_led_wifi_update entry");
+  ENTRY;
 
-  DEBUG("LED: Update wifi LED 0x%06x", rgb);
+  MDEBUG("Update wifi LED 0x%06x", rgb);
 
   if (rgb && (rgb != OTB_LED_NEO_COLOUR_OFF))
   {
@@ -413,19 +415,19 @@ void ICACHE_FLASH_ATTR otb_led_wifi_update(uint32_t rgb, bool store)
        ((otb_conf->status_led == OTB_CONF_STATUS_LED_BEHAVIOUR_WARN) && (rgb != OTB_LED_NEO_COLOUR_GREEN))))
   {
     // Do nothing
-    DEBUG("LED: Leave as above colour");
+    MDEBUG("Leave as above colour");
   }
   else
   {
     // Override rgb - but not that we pretend to users of this API that the LED
     // is turned on/off based on what comes into this function!
     rgb = OTB_LED_NEO_COLOUR_OFF;
-    DEBUG("LED: Override to off");
+    MDEBUG("Override to off");
   }
 
   otb_led_neo_update(&rgb, 1, otb_gpio_pins.status, otb_gpio_pins.status_type, FALSE);
 
-  DEBUG("LED: otb_led_wifi_update exit");
+  EXIT;
 
   return;
 }
@@ -435,7 +437,7 @@ void otb_led_neo_send_0(bool flip, uint32_t pin_mask)
   uint32_t high_reg;
   uint32_t low_reg;
 
-  // DEBUG("LED: otb_led_neo_send_0 entry");
+  ENTRY;
 
   high_reg = flip ? GPIO_OUT_W1TC_ADDRESS : GPIO_OUT_W1TS_ADDRESS;
   low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
@@ -522,7 +524,7 @@ void otb_led_neo_send_0(bool flip, uint32_t pin_mask)
     "nop;"
   );
 
-  // DEBUG("LED: otb_led_neo_send_0 exit");
+  EXIT;
 
   return;
 }
@@ -532,7 +534,7 @@ void otb_led_neo_send_1(bool flip, uint32_t pin_mask)
   uint32_t high_reg;
   uint32_t low_reg;
 
-  // DEBUG("LED: otb_led_neo_send_1 entry");
+  ENTRY;
 
   high_reg = flip ? GPIO_OUT_W1TC_ADDRESS : GPIO_OUT_W1TS_ADDRESS;
   low_reg = flip ? GPIO_OUT_W1TS_ADDRESS : GPIO_OUT_W1TC_ADDRESS;
@@ -629,7 +631,7 @@ void otb_led_neo_send_1(bool flip, uint32_t pin_mask)
     "nop;"
   );
 
-  // DEBUG("LED: otb_led_neo_send_1 exit");
+  EXIT;
 
   return;
 }
@@ -647,11 +649,11 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
   uint32_t pixel;
   uint32_t low_reg;
 
-  DEBUG("LED: otb_led_neo_update entry");
+  ENTRY;
 
   if (otb_led_neo_lock)
   {
-    ERROR("LED: Neo lock held - function not re-entrant");
+    MERROR("Neo lock held - function not re-entrant");
     goto EXIT_LABEL;
   }
 
@@ -659,7 +661,7 @@ void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, uint32_t type, boo
 
   if (pin == OTB_GPIO_INVALID_PIN)
   {
-    DEBUG("LED: Status LED is not configured - not updating");
+    MDEBUG("Status LED is not configured - not updating");
     goto EXIT_LABEL;
   }
 
@@ -702,7 +704,7 @@ EXIT_LABEL:
 
   otb_led_neo_lock = FALSE;
 
-  DEBUG("LED: otb_led_neo_update exit");
+  EXIT;
 
   return;
 }
@@ -711,7 +713,7 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8
 {
   uint32_t rgb;
 
-  DEBUG("LED: otb_led_neo_get_rgb entry");
+  ENTRY;
 
   rgb = 0;
   
@@ -721,13 +723,13 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_get_rgb(uint8_t red, uint8_t green, uint8
 
   return(rgb);
 
-  DEBUG("LED: otb_led_neo_get_rgb exit");
+  EXIT;
 
 }
 
 void ICACHE_FLASH_ATTR otb_led_wifi_blink(uint8 times)
 {
-  DEBUG("LED: otb_led_wifi_blink entry");
+  ENTRY;
   
   otb_led_wifi_blink_times += times;
   // Only store a max number of blinks!
@@ -738,7 +740,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink(uint8 times)
   otb_led_wifi_disable_blink_timer();
   otb_led_wifi_init_blink_timer();
   
-  DEBUG("LED: otb_led_wifi_blink exit");
+  EXIT;
   
   return;
 }
@@ -746,7 +748,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink(uint8 times)
 void ICACHE_FLASH_ATTR otb_led_wifi_init_blink_timer(void)
 {
 
-  DEBUG("LED: otb_led_wifi_init_blink_timer entry");
+  ENTRY;
 
   otb_util_timer_set((os_timer_t*)&otb_led_wifi_blink_timer, 
                      (os_timer_func_t *)otb_led_wifi_blink_timerfunc,
@@ -754,7 +756,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_init_blink_timer(void)
                      100,
                      1);
 
-  DEBUG("LED: otb_led_wifi_init_blink_timer exit");
+  EXIT;
   
   return;
 }
@@ -762,13 +764,13 @@ void ICACHE_FLASH_ATTR otb_led_wifi_init_blink_timer(void)
 void ICACHE_FLASH_ATTR otb_led_wifi_disable_blink_timer(void)
 {
 
-  DEBUG("LED: otb_led_wifi_disable_blink_timer entry");
+  ENTRY;
 
   otb_util_timer_cancel((os_timer_t*)&otb_led_wifi_blink_timer);
   // Make sure LED is left lit!
   otb_led_wifi_update(otb_led_wifi_colour, FALSE);
 
-  DEBUG("LED: otb_led_wifi_disable_blink_timer exit");
+  EXIT;
   
   return;
 }
@@ -777,15 +779,15 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink_it(void)
 {
   uint32_t colour;
 
-  DEBUG("LED: otb_led_wifi_blink entry");
+  ENTRY;
 
   colour = otb_led_wifi_on ? OTB_LED_NEO_COLOUR_OFF : otb_led_wifi_colour;
 
-  DEBUG("LED: status colour 0x%06x", colour);
+  MDEBUG("status colour 0x%06x", colour);
 
   otb_led_wifi_update(colour, FALSE);
 
-  DEBUG("LED: otb_led_wifi_blink exit");
+  EXIT;
   
   return;
 }
@@ -794,7 +796,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink_it(void)
 void ICACHE_FLASH_ATTR otb_led_wifi_blink_timerfunc(void *arg)
 {
 
-  DEBUG("LED: otb_led_wifi_blink_timerfunc entry");
+  ENTRY;
   
   // Blink it!
   otb_led_wifi_blink_it();
@@ -808,7 +810,7 @@ void ICACHE_FLASH_ATTR otb_led_wifi_blink_timerfunc(void *arg)
     otb_led_wifi_disable_blink_timer();
   }
   
-  DEBUG("LED: otb_led_wifi_blink_timerfunc exit");
+  EXIT;
   
   return;
 }
@@ -820,7 +822,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, un
   uint32_t rgb[252];
   int ii;
   
-  DEBUG("CMD: otb_led_trigger_sf entry");
+  ENTRY;
 
   for (ii = 0; ii < 252; ii+=6)
   {
@@ -837,7 +839,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_sf(unsigned char *next_cmd, void *arg, un
     
   rc = TRUE;
   
-  DEBUG("CMD: otb_led_trigger_sf exit");
+  EXIT;
   
   return rc;
 
@@ -849,7 +851,7 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint3
   int32_t diff, inc;
   int mult;
 
-  DEBUG("LED: otb_led_neo_calc_rainbow entry");
+  ENTRY;
 
   OTB_ASSERT(num >= 2);
   OTB_ASSERT(step < num);
@@ -874,13 +876,13 @@ uint32_t ICACHE_FLASH_ATTR otb_led_neo_calc_rainbow(uint32_t colour_start, uint3
     }
   }
 
-  DEBUG("LED: Colour start: %x", colour_start);
-  DEBUG("LED: Colour end:   %x", colour_end);
-  DEBUG("LED: Diff:         %x", diff);
-  DEBUG("LED: Inc:          %x", inc);
-  DEBUG("LED: Result:       %x", result);
+  MDEBUG("Colour start: %x", colour_start);
+  MDEBUG("Colour end:   %x", colour_end);
+  MDEBUG("Diff:         %x", diff);
+  MDEBUG("Inc:          %x", inc);
+  MDEBUG("Result:       %x", result);
 
-  DEBUG("LED: otb_led_neo_calc_rainbow exit");
+  EXIT;
 
   return result;
 }
@@ -907,7 +909,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
   int ii;
   int msg_len;
 
-  DEBUG("NIXIE: otb_led_trigger_neo entry");
+  ENTRY;
 
   OTB_ASSERT((cmd >= OTB_CMD_LED_NEO_MIN) && (cmd <= OTB_CMD_LED_NEO_MAX));
 
@@ -976,7 +978,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       otb_cmd_rsp_append("No first colour provided");
       goto EXIT_LABEL;
     }
-    DEBUG("LED: Colour requested: 0x%06x", single_rgb);
+    MDEBUG("Colour requested: 0x%06x", single_rgb);
   }
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCE) ||
@@ -996,7 +998,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
         otb_cmd_rsp_append("colour out of range 000000-ffffff");
         goto EXIT_LABEL;
       }
-      DEBUG("LED: Colour requested: 0x%06x", second_rgb);
+      MDEBUG("Colour requested: 0x%06x", second_rgb);
     }
   }
 
@@ -1016,7 +1018,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
     if (next_cmd4 != NULL)
     {
       min_speed = (((13 * 24 * num + 100) * 120) / 1000000) + 1; // 13 = us per bit, 24 = bits, num = pixels, 100 = 10us latch time, 120 = add 20%, 1000000 to get in ms, + 1 round up
-      DEBUG("LED: Min speed: %d", min_speed);
+      MDEBUG("Min speed: %d", min_speed);
       speed = strtol(next_cmd4, NULL, 10);
       if ((speed < min_speed) || (speed > 10000))
       {
@@ -1031,7 +1033,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
       otb_cmd_rsp_append("missing commands");
       goto EXIT_LABEL;
     }
-    DEBUG("LED: Speed requested: %d", speed);
+    MDEBUG("Speed requested: %d", speed);
   }
 
   if ((cmd == OTB_CMD_LED_NEO_BOUNCER) || (cmd == OTB_CMD_LED_NEO_ROUNDER))
@@ -1091,10 +1093,10 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
         green = otb_led_neo_calc_rainbow((single_rgb >> 8) & 0xff, (second_rgb >> 8) & 0xff, ii, num, FALSE);
         blue = otb_led_neo_calc_rainbow((single_rgb >> 0) & 0xff, (second_rgb >> 0) & 0xff, ii, num, FALSE);
         rgb[ii] = (red << 16) | (green << 8) | blue;
-        DEBUG("LED: r colour: %x", red);
-        DEBUG("LED: g colour: %x", green);
-        DEBUG("LED: b colour: %x", blue);
-        DEBUG("LED: rainbow colour: %06x", rgb[ii]);
+        MDEBUG("r colour: %x", red);
+        MDEBUG("g colour: %x", green);
+        MDEBUG("b colour: %x", blue);
+        MDEBUG("rainbow colour: %06x", rgb[ii]);
       }
       otb_led_neo_update(rgb, num, 4, OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B, FALSE);
       break;
@@ -1175,7 +1177,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
         if (otb_led_neo_seq_buf == NULL)
         {
           rc = FALSE;
-          WARN("LED: Failed to allocated %d bytes", sizeof(*otb_led_msg_seq_buf));
+          MWARN("Failed to allocated %d bytes", sizeof(*otb_led_msg_seq_buf));
           otb_cmd_rsp_append("not enough memory");
           goto EXIT_LABEL;
         }
@@ -1283,7 +1285,7 @@ bool ICACHE_FLASH_ATTR otb_led_trigger_neo(unsigned char *next_cmd, void *arg, u
 
 EXIT_LABEL:
 
-  DEBUG("NIXIE: otb_led_trigger_neo exit");
+  EXIT;
 
   return rc;
 };
@@ -1293,7 +1295,7 @@ otb_font_6x6 ICACHE_FLASH_ATTR *otb_led_neo_get_font_char(unsigned char cchar)
   otb_font_6x6 *fchar = NULL;
   int ii;
 
-  DEBUG("LED: otb_led_neo_get_font_char entry");
+  ENTRY;
   
   for (ii = 0; ii < OTB_FONT_LEN; ii++)
   {
@@ -1304,7 +1306,7 @@ otb_font_6x6 ICACHE_FLASH_ATTR *otb_led_neo_get_font_char(unsigned char cchar)
     }
   }
 
-  DEBUG("LED: otb_led_neo_get_font_char exit");
+  EXIT;
 
   return fchar;
 }
@@ -1318,7 +1320,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
   otb_font_6x6 *charf;
   int cpos, tcpos, pos, index;
 
-  DEBUG("LED: otb_led_neo_msg entry");
+  ENTRY;
 
   // first set the neo pixels to background colour
   for (ii = 0; ii < 64; ii++)
@@ -1393,7 +1395,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
                      OTB_EEPROM_PIN_FINFO_LED_TYPE_WS2812B,
                      FALSE);
 
-  DEBUG("LED: otb_led_neo_msg exit");
+  EXIT;
 
   return;
 }
@@ -1401,11 +1403,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_msg(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_round(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_round entry");
+  ENTRY;
 
   otb_led_neo_bounce_or_round(arg, FALSE, FALSE);
 
-  DEBUG("LED: otb_led_neo_round exit");
+  EXIT;
 
   return;
 }
@@ -1413,11 +1415,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_round(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_bounce(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_bounce entry");
+  ENTRY;
 
   otb_led_neo_bounce_or_round(arg, TRUE, FALSE);
 
-  DEBUG("LED: otb_led_neo_bounce exit");
+  EXIT;
 
   return;
 }
@@ -1425,11 +1427,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_bounce(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_bouncer(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_bouncer entry");
+  ENTRY;
 
   otb_led_neo_bounce_or_round(arg, TRUE, TRUE);
 
-  DEBUG("LED: otb_led_neo_bouncer exit");
+  EXIT;
 
   return;
 }
@@ -1437,11 +1439,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_bouncer(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_rounder(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_rounder entry");
+  ENTRY;
 
   otb_led_neo_bounce_or_round(arg, FALSE, TRUE);
 
-  DEBUG("LED: otb_led_neo_rounder exit");
+  EXIT;
 
   return;
 }
@@ -1449,11 +1451,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_rounder(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_rotate(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_rotate entry");
+  ENTRY;
 
   otb_led_neo_rotate_or_bounce(arg, FALSE);
 
-  DEBUG("LED: otb_led_neo_rotate exit");
+  EXIT;
 
   return;
 }
@@ -1461,11 +1463,11 @@ void ICACHE_FLASH_ATTR otb_led_neo_rotate(void *arg)
 void ICACHE_FLASH_ATTR otb_led_neo_rotateb(void *arg)
 {
 
-  DEBUG("LED: otb_led_neo_rotateb entry");
+  ENTRY;
 
   otb_led_neo_rotate_or_bounce(arg, TRUE);
 
-  DEBUG("LED: otb_led_neo_rotateb exit");
+  EXIT;
 
   return;
 }
@@ -1476,7 +1478,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_rotate_or_bounce(void *arg, bool bounce)
   int num;
   uint32_t red, green, blue;
 
-  DEBUG("LED: otb_led_neo_rotate_or_bounce entry");
+  ENTRY;
 
   // Set up the colours
   num = otb_led_neo_seq_buf->num;
@@ -1540,7 +1542,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_rotate_or_bounce(void *arg, bool bounce)
     
   }
 
-  DEBUG("LED: otb_led_neo_rotate_or_bounce exit");
+  EXIT;
 
   return;
 }
@@ -1551,7 +1553,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool 
   int num;
   uint32_t red, green, blue;
 
-  DEBUG("LED: otb_led_neo_bounce_or_round entry");
+  ENTRY;
 
   // Set up the colours
   num = otb_led_neo_seq_buf->num;
@@ -1621,7 +1623,7 @@ void ICACHE_FLASH_ATTR otb_led_neo_bounce_or_round(void *arg, bool bounce, bool 
     }
   }
 
-  DEBUG("LED: otb_led_neo_bounce_or_round exit");
+  EXIT;
 
   return;
 }

@@ -21,9 +21,11 @@
 #include "otb.h"
 #include "brzo_i2c.h"
 
+MLOG("BREAK");
+
 void ICACHE_FLASH_ATTR otb_break_start(void)
 {
-  DEBUG("BREAK: otb_break_start entry");
+  ENTRY;
 
   otb_break_rx_buf_len = 0;
   otb_break_state = OTB_BREAK_STATE_MAIN;
@@ -40,15 +42,14 @@ void ICACHE_FLASH_ATTR otb_break_start(void)
     otb_util_log_level = OTB_LOG_LEVEL_INFO;
   }
 
-  DEBUG("BREAK: otb_break_start exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_break_options_output(void)
 {
-
-  DEBUG("BREAK: otb_break_options_output entry");
+  ENTRY;
 
   INFO("otb-iot break options:")
   INFO("  c - change config (changes do not persist)");
@@ -64,21 +65,22 @@ void ICACHE_FLASH_ATTR otb_break_options_output(void)
   INFO("  e - enable watchdog (device will rebot after 5 minutes)");
   INFO("  h - output this list of options");
 
-  DEBUG("BREAK: otb_break_options_output exit");
+  EXIT;
 
+  return;
 }  
 
 void ICACHE_FLASH_ATTR otb_break_process_char_timerfunc(void *arg)
 {
   char rx_char;
 
-  DEBUG("BREAK: otb_break_process_char_timerfunc entry");
+  ENTRY;
 
   otb_util_timer_cancel((os_timer_t*)&otb_break_process_char_timer);
   OTB_ASSERT(otb_break_rx_buf > 0);
   otb_break_options_fan_out(otb_break_rx_buf[0]);
 
-  DEBUG("BREAK: otb_break_process_char_timerfunc exit");
+  EXIT;
 
   return;
 }
@@ -87,7 +89,7 @@ void ICACHE_FLASH_ATTR otb_break_options_fan_out(char input)
 {
   bool rc = TRUE;
 
-  DEBUG("BREAK: otb_break_options_fan_out entry");
+  ENTRY;
 
   switch (otb_break_state)
   {
@@ -117,7 +119,7 @@ void ICACHE_FLASH_ATTR otb_break_options_fan_out(char input)
     otb_break_rx_buf_len = 0;
   }
 
-  DEBUG("BREAK: otb_break_options_fan_out exit");
+  EXIT;
 
   return;
 }
@@ -132,7 +134,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
   bool rc;
   uint32_t chipid;
 
-  DEBUG("BREAK: otb_break_options_select entry");
+  ENTRY;
 
   switch (option)
   {
@@ -304,7 +306,7 @@ bool ICACHE_FLASH_ATTR otb_break_options_select(char option)
       otb_break_options_output();
   }
 
-  DEBUG("BREAK: otb_break_options_select exit");
+  EXIT;
 
   return(clear_buf);
 }
@@ -319,7 +321,7 @@ ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
   int ii;
   uint8_t brzo_rc;
 
-  DEBUG("BREAK: otb_break_start_gpio_test entry");
+  ENTRY;
 
   INFO(" GPIO test running");
 
@@ -337,14 +339,14 @@ ICACHE_FLASH_ATTR void otb_break_start_gpio_test(void)
 
 EXIT_LABEL:
 
-  DEBUG("BREAK: otb_break_start_gpio_test exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_break_gpio_test_init(uint8_t addr, brzo_i2c_info *info)
 {
-  DEBUG("BREAK: otb_break_gpio_test_init entry");
+  ENTRY;
 
   DEBUG(" Init MCP23017");
   DEBUG(" SDA pin:  %d", info->sda_pin);
@@ -363,7 +365,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_init(uint8_t addr, brzo_i2c_info *inf
   }
   otb_i2c_mcp23017_init(addr, info);
 
-  DEBUG("BREAK: otb_break_gpio_test_init exit");
+  EXIT;
 
   return;
 }
@@ -379,7 +381,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
   uint8_t gpb;
   uint8_t *gp;
 
-  DEBUG("BREAK: otb_break_gpio_timerfunc entry");
+  ENTRY;
 
   info = &otb_i2c_bus_internal;
   addr = 0x20;
@@ -398,7 +400,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
   gpa = 0;
   gpb = 0;
 
-  DEBUG("BREAK: type %d num %d", type, num);
+  MDEBUG("type %d num %d", type, num);
 
   if (type == OTB_BREAK_GPIO_LED_TYPE_GPIO)
   {
@@ -422,14 +424,14 @@ void ICACHE_FLASH_ATTR otb_break_gpio_timerfunc(void *arg)
 
   }
   
-  DEBUG("BREAK: Write GPA 0x%02x GPB 0x%02x", gpa, gpb);
+  MDEBUG("Write GPA 0x%02x GPB 0x%02x", gpa, gpb);
   otb_i2c_mcp23017_write_gpios(gpa, gpb, addr, info);
   otb_i2c_mcp23017_read_gpios(&gpa, &gpb, addr, info);
-  DEBUG("BREAK: Read  GPA 0x%02x GPB 0x%02x", gpa, gpb);
+  MDEBUG("Read  GPA 0x%02x GPB 0x%02x", gpa, gpb);
 
   otb_break_gpio_next_led++;
 
-  DEBUG("BREAK: otb_break_gpio_timerfunc exit");
+  EXIT;
 
   return;
 }
@@ -439,7 +441,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
   brzo_i2c_info *info;
   uint8_t addr;
 
-  DEBUG("BREAK: otb_break_gpio_test_cancel entry");
+  ENTRY;
 
   otb_gpio_set(12, 1, TRUE);
   otb_gpio_set(13, 1, TRUE);
@@ -456,7 +458,8 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
   otb_i2c_mcp23017_write_gpios(0, 0, addr, info);
   otb_gpio_set(12, 0, TRUE);
   otb_util_timer_cancel((os_timer_t*)&otb_break_gpio_timer);
-  DEBUG("BREAK: otb_break_gpio_test_cancel exit");
+
+  EXIT;
 
   return;
 }
@@ -464,7 +467,7 @@ void ICACHE_FLASH_ATTR otb_break_gpio_test_cancel(void)
 bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
 {
 
-  DEBUG("BREAK: otb_break_gpio_input entry");
+  ENTRY;
 
   switch (input)
   {
@@ -486,7 +489,7 @@ bool ICACHE_FLASH_ATTR otb_break_gpio_input(char input)
       break;
   }
 
-  DEBUG("BREAK: otb_break_gpio_input exit");
+  EXIT;
 
   return(TRUE);
 }
@@ -498,7 +501,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
   uint8_t ip[4];
   bool fn_rc;
 
-  DEBUG("BREAK: otb_break_config_input entry");
+  ENTRY;
 
   switch (otb_break_config_state)
   {
@@ -703,16 +706,19 @@ bool ICACHE_FLASH_ATTR otb_break_config_input(char input)
     }
   }
 
-  DEBUG("BREAK: otb_break_config_input exit");
+  EXIT;
 
   return(rc);
 }
 
 void ICACHE_FLASH_ATTR otb_break_clear_string(void)
 {
-  DEBUG("BREAK: otb_break_clear_string entry");
+  ENTRY;
+
   os_memset(otb_break_string, 0, OTB_BREAK_CONFIG_STRING_LEN);
-  DEBUG("BREAK: otb_break_clear_string exit");
+
+  EXIT;
+
   return;
 }
 
@@ -722,7 +728,7 @@ bool ICACHE_FLASH_ATTR otb_break_collect_string(char input)
   bool rc = FALSE;
   size_t len;
 
-  DEBUG("BREAK: otb_break_collect_string entry");
+  ENTRY;
 
   if ((input == '\r') || (input == '\n'))
   {
@@ -749,7 +755,7 @@ bool ICACHE_FLASH_ATTR otb_break_collect_string(char input)
     ets_printf("\r\n");
   }
 
-  DEBUG("BREAK: otb_break_collect_string exit");
+  EXIT;
 
   return(rc);
 }
@@ -758,7 +764,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
 {
   bool rc;
 
-  DEBUG("BREAK: otb_break_config_input_main entry");
+  ENTRY;
 
   switch (input)
   {
@@ -903,7 +909,7 @@ bool ICACHE_FLASH_ATTR otb_break_config_input_main(char input)
       break;
   }
 
-  DEBUG("BREAK: otb_break_config_input_main exit");
+  EXIT;
 
   return(TRUE);
 }
@@ -930,7 +936,7 @@ void ICACHE_FLASH_ATTR otb_break_reset_button_interrupt(void *arg)
 bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
 {
 
-  DEBUG("BREAK: otb_break_soft_reset_input entry");
+  ENTRY;
 
   switch (input)
   {
@@ -955,7 +961,7 @@ bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
       break;
   }
 
-  DEBUG("BREAK: otb_break_soft_reset_input exit");
+  EXIT;
 
   return(TRUE);
 }
@@ -963,11 +969,16 @@ bool ICACHE_FLASH_ATTR otb_break_soft_reset_input(char input)
 // Called from within interrupts
 void otb_break_process_char(void)
 {
+
+  //ENTRY;
+
   os_timer_disarm(&otb_break_process_char_timer);
   os_timer_setfn(&otb_break_process_char_timer,
                  otb_break_process_char_timerfunc,
                  NULL);
   os_timer_arm(&otb_break_process_char_timer, 0, 0);
+
+  //EXIT;
 
   return;
 }

@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 20160-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,13 +20,15 @@
 #define OTB_RECOVERY_C
 #include "otb.h"
 
+MLOG("RECOVERY");
+
 void ICACHE_FLASH_ATTR user_init(void)
 {
   
   // Set up serial logging
   uart_div_modify(0, UART_CLK_FREQ / OTB_MAIN_BAUD_RATE);
 
-  DEBUG("OTB: user_init entry");
+  ENTRY;
   
   // Configure ESP SDK logging (only)
   system_set_os_print(OTB_MAIN_SDK_LOGGING);
@@ -54,7 +56,7 @@ void ICACHE_FLASH_ATTR user_init(void)
   // os_timer_setfn((os_timer_t*)&init_timer, (os_timer_func_t *)otb_init_wifi, NULL);
   // os_timer_arm((os_timer_t*)&init_timer, 500, 0);
 
-  DEBUG("OTB: user_init exit");
+  EXIT;
 
   return;
 }

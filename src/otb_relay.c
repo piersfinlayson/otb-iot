@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,12 +22,14 @@
 #define OTB_RELAY_C
 #include "otb.h"
 
+MLOG("RELAY");
+
 void ICACHE_FLASH_ATTR otb_relay_init_mezz(void *arg)
 {
   uint8 temp;
   uint32 gpios = (uint32)arg;
 
-  DEBUG("RELAY: otb_relay_init_mezz entry");
+  ENTRY;
 
   // Get our GPIOs
   otb_relay_mezz.relay_gpio = (uint8)(gpios & 0xff);
@@ -43,14 +45,14 @@ void ICACHE_FLASH_ATTR otb_relay_init_mezz(void *arg)
   otb_relay_mezz.inited = TRUE;
 
   DETAIL("OTB: Initialize relay");
-  DETAIL("RELAY: Initialized mezz relay board relay pin: %d led pin: %d", otb_relay_mezz.relay_gpio, otb_relay_mezz.led_gpio);
+  MDETAIL("Initialized mezz relay board relay pin: %d led pin: %d", otb_relay_mezz.relay_gpio, otb_relay_mezz.led_gpio);
 
   // "Connect" to the relay - this means pulling gpio[1] low to light the led
   otb_gpio_set(otb_relay_mezz.led_gpio, 0, FALSE);
 
   otb_util_booted();
 
-  DEBUG("RELAY: otb_relay_init_mezz exit");
+  EXIT;
 
   return;
 }
@@ -62,7 +64,7 @@ bool ICACHE_FLASH_ATTR otb_relay_mezz_trigger(unsigned char *next_cmd,
   bool rc = FALSE;
   unsigned char *next_next_cmd;
     
-  DEBUG("RELAY: otb_relay_mezz_trigger entry");
+  ENTRY;
   
   if (!otb_relay_mezz.inited)
   {
@@ -105,7 +107,7 @@ bool ICACHE_FLASH_ATTR otb_relay_mezz_trigger(unsigned char *next_cmd,
 
 EXIT_LABEL:
 
-  DEBUG("RELAY: otb_relay_mezz_trigger exit");
+  EXIT;
   
   return rc;
 }
@@ -115,7 +117,7 @@ bool ICACHE_FLASH_ATTR otb_relay_valid_id(unsigned char *to_match)
   bool rc = FALSE;
   int8_t value;
 
-  DEBUG("RELAY: otb_relay_valid_id entry");
+  ENTRY;
     
   value = otb_relay_get_index(to_match);
   if (value < 0)
@@ -139,7 +141,7 @@ bool ICACHE_FLASH_ATTR otb_relay_valid_id(unsigned char *to_match)
   
 EXIT_LABEL:
 
-  DEBUG("RELAY: otb_relay_valid_id exit");
+  EXIT;
 
   return rc;
   
@@ -149,7 +151,7 @@ int8_t ICACHE_FLASH_ATTR otb_relay_get_index(unsigned char *text)
 {
   int8_t value;
   
-  DEBUG("RELAY: otb_relay_conf_get_index entry");
+  ENTRY;
 
   if (text == NULL)
   {
@@ -166,7 +168,7 @@ int8_t ICACHE_FLASH_ATTR otb_relay_get_index(unsigned char *text)
 
 EXIT_LABEL:
 
-  DEBUG("RELAY: otb_relay_conf_get_index exit");
+  EXIT;
 
   return value;
 
@@ -176,7 +178,7 @@ bool ICACHE_FLASH_ATTR otb_relay_check_index(int8_t index)
 {
   bool rc = FALSE;
 
-  DEBUG("RELAY: otb_relay_check_index entry");
+  ENTRY;
   
   if ((index > 0) && (index <= OTB_CONF_RELAY_MAX_MODULES))
   {
@@ -185,7 +187,7 @@ bool ICACHE_FLASH_ATTR otb_relay_check_index(int8_t index)
   
 EXIT_LABEL:
   
-  DEBUG("RELAY: otb_relay_check_index exit");
+  EXIT;
   
   return rc;
 }
@@ -195,7 +197,7 @@ otb_relay ICACHE_FLASH_ATTR *otb_relay_find_status(uint8_t id)
   otb_relay *relay_status = NULL;
   int ii;
   
-  DEBUG("RELAY: otb_relay_find_status entry");
+  ENTRY;
   
   for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
   {
@@ -206,7 +208,7 @@ otb_relay ICACHE_FLASH_ATTR *otb_relay_find_status(uint8_t id)
     }
   }
   
-  DEBUG("RELAY: otb_relay_find_status exit");
+  EXIT;
   
   return relay_status;
 }
@@ -227,7 +229,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
   unsigned char *next_next_cmd;
   otb_relay *relay_status;
     
-  DEBUG("RELAY: otb_relay_trigger entry");
+  ENTRY;
   
   // No need to check whether the pin is valid or reserved - this has already been done
   index = otb_relay_id;
@@ -326,7 +328,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger(unsigned char *next_cmd,
   
 EXIT_LABEL:
 
-  DEBUG("RELAY: otb_relay_trigger exit");
+  EXIT;
   
   return rc;
 }
@@ -340,13 +342,13 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   uint8_t bytes[5];
   uint8_t pin;
   
-  DEBUG("RELAY: otb_relay_trigger_relay entry");
+  ENTRY;
   
   relay = &(otb_conf->relay[relay_status->index]);
   i2c_addr = OTB_I2C_PCA9685_BASE_ADDR + relay->addr;
   pin = 9-num;
 
-  DETAIL("RELAY: Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
+  MDETAIL("Trigger otb-relay PCA9685 address 0x%2x num: %d to status: %d", i2c_addr, num, state);
 
   bytes[0] = OTB_I2C_PCA9685_REG_IO0_ON_L + (((9-num)-1) * 4);
   bytes[1] = 0b0;
@@ -358,7 +360,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   brzo_rc = brzo_i2c_end_transaction();
   if (brzo_rc)
   {
-    DETAIL("RELAY: Failed to put otb-relay PCA9685 address 0x%2x num: %d to status: %d, rc: %d", i2c_addr, num, state, brzo_rc);
+    MDETAIL("Failed to put otb-relay PCA9685 address 0x%2x num: %d to status: %d, rc: %d", i2c_addr, num, state, brzo_rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -368,7 +370,7 @@ bool ICACHE_FLASH_ATTR otb_relay_trigger_relay(otb_relay *relay_status, uint8_t 
   
 EXIT_LABEL:
 
-  DEBUG("RELAY: otb_relay_trigger_relay exit");
+  EXIT;
   
   return rc;
 }
@@ -391,7 +393,7 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
   uint8_t current_state;
   otb_relay *relay_status;
     
-  DEBUG("RELAY: otb_relay_conf_set entry");
+  ENTRY;
   
   // Double check what we're being asked to do is valid
   cmd = (int)arg;
@@ -546,7 +548,7 @@ bool ICACHE_FLASH_ATTR otb_relay_conf_set(unsigned char *next_cmd,
         }
         
         relay->relay_pwr_on[1] = current_state;
-        DETAIL("Store off state: 0x%2x", relay->relay_pwr_on[1]);
+        MDETAIL("Store off state: 0x%2x", relay->relay_pwr_on[1]);
         store_conf = TRUE;
         rc = TRUE;
       }
@@ -580,7 +582,7 @@ EXIT_LABEL:
     }
   }
 
-  DEBUG("RELAY: otb_relay_conf_set exit");
+  EXIT;
   
   return rc;
 }
@@ -590,19 +592,19 @@ bool ICACHE_FLASH_ATTR otb_relay_configured(void)
   bool rc = FALSE;
   int ii;
 
-  DEBUG("RELAY: otb_relay_configured entry");
+  ENTRY;
 
   for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
   {
     if (otb_conf->relay[ii].type != OTB_CONF_RELAY_TYPE_NONE)
     {
       rc = TRUE;
-      DETAIL("RELAY: Have one or more relay modules configured");
+      MDETAIL("Have one or more relay modules configured");
       break;
     }
   }
 
-  DEBUG("RELAY: otb_relay_configured exit");
+  EXIT;
   
   return rc;
 }
@@ -612,7 +614,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
   int ii, jj;
   bool dupe;
   
-  DEBUG("RELAY: otb_relay_init entry");
+  ENTRY;
 
   otb_relay_num = 0;
     
@@ -639,7 +641,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
           {
             // Duplicate address
             dupe = TRUE;
-            DETAIL("RELAY: Found dupe relay %d %d %d", ii, jj, otb_relay_status[jj].index);
+            MDETAIL("Found dupe relay %d %d %d", ii, jj, otb_relay_status[jj].index);
             break;
           }
         }
@@ -647,7 +649,7 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
       
       if (!dupe)
       {
-        DEBUG("RELAY: Setting timer for module %d", ii);
+        MDEBUG("Setting timer for module %d", ii);
         otb_relay_status[otb_relay_num].index = ii;
         os_timer_disarm((os_timer_t*)&(otb_relay_status[otb_relay_num].timer));
         os_timer_setfn((os_timer_t*)&(otb_relay_status[otb_relay_num].timer),
@@ -665,10 +667,10 @@ void ICACHE_FLASH_ATTR otb_relay_init(void)
   
   if (otb_relay_num > 0)
   {
-    DETAIL("RELAY: Set up %d relay module(s)", otb_relay_num);
+    MDETAIL("Set up %d relay module(s)", otb_relay_num);
   }
   
-  DEBUG("RELAY: otb_relay_init exit");
+  EXIT;
   
   return;
   
@@ -686,7 +688,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
   otb_relay *relay;
   otb_conf_relay *relay_conf;
 
-  DEBUG("RELAY: otb_relay_on_timer entry");
+  ENTRY;
   
   // This is the initialization routine for relays
   // I2C bus can be assumed to have been initialized
@@ -699,7 +701,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
   
   os_timer_disarm((os_timer_t*)&(relay->timer));
 
-  DEBUG("RELAY: Connect to and set up relay module %d", relay->index);
+  MDEBUG("Connect to and set up relay module %d", relay->index);
   
   switch(relay_conf->type)
   {
@@ -715,7 +717,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
       brzo_rc = brzo_i2c_end_transaction();
       if (brzo_rc)
       {
-        DETAIL("RELAY: Failed to set otb-relay PCA9685 mode: %d", rc);
+        MDETAIL("Failed to set otb-relay PCA9685 mode: %d", rc);
         rc = FALSE;
         goto EXIT_LABEL;
       }
@@ -731,7 +733,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
       brzo_rc = brzo_i2c_end_transaction();
       if (brzo_rc)
       {
-        DETAIL("RELAY: Failed to turn on otb-relay PCA9685 status led: %d", rc);
+        MDETAIL("Failed to turn on otb-relay PCA9685 status led: %d", rc);
         rc = FALSE;
         goto EXIT_LABEL;
       }
@@ -767,7 +769,7 @@ void ICACHE_FLASH_ATTR otb_relay_on_timer(void *arg)
         brzo_rc = brzo_i2c_end_transaction();
         if (brzo_rc)
         {
-          DETAIL("RELAY: Failed to init pin: %d, rc: %d", ii, rc);
+          MDETAIL("Failed to init pin: %d, rc: %d", ii, rc);
           rc = FALSE;
           goto EXIT_LABEL;
         }
@@ -795,7 +797,7 @@ EXIT_LABEL:
                  relay);
   os_timer_arm((os_timer_t*)&(relay->timer), 60000, 1);
 
-  DEBUG("RELAY: otb_relay_on_timer exit");
+  EXIT;
   
   return;
 }

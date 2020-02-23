@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -36,14 +36,16 @@
 #define OTB_DS18B20_C
 #include "otb.h"
 
+MLOG("DS18B20");
+
 void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
 {
   bool rc;
   int ii;
 
-  DEBUG("DS18B20: otb_ds18b20_initialize entry");
+  ENTRY;
 
-  DETAIL("DS18B20: Initialize one wire bus on GPIO pin %d", bus);
+  MDETAIL("Initialize one wire bus on GPIO pin %d", bus);
 
   otb_ds18b20_init(bus);
 
@@ -65,7 +67,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_initialize(uint8_t bus)
   os_timer_setfn((os_timer_t*)&otb_ds18b20_device_timer, (os_timer_func_t *)otb_ds18b20_device_callback, NULL);
   os_timer_arm((os_timer_t*)&otb_ds18b20_device_timer, OTB_DS18B20_REFRESH_DEVICE_INTERVAL, 1);
 
-  DEBUG("DS18B20: otb_ds18b20_initialize exit");
+  EXIT;
   
   return;
 }
@@ -74,7 +76,7 @@ int ICACHE_FLASH_ATTR otb_ds18b20_valid_index(unsigned char *next_cmd)
 {
   int index = -1;
 
-  DEBUG("CMD: otb_cmd_control_ds18b20_valid_index entry");
+  ENTRY;
 
   if (next_cmd != NULL)
   {
@@ -85,7 +87,7 @@ int ICACHE_FLASH_ATTR otb_ds18b20_valid_index(unsigned char *next_cmd)
     }
   }
 
-  DEBUG("CMD: otb_cmd_control_ds18b20_valid_index exit");
+  EXIT;
 
   return index;
 }
@@ -97,27 +99,27 @@ void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
   int ii;
   uint32_t timer_int;
   
-  DEBUG("DS18B20: otb_ds18b20_device_callback entry");
+  ENTRY;
 
   prev_count = otb_ds18b20_count;
 
-  DEBUG("DS18B20: Checking for new DS18B20s");
+  MDEBUG("Checking for new DS18B20s");
 
   rc = otb_ds18b20_get_devices();
   if (rc)
   {
-    WARN("DS18B20: More than %d DS18B20 devices - only reading from first %d",
+    MWARN("More than %d DS18B20 devices - only reading from first %d",
          OTB_DS18B20_MAX_DS18B20S,
          OTB_DS18B20_MAX_DS18B20S);
   }
 
   if (otb_ds18b20_count > prev_count)
   {
-    DETAIL("DS18B20: DS18B20 device count changed was %u now %u", prev_count, otb_ds18b20_count);
+    MDETAIL("DS18B20 device count changed was %u now %u", prev_count, otb_ds18b20_count);
     for (ii = 0; ii < otb_ds18b20_count; ii++)
     {
       // Stagger timer for each temperature sensor - and do any we already had as well
-      DETAIL("DS18B20: Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
+      MDETAIL("Index %d Address %s", ii, otb_ds18b20_addresses[ii].friendly);
       timer_int = OTB_DS18B20_REPORT_INTERVAL * (ii + 1) / otb_ds18b20_count;
       otb_ds18b20_addresses[ii].timer_int = timer_int;
       os_timer_disarm((os_timer_t*)(otb_ds18b20_timer + ii));
@@ -133,7 +135,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_device_callback(void *arg)
     }
   }
 
-  DEBUG("DS18B20: otb_ds18b20_device_callback exit");
+  EXIT;
 
   return;
 }
@@ -144,7 +146,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_existing_device(char *ds18b20)
   int ii;
   bool rc = FALSE;
 
-  DEBUG("DS18B20: otb_ds18b20_check_existing_devices entry");
+  ENTRY;
 
   for (ii = 0; ii < otb_ds18b20_count; ii++)
   {
@@ -160,7 +162,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_existing_device(char *ds18b20)
 
 EXIT_LABEL:
 
-  DEBUG("DS18B20: otb_ds18b20_check_existing_devices exit");
+  EXIT;
 
   return (rc);
 }
@@ -172,7 +174,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
   char ds18b20[OTB_DS18B20_DEVICE_ADDRESS_LENGTH];
   char crc;
   
-  DEBUG("DS18B20: Get devices ...");
+  MDEBUG("Get devices ...");
   
   reset_search();
   while (rc && (otb_ds18b20_count < OTB_DS18B20_MAX_DS18B20S))
@@ -207,13 +209,13 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_get_devices(void)
           otb_ds18b20_addresses[otb_ds18b20_count].timer_int = 0;
           otb_ds18b20_addresses[otb_ds18b20_count].index = otb_ds18b20_count;
           otb_ds18b20_count++;
-          DEBUG("DS18B20: Successfully added device %s",
+          MDEBUG("Successfully added device %s",
                 otb_ds18b20_addresses[otb_ds18b20_count].friendly);
         }
       }
       else
       {
-        WARN("DS18B20: CRC error: %02x-%02x%02x%02x%02x%02x%02x, crc=0x%x",
+        MWARN("CRC error: %02x-%02x%02x%02x%02x%02x%02x, crc=0x%x",
              ds18b20[0],
              ds18b20[6],
              ds18b20[5],
@@ -244,12 +246,12 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   int tries;
   char output[32];
   
-  DEBUG("DS18B20: otb_ds18b20_callback entry");
+  ENTRY;
 
   addr = (otbDs18b20DeviceAddress *)arg;
-  DEBUG("DS18B20:    Device: %s", addr->friendly);
-  DEBUG("DS18B20: timer_int: %d", addr->timer_int);
-  DEBUG("DS18B20:     index: %d", addr->index);
+  MDEBUG("   Device: %s", addr->friendly);
+  MDEBUG("timer_int: %d", addr->timer_int);
+  MDEBUG("    index: %d", addr->index);
 
   if (addr->timer_int != OTB_DS18B20_REPORT_INTERVAL)
   {
@@ -276,11 +278,11 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     os_strcpy(otb_ds18b20_last_temp_s[addr->index], OTB_DS18B20_INTERNAL_ERROR_TEMP);
   }
     
-  DETAIL("DS18B20: Device: %s temp: %s", addr->friendly, otb_ds18b20_last_temp_s[addr->index]);
+  MDETAIL("Device: %s temp: %s", addr->friendly, otb_ds18b20_last_temp_s[addr->index]);
 
   if (otb_mqtt_client.connState == MQTT_DATA)
   {
-    DEBUG("DS18B20: Log sensor data");
+    MDEBUG("Log sensor data");
 
     // Could send (but may choose not to), so reset disconnectedCounter
     otb_ds18b20_mqtt_disconnected_counter = 0;
@@ -289,7 +291,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     sensor_loc = otb_ds18b20_get_sensor_name(addr->friendly, NULL);
     if (sensor_loc != NULL)
     {
-      DEBUG("DS18B20: Sensor location: %s", sensor_loc);
+      MDEBUG("Sensor location: %s", sensor_loc);
       os_snprintf(otb_mqtt_scratch,
                   OTB_MQTT_MAX_MSG_LENGTH,
                   "%s/%s",
@@ -316,9 +318,9 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                   "error",
                   OTB_MQTT_TEMPERATURE,
                   sensor_loc);
-      DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
+      MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
       chars = os_snprintf(output, 32, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
-      DEBUG("DS18B20:       message: %s", output);
+      MDEBUG("      message: %s", output);
       MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, output, chars, 0, 1);  
     }
 
@@ -342,27 +344,27 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                   OTB_MAIN_CHIPID,
                   OTB_MQTT_TEMPERATURE,
                   sensor_loc);
-      DEBUG("DS18B20: Publish topic: %s", otb_mqtt_topic_s);
-      DEBUG("DS18B20:       message: %s", otb_ds18b20_last_temp_s[addr->index]);
+      MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
+      MDEBUG("      message: %s", otb_ds18b20_last_temp_s[addr->index]);
       chars = strlen(otb_ds18b20_last_temp_s[addr->index]);
       MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[addr->index], chars, 0, 1);
     }
   }
   else
   {
-    WARN("DS18B20: MQTT not connected, so not sending");
+    MWARN("MQTT not connected, so not sending");
     otb_ds18b20_mqtt_disconnected_counter += 1;
   }
 
   if ((otb_ds18b20_mqtt_disconnected_counter * OTB_DS18B20_REPORT_INTERVAL) >=
                                                     OTB_MQTT_DISCONNECTED_REBOOT_INTERVAL)
   {
-    ERROR("DS18B20: MQTT disconnected %d ms so resetting", 
+    MERROR("MQTT disconnected %d ms so resetting", 
     otb_ds18b20_mqtt_disconnected_counter * OTB_DS18B20_REPORT_INTERVAL);
     otb_reset(otb_ds18b20_callback_error_string);
   }
 
-  DEBUG("DS18B20: otb_ds18b20_callback exit");
+  EXIT;
 
   return;
 }
@@ -374,14 +376,14 @@ char ICACHE_FLASH_ATTR *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20
   int uint8;
   int ii;
   
-  DEBUG("DS18B20: otb_ds18b20_get_sensor_name entry");
+  ENTRY;
   
-  DEBUG("DS18B20: addr %s", addr);
+  MDEBUG("addr %s", addr);
   
   match = NULL;
   for (ii = 0, ds18b20 = otb_conf->ds18b20; ii < otb_conf->ds18b20s; ds18b20++, ii++)
   {
-    DEBUG("DS18B20: test against %s", ds18b20->id);
+    MDEBUG("test against %s", ds18b20->id);
     if (otb_mqtt_match(addr, ds18b20->id))
     {
       match = ds18b20->loc;
@@ -389,7 +391,7 @@ char ICACHE_FLASH_ATTR *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20
       {
         *ds = ds18b20;
       }
-      DEBUG("DS18B20: Match %d 0x%p", ii, match);
+      MDEBUG("Match %d 0x%p", ii, match);
       if (ds18b20->loc[0] != 0)
       {
         // Don't break unless the match was non-NULL - there may be another!
@@ -398,7 +400,7 @@ char ICACHE_FLASH_ATTR *otb_ds18b20_get_sensor_name(char *addr, otb_conf_ds18b20
     }
   }
   
-  DEBUG("DS18B20: otb_ds18b20_get_sensor_name exit");
+  EXIT;
   
   return(match);
 }
@@ -409,7 +411,7 @@ char ICACHE_FLASH_ATTR *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds)
   otb_conf_ds18b20 *ds18b20;
   int ii;
   
-  DEBUG("DS18B20: otb_ds18b20_get_addr entry");
+  ENTRY;
   
   match = NULL;
   for (ii = 0, ds18b20 = otb_conf->ds18b20; ii < otb_conf->ds18b20s; ds18b20++, ii++)
@@ -428,7 +430,7 @@ char ICACHE_FLASH_ATTR *otb_ds18b20_get_addr(char *name, otb_conf_ds18b20 **ds)
     }
   }
   
-  DEBUG("DS18B20: otb_ds18b20_get_addr exit");
+  EXIT;
   
   return(match);
 }
@@ -439,19 +441,19 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_addr_format(char *addr)
   int ii;
   int len;
 
-  DEBUG("DS18B20: otb_ds18b20_check_addr entry");
+  ENTRY;
   
   len = otb_mqtt_get_cmd_len(addr);
   
   if (len != (OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH - 1))
   {
-    DEBUG("DS18B20: addr - wrong string length");
+    MDEBUG("addr - wrong string length");
     goto EXIT_LABEL;
   }
   
   if ((addr[0] != '2') || (addr[1] != '8') || (addr[2] != '-'))
   {
-    DEBUG("DS18B20: addr - doesn't begin '28-'");
+    MDEBUG("addr - doesn't begin '28-'");
     goto EXIT_LABEL;
   }
   
@@ -465,7 +467,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_addr_format(char *addr)
            ((addr[ii] < 0x60) || (addr[ii] > 0x66))))
       {
         // Not hex digit
-        DEBUG("DS18B20: addr - not hex digit found");
+        MDEBUG("addr - not hex digit found");
         rc = FALSE;
         goto EXIT_LABEL;
         break;
@@ -475,7 +477,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_check_addr_format(char *addr)
   
 EXIT_LABEL:  
   
-  DEBUG("DS18B20: otb_ds18b20_check_addr exit");
+  EXIT;
   
   return(rc);
 }
@@ -484,13 +486,13 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_valid_addr(unsigned char *to_match)
 {
   bool rc = FALSE;
 
-  DEBUG("DS18B20: otb_ds18b20_valid_addr entry");
+  ENTRY;
   
   rc = otb_ds18b20_check_addr_format(to_match);
   if (!rc)
   {
     // Malformed DS18B20 sensor address
-    DETAIL("DS18B20: Sensor address malformed %s", to_match);
+    MDETAIL("Sensor address malformed %s", to_match);
     otb_cmd_rsp_append("sensor address malformed");
     rc = FALSE;
     goto EXIT_LABEL;
@@ -500,7 +502,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_valid_addr(unsigned char *to_match)
     
 EXIT_LABEL:
 
-  DEBUG("DS18B20: otb_ds18b20_valid_addr exit");
+  EXIT;
 
   return rc;
 
@@ -512,7 +514,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_configured_addr(unsigned char *to_match)
   char *match;
   otb_conf_ds18b20 *ds18b20 = NULL;
 
-  DEBUG("DS18B20: otb_ds18b20_configured_addr entry");
+  ENTRY;
   
   rc = otb_ds18b20_valid_addr(to_match);
   if (!rc)
@@ -534,7 +536,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_configured_addr(unsigned char *to_match)
     
 EXIT_LABEL:
 
-  DEBUG("DS18B20: otb_ds18b20_configured_addr exit");
+  EXIT;
 
   return rc;
 
@@ -551,7 +553,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
   struct otbDs18b20DeviceAddress *ds;
   bool ds_match;
   
-  DEBUG("DS18B20: otb_ds18b20_conf_set entry");
+  ENTRY;
   
   // Have already checked the address is valid
   addr = prev_cmd;
@@ -561,7 +563,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
   match = otb_ds18b20_get_sensor_name(addr, &ds18b20);
   if (match != NULL)
   {
-    DEBUG("DS18B20: Found sensor, updating");
+    MDEBUG("Found sensor, updating");
     os_strncpy(ds18b20->loc, next_cmd, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
     rc = TRUE;
     goto EXIT_LABEL;
@@ -572,14 +574,14 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
   {
     if (ds18b20->id[0] == 0)
     {
-      DETAIL("DS18B20: Update empty slot %d %s %s", ii, addr, next_cmd);
+      MDETAIL("Update empty slot %d %s %s", ii, addr, next_cmd);
       // Have found an empty slot - fill it
       os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
       ds18b20->id[OTB_CONF_DS18B20_MAX_ID_LEN-1] = 0;
       os_strncpy(ds18b20->loc, next_cmd, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
       if (otb_conf->ds18b20s != ii)
       {
-        DETAIL("DS18B20: Conf DS18B20s not correct %d", otb_conf->ds18b20s);
+        MDETAIL("Conf DS18B20s not correct %d", otb_conf->ds18b20s);
       }
       otb_conf->ds18b20s = (ii + 1);
       rc = TRUE;
@@ -610,7 +612,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_set(unsigned char *next_cmd, void *arg, 
       if (!ds_match)
       {
         // Can use this slot
-        DETAIL("DS18B20: Found slot not being used");
+        MDETAIL("Found slot not being used");
         os_strncpy(ds18b20->id, addr, OTB_CONF_DS18B20_MAX_ID_LEN);
         os_strncpy(ds18b20->loc, next_cmd, OTB_CONF_DS18B20_LOCATION_MAX_LEN);
         rc = TRUE;
@@ -634,7 +636,7 @@ EXIT_LABEL:
     }
   }
 
-   DEBUG("DS18B20: otb_ds18b20_conf_set exit");
+  EXIT;
   
   return rc;
   
@@ -648,7 +650,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_conf_delete(unsigned char *next_cmd, void *ar
   char *addr;
   otb_conf_ds18b20 *ds18b20;
   
-  DEBUG("DS18B20: otb_ds18b20_conf_delete entry");
+  ENTRY;
   
   cmd = (int)arg;
 
@@ -688,7 +690,7 @@ EXIT_LABEL:
     }
   }
   
-  DEBUG("DS18B20: otb_ds18b20_conf_delete exit");
+  EXIT;
   
   return rc;
 }
@@ -699,7 +701,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_conf_get(char *sensor, char *index)
   int slot_num;
   char *response = NULL;
 
-  DEBUG("DS18B20: otb_ds18B20_conf_get entry");
+  ENTRY;
   
   // Check "sensor" isn't really an index
   if (sensor == NULL)
@@ -719,7 +721,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_conf_get(char *sensor, char *index)
     }
     // Get slot number
     slot_num = atoi(index);
-    DEBUG("DS18B20: index %d", slot_num);
+    MDEBUG("index %d", slot_num);
     if ((slot_num >= 0) && (slot_num < otb_conf->ds18b20s))
     {
       match = otb_conf->ds18b20[slot_num].id;
@@ -761,7 +763,7 @@ EXIT_LABEL:
                          response);
   }
   
-  DEBUG("DS18B20: otb_ds18B20_conf_get exit");
+  EXIT;
   
   return;
 }
@@ -771,21 +773,21 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_trigger_device_refresh(unsigned char *next_cm
   bool rc = TRUE;
   unsigned char scratch[4];
 
-  DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh entry");
+  ENTRY;
 
   otb_ds18b20_device_callback(NULL);
   os_snprintf(scratch, 4, "%d", otb_ds18b20_count);
   scratch[3] = 0;
   otb_cmd_rsp_append(scratch);
 
-  DEBUG("DS18B20: otb_ds18b20_trigger_device_refresh exit");
+  EXIT;
 
   return rc;
 };
 
 void ICACHE_FLASH_ATTR otb_ds18b20_prepare_to_read(void)
 {
-  DEBUG("DS18B20: otb_ds18b20_prepare_to_read entry");
+  ENTRY;
 
   reset();
   write( DS1820_SKIP_ROM, 1 );
@@ -793,7 +795,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_prepare_to_read(void)
   //os_delay_us( 750*1000 );
   otb_util_delay_ms(750);
 
-  DEBUG("DS18B20: otb_ds18b20_prepare_to_read exit");
+  EXIT;
 
   return;
 }
@@ -809,7 +811,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   uint16_t sign_bits;
   uint8_t crc;
   
-  DEBUG("DS18B20: otb_ds18b20_request_temp entry");
+  ENTRY;
 
   // Read scratchpad from DS18 device we're interested in
   // This is up to 9 bytes long, but 0 and 1 bytes contain LSB and MSB
@@ -824,12 +826,12 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
   crc = crc8(data, 8);
   if (crc != data[8])
   {
-    WARN("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x - invalid CRC: 0x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], crc);
+    MWARN("DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x - invalid CRC: 0x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], crc);
     goto EXIT_LABEL;
   }
   else
   {
-    DETAIL("DS18B20: DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
+    MDETAIL("DS18B20 response %02x%02x%02x%02x%02x%02x%02x%02x%02x", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]);
   }
 
   tdata = (data[1] << 8) | data[0]; 
@@ -851,7 +853,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
     if (sign != sign_bits)
     {
       // All bits must be set if any are
-      WARN("DS18B20: Invalid data received 0x%04x", tdata);
+      MWARN("Invalid data received 0x%04x", tdata);
       goto EXIT_LABEL;
     }
     tSign[0] = '-';
@@ -886,7 +888,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
                   (tFract > 0)))))
   {
     // Invalid value
-    WARN("DS18B20: Invalid value decoded: %s%d.%02d from 0x%04x", tSign, tVal, tFract, (data[1]<<8 | data[0]));
+    MWARN("Invalid value decoded: %s%d.%02d from 0x%04x", tSign, tVal, tFract, (data[1]<<8 | data[0]));
     goto EXIT_LABEL;
   }
   
@@ -901,7 +903,7 @@ bool ICACHE_FLASH_ATTR otb_ds18b20_request_temp(char *addr, char *temp_s)
 
 EXIT_LABEL:
 
-  DEBUG("DS18B20: otb_ds18b20_request_temp exit");
+  EXIT;
 
   return(rc);
 }

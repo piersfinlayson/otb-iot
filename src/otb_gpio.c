@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-2018 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,27 +20,29 @@
 #define OTB_GPIO_C
 #include "otb.h"
 
+MLOG("GPIO");
+
 const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info_det(uint32_t pin_num, uint32_t num_pins, const otb_eeprom_pin_info *pin_info)
 {
   int ii;
   const otb_eeprom_pin_info *rc_pin_info = NULL;
 
-  DEBUG("GPIO: otb_gpio_get_pin_info_det entry")
+  MDEBUG("otb_gpio_get_pin_info_det entry")
 
   for (ii = 0; ii < num_pins; ii++)
   {
-    DEBUG("GPIO: ii and pin_num: %d %d", ii, pin_num);
+    MDEBUG("ii and pin_num: %d %d", ii, pin_num);
     if (pin_info[ii].num == pin_num)
     {
       rc_pin_info = pin_info + ii;
-      DEBUG("GPIO: match: 0x%p use: %d", rc_pin_info, rc_pin_info->use);
+      MDEBUG("match: 0x%p use: %d", rc_pin_info, rc_pin_info->use);
       break;
     }
   }
 
 EXIT_LABEL:
 
-  DEBUG("GPIO: otb_gpio_get_pin_info_det exit")
+  MDEBUG("otb_gpio_get_pin_info_det exit")
 
   return rc_pin_info;
 }
@@ -49,21 +51,21 @@ const otb_eeprom_pin_info ICACHE_FLASH_ATTR *otb_gpio_get_pin_info(uint32_t pin_
 {
   const otb_eeprom_pin_info *pin_info = NULL;
 
-  DEBUG("GPIO: otb_gpio_get_pin_info entry")
+  MDEBUG("otb_gpio_get_pin_info entry")
 
   if (otb_eeprom_main_board_gpio_pins_g != NULL)
   {
-    DEBUG("GPIO: Search in eeprom: %d %p", otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
+    MDEBUG("Search in eeprom: %d %p", otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
     pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_main_board_gpio_pins_g->num_pins, otb_eeprom_main_board_gpio_pins_g->pin_info);
   }
 
   if (pin_info == NULL)
   {
-    DEBUG("GPIO: Search in pin defaults: %d %p", otb_eeprom_def_board_info->pin_count, *(otb_eeprom_def_board_info->pin_info));
+    MDEBUG("Search in pin defaults: %d %p", otb_eeprom_def_board_info->pin_count, *(otb_eeprom_def_board_info->pin_info));
     pin_info = otb_gpio_get_pin_info_det(pin_num, otb_eeprom_def_board_info->pin_count, *(otb_eeprom_def_board_info->pin_info));
   }
 
-  DEBUG("GPIO: otb_gpio_get_pin_info exit")
+  MDEBUG("otb_gpio_get_pin_info exit")
 
   return pin_info;
 }
@@ -74,7 +76,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   const otb_eeprom_pin_info *pin_info;
   bool set_ok;
 
-  DEBUG("GPIO: otb_gpio_init entry");
+  ENTRY;
 
   memset(otb_gpio_pin_io_status, 0, OTB_GPIO_ESP_GPIO_PINS);
   gpio_init();
@@ -85,7 +87,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
   // 16 (reset)
   for (ii = 0; ii < OTB_GPIO_ESP_GPIO_PINS; ii++)
   {
-    DEBUG("GPIO: Init pin %d", ii);
+    MDEBUG("Init pin %d", ii);
   
     // For each pin check whether have directions on eeprom about how to use
     // it.  If not, use default pin information.
@@ -93,7 +95,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
     OTB_ASSERT(pin_info != NULL);
 
     // Do special processing
-    DEBUG("GPIO: pin use: 0x%x", pin_info->use);
+    MDEBUG("pin use: 0x%x", pin_info->use);
     set_ok = TRUE; 
     switch (pin_info->use)
     {
@@ -102,24 +104,24 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
       case OTB_EEPROM_PIN_USE_INT_SCL:
       case OTB_EEPROM_PIN_USE_TX:
       case OTB_EEPROM_PIN_USE_RX:
-        DETAIL("GPIO: Reserved pin: %d", ii);
+        MDETAIL("Reserved pin: %d", ii);
         set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_HARD:
-        DETAIL("GPIO: Hard reset pin: %d", ii);
+        MDETAIL("Hard reset pin: %d", ii);
         set_ok = FALSE; 
         break;
 
       case OTB_EEPROM_PIN_USE_RESET_SOFT:
-        DETAIL("GPIO: Soft reset pin: %d", ii);
+        MDETAIL("Soft reset pin: %d", ii);
         otb_gpio_pins.soft_reset = pin_info->num;
         GPIO_DIS_OUTPUT(otb_gpio_pins.soft_reset);
         otb_intr_register(otb_gpio_reset_button_interrupt, NULL, pin_info->num);
         break;
 
       case OTB_EEPROM_PIN_USE_STATUS_LED:
-        DETAIL("GPIO: Status LED pin: %d", ii);
+        MDETAIL("Status LED pin: %d", ii);
         otb_gpio_pins.status = pin_info->num;
         otb_gpio_pins.status_type = pin_info->further_info;
         set_ok = otb_gpio_set(ii, 1, TRUE);
@@ -136,12 +138,12 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
             // On the Wemos D1 mini these are floating.  Might as well therefore be
             // consistent with otbiot hardware, but may say these pins switching
             // at boot as may well be floating low before we set them.
-            DEBUG("GPIO: Set pin: %d: 1", ii);
+            MDEBUG("Set pin: %d: 1", ii);
             set_ok = otb_gpio_set(ii, 1, FALSE);
             break;
 
           default:
-            DEBUG("GPIO: Set pin: %d: 0", ii);
+            MDEBUG("Set pin: %d: 0", ii);
             set_ok = otb_gpio_set(ii, 0, FALSE);
             break;
         }
@@ -153,7 +155,7 @@ void ICACHE_FLASH_ATTR otb_gpio_init(void)
     }
   }
 
-  DEBUG("GPIO: otb_gpio_init exit");
+  EXIT;
   
   return;
 }
@@ -168,14 +170,14 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
   // Only reset if pulled low (i.e. button pressed)
   if (!get)
   {
-    DETAIL("GPIO: Reset button pressed");
+    MDETAIL("Reset button pressed");
     otb_reset_schedule(1000, otb_gpio_reset_reason_reset, FALSE);
     otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
     otb_led_wifi_blink(5);
   }
   else
   {
-    DEBUG("GPIO: Reset button released");
+    MDEBUG("Reset button released");
   }
   
   return;
@@ -184,18 +186,18 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_button_interrupt(void *arg)
 #if 0
 void ICACHE_FLASH_ATTR otb_gpio_reset_kick_off(void)
 {
-  DEBUG("GPIO: otb_gpio_init_reset_kick_off entry");
+  ENTRY;
 
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_WHITE, TRUE);
   otb_gpio_init_reset_timer();
   otb_gpio_reset_count = 0;
 
-  DEBUG("GPIO: otb_gpio_init_reset_kick_off exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_gpio_init_reset_timer(void)
 {
-  DEBUG("GPIO: otb_gpio_init_reset_timer entry");
+  ENTRY;
   
   otb_util_timer_set((os_timer_t*)&otb_gpio_reset_timer, 
                      (os_timer_func_t *)otb_gpio_reset_timerfunc,
@@ -203,12 +205,12 @@ void ICACHE_FLASH_ATTR otb_gpio_init_reset_timer(void)
                      1000,
                      1);
 
-  DEBUG("GPIO: otb_gpio_init_reset_timer exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_gpio_reset_timerfunc(void *arg)
 {
-  DEBUG("GPIO: otb_gpio_reset_timerfunc entry");
+  ENTRY;
   
   otb_gpio_reset_count++;
   
@@ -216,14 +218,14 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_timerfunc(void *arg)
   {
     if (otb_gpio_reset_count >= (OTB_GPIO_RESET_COUNT_MAX-1))
     {
-      WARN("GPIO: Reset the device - not implemented!!!");
+      MWARN("Reset the device - not implemented!!!");
       otb_util_factory_reset();
       otb_util_timer_cancel((os_timer_t*)&otb_gpio_reset_timer);
     }
   }
   else
   {
-    INFO("GPIO: Reset cancelled");
+    MINFO("Reset cancelled");
     otb_gpio_reset_count = 0;
     otb_util_timer_cancel((os_timer_t*)&otb_gpio_reset_timer);
     
@@ -231,7 +233,7 @@ void ICACHE_FLASH_ATTR otb_gpio_reset_timerfunc(void *arg)
     otb_wifi_kick_off();
   }
   
-  DEBUG("GPIO: otb_gpio_reset_timerfunc exit");
+  EXIT;
 }
 #endif
 
@@ -241,11 +243,11 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
   int ii;
   bool rc;
 
-  DEBUG("GPIO: gpio_apply_boot_state entry");
+  ENTRY;
 
   if (otb_eeprom_module_present())
   {
-    INFO("GPIO: Not applying boot state as have modules present");
+    MINFO("Not applying boot state as have modules present");
     goto EXIT_LABEL;
   }
 
@@ -256,18 +258,18 @@ void ICACHE_FLASH_ATTR otb_gpio_apply_boot_state(void)
       rc = otb_gpio_set(ii, otb_conf->gpio_boot_state[ii], FALSE);
       if (!rc)
       {
-        WARN("GPIO: failed to set boot state for pin %d", ii);
+        MWARN("failed to set boot state for pin %d", ii);
       }
     }
     else
     {
-      DETAIL("GPIO: not applying boot state for reserved pin %d", ii);
+      MDETAIL("not applying boot state for reserved pin %d", ii);
     }
   }
 
 EXIT_LABEL:  
   
-  DEBUG("GPIO: gpio_apply_boot_state exit");
+  EXIT;
   
   return;
 }
@@ -276,10 +278,10 @@ int8_t ICACHE_FLASH_ATTR otb_gpio_get_pin(unsigned char *to_match)
 {
   int8_t pin = -1;
 
-  DEBUG("GPIO: otb_gpio_get_pin entry");
+  ENTRY;
   
   pin = atoi(to_match);
-  DEBUG("GPIO: Pin %d", pin);
+  MDEBUG("Pin %d", pin);
   if ((pin < 0) ||
       (pin >= GPIO_PIN_NUM) ||
       ((pin == 0) && (to_match[0] != '0')))
@@ -287,7 +289,7 @@ int8_t ICACHE_FLASH_ATTR otb_gpio_get_pin(unsigned char *to_match)
     pin = -1;
   }
 
-  DEBUG("GPIO: otb_gpio_get_pin exit");
+  EXIT;
 
   return pin;
 }
@@ -301,7 +303,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_valid_pin(unsigned char *to_match)
   int8_t pin;
   char *text;
   
-  DEBUG("GPIO: otb_gpio_valid_pin entry");
+  ENTRY;
 
   pin = otb_gpio_get_pin(to_match);
   
@@ -316,7 +318,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_valid_pin(unsigned char *to_match)
     rc = rc ? FALSE : TRUE;
   }
 
-  DEBUG("GPIO: otb_gpio_valid_pin exit");
+  EXIT;
 
  return rc;
 }
@@ -325,15 +327,15 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_valid(uint8_t pin)
 {
   bool rc = TRUE;
   
-  DEBUG("GPIO: otb_gpio_is_valid entry");
+  ENTRY;
   
   if (pin >= OTB_GPIO_ESP_GPIO_PINS)
   {
-    DEBUG("GPIO: Pin is invalid");
+    MDEBUG("Pin is invalid");
     rc = FALSE;
   }
 
-  DEBUG("GPIO: otb_gpio_is_special exit");
+  EXIT;
   
   return rc;
 }
@@ -343,7 +345,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
   bool rc = TRUE;
   const otb_eeprom_pin_info *pin_info;
   
-  DEBUG("GPIO: otb_gpio_is_reserved entry");
+  ENTRY;
 
   *reserved_text = "";
 
@@ -389,7 +391,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_is_reserved(uint8_t pin, char **reserved_text)
       break;
   }
 
-  DEBUG("GPIO: otb_gpio_is_reserved exit");
+  EXIT;
 
   return rc;
 }  
@@ -406,7 +408,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_cmd(unsigned char *next_cmd,
   int8_t value;
   bool store_conf = FALSE;
     
-  DEBUG("GPIO: otb_gpio_cmd entry");
+  ENTRY;
   
   // Double check what we're being asked to do is valid
   cmd = (int)arg;
@@ -476,7 +478,7 @@ EXIT_LABEL:
     }
   }
 
-  DEBUG("GPIO: otb_gpio_cmd exit");
+  EXIT;
   
   return rc;
 }
@@ -487,28 +489,28 @@ sint8 ICACHE_FLASH_ATTR otb_gpio_get(int pin, bool override_reserved)
   sint8 input = -1;
   char *error_text;
   
-  DEBUG("GPIO: otb_gpio_get entry");
+  ENTRY;
 
   if (!otb_gpio_is_valid(pin))
   {
-    ERROR("GPIO: Can't get pin %d - invalid", pin);
+    MERROR("Can't get pin %d - invalid", pin);
     goto EXIT_LABEL;
   }
   
   if (!override_reserved && otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't get pin %d - %s", error_text);
+    MERROR("Can't get pin %d - %s", error_text);
     goto EXIT_LABEL;
   }
   
   // Should this be INPUT or OUTPUT?
   input = GPIO_INPUT_GET(pin);
   
-  DEBUG("GPIO: Pin %d state %d", pin, input);
+  MDEBUG("Pin %d state %d", pin, input);
   
 EXIT_LABEL:
   
-  DEBUG("GPIO: otb_gpio_get exit");
+  EXIT;
   
   return input;
 }
@@ -520,21 +522,21 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
   uint8 input;
   char *error_text;
   
-  DEBUG("GPIO: otb_gpio_set entry");
+  ENTRY;
 
   if (!otb_gpio_is_valid(pin))
   {
-    ERROR("GPIO: Can't set pin %d - invalid", pin);
+    MERROR("Can't set pin %d - invalid", pin);
     goto EXIT_LABEL;
   }
   
   if (!override_reserved && otb_gpio_is_reserved(pin, &error_text))
   {
-    ERROR("GPIO: Can't set pin %d - %s", pin, error_text);
+    MERROR("Can't set pin %d - %s", pin, error_text);
     goto EXIT_LABEL;
   }
   
-  DEBUG("GPIO: Set pin %d value %d", pin, value);
+  MDEBUG("Set pin %d value %d", pin, value);
   // Code used to say pin - 1.  Why???
   otb_gpio_pin_io_status[pin] = OTB_GPIO_PIN_IO_STATUS_OUTPUT;
   GPIO_OUTPUT_SET(pin, value);
@@ -542,7 +544,7 @@ bool ICACHE_FLASH_ATTR otb_gpio_set(int pin, int value, bool override_reserved)
   
 EXIT_LABEL:
   
-  DEBUG("GPIO: otb_gpio_set exit");
+  EXIT;
   
   return rc;
 }
@@ -558,7 +560,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
   char *error_text;
   char *cmd = "";
 
-  DEBUG("GPIO: otb_gpio_cmd entry");
+  ENTRY;
 
   // Note that cmd1 and cmd2 are colon terminated
   // Supported commands:
@@ -568,7 +570,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
   
   if ((cmd1 == NULL) || (cmd2 == NULL))
   {
-    INFO("GPIO: Invalid GPIO command");
+    MINFO("Invalid GPIO command");
     otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                          OTB_MQTT_STATUS_ERROR,
                          "Invalid GPIO command",
@@ -593,7 +595,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
   }
   
   pin = atoi(cmd2);
-  DEBUG("GPIO: Pin %d", pin);
+  MDEBUG("Pin %d", pin);
   if ((pin < 0) || (pin >= GPIO_PIN_NUM))
   {
     otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
@@ -607,7 +609,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
     case OTB_MQTT_CMD_SAVE_:
       // Deliberately fall through to set.  Will store once we've decided if this GPIO
       // works
-      DEBUG("GPIO: Save command");
+      MDEBUG("Save command");
       save = TRUE;
       if (cmd3 == NULL)
       {
@@ -631,7 +633,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
               rc = otb_conf_update(otb_conf);
               if (!rc)
               {
-                ERROR("CONF: Failed to save new boot state");
+                MERROR("Failed to save new boot state");
                 otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                                      cmd,
                                      OTB_MQTT_STATUS_ERROR,
@@ -663,14 +665,14 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       }
       // Fall through to actually set GPIO ...
     case OTB_MQTT_CMD_SET_:
-      DEBUG("GPIO: Set command");
+      MDEBUG("Set command");
       if ((value != -1) || (cmd3 != NULL))
       {
         if (value == -1)
         {
           value = atoi(cmd3);
         }
-        DEBUG("GPIO: Set - new value %d", value);
+        MDEBUG("Set - new value %d", value);
         rc = otb_gpio_set(pin, value, FALSE); 
         if (rc)
         {
@@ -689,7 +691,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       }
       else
       {
-        DETAIL("GPIO: no value");
+        MDETAIL("no value");
         otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                              cmd,
                              OTB_MQTT_STATUS_ERROR,
@@ -700,7 +702,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       break;
       
     case OTB_MQTT_CMD_GET_:
-      DEBUG("GPIO: Get command");
+      MDEBUG("Get command");
       if (cmd3 != NULL)
       {
         if (otb_mqtt_match(cmd3, OTB_MQTT_BOOT_STATE))
@@ -735,7 +737,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
         }
         else
         {
-          INFO("MQTT: Failed to get GPIO");
+          MINFO("Failed to get GPIO");
           otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                                cmd,
                                OTB_MQTT_STATUS_ERROR,
@@ -745,7 +747,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
       break;
     
     default:
-      DETAIL("GPIO: Unsupported command");
+      MDETAIL("Unsupported command");
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_GPIO,
                            OTB_MQTT_STATUS_ERROR,
                            "Unsupported command",
@@ -756,7 +758,7 @@ void ICACHE_FLASH_ATTR otb_gpio_mqtt(char *cmd1, char *cmd2, char *cmd3)
 
 EXIT_LABEL:
   
-  DEBUG("GPIO: otb_gpio_cmd exit");
+  EXIT;
   
   return;
 }

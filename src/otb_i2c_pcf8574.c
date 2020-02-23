@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,36 +20,38 @@
 #define OTB_I2C_PCF8574_C
 #include "otb.h"
 
+MLOG("PCF8574");
+
 void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_timerfunc(void)
 {
   bool rc;
   
-  DEBUG("I2C: otb_i2c_pcf8574_test_timer_func entry");
+  ENTRY;
 
   if (otb_i2c_pcf8574_led_on)
   {
     // Off
-    DETAIL("PCF8574: LED on - turn it off");
+    MDETAIL("LED on - turn it off");
     rc = otb_i2c_pcf8574_led_conf(otb_i2c_pcf8574_test_addr, 0, FALSE);
     if (!rc)
     {
-      WARN("PCF8574: Failed to communicate with PCF8574");
+      MWARN("Failed to communicate with PCF8574");
     }
     otb_i2c_pcf8574_led_on = FALSE;
   }
   else
   {
     // On
-    DETAIL("PCF8574: LED off - turn it on");
+    MDETAIL("LED off - turn it on");
     rc = otb_i2c_pcf8574_led_conf(otb_i2c_pcf8574_test_addr, 0, TRUE);
     if (!rc)
     {
-      WARN("PCF8574: Failed to communicate with PCF8574");
+      MWARN("Failed to communicate with PCF8574");
     }
     otb_i2c_pcf8574_led_on = TRUE;
   }
   
-  DEBUG("I2C: otb_i2c_pcf8574_test_timer_func entry");
+  ENTRY;
 
   return;
 }
@@ -58,14 +60,14 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_init(void)
 {
   bool rc = FALSE;
 
-  DEBUG("I2C: otb_i2c_pcf8574_test_init entry");
+  ENTRY;
 
   otb_i2c_pcf8574_led_on = FALSE;
   otb_i2c_pcf8574_test_addr = OTB_I2C_PCF8574_BASE_ADDR;
   rc = otb_i2c_pcf8574_init(otb_i2c_pcf8574_test_addr);
   if (!rc)
   {
-    WARN("PCF8574: Failed to init PCF8574 at address 0x%02x", otb_i2c_pcf8574_test_addr);
+    MWARN("Failed to init PCF8574 at address 0x%02x", otb_i2c_pcf8574_test_addr);
     //goto EXIT_LABEL;
   }
   
@@ -75,11 +77,11 @@ void ICACHE_FLASH_ATTR otb_i2c_pcf8574_test_init(void)
                      1000,
                      1);
                      
-  DETAIL("PCF8574: Initialized test");
+  MDETAIL("Initialized test");
   
 EXIT_LABEL:
   
-  DEBUG("I2C: otb_i2c_pcf8574_test_init exit");
+  EXIT;
 
   return;
 }
@@ -92,7 +94,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pcf8574_led_conf(uint8_t addr, uint8_t led, bool 
   int ii;
   uint8_t reg;
   
-  DEBUG("I2C: otb_i2c_pcf8574_led_conf entry");
+  ENTRY;
 
   // Figure out which bit within this register this led is on
   io = 1 << (led|8);
@@ -126,7 +128,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pcf8574_led_conf(uint8_t addr, uint8_t led, bool 
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_pcf8574_led_conf exit");
+  EXIT;
 
   return rc;
 }
@@ -136,7 +138,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pcf8574_init(uint8_t addr)
   bool rc = FALSE;
   uint8_t conf;
 
-  DEBUG("I2C: otb_i2c_pcf8574_init entry");
+  ENTRY;
 
   // Set all outputs to 0
   rc = otb_i2c_write_one_val(addr, 0);
@@ -149,7 +151,7 @@ bool ICACHE_FLASH_ATTR otb_i2c_pcf8574_init(uint8_t addr)
   
 EXIT_LABEL:
 
-  DEBUG("I2C: otb_i2c_pcf8574_init exit");
+  EXIT;
 
   return rc;
 }

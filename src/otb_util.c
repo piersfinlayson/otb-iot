@@ -24,9 +24,11 @@
 #include <errno.h>
 #include <uart_register.h>
 
+MLOG("UTIL");
+
 void ICACHE_FLASH_ATTR otb_util_booted(void)
 {
-  DEBUG("UTIL: otb_util_booted entry");
+  ENTRY;
 
   if (!otb_util_booted_g)
   {
@@ -34,7 +36,7 @@ void ICACHE_FLASH_ATTR otb_util_booted(void)
     otb_util_booted_g = TRUE;
   }
 
-  DEBUG("UTIL: otb_util_booted exit");
+  EXIT;
 
   return;
 }
@@ -42,7 +44,7 @@ void ICACHE_FLASH_ATTR otb_util_booted(void)
 void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 {
 
-  DEBUG("UTIL: otb_util_flash_init entry");
+  ENTRY;
   
 #ifdef OTB_SUPER_BIG_FLASH_8266  
   uint32_t id_size;
@@ -57,8 +59,8 @@ void ICACHE_FLASH_ATTR otb_util_flash_init(void)
   }
   otb_flash_size_sdk = flashchip->chip_size;
   otb_flash_size_actual = actual_size;
-  DETAIL("UTIL: Flash size from sdk: %d bytes", otb_flash_size_sdk);
-  DETAIL("UTIL: Flash size actual:   %d bytes", otb_flash_size_actual);
+  MDETAIL("Flash size from sdk: %d bytes", otb_flash_size_sdk);
+  MDETAIL("Flash size actual:   %d bytes", otb_flash_size_actual);
   OTB_ASSERT(otb_flash_size_actual >= otb_flash_size_sdk); 
   if (otb_flash_size_actual == otb_flash_size_sdk)
   {
@@ -67,7 +69,7 @@ void ICACHE_FLASH_ATTR otb_util_flash_init(void)
   }
 #endif // OTB_SUPER_BIG_FLASH_8266  
 
-  DEBUG("UTIL: otb_util_flash_init exit");
+  EXIT;
   
   return;
 }
@@ -121,7 +123,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
 {
   rc = FALSE;
 
-  DEBUG("UTIL: otb_util_factory_reset entry");
+  ENTRY;
   
   // First of all reset config
   otb_led_wifi_blink();  // Will turn off
@@ -130,7 +132,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
   if (!rc)
   {
     // But plow on regardless
-    WARN("UTIL: Failed to reset config to factory");
+    MWARN("Failed to reset config to factory");
   }
   otb_led_wifi_blink();  // Will turn back on
   
@@ -139,7 +141,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
   if (!rc)
   {
     // But plow on regardless
-    WARN("UTIL: Failed to reset boot slot to 0");
+    MWARN("Failed to reset boot slot to 0");
   }
 
   // Now actually do the firmware update
@@ -148,7 +150,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
   if (!ota_rboot_check_factory_image())
   {
     // Can't recover from this
-    ERROR("UTIL: No good factory image");
+    MERROR("No good factory image");
     goto EXIT_LABEL;
   }
   
@@ -159,7 +161,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
   else
   {
     // Can't recover from this
-    ERROR("UTIL: Failed to update boot image with factory");
+    MERROR("Failed to update boot image with factory");
     goto EXIT_LABEL;
   }
   
@@ -181,7 +183,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
   otb_led_wifi_init_blink_timer();
   otb_reset_schedule(otb_util_factory_reset_reason, 5000, FALSE);
   
-  DEBUG("UTIL: otb_util_factory_reset exit");
+  EXIT;
   
   return;
 }
@@ -224,7 +226,7 @@ void ICACHE_FLASH_ATTR otb_util_convert_char_to_char(char *text, int from, int t
   char froms[2];
   char *match;
   
-  DEBUG("UTIL: otb_util_convert_char_to_char entry");
+  ENTRY;
   
   OTB_ASSERT(from != to);
   
@@ -237,7 +239,7 @@ void ICACHE_FLASH_ATTR otb_util_convert_char_to_char(char *text, int from, int t
     match = os_strstr(match, froms);
   }
 
-  DEBUG("UTIL: otb_util_convert_char_to_char exit");
+  EXIT;
 
   return;  
 }
@@ -256,7 +258,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
   bool trailing;
   bool rc = TRUE;
 
-  DEBUG("UTIL: otb_util_get_chip_id entry");
+  ENTRY;
 
   OTB_ASSERT(OTB_MAIN_CHIPID_STR_LENGTH >= (OTB_EEPROM_HW_SERIAL_LEN+1));
   os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
@@ -267,7 +269,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
       (os_strnlen(otb_eeprom_main_board_g->common.serial,
                   OTB_EEPROM_HW_SERIAL_LEN+1) > 0))
   {
-    DEBUG("UTIL: Using serial number as chipid");
+    MDEBUG("Using serial number as chipid");
     // Use serial number
     
     // Get rid of any spaces
@@ -297,8 +299,8 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
     mac[0] = 0;
 #endif
     mac_rc = otb_wifi_get_mac_addr(STATION_IF, mac);
-    DEBUG("UTIL: Result of MAC addr query: %d", mac_rc);
-    DEBUG("UTIL: MAC address string: %s", mac);
+    MDEBUG("Result of MAC addr query: %d", mac_rc);
+    MDEBUG("MAC address string: %s", mac);
     // Check MAC address is exactly format (length) we expect which is:
     // aa:bb:cc:dd:ee:ff (17 bytes)
     if (mac_rc &&
@@ -306,23 +308,23 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
                                       (OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1)))
     {
       // Use STA MAC address
-      DETAIL("UTIL: Using station MAC address as chipid");
+      MDETAIL("Using station MAC address as chipid");
       for (ii = 0, jj = 0, kk = 0;
            ii < os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH);
            ii++)
       {
         if (isalnum(mac[ii]))
         {
-          DEBUG("UTIL: Is alnum: %x", mac[ii]);
+          MDEBUG("Is alnum: %x", mac[ii]);
           if (kk < 2)
           {
-            DEBUG("UTIL: kk < 2: %d", kk);
+            MDEBUG("kk < 2: %d", kk);
             mac_bit[kk] = mac[ii];
             kk++;
           }
           else
           {
-            WARN("UTIL: Unexpected MAC address format: %c %s", mac[ii], mac);
+            MWARN("Unexpected MAC address format: %c %s", mac[ii], mac);
             rc = FALSE;
             mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1] = 0;
             goto EXIT_LABEL;
@@ -330,10 +332,10 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         }
         else if (mac[ii] == 0)
         {
-          DEBUG("UTIL: 0");
+          MDEBUG("0");
           if (kk == 1)
           {
-            DEBUG("UTIL: kk = 1");
+            MDEBUG("kk = 1");
             OTB_MAIN_CHIPID[jj] = '0';
             OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
             jj += 2;
@@ -341,14 +343,14 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
           }
           if (os_strnlen(OTB_MAIN_CHIPID, OTB_EEPROM_HW_SERIAL_LEN+1) < 6)
           {
-            WARN("UTIL: Unexpected MAC address format: %s", mac);
+            MWARN("Unexpected MAC address format: %s", mac);
             rc = 0;
           }
           break;
         }
         else if (mac[ii] != ':')
         {
-          WARN("UTIL: Unexpected MAC address format: %c %s", mac[ii], mac);
+          MWARN("Unexpected MAC address format: %c %s", mac[ii], mac);
           rc = FALSE;
           mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1] = 0;
           goto EXIT_LABEL;
@@ -356,7 +358,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         
         if (kk == 2)
         {
-          DEBUG("UTIL: kk=2");
+          MDEBUG("kk=2");
           OTB_MAIN_CHIPID[jj] = mac_bit[0];
           OTB_MAIN_CHIPID[jj+1] = mac_bit[1];
           jj += 2;
@@ -364,7 +366,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
         }
         else if ((kk == 1) && (mac[ii] == ':'))
         {
-          DEBUG("UTIL: kk=1 && mac=:");
+          MDEBUG("kk=1 && mac=:");
           OTB_MAIN_CHIPID[jj] = '0';
           OTB_MAIN_CHIPID[jj+1] = mac_bit[0];
           jj += 2;
@@ -402,15 +404,15 @@ EXIT_LABEL:
   if (!rc)
   {  
     // Use ESP chip id
-    DETAIL("UTIL: Using ESP chipid as chipid");
+    MDETAIL("Using ESP chipid as chipid");
     os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
     os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   }
   
   INFO("OTB: Chip ID: %s", OTB_MAIN_CHIPID);  
   
-  DEBUG("UTIL: otb_util_get_chip_id exit");
-  
+  EXIT;
+
   return;
 }
 
@@ -804,7 +806,7 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
 char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
 void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
 {
-  DEBUG("UTIL: otb_util_assert entry");
+  ENTRY;
 
   if(!value && !otb_util_asserting)
   {
@@ -818,7 +820,7 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, ui
     otb_util_delay_ms(1000);
   }
 
-  DEBUG("UTIL: otb_util_assert exit");
+  EXIT;
   
   return;
 }
@@ -829,7 +831,7 @@ void ICACHE_FLASH_ATTR otb_reset_schedule(uint32_t timeout,
                                           bool error)
 {
 
-  DEBUG("UTIL: otb_reset_schedule entry");
+  ENTRY;
 
   os_memset(&otb_reset_reason_struct, 0, sizeof(otb_reset_reason_struct));
   otb_reset_reason_struct.reason = reason;  
@@ -841,7 +843,7 @@ void ICACHE_FLASH_ATTR otb_reset_schedule(uint32_t timeout,
                      timeout,
                      0);
 
-  DEBUG("UTIL: otb_reset_schedule exit");
+  EXIT;
   
   return;
 }
@@ -850,33 +852,33 @@ void ICACHE_FLASH_ATTR otb_reset_timer(void *arg)
 {
   struct otb_reset_reason *reason_struct = (struct otb_reset_reason *)arg;
 
-  DEBUG("UTIL: otb_reset_timer entry");
+  ENTRY;
   
   otb_reset_internal((char *)reason_struct->reason, reason_struct->error);
   
-  DEBUG("UTIL: otb_reset_timer exit");
+  EXIT;
   
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_reset_error(char *text)
 {
-  DEBUG("OTB: otb_reset_error entry");
+  ENTRY;
   
   otb_reset_schedule(1000, (const char *)text, TRUE);
   
-  DEBUG("OTB: otb_reset_error exit");
+  EXIT;
   
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_reset(char *text)
 {
-  DEBUG("OTB: otb_reset entry");
+  ENTRY;
   
   otb_reset_internal(text, FALSE);
   
-  DEBUG("OTB: otb_reset exit");
+  EXIT;
   
   return;
 }
@@ -887,7 +889,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
   bool same;
   uint8_t log_level;
 
-  DEBUG("OTB: otb_reset_internal entry");
+  ENTRY;
   
   otb_util_reset_store_reason(text, &same);
   
@@ -928,7 +930,7 @@ void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
   system_restart();
   #endif
 
-  DEBUG("OTB: otb_reset_internal exit");
+  EXIT;
 
   return;
 }
@@ -942,7 +944,7 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text, bool *same)
   uint8 spi_rc;
   char ALIGN4 stored[OTB_BOOT_LAST_REBOOT_LEN];
 
-  DEBUG("UTIL: otb_util_reset_store_reason entry");
+  ENTRY;
   
   *same = FALSE;
   
@@ -963,31 +965,31 @@ bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text, bool *same)
                                        (uint32)len);
       if (!rc)
       {
-        DEBUG("UTIL: Failed to actually store reset reason in flash");
+        MDEBUG("Failed to actually store reset reason in flash");
       }
     }
     else
     {
-      DEBUG("UTIL: New reset reason same as old one");
+      MDEBUG("New reset reason same as old one");
       *same = TRUE;
     }
   }
   
   if (!rc)
   {
-    ERROR("UTIL: Failed to store reset reason");
+    MERROR("Failed to store reset reason");
   }
  
 EXIT_LABEL:
 
-  DEBUG("UTIL: otb_util_reset_store_reason exit");
+  EXIT;
 
   return rc;
 }
 
 void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
 {
-  DEBUG("UTIL: otb_util_clear_reset entry");
+  ENTRY;
 
   // Set GPIO 16 (reset GPIO) to high 
   // XXX Only works for GPIO16
@@ -1002,7 +1004,7 @@ void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
   WRITE_PERI_REG(RTC_GPIO_OUT,
                  (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 
-  DEBUG("UTIL: otb_util_clear_reset exit");
+  EXIT;
 
   return;
 }
@@ -1015,7 +1017,7 @@ bool ICACHE_FLASH_ATTR otb_util_flash_read(uint32 location,
   uint8 tries;
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
 
-  DEBUG("UTIL: otb_util_flash_read_string entry");
+  ENTRY;
   
   // Check everything is 4 byte aligned
   OTB_ASSERT((uint32)location % 4 == 0);
@@ -1030,14 +1032,14 @@ bool ICACHE_FLASH_ATTR otb_util_flash_read(uint32 location,
 
   if (tries == 2)
   {
-    ERROR("UTIL: Failed to read at 0x%08x, error %d", location, spi_rc);
+    MERROR("Failed to read at 0x%08x, error %d", location, spi_rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
   
 EXIT_LABEL:  
   
-  DEBUG("UTIL: otb_util_flash_read_string exit");
+  EXIT;
   
   return rc;
 }                                                  
@@ -1050,7 +1052,7 @@ bool ICACHE_FLASH_ATTR otb_util_flash_write_string(uint32 location,
   uint32 newlen;
   uint8 mod4;
   
-  DEBUG("UTIL: otb_util_flash_write_string entry");
+  ENTRY;
   
   // 4 byte align the string - this should be safeish - we're not writing past the end
   // of the passed in string, but we are ready past it so may log some rubbish
@@ -1059,7 +1061,7 @@ bool ICACHE_FLASH_ATTR otb_util_flash_write_string(uint32 location,
 
   rc = otb_util_flash_write(location, source, newlen);
   
-  DEBUG("UTIL: otb_util_flash_write_string exit");
+  EXIT;
   
   return(rc);
 }
@@ -1070,7 +1072,7 @@ bool ICACHE_FLASH_ATTR otb_util_flash_write(uint32 location, uint32 *source, uin
   uint8 tries;
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
   
-  DEBUG("UTIL: otb_util_flash_write entry");
+  ENTRY;
   
   // Check everything is 4 byte aligned
   OTB_ASSERT((uint32)location % 4 == 0);
@@ -1086,21 +1088,21 @@ bool ICACHE_FLASH_ATTR otb_util_flash_write(uint32 location, uint32 *source, uin
 
   if (tries == 2)
   {
-    ERROR("UTIL: Failed to write at 0x%08x, error %d", location, spi_rc);
+    MERROR("Failed to write at 0x%08x, error %d", location, spi_rc);
     rc = FALSE;
     goto EXIT_LABEL;
   }
   
 EXIT_LABEL:  
 
-  DEBUG("UTIL: otb_util_flash_write exit");
+  EXIT;
   
   return rc;
 }
  
 void ICACHE_FLASH_ATTR otb_util_log_heap_size_start_timer(void)
 {
-  DEBUG("UTIL: otb_util_log_heap_size_start_timer entry");
+  ENTRY;
 
   otb_util_timer_set(&otb_util_heap_timer,
                      otb_util_log_heap_size_timer,
@@ -1108,7 +1110,7 @@ void ICACHE_FLASH_ATTR otb_util_log_heap_size_start_timer(void)
                      1000,
                      1);
 
-  DEBUG("UTIL: otb_util_log_heap_size_start_timer exit");
+  EXIT;
 
   return;
 }
@@ -1117,12 +1119,12 @@ void ICACHE_FLASH_ATTR otb_util_log_heap_size_timer(void *arg)
 {
   uint32 size;
 
-  DEBUG("UTIL: otb_util_log_heap_size_timer entry");
+  ENTRY;
   
   size = system_get_free_heap_size();  
-  DETAIL("UTIL: Free heap size: %d", size);
+  MDETAIL("Free heap size: %d", size);
   
-  DEBUG("UTIL: otb_util_log_heap_size_timer exit");
+  EXIT;
 
   return;
 }
@@ -1132,13 +1134,13 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
   uint32 size;
   char size_s[8];
 
-  DEBUG("UTIL: otb_util_get_heap_size entry");
+  ENTRY;
   
   size = system_get_free_heap_size();  
   os_snprintf(size_s, 8, "%d", size);
   otb_mqtt_send_status(OTB_MQTT_STATUS_HEAP_SIZE, size_s, "", "");
   
-  DEBUG("UTIL: otb_util_get_heap_size exit");
+  EXIT;
 
   return;
 }  
@@ -1152,14 +1154,14 @@ bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
   unsigned char ALIGN4 flash[0x1000];
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
 
-  DEBUG("UTIL: otb_util_get_vdd33 entry");
+  ENTRY;
 
   // To work byte 107 of ESP user.bin (0x3fc000 in 4MB flash) must be 0xff.  Really.
   // And you need to reboot afterwards.
   if (!otb_util_vdd33_flash_ok)
   {
     // Sigh.  Make it OK.
-    DEBUG("UTIL: read flash 0x%p", flash);
+    MDEBUG("read flash 0x%p", flash);
     rc = otb_util_flash_read(OTB_BOOT_ESP_USER_BIN,
                              (uint32 *)flash,
                              0x1000);
@@ -1167,7 +1169,7 @@ bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
     {
       if (flash[107] != 0xff)
       {
-        DEBUG("UTIL: write flash");
+        MDEBUG("write flash");
         flash[107] = 0xff;
         spi_rc = spi_flash_erase_sector(OTB_BOOT_ESP_USER_BIN / 0x1000);
         if (spi_rc != SPI_FLASH_RESULT_ERR)
@@ -1178,7 +1180,7 @@ bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
         }
         else
         {
-          WARN("UTIL: Failed to erase flash");
+          MWARN("Failed to erase flash");
           rc = FALSE;
         }
         if (rc)
@@ -1189,18 +1191,18 @@ bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
         }
         else
         {
-          WARN("UTIL: Failed to update ESP user bin to flash 0x%x", OTB_BOOT_ESP_USER_BIN);
+          MWARN("Failed to update ESP user bin to flash 0x%x", OTB_BOOT_ESP_USER_BIN);
         }
       }
       else
       {
-        DEBUG("UTIL: Byte 107 of ESP user bin 0x%x already 0xff", OTB_BOOT_ESP_USER_BIN);
+        MDEBUG("Byte 107 of ESP user bin 0x%x already 0xff", OTB_BOOT_ESP_USER_BIN);
         otb_util_vdd33_flash_ok = TRUE;
       }
     }
     else
     {
-      WARN("UTIL: Failed to read ESP user bin from flash 0x%x", OTB_BOOT_ESP_USER_BIN);
+      MWARN("Failed to read ESP user bin from flash 0x%x", OTB_BOOT_ESP_USER_BIN);
     }
   }  
 
@@ -1213,7 +1215,7 @@ bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
 
 EXIT_LABEL:
   
-  DEBUG("UTIL: otb_util_get_vdd33 exit");
+  EXIT;
 
   return rc;
 }  
@@ -1221,13 +1223,13 @@ EXIT_LABEL:
 void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)
 {
 
-  DEBUG("UTIL: otb_util_timer_cancel entry");
+  ENTRY;
   
   // Set the timer function to NULL so we can test whether this is set
   os_timer_disarm(timer);
   os_timer_setfn(timer, (os_timer_func_t *)NULL, NULL);
   
-  DEBUG("UTIL: otb_util_timer_cancel exit");
+  EXIT;
   
   return;
 }
@@ -1236,15 +1238,15 @@ bool ICACHE_FLASH_ATTR otb_util_timer_is_set(os_timer_t *timer)
 {
   bool rc = TRUE;
   
-  DEBUG("UTIL: otb_util_timer_is_set entry");
+  ENTRY;
   
   if (timer->timer_func == NULL)
   {
-    DEBUG("UTIL: timer isn't set");
+    MDEBUG("timer isn't set");
     rc = FALSE;
   }
   
-  DEBUG("UTIL: otb_util_timer_is_set exit");
+  EXIT;
 
   return(rc);
 }
@@ -1256,13 +1258,13 @@ void ICACHE_FLASH_ATTR otb_util_timer_set(os_timer_t *timer,
                                           bool repeat)
 {
 
-  DEBUG("UTIL: otb_util_timer_set entry");
+  ENTRY;
 
   otb_util_timer_cancel(timer);
   os_timer_setfn(timer, timerfunc, arg);
   os_timer_arm(timer, timeout, repeat);
   
-  DEBUG("UTIL: otb_util_timer_set exit");
+  EXIT;
   
   return;
 }
@@ -1272,14 +1274,14 @@ bool ICACHE_FLASH_ATTR otb_util_timer_finished(otb_util_timeout *timeout)
   bool rc = FALSE;
   uint32_t current_time; 
   
-  DEBUG("UTIL: otb_util_timer_finished entry");
+  ENTRY;
 
   current_time = system_get_time();
   if (timeout->start_time < timeout->end_time)
   {
     if (current_time > timeout->end_time)
     {
-      DEBUG("UTIL: Timer finished", timeout->end_time);
+      MDEBUG("Timer finished", timeout->end_time);
       rc = TRUE;
     }
   }
@@ -1287,12 +1289,12 @@ bool ICACHE_FLASH_ATTR otb_util_timer_finished(otb_util_timeout *timeout)
   {
     if ((current_time < timeout->start_time) && (current_time > timeout->end_time))
     {
-      DEBUG("UTIL: Timer finished", timeout->end_time);
+      MDEBUG("Timer finished", timeout->end_time);
       rc = TRUE;
     }
   }
 
-  DEBUG("UTIL: otb_util_timer_finished exit");
+  EXIT;
   
   return rc;  
 }
@@ -1312,9 +1314,9 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
   uint32_t end_time;
   bool going_to_wrap = FALSE;
     
-  DEBUG("UTIL: otb_util_delay_ms entry");
+  ENTRY;
   
-  DEBUG("UTIL: wait for %d ms", value);
+  MDEBUG("wait for %d ms", value);
 
   OTB_ASSERT(value <= OTB_UTIL_MAX_DELAY_MS);
   
@@ -1330,12 +1332,12 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
   {
     if (value <= OTB_ESP_MAX_DELAY_MS)
     {
-      DEBUG("UTIL: Wait for %d ms", value); 
+      MDEBUG("Wait for %d ms", value); 
       os_delay_us(value*1000);
     }
     else
     {
-      DEBUG("UTIL: Wait for %d ms", OTB_UTIL_DELAY_WAIT_MS);
+      MDEBUG("Wait for %d ms", OTB_UTIL_DELAY_WAIT_MS);
       os_delay_us(OTB_UTIL_DELAY_WAIT_MS*1000);
     }
     system_soft_wdt_feed();
@@ -1346,7 +1348,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
     {
       if (current_time >= end_time)
       {
-        DEBUG("UTIL: Done");
+        MDEBUG("Done");
         break;
       }
       else
@@ -1358,7 +1360,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
     {
       if ((current_time < start_time) && (current_time >= end_time))
       {
-        DEBUG("UTIL: Done");
+        MDEBUG("Done");
         break;
       }
       else if (current_time < end_time)
@@ -1372,14 +1374,14 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
     }
   }
   
-  DEBUG("UTIL: otb_util_delay_ms exit");
+  EXIT;
   
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_check_defs(void)
 {
-  DEBUG("UTIL: otb_util_check_defs entry");
+  ENTRY;
   
   OTB_ASSERT(OTB_UTIL_DELAY_WAIT_MS <= OTB_ESP_MAX_DELAY_MS);
   OTB_ASSERT(strlen(OTB_MAIN_OTB_IOT) <= 8);
@@ -1387,7 +1389,7 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
   OTB_ASSERT(strlen(OTB_MAIN_ESPI_PREFIX) <= 8);
   OTB_ASSERT(strlen(OTB_MAIN_FW_VERSION) <= 8);
   
-  DEBUG("UTIL: otb_util_check_defs exit");
+  EXIT;
   
   return;
 }
@@ -1399,7 +1401,7 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              va_list args)
 {
   int len;
-  // DEBUG("UTIL: otb_util_log_snprintf entry");
+  ENTRY;
 
   // Need to call vsnprintf not snprintf, as passing va_list
   if (module != NULL)
@@ -1412,7 +1414,7 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
 
   return;
 
-  // DEBUG("UTIL: otb_util_log_snprintf exit");
+  EXIT;
 }
 
 void ICACHE_FLASH_ATTR otb_util_log(char *module,
@@ -1424,7 +1426,7 @@ void ICACHE_FLASH_ATTR otb_util_log(char *module,
 {
   va_list args;
 
-  // DEBUG("UTIL: otb_util_log entry");
+  ENTRY;
   
   // Only carry on if log is at an appropriate level
   if (level < otb_util_log_level)
@@ -1448,36 +1450,36 @@ void ICACHE_FLASH_ATTR otb_util_log(char *module,
 
 EXIT_LABEL:
 
-  // DEBUG("UTIL: otb_util_log exit");
+  EXIT;
   
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_disable_logging(void)
 {
-  // DEBUG("UTIL: otb_util_disable_logging entry");
+  ENTRY;
 
   otb_util_log_level_stored = otb_util_log_level;
 
-  // DEBUG("UTIL: otb_util_disable_logging exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_enable_logging(void)
 {
-  // DEBUG("UTIL: otb_util_enable_logging entry");
+  ENTRY;
 
   otb_util_log_level = otb_util_log_level_stored;
 
-  // DEBUG("UTIL: otb_util_enable_logging exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
 {
-  // DEBUG("UTIL: otb_util_log_error_via_mqtt entry");
+  ENTRY;
 
   os_snprintf(otb_mqtt_topic_s,
               OTB_MQTT_MAX_TOPIC_LENGTH,
@@ -1492,7 +1494,7 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
   // QOS=1 so gets through at least once, retain=0 so last log not retained
   MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 0);
 
-  // DEBUG("UTIL: otb_util_log_error_via_mqtt exit");
+  EXIT;
 
   return;
 }
@@ -1506,7 +1508,7 @@ bool ICACHE_FLASH_ATTR otb_util_is_fqdn(unsigned char *dn)
   bool is_fqdn = FALSE;
   int ii;
 
-  DEBUG("UTIL: otb_util_is_fqdn entry");
+  ENTRY;
 
   len = os_strlen(dn);
   for (ii = 0; ii < len; ii++)
@@ -1526,7 +1528,7 @@ bool ICACHE_FLASH_ATTR otb_util_is_fqdn(unsigned char *dn)
     is_fqdn = TRUE;
   }
 
-  DEBUG("UTIL: otb_util_is_fqdn exit");
+  EXIT;
 
   return(is_fqdn);
 }
@@ -1536,11 +1538,11 @@ bool ICACHE_FLASH_ATTR otb_util_is_ip(unsigned char *ip)
   uint8_t ipb[4];
   bool rc;
 
-  DEBUG("UTIL: otb_util_is_ip entry");
+  ENTRY;
 
   rc = otb_util_parse_ipv4_str(ip, ipb);
 
-  DEBUG("UTIL: otb_util_is_ip exit");
+  EXIT;
 
   return(rc);
 }
@@ -1548,7 +1550,7 @@ bool ICACHE_FLASH_ATTR otb_util_is_ip(unsigned char *ip)
 void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
 {
   unsigned char mqtt_svr[OTB_MQTT_MAX_SVR_LEN + OTB_IP_MAX_DOMAIN_NAME_LEN];
-  DEBUG("OTB: otb_init_mqtt entry");
+  ENTRY;
   
   DETAIL("OTB: Set up MQTT stack");
 
@@ -1556,7 +1558,7 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
   // and it isn't a fully qualified domain name
   // and we do have a domain name suffix
   // make a FQDN!
-  DETAIL("UTIL: Testing if we have an FQDN or IP address");
+  MDETAIL("Testing if we have an FQDN or IP address");
   if (!otb_util_is_ip(otb_conf->mqtt.svr) &&
       !otb_util_is_fqdn(otb_conf->mqtt.svr) &&
       (otb_conf->ip.domain_name[0] != 0))
@@ -1582,27 +1584,27 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
 
   EXIT_LABEL:  
   
-  DEBUG("OTB: otb_init_mqtt entry");
+  ENTRY;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
 {
-  DEBUG("OTB: otb_init_ds18b20 entry");
+  ENTRY;
 
   DETAIL("OTB: Set up One Wire bus");
   otb_ds18b20_initialize(OTB_DS18B20_DEFAULT_GPIO);
   otb_util_booted();
 
-  DEBUG("OTB: otb_init_ds18b20 exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
 {
-  DEBUG("OTB: otb_init_ads entry");
+  ENTRY;
 
   DETAIL("OTB: Set up ADS (+I2C bus)");
 #if 0  
@@ -1613,7 +1615,7 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   os_timer_disarm((os_timer_t*)&init_timer);
   otb_util_booted();
 
-  DEBUG("OTB: otb_init_ads exit");
+  EXIT;
 
   return;
 }
@@ -1629,13 +1631,13 @@ bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
   int ii, jj, kk;
   int ip_byte;
 
-  DEBUG("UTIL: otb_util_parse_ipv4_str entry");
+  ENTRY;
 
   len = os_strnlen(ip_in, OTB_UTIL_MAX_IPV4_STR_LEN+1);
   if (len > OTB_UTIL_MAX_IPV4_STR_LEN)
   {
     // Too long to be a valid IPv4 address (123.123.123.123 is 15 chars)
-    DETAIL("UTIL: IPv4 address too long to be valid");
+    MDETAIL("IPv4 address too long to be valid");
     goto EXIT_LABEL;
   }
 
@@ -1651,7 +1653,7 @@ bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
     else if (jj > 2)
     {
       // byte is too many digits
-      DETAIL("UTIL: IP address byte has too many digits: %d", jj);
+      MDETAIL("IP address byte has too many digits: %d", jj);
       goto EXIT_LABEL;
     }
     else if ((ip_in[ii] >= '0') && (ip_in[ii] <= '9'))
@@ -1663,21 +1665,21 @@ bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
     else
     {
       // invalid character in IP address
-      DETAIL("UTIL: Invalid character in IP address: %d", ip_in[ii]);
+      MDETAIL("Invalid character in IP address: %d", ip_in[ii]);
       goto EXIT_LABEL;
     }
 
     if (kk > 3)
     {
       // Too many "bytes"
-      DETAIL("UTIL: Too many bytes in IPv4 address: %d", kk+1);
+      MDETAIL("Too many bytes in IPv4 address: %d", kk+1);
       goto EXIT_LABEL;
     }
   }
   if (kk < 3)
   {
     // Too few "bytes"
-    DETAIL("UTIL: Too few bytes in IPv4 address: %d", kk+1);
+    MDETAIL("Too few bytes in IPv4 address: %d", kk+1);
     goto EXIT_LABEL;
   }
 
@@ -1686,13 +1688,13 @@ bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
     ip_byte = atoi(ip_byte_str[ii]);
     if ((ip_byte < 0) || (ip_byte > 255))
     {
-      DETAIL("UTIL: IP byte less than 0 or greater than 255: %d %s", ip_byte, ip_byte_str)
+      MDETAIL("IP byte less than 0 or greater than 255: %d %s", ip_byte, ip_byte_str)
       goto EXIT_LABEL;
     }
     ip_out[ii] = ip_byte;
   }
 
-  DETAIL("UTIL: Parsed IP address: %d.%d.%d.%d",
+  MDETAIL("Parsed IP address: %d.%d.%d.%d",
          ip_out[0],
          ip_out[1],
          ip_out[2],
@@ -1701,7 +1703,7 @@ bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
 
 EXIT_LABEL:
 
-  DEBUG("UTIL: otb_util_parse_ipv4_str exit");
+  EXIT;
 
   return rc;
 }
@@ -1711,7 +1713,7 @@ bool ICACHE_FLASH_ATTR otb_util_ip_is_all_val(uint8_t *ip, uint8_t val)
   bool rc = TRUE;
   int ii;
 
-  DEBUG("UTIL: otb_util_ip_is_all_val entry");
+  ENTRY;
 
   for (ii = 0; ii < 4; ii++)
   {
@@ -1722,7 +1724,7 @@ bool ICACHE_FLASH_ATTR otb_util_ip_is_all_val(uint8_t *ip, uint8_t val)
     }
   }
 
-  DEBUG("UTIL: otb_util_ip_is_all_zero exit");
+  EXIT;
 
   return rc;
 }
@@ -1732,7 +1734,7 @@ bool ICACHE_FLASH_ATTR otb_util_ip_is_subnet_valid(uint8_t *subnet)
   bool rc = TRUE;
   uint32_t mask;
 
-  DEBUG("UTIL: otb_util_ip_is_subnet_valid entry");
+  ENTRY;
 
   if (otb_util_ip_is_all_val(subnet, 0))
   {
@@ -1748,14 +1750,14 @@ bool ICACHE_FLASH_ATTR otb_util_ip_is_subnet_valid(uint8_t *subnet)
 
 EXIT_LABEL:
 
-  DEBUG("UTIL: otb_util_ip_is_subnet_valid exit");
+  EXIT;
 
   return rc;
 }
 
 void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
 {
-  DEBUG("UTIL: otb_util_uart0_rx_en entry");
+  ENTRY;
   
   ETS_UART_INTR_ATTACH(otb_util_uart0_rx_intr_handler, &(UartDev.rcv_buff));
   SET_PERI_REG_MASK(UART_CONF0(UART0), UART_RXFIFO_RST);
@@ -1769,21 +1771,21 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
   SET_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_OVF_INT_ENA);
   ETS_UART_INTR_ENABLE();
 
-  DEBUG("UTIL: otb_util_uart0_rx_en exit");
+  EXIT;
 
   return;
 }
 
 void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
 {
-  DEBUG("UTIL: otb_util_uart0_rx_dis entry");
+  ENTRY;
   
   CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_TOUT_INT_ENA |UART_FRM_ERR_INT_ENA);
   WRITE_PERI_REG(UART_INT_CLR(UART0), 0xffff);
   CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_OVF_INT_ENA);
   ETS_UART_INTR_DISABLE();
 
-  DEBUG("UTIL: otb_util_uart0_rx_dis exit");
+  EXIT;
 
   return;
 }
@@ -1791,9 +1793,9 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
 void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void)
 {
 
-  DEBUG("UTIL: otb_util_check_for_log_level entry");
+  ENTRY;
 
-  DETAIL("UTIL: check for log level input");
+  MDETAIL("check for log level input");
 
   otb_util_uart0_rx_en();
   otb_util_break_enabled = FALSE;
@@ -1803,7 +1805,7 @@ void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void)
   // Overload the break timer as only use one at once
   otb_util_break_enable_timer(250);
 
-  DEBUG("UTIL: otb_util_check_for_log_level exit");
+  EXIT;
 
   return;
 }
@@ -1812,7 +1814,7 @@ void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void)
 void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
 {
 
-  DEBUG("UTIL: otb_util_check_for_break entry");
+  ENTRY;
 
   INFO("OTB: Break checking")
 
@@ -1823,7 +1825,7 @@ void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
 
   otb_util_break_enable_timer(1000);
 
-  DEBUG("UTIL: otb_util_check_for_break exit");
+  EXIT;
 
   return;
 }
@@ -1831,11 +1833,11 @@ void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
 void ICACHE_FLASH_ATTR otb_util_break_disable_timer(void)
 {
 
-  DEBUG("UTIL: otb_util_break_disable_timer entry");
+  ENTRY;
 
   otb_util_timer_cancel((os_timer_t*)&otb_util_break_timer);
 
-  DEBUG("UTIL: otb_util_break_disable_timer entry");
+  ENTRY;
 
   return;
 }
@@ -1843,7 +1845,7 @@ void ICACHE_FLASH_ATTR otb_util_break_disable_timer(void)
 void ICACHE_FLASH_ATTR otb_util_break_enable_timer(uint32_t period)
 {
 
-  DEBUG("UTIL: otb_util_break_enable_timer entry");
+  ENTRY;
 
   otb_util_timer_set((os_timer_t*)&otb_util_break_timer, 
                     (os_timer_func_t *)otb_util_break_timerfunc,
@@ -1851,7 +1853,7 @@ void ICACHE_FLASH_ATTR otb_util_break_enable_timer(uint32_t period)
                     period,
                     1);
 
-  DEBUG("UTIL: otb_util_break_enable_timer entry");
+  ENTRY;
 
   return;
 }
@@ -1860,7 +1862,7 @@ char ALIGN4 otb_util_break_timerfunc_string[] = "UTIL: Break timer popped";
 void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
 {
 
-  DEBUG("UTIL: otb_util_break_timerfunc entry");
+  ENTRY;
 
   if (otb_util_log_level_checking)
   {
@@ -1895,7 +1897,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
           break;
 
         default:
-          WARN("UTIL: Unexpected character received when checking log level 0x%02x", otb_break_rx_buf[0]);
+          MWARN("Unexpected character received when checking log level 0x%02x", otb_break_rx_buf[0]);
       }
     }
 
@@ -1904,7 +1906,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
       case OTB_LOG_LEVEL_DEBUG:
         ERROR("\nOTB: Log level selected: DEBUG");
 #ifndef OTB_DEBUG
-          ERROR("UTIL: DEBUG logging selected, but not compiled into firmware")
+          MERROR("DEBUG logging selected, but not compiled into firmware")
 #endif // OTB_DEBUG          
         break;
 
@@ -1947,12 +1949,12 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     
     if ((otb_break_rx_buf_len >= 5) && (!os_memcmp(otb_break_rx_buf, "break", 5)))
     {
-      DETAIL("UTIL: User break received");
+      MDETAIL("User break received");
       otb_util_break_enabled = TRUE;
     }
     else if (otb_util_uart_rx_bytes > 0)
     {
-      DETAIL("UTIL: Received %d bytes of data during break checking", otb_break_rx_buf_len);
+      MDETAIL("Received %d bytes of data during break checking", otb_break_rx_buf_len);
     }
 
     // If the user didn't break then carry on with usual boot sequence
@@ -1966,7 +1968,7 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     }
   }
   
-  DEBUG("UTIL: otb_util_break_timerfunc exit");
+  EXIT;
 
   return;
 }

@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,6 +19,8 @@
 
 #include "otb.h"
 
+MLOG("RBOOT");
+
 volatile rboot_ota otb_rboot_ota;
 static bool otb_rboot_update_in_progress = FALSE;
 static char otb_update_request[512];
@@ -29,7 +31,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
 {
   bool rc;
 
-  DEBUG("RBOOT: otb_rboot_update_callback entry");
+  ENTRY;
   
   OTB_ASSERT(arg == (void *)&otb_rboot_ota);
   
@@ -37,11 +39,11 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
   
   if (result)
   {
-    DETAIL("RBOOT: Update succeeded");
+    MDETAIL("Update succeeded");
     rc = rboot_set_current_rom(otb_rboot_ota.rom_slot);
     if (rc)
     {
-      DETAIL("RBOOT: Set slot to %d", otb_rboot_ota.rom_slot);
+      MDETAIL("Set slot to %d", otb_rboot_ota.rom_slot);
       // XXX Doesn't give system time to actually send the status
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
                            OTB_MQTT_STATUS_OK,
@@ -51,7 +53,7 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
     }
     else
     {
-      ERROR("RBOOT: Failed to set slot to %d", otb_rboot_ota.rom_slot);
+      MERROR("Failed to set slot to %d", otb_rboot_ota.rom_slot);
       otb_mqtt_send_status(OTB_MQTT_SYSTEM_UPDATE,
                            OTB_MQTT_STATUS_ERROR,
                            "Failed to set boot slot after update",
@@ -67,14 +69,14 @@ void ICACHE_FLASH_ATTR otb_rboot_update_callback(void *arg, bool result)
                          OTB_MQTT_STATUS_ERROR,
                          "Update failed",
                          "");
-    DETAIL("RBOOT: Update failed");
+    MDETAIL("Update failed");
     //otb_ads_initialize();
     goto EXIT_LABEL;
   }
   
 EXIT_LABEL:
   
-  DEBUG("RBOOT: otb_rboot_update_callback exit");
+  EXIT;
   
   return;
 }
@@ -92,12 +94,12 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path, unsign
   uint32 port_int;
   int len;
   
-  DEBUG("RBOOT: otb_rboot_update entry");
+  ENTRY;
 
   // Won't update if already updtating.
   if (otb_rboot_update_in_progress)
   {
-    DEBUG("RBOOT: Can't update as already in progress");
+    MDEBUG("Can't update as already in progress");
     rc = FALSE;
     *error = "update already in progress";
     goto EXIT_LABEL;
@@ -111,7 +113,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path, unsign
       (path == NULL) ||
       (path[0] == 0))
   {
-    DEBUG("RBOOT: Duff input vars");
+    MDEBUG("Duff input vars");
     rc = FALSE;
     *error = "invalid arguments";
     goto EXIT_LABEL;
@@ -189,7 +191,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path, unsign
     goto EXIT_LABEL;
   }
     
-  DETAIL("RBOOT: Update slot: %d from host: %d.%d.%d.%d port: %d path: /%s",
+  MDETAIL("Update slot: %d from host: %d.%d.%d.%d port: %d path: /%s",
       update_slot,
       ota_ip[0], ota_ip[1], ota_ip[2], ota_ip[3],
       port_int,
@@ -212,7 +214,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update(char *ip, char *port, char *path, unsign
   
 EXIT_LABEL:  
 
-  DEBUG("RBOOT: otb_rboot_update exit");
+  EXIT;
   
   return(rc);
 }
@@ -222,11 +224,11 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg, unsigned char **response
   bool rc = TRUE;
   int slot;
 
-  DEBUG("RBOOT: otb_rboot_update_slot entry");
+  ENTRY;
   
   if (msg == NULL)
   {
-    DETAIL("RBOOT: No slot number");
+    MDETAIL("No slot number");
     rc = FALSE;
     *response = "No slot number";
     goto EXIT_LABEL;
@@ -235,7 +237,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg, unsigned char **response
   slot = atoi(msg);
   if ((slot < 0) || (slot > 1))
   {
-    DETAIL("RBOOT: Invalid slot number");
+    MDETAIL("Invalid slot number");
     rc = FALSE;
     *response = "Invalid slot number";
     goto EXIT_LABEL;
@@ -253,7 +255,7 @@ bool ICACHE_FLASH_ATTR otb_rboot_update_slot(char *msg, unsigned char **response
   
 EXIT_LABEL:
 
-  DEBUG("RBOOT: otb_rboot_update_slot exit");
+  EXIT;
   
   return(rc);
 }
@@ -263,7 +265,7 @@ uint8_t ICACHE_FLASH_ATTR otb_rboot_get_slot(bool publish)
   uint8_t slot;
   char slot_s[4];
 
-  DEBUG("RBOOT: otb_rboot_get_slot entry");
+  ENTRY;
 
   slot = rboot_get_current_rom();  
   if (publish)
@@ -275,7 +277,7 @@ uint8_t ICACHE_FLASH_ATTR otb_rboot_get_slot(bool publish)
                          "");
   }
   
-  DEBUG("RBOOT: otb_rboot_get_slot exit");  
+  EXIT;  
   
   return(slot);
 }
@@ -288,11 +290,11 @@ bool ICACHE_FLASH_ATTR ota_rboot_check_factory_image(void)
   unsigned char buffer[0x1000]; // Shouldn't really allocate 4k on stack, but should be a clean boot
   uint16_t buf_len;
   
-  DEBUG("RBOOT: ota_rboot_check_factory_image entry");
+  ENTRY;
   
   rboot_check_image();
   
-  DEBUG("RBOOT: ota_rboot_check_factory_image exit");
+  EXIT;
   
   return rc;
 }
@@ -301,9 +303,9 @@ bool ICACHE_FLASH_ATTR ota_rboot_use_factory_image(void)
 {
   bool rc = FALSE;
   
-  DEBUG("RBOOT: ota_rboot_use_factory_image entry");
+  ENTRY;
   
-  DEBUG("RBOOT: ota_rboot_use_factory_image exit");
+  EXIT;
   
   return rc;
 }
