@@ -640,6 +640,36 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
       goto EXIT_LABEL;
     }
 
+    //
+    // URLs:
+    // /        - basic configuration
+    // /basic   - basic configuration
+    // /otb-iot - mqtt
+    // /espi    - mqtt
+    // /mqtt    - mqtt
+    //
+    // For MQTT:
+    // - /.../get/...     - GET method supported
+    // - /.../set/...     - POST method supported (no post data - all data
+    //                      should be in the URL as for MQTT
+    // - /.../trigger/... - as /.../set/...
+    //
+    // Some data may be URL encoded
+    //
+    // For now all responses will be of type text/plain
+    //
+    // Need an array of URLs to parse through in order with functions to call
+    // out to based on URL and method type (so only trigger when correct
+    // method)
+    //
+    // Need to decide what to do when invalid URL requested.  Should we just 
+    // return 404?
+    //
+    // Don't yet know how to deal with non-initiated messages, such as
+    // - booted
+    // - mbus data
+    //
+
     cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
     // Match URLs
     if (os_strcmp(hconn->request.url, "/"))
