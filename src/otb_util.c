@@ -1397,6 +1397,7 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
 void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              uint16_t max_log_string_len,
                                              const char *module,
+                                             const char *level_str,
                                              const char *format,
                                              va_list args)
 {
@@ -1404,12 +1405,20 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   ENTRY;
 
   // Need to call vsnprintf not snprintf, as passing va_list
+  if (level_str != NULL)
+  {
+    len = os_snprintf(log_string, max_log_string_len, "%s - ", level_str);
+    log_string += len;
+    max_log_string_len -= len;
+  }
+
   if (module != NULL)
   {
     len = os_snprintf(log_string, max_log_string_len, "%s: ", module);
     log_string += len;
     max_log_string_len -= len;
   }
+
   os_vsnprintf(log_string, max_log_string_len, format, args);
 
   return;
@@ -1425,6 +1434,7 @@ void ICACHE_FLASH_ATTR otb_util_log(char *module,
                                     ...)
 {
   va_list args;
+  char *level_str;
 
   ENTRY;
   
@@ -1434,10 +1444,37 @@ void ICACHE_FLASH_ATTR otb_util_log(char *module,
     goto EXIT_LABEL;
   }
 
+  switch (level)
+  {
+    case OTB_LOG_LEVEL_DEBUG:
+      level_str = "DEBUG ";
+      break;
+
+    case OTB_LOG_LEVEL_DETAIL:
+      level_str = "DETAIL";
+      break;
+
+    case OTB_LOG_LEVEL_INFO:
+      level_str = "INFO  ";
+      break;
+
+    case OTB_LOG_LEVEL_WARN:
+      level_str = "WARN  ";
+      break;
+
+    case OTB_LOG_LEVEL_ERROR:
+      level_str = "ERROR ";
+      break;
+
+    default:
+      level_str = "????? ";
+      break;
+  }
+
   // Bit of messing around to deal with var args, but basically snprintf log
   // into log buffer and then log it
   va_start(args, format);
-  otb_util_log_snprintf(log_string, max_log_string_len, module, format, args);
+  otb_util_log_snprintf(log_string, max_log_string_len, module, level_str, format, args);
   va_end(args);
   otb_util_log_fn(otb_log_s);
 
@@ -1904,26 +1941,26 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     switch (otb_util_log_level)
     {
       case OTB_LOG_LEVEL_DEBUG:
-        ERROR("\nOTB: Log level selected: DEBUG");
+        ERROR("\nLog level selected: DEBUG");
 #ifndef OTB_DEBUG
           MERROR("DEBUG logging selected, but not compiled into firmware")
 #endif // OTB_DEBUG          
         break;
 
       case OTB_LOG_LEVEL_DETAIL:
-        ERROR("\nOTB: Log level selected: DETAIL");
+        ERROR("\nLog level selected: DETAIL");
         break;
 
       case OTB_LOG_LEVEL_INFO:
-        ERROR("\nOTB: Log level selected: INFO");
+        ERROR("\nLog level selected: INFO");
         break;
 
       case OTB_LOG_LEVEL_WARN:
-        ERROR("\nOTB: Log level selected: WARN");
+        ERROR("\nLog level selected: WARN");
         break;
 
       case OTB_LOG_LEVEL_ERROR:
-        ERROR("\nOTB: Log level selected: ERROR");
+        ERROR("\nLog level selected: ERROR");
         break;
 
       default:

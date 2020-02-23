@@ -1022,8 +1022,6 @@ EXIT_LABEL:
   return rc;
 }
 
-
-
 // XXX Dummy
 bool ICACHE_FLASH_ATTR xxx(unsigned char *next_cmd, void *arg)
 {

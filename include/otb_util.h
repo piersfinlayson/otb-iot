@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -98,6 +98,7 @@ extern void otb_util_check_defs(void);
 extern void otb_util_log_snprintf(char *log_string,
                                   uint16_t max_log_string_len,
                                   const char *module,
+                                  const char *level_str,
                                   const char *format,
                                   va_list args);
 extern void otb_util_log(char *module,

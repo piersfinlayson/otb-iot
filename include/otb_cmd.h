@@ -1209,6 +1209,7 @@ OTB_CMD_CONTROL(otb_cmd_control_trigger_mbus)[] =
   {"on",            NULL, NULL, otb_mbus_hat_enable,   NULL},
   {"off",           NULL, NULL, otb_mbus_hat_disable,  NULL},
   {"scan",          NULL, NULL, otb_mbus_scan,         NULL},
+  {OTB_CMD_FINISH}    
 };
 
 void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()
