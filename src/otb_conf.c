@@ -363,6 +363,45 @@ EXIT_LABEL:
   return(rc);
 }
 
+bool ICACHE_FLASH_ATTR otb_conf_verify_manual_ip(otb_conf_struct *conf)
+{
+  bool rc = TRUE;
+
+  ENTRY;
+
+  // Can't cope with an invalid IP address - will set back to DHCP
+  if (otb_util_ip_is_all_val(conf->ip.ipv4, 0) ||
+      otb_util_ip_is_all_val(conf->ip.ipv4, 0xff))
+  {
+    MDETAIL("IP IPv4 address invalid");
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+  // Check subnet mask is non zero
+  if (!otb_util_ip_is_subnet_valid(conf->ip.ipv4_subnet))
+  {
+    MDETAIL("IP IPv4 subnet mask invalid");
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+  // DNS servers of 0.0.0.0 are OK (unconfigured) but 255.255.255.255 is not
+  if (otb_util_ip_is_all_val(conf->ip.dns1, 0xff) ||
+      otb_util_ip_is_all_val(conf->ip.dns2, 0xff))
+  {
+    MDETAIL("IP DNS server invalid");
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  EXIT;
+
+  return rc;
+}
+
 bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
 {
   bool invalid = FALSE;
@@ -391,30 +430,9 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
   // Only check other information if manual IP addressing selected
   if (conf->ip.manual == OTB_IP_DHCP_MANUAL)
   {
-    // Can't cope with an invalid IP address - will set back to DHCP
-    if (otb_util_ip_is_all_val(conf->ip.ipv4, 0) ||
-        otb_util_ip_is_all_val(conf->ip.ipv4, 0xff))
+    if (!otb_conf_verify_manual_ip(conf))
     {
-      MDETAIL("IP IPv4 address invalid");
       invalid = TRUE;
-      goto EXIT_LABEL;
-    }
-
-    // Check subnet mask is non zero
-    if (!otb_util_ip_is_subnet_valid(conf->ip.ipv4_subnet))
-    {
-      MDETAIL("IP IPv4 subnet mask invalid");
-      invalid = TRUE;
-      goto EXIT_LABEL;
-    }
-
-    // DNS servers of 0.0.0.0 are OK (unconfigured) but 255.255.255.255 is not
-    if (otb_util_ip_is_all_val(conf->ip.dns1, 0xff) ||
-        otb_util_ip_is_all_val(conf->ip.dns2, 0xff))
-    {
-      MDETAIL("IP DNS server invalid");
-      invalid = TRUE;
-      goto EXIT_LABEL;
     }
   }
 

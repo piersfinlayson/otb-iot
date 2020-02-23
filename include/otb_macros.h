@@ -50,6 +50,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define OTB_LOG_LEVEL_INFO     2
 #define OTB_LOG_LEVEL_WARN     3
 #define OTB_LOG_LEVEL_ERROR    4
+#define OTB_LOG_LEVEL_NONE     5
 #define OTB_LOG_LEVEL_DISABLE  255
 #define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_INFO
 
@@ -107,6 +108,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define INFO(...)    LOG(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
 #define WARN(...)    LOG(NULL, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
 #define ERROR(...)   LOG(NULL, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define NONE(...)    LOG(NULL, OTB_LOG_LEVEL_NONE, __VA_ARGS__)
 
 #define DETAIL_VAR(...) LOG_VAR(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
 #define INFO_VAR(...)   LOG_VAR(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
@@ -202,5 +204,9 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
 #define OTB_MAX(A, B)  ((A > B) ? A : B)
 #define OTB_MIN(A, B)  ((A < B) ? A : B)
+
+#define OTB_IPV4_SNPRINTF(STR, IP)                                   \
+        os_snprintf(STR, OTB_IP_MAX_IPV4_ADDR_LEN, "%d.%d.%d.%d", IP[0], IP[1], IP[2], IP[3]); \
+        STR[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0
 
 #endif // OTB_MACROS_H_INCLUDED

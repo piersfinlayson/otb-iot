@@ -865,7 +865,7 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
 
   if (len >= 0)
   {
-    MDEBUG("FOUND: Arg: %s Value: %s", find, found);
+    MDEBUG("FOUND: Arg: %s Value: %s Len: %d", find, found, len);
   }
   else
   {
@@ -879,6 +879,8 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
 
 uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, uint8 method, char *buf, uint16 len)
 {
+  bool conf_changed = FALSE;
+  uint8_t ip[4];
   uint16 rsp_len = 0;
   uint8 wifi_rc;
   uint8 mqtt_svr_rc;
@@ -892,10 +894,31 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
   char mqtt_port[OTB_MQTT_MAX_SVR_LEN];
   char mqtt_user[OTB_MQTT_MAX_USER_LEN];
   char mqtt_pass[OTB_MQTT_MAX_PASS_LEN];
+  char domain_name[OTB_IP_MAX_DOMAIN_NAME_LEN];
+  char ip_address[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char netmask[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char gateway[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char dns1[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char dns2[OTB_IP_MAX_IPV4_ADDR_LEN];
+#define OTB_HTTPD_HTTP_SVR_MAX_LEN 10
+  char http_svr[OTB_HTTPD_HTTP_SVR_MAX_LEN] ; //enabled or disabled
+#define OTB_HTTPD_IP_CONFIG_MAX_LEN 8  
+  char ip_config[OTB_HTTPD_IP_CONFIG_MAX_LEN]; // dhcp or manual
+#define OTB_HTTPD_ENABLE_AP_MAX_LEN 4
+  char enable_ap[OTB_HTTPD_ENABLE_AP_MAX_LEN]; // yes
   sint16 mqtt_svr_len;
   sint16 mqtt_port_len;
   sint16 mqtt_user_len;
   sint16 mqtt_pass_len;
+  sint16 domain_name_len;
+  sint16 ip_address_len;
+  sint16 netmask_len;
+  sint16 gateway_len;
+  sint16 dns1_len;
+  sint16 dns2_len;
+  sint16 http_svr_len;
+  sint16 ip_config_len;
+  sint16 enable_ap_len;
 
   ENTRY;
 
@@ -924,13 +947,31 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       mqtt_svr[0] = 0;
       mqtt_port[0] = 0;
       mqtt_user[0] = 0;
-      mqtt_pass[0] = 0;      
+      mqtt_pass[0] = 0;  
+      domain_name[0] = 0;
+      ip_address[0] =0;
+      netmask[0] = 0;
+      gateway[0] = 0;
+      dns1[0] = 0;
+      dns2[0] = 0;
+      enable_ap[0] = 0;
+      http_svr[0] = 0;
+      ip_config[0] = 0;
       ssid_len = otb_httpd_get_arg(hconn->request.post.data, "ssid", ssid, 32);
       password_len = otb_httpd_get_arg(hconn->request.post.data, "password", password, 64);
       mqtt_svr_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_svr", mqtt_svr, OTB_MQTT_MAX_SVR_LEN);
       mqtt_port_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_port", mqtt_port, OTB_MQTT_MAX_SVR_LEN);
       mqtt_user_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_user", mqtt_user, OTB_MQTT_MAX_USER_LEN);
       mqtt_pass_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_pass", mqtt_pass, OTB_MQTT_MAX_PASS_LEN);
+      domain_name_len = otb_httpd_get_arg(hconn->request.post.data, "domain_name", domain_name, OTB_IP_MAX_DOMAIN_NAME_LEN);
+      ip_address_len = otb_httpd_get_arg(hconn->request.post.data, "ip_addr", ip_address, OTB_IP_MAX_IPV4_ADDR_LEN);
+      netmask_len = otb_httpd_get_arg(hconn->request.post.data, "subnet", netmask, OTB_IP_MAX_IPV4_ADDR_LEN);
+      gateway_len = otb_httpd_get_arg(hconn->request.post.data, "gateway", gateway, OTB_IP_MAX_IPV4_ADDR_LEN);
+      dns1_len = otb_httpd_get_arg(hconn->request.post.data, "dns1", dns1, OTB_IP_MAX_IPV4_ADDR_LEN);
+      dns2_len = otb_httpd_get_arg(hconn->request.post.data, "dns2", dns2, OTB_IP_MAX_IPV4_ADDR_LEN);
+      http_svr_len = otb_httpd_get_arg(hconn->request.post.data, "http_svr", http_svr, OTB_HTTPD_HTTP_SVR_MAX_LEN);
+      ip_config_len = otb_httpd_get_arg(hconn->request.post.data, "ip_config", ip_config, OTB_HTTPD_IP_CONFIG_MAX_LEN);
+      enable_ap_len = otb_httpd_get_arg(hconn->request.post.data, "enable_ap", enable_ap, OTB_HTTPD_ENABLE_AP_MAX_LEN);
       
       // NULL terminate everything just in case
       ssid[31] = 0;
@@ -939,6 +980,15 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       mqtt_port[OTB_MQTT_MAX_SVR_LEN-1] = 0;
       mqtt_user[OTB_MQTT_MAX_USER_LEN-1] = 0;
       mqtt_pass[OTB_MQTT_MAX_PASS_LEN-1] = 0;
+      domain_name[OTB_IP_MAX_DOMAIN_NAME_LEN-1] = 0;
+      ip_address[OTB_IP_MAX_IPV4_ADDR_LEN-1] =0;
+      netmask[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0;
+      gateway[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0;
+      dns1[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0;
+      dns2[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0;
+      ip_config[OTB_HTTPD_IP_CONFIG_MAX_LEN-1] = 0;
+      http_svr[OTB_HTTPD_HTTP_SVR_MAX_LEN-1] = 0;
+      enable_ap[OTB_HTTPD_ENABLE_AP_MAX_LEN-1] = 0;
       
       MDETAIL("ssid: %s", ssid);
       MDETAIL("password: %s", password);
@@ -946,10 +996,25 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       MDETAIL("mqtt_port: %s", mqtt_port);
       MDETAIL("mqtt_user: %s", mqtt_user);
       MDETAIL("mqtt_pass: %s", mqtt_pass);
+      MDETAIL("domain_name: %s", domain_name);
+      MDETAIL("ip_addr: %s", ip_address);
+      MDETAIL("subnet: %s", netmask);
+      MDETAIL("gateway: %s", gateway);
+      MDETAIL("dns1: %s", dns1);
+      MDETAIL("dns2: %s", dns2);
+      MDETAIL("http_svr: %s", http_svr);
+      MDETAIL("ip_config: %s", ip_config);
+      MDETAIL("enable_ap: %s", enable_ap);
+
+      MDEBUG("Add body");
+        rsp_len += os_snprintf(buf + rsp_len,
+                               len - rsp_len,
+                               "<body>");
+
 
       if ((ssid_len > 0) && (password_len >= 0))
       {
-        MDEBUG("Valid SSID and password");
+        MDETAIL("Valid SSID and password");
         if (os_strcmp(password, "********"))
         {
           wifi_rc = otb_wifi_set_station_config(ssid, password, FALSE);
@@ -959,78 +1024,307 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
           // Use old password
           wifi_rc = otb_wifi_set_station_config(ssid, otb_conf->password, FALSE);
         }
+        if (wifi_rc == OTB_CONF_RC_CHANGED)
+        {
+          conf_changed = TRUE;
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Wifi credentials changed to SSID: %s Password: %s</p>",
+                                ssid,
+                                "********");
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Wifi details not changed</p>");
+        }
       }
       
       if ((mqtt_svr_len > 0) && (mqtt_port_len > 0))
       {
         mqtt_svr_rc = otb_mqtt_set_svr(mqtt_svr, mqtt_port, FALSE);
+        if (mqtt_svr_rc == OTB_CONF_RC_CHANGED)
+        {
+          conf_changed = TRUE;
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>MQTT server changed to: %s</p>",
+                                mqtt_svr);
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>MQTT server not changed</p>");
+        }
       }
       
       if ((mqtt_user_len > 0) && (mqtt_pass_len >= 0))
       {
         mqtt_user_rc = otb_mqtt_set_user(mqtt_user, mqtt_pass, FALSE);
+        if (mqtt_user_rc == OTB_CONF_RC_CHANGED)
+        {
+          conf_changed = TRUE;
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>MQTT username/password changed to "
+                                "Username: %s Password: %s</p>",
+                                mqtt_user,
+                                "********");
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>MQTT username/password not changed</p>");
+        }
       }
       
-      MDEBUG("Add body");
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<body>");
+      if (domain_name_len > 0)
+      {
+        MDETAIL("Process domain name: %s", domain_name);
+        if (os_strcmp(otb_conf->ip.domain_name, domain_name))
+        {
+          os_strcpy(otb_conf->ip.domain_name, domain_name);
+          conf_changed = TRUE;
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Domain name changed to: %s</p>",
+                                domain_name);
+        }
+      }
 
-      MDEBUG("Add wifi");
+      if (ip_address_len > 0)
+      {
+        MDETAIL("Check IP address: %s", ip_address);
+        if (otb_util_parse_ipv4_str(ip_address, ip) &&
+            !otb_util_ip_is_all_val(ip, 0) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          if (os_memcmp(otb_conf->ip.ipv4, ip, 4))
+          {
+            os_memcpy(otb_conf->ip.ipv4, ip, 4);
+            conf_changed = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>IP address changed to: %s</p>",
+                                  ip_address);
+          }
+        }
+        else
+        {
+          // Only log a problem if it's changed (i.e. not all zeros)
+          if (os_memcmp(otb_conf->ip.ipv4, ip, 4))
+          {
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Invalid IP address: %s</p>",
+                                  ip_address);
+          }
+        }
+      }
 
-      if (wifi_rc == OTB_CONF_RC_CHANGED)
+      if (netmask_len > 0)
       {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>Wifi credentials changed to SSID: %s Password: %s</p>",
-                               ssid,
-                               "********");
+        MDETAIL("Check netmask: %s", netmask);
+        if (otb_util_parse_ipv4_str(netmask, ip) &&
+            otb_util_ip_is_subnet_valid(ip))
+        {
+          if (os_memcmp(otb_conf->ip.ipv4_subnet, ip, 4))
+          {
+            os_memcpy(otb_conf->ip.ipv4_subnet, ip, 4);
+            conf_changed = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Netmask changed to: %s</p>",
+                                  netmask);
+          }
+        }
+        else
+        {
+          // Only log a problem if it's changed (i.e. not all zeros)
+          if (os_memcmp(otb_conf->ip.ipv4_subnet, ip, 4))
+          {
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Invalid subnet mask: %s</p>",
+                                  netmask);
+          }
+        }
       }
-      else
-      {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>Wifi details not changed</p>");
-      }
-      
-      MDEBUG("Add MQTT svr");
 
-      if (mqtt_svr_rc == OTB_CONF_RC_CHANGED)
+      if (gateway_len > 0)
       {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>MQTT server changed to: %s</p>",
-                               mqtt_svr);
+        MDETAIL("Check gateway: %s", gateway);
+        // 0.0.0.0 is OK for default gateway
+        if (otb_util_parse_ipv4_str(gateway, ip) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          if (os_memcmp(otb_conf->ip.gateway, ip, 4))
+          {
+            os_memcpy(otb_conf->ip.gateway, ip, 4);
+            conf_changed = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Gateway changed to: %s</p>",
+                                  gateway);
+          }
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Invalid gateway: %s</p>",
+                                gateway);
+        }
       }
-      else
+
+      if (dns1_len > 0)
       {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>MQTT server not changed</p>");
+        MDETAIL("Check dns1: %s", dns1);
+        // 0.0.0.0 is OK for DNS
+        if (otb_util_parse_ipv4_str(dns1, ip) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          if (os_memcmp(otb_conf->ip.dns1, ip, 4))
+          {
+            os_memcpy(otb_conf->ip.dns1, ip, 4);
+            conf_changed = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>DNS server 1 changed to: %s</p>",
+                                  dns1);
+          }
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Invalid DNS server 1: %s</p>",
+                                dns1);
+        }
       }
-      
-      MDEBUG("Add MQTT user");
-      if (mqtt_user_rc == OTB_CONF_RC_CHANGED)
+
+      if (dns2_len > 0)
       {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>MQTT username/password changed to "
-                               "Username: %s Password: %s</p>",
-                               mqtt_user,
-                               "********");
+        MDETAIL("Check dns2: %s", dns2);
+        // 0.0.0.0 is OK for DNS
+        if (otb_util_parse_ipv4_str(dns2, ip) &&
+            !otb_util_ip_is_all_val(ip, 0xff))
+        {
+          if (os_memcmp(otb_conf->ip.dns2, ip, 4))
+          {
+            os_memcpy(otb_conf->ip.dns2, ip, 4);
+            conf_changed = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>DNS server 2 changed to: %s</p>",
+                                  dns2);
+          }
+        }
+        else
+        {
+          rsp_len += os_snprintf(buf + rsp_len,
+                                len - rsp_len,
+                                "<p>Invalid DNS server 1: %s</p>",
+                                dns2);
+        }
       }
-      else
+
+      if (enable_ap_len > 0)
       {
-        rsp_len += os_snprintf(buf + rsp_len,
-                               len - rsp_len,
-                               "<p>MQTT username/password not changed</p>");
+        MDETAIL("Enable AP: %s", enable_ap);
+        if (!os_strcmp(enable_ap, "yes"))
+        {
+          if (!otb_conf->keep_ap_active)
+          {
+            otb_conf->keep_ap_active = 1;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Enabled AP when MQTT connected</p>");
+            conf_changed = TRUE;
+          }
+        }
+        else if (!os_strcmp(enable_ap, "no"))
+        {
+          if (otb_conf->keep_ap_active)
+          {
+            otb_conf->keep_ap_active = 0;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Disable AP when MQTT connected</p>");
+            conf_changed = TRUE;
+          }
+        }
       }
-      
+
+      if (http_svr_len > 0)
+      {
+        MDETAIL("HTTP server: %s", http_svr);
+        if (!os_strcmp(http_svr, "enabled"))
+        {
+          if (!otb_conf->mqtt_httpd)
+          {
+            otb_conf->mqtt_httpd = TRUE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>HTTP server to expose MQTT API enabled</p>");
+            conf_changed = TRUE;
+          }
+        }
+        else if (!os_strcmp(http_svr, "disabled"))
+        {
+          if (otb_conf->mqtt_httpd)
+          {
+            otb_conf->mqtt_httpd = FALSE;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>HTTP server to expose MQTT API disabled</p>");
+            conf_changed = TRUE;
+          }
+        }
+      }
+
+      if (ip_config_len > 0)
+      {
+        MDETAIL("Check ip config %s", ip_config);
+        if (!os_strcmp(ip_config, "dhcp"))
+        {
+          if (otb_conf->ip.manual != OTB_IP_DHCP_DHCP)
+          {
+            otb_conf->ip.manual = OTB_IP_DHCP_DHCP;
+            rsp_len += os_snprintf(buf + rsp_len,
+                                  len - rsp_len,
+                                  "<p>Using DHCP for IP addressing</p>");
+            conf_changed = TRUE;
+          }
+        }
+        else if (!os_strcmp(ip_config, "manual"))
+        {
+          if (otb_conf->ip.manual != OTB_IP_DHCP_MANUAL)
+          {
+            if (otb_conf_verify_manual_ip(otb_conf))
+            {
+              otb_conf->ip.manual = OTB_IP_DHCP_MANUAL;
+              rsp_len += os_snprintf(buf + rsp_len,
+                                    len - rsp_len,
+                                    "<p>Using manual IP addressing</p>");
+              conf_changed = TRUE;
+            }
+            else
+            {
+              rsp_len += os_snprintf(buf + rsp_len,
+                                    len - rsp_len,
+                                    "<p>Can't use manual IP addressing - no valid IP address information configurated</p>");
+            }
+          }
+        }
+      }
+
       MDEBUG("Update config");
 
-      if ((wifi_rc == OTB_CONF_RC_CHANGED) ||
-          (mqtt_svr_rc == OTB_CONF_RC_CHANGED) ||
-          (mqtt_user_rc == OTB_CONF_RC_CHANGED))
+      if (conf_changed)
       {
         conf_rc = otb_conf_update(otb_conf);
         if (!conf_rc)
@@ -1048,6 +1342,13 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
         MDETAIL("Terminate AP mode");
         otb_wifi_ap_mode_done_fn();          
       }
+      else
+      {
+        rsp_len += os_snprintf(buf + rsp_len,
+                               len - rsp_len,
+                               "<p>No changes made</p>");
+      }
+      
 
       MDEBUG("Finish body");
 
@@ -1073,59 +1374,28 @@ EXIT_LABEL:
   return(rsp_len);
 }
 
-static const char ALIGN4 ICACHE_RODATA_ATTR otb_httpd_wifi_form_str[] =
-"<body><form name=\"otb-iot\" action=\"/\" method=\"post\">"
-"<p/>WiFi SSID<br/>"
-"<input type=\"text\" name=\"ssid\" value=\"%s\"/>"
-"<p/>WiFi Password<br/>"
-"<input type=\"password\" name=\"password\" value=\"********\"/>"
-"<p>Disable AP when station connected "
-"<input type=\"checkbox\" name=\"disable_ap\" value=\"yes\" checked></p>"
-"<p/>MQTT Server (IP address or fully qualiied domain name)<br/>"
-"<input type=\"text\" name=\"mqtt_svr\" value=\"%s\" />"
-"<p/>MQTT Port (default 1883)<br/>"
-"<input type=\"number\" name=\"mqtt_port\" value=\"%d\" />"
-"<p/>MQTT Username<br/>"
-"<input type=\"text\" name=\"mqtt_user\" value=\"%s\" />"
-"<p/>MQTT Password<br/>"
-"<input type=\"password\" name=\"mqtt_pass\" value=\"%s\" />"
-"<p/>HTTP server:<br/>"
-"<input type=\"radio\" name=\"http_svr\" id=\"enabled\" value=\"enabled\" %s />"
-"<label for=\"enabled\">Enabled</label><br/>"
-"<input type=\"radio\" name=\"http_svr\" id=\"disabled\" value=\"disabled\" %s />"
-"<label for=\"disabled\">Disabled</label><br/>"
-"<p>IP address configuration:</p>"
-"<p/>Domain name suffix (optional)<br/>"
-"<input type=\"text\" name=\"domain_name\" value=\"%s\" /><p/>"
-"<input type=\"radio\" name=\"ip_config\" id=\"dhcp\" value=\"dhcp\" %s />"
-"<label for=\"dhcp\">DHCP</label><br/>"
-"<input type=\"radio\" name=\"ip_config\" id=\"manual\" value=\"manual\" %s />"
-"<label for=\"manual\">Manual</label><br/>"
-"<p/>IP address<br/>"
-"<input type=\"text\" name=\"ip_addr\" value=\"%s\" />"
-"<p/>Subnet mask<br/>"
-"<input type=\"text\" name=\"subnet\" value=\"%s\" />"
-"<p/>Default gateway<br/>"
-"<input type=\"text\" name=\"gateway\" value=\"%s\" />"
-"<p/>DNS server 1<br/>"
-"<input type=\"text\" name=\"dns1\" value=\"%s\" />"
-"<p/>DNS server 2<br/>"
-"<input type=\"text\" name=\"dns2\" value=\"%s\" />"
-"<p/>"
-"<input type=\"submit\" value=\"Store\">"
-"</form></body>";
-
 int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
 {
   uint16_t output_len;
   unsigned char *not_checked = "";
   unsigned char *checked = "checked=\"true\"";
   unsigned char *form_str, *form_str_orig;
+  char ip[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char netmask[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char gateway[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char dns1[OTB_IP_MAX_IPV4_ADDR_LEN];
+  char dns2[OTB_IP_MAX_IPV4_ADDR_LEN];
   int str_ii;
 
   ENTRY;
 
   output_len = 0;
+
+  OTB_IPV4_SNPRINTF(ip, otb_conf->ip.ipv4);
+  OTB_IPV4_SNPRINTF(netmask, otb_conf->ip.ipv4_subnet);
+  OTB_IPV4_SNPRINTF(gateway, otb_conf->ip.gateway);
+  OTB_IPV4_SNPRINTF(dns1, otb_conf->ip.dns1);
+  OTB_IPV4_SNPRINTF(dns2, otb_conf->ip.dns2);
 
   // Some complicated code to pull the form out of the eeprom and put it in
   // 4 byte aligned memory rather than doing operations on it that might not
@@ -1133,31 +1403,33 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   size_t str_size;
   str_size = sizeof(otb_httpd_wifi_form_str)/sizeof(otb_httpd_wifi_form_str[0]);
   form_str_orig = (unsigned char *)os_malloc(str_size + 4);
-  form_str = form_str_orig + (4 - (((uint32_t)form_str_orig)%4));
-  if (form_str != NULL)
+  if (form_str_orig != NULL)
   {
+    form_str = form_str_orig + (4 - (((uint32_t)form_str_orig)%4));
     for (str_ii = 0; str_ii < ((str_size/4)+1); str_ii++)
     {
       *(((uint32_t*)(form_str))+str_ii) = *(((uint32_t*)(&otb_httpd_wifi_form_str))+str_ii);
     }
     output_len += os_snprintf(buffer + output_len,
                               buf_len - output_len,
-                              otb_httpd_wifi_form_str,
+                              form_str,
                               otb_conf->ssid,
                               otb_conf->mqtt.svr,
                               otb_conf->mqtt.port,
                               otb_conf->mqtt.user,
                               otb_conf->mqtt.pass,
-                              not_checked,
-                              not_checked,
-                              "",
-                              not_checked,
-                              not_checked,
-                              "",
-                              "",
-                              "",
-                              "",
-                              "");
+                              otb_conf->keep_ap_active ? checked : not_checked,
+                              otb_conf->keep_ap_active ? not_checked : checked,
+                              otb_conf->mqtt_httpd ? checked : not_checked,
+                              otb_conf->mqtt_httpd ? not_checked : checked,
+                              otb_conf->ip.domain_name,
+                              otb_conf->ip.manual == OTB_IP_DHCP_DHCP ? checked : not_checked,
+                              otb_conf->ip.manual == OTB_IP_DHCP_MANUAL ? checked : not_checked,
+                              ip,
+                              netmask,
+                              gateway,
+                              dns1,
+                              dns2);
     os_free(form_str_orig);
   }
   else

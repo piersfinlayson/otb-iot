@@ -1402,12 +1402,13 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
                                              va_list args)
 {
   int len;
+  
   ENTRY;
 
   // Need to call vsnprintf not snprintf, as passing va_list
   if (level_str != NULL)
   {
-    len = os_snprintf(log_string, max_log_string_len, "%s - ", level_str);
+    len = os_snprintf(log_string, max_log_string_len, "%s", level_str);
     log_string += len;
     max_log_string_len -= len;
   }
@@ -1447,27 +1448,31 @@ void ICACHE_FLASH_ATTR otb_util_log(char *module,
   switch (level)
   {
     case OTB_LOG_LEVEL_DEBUG:
-      level_str = "DEBUG ";
+      level_str = "DEBUG  ";
       break;
 
     case OTB_LOG_LEVEL_DETAIL:
-      level_str = "DETAIL";
+      level_str = "DETAIL ";
       break;
 
     case OTB_LOG_LEVEL_INFO:
-      level_str = "INFO  ";
+      level_str = "INFO   ";
       break;
 
     case OTB_LOG_LEVEL_WARN:
-      level_str = "WARN  ";
+      level_str = "WARN   ";
       break;
 
     case OTB_LOG_LEVEL_ERROR:
-      level_str = "ERROR ";
+      level_str = "ERROR  ";
+      break;
+
+    case OTB_LOG_LEVEL_NONE:
+      level_str = "";
       break;
 
     default:
-      level_str = "????? ";
+      level_str = "?????  ";
       break;
   }
 
@@ -1941,30 +1946,30 @@ void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
     switch (otb_util_log_level)
     {
       case OTB_LOG_LEVEL_DEBUG:
-        ERROR("\nLog level selected: DEBUG");
+        NONE("\nLog level selected: DEBUG");
 #ifndef OTB_DEBUG
           MERROR("DEBUG logging selected, but not compiled into firmware")
 #endif // OTB_DEBUG          
         break;
 
       case OTB_LOG_LEVEL_DETAIL:
-        ERROR("\nLog level selected: DETAIL");
+        NONE("\nLog level selected: DETAIL");
         break;
 
       case OTB_LOG_LEVEL_INFO:
-        ERROR("\nLog level selected: INFO");
+        NONE("\nLog level selected: INFO");
         break;
 
       case OTB_LOG_LEVEL_WARN:
-        ERROR("\nLog level selected: WARN");
+        NONE("\nLog level selected: WARN");
         break;
 
       case OTB_LOG_LEVEL_ERROR:
-        ERROR("\nLog level selected: ERROR");
+        NONE("\nLog level selected: ERROR");
         break;
 
       default:
-        OTB_ASSERT(FALSE);
+        break;
     }
     otb_util_resume_init();
   }

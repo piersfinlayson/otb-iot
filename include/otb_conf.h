@@ -205,6 +205,7 @@ typedef struct otb_conf_ip
   // Domain name valid for DHCP and manual
 #define OTB_IP_MAX_DOMAIN_NAME_LEN 64
   char domain_name[OTB_IP_MAX_DOMAIN_NAME_LEN];
+#define OTB_IP_MAX_IPV4_ADDR_LEN 16 //(15+1)
   
 // Whether to use manual IP address information from this struct or DHCP
 #define OTB_IP_DHCP_DHCP   0  
@@ -327,6 +328,7 @@ void otb_conf_init(void);
 void otb_conf_ads_init_one(otb_conf_ads *ads, char ii);
 void otb_conf_ads_init(otb_conf_struct *conf);
 bool otb_conf_verify(otb_conf_struct *conf);
+bool otb_conf_verify_manual_ip(otb_conf_struct *conf);
 bool otb_conf_verify_ip(otb_conf_struct *conf);
 void otb_conf_init_config(otb_conf_struct *conf);
 bool otb_conf_load(void);
