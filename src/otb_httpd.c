@@ -926,15 +926,12 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
   ENTRY;
 
   //
-  // For MQTT:
-  //
-  // Some data may be URL encoded
-  //
-  // For now all responses will be of type text/plain
-  //
   // Don't yet know how to deal with non-initiated messages, such as
   // - booted
   // - mbus data
+  //
+  // XXX AP won't be running unless set to keep alive - that needs to control
+  // which URLs are available
   //
 
   // Only process these MQTT URLs if config setting is enabled (we must be at
