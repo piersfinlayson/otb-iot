@@ -28,7 +28,9 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
                                         char *message,
                                         char *extra_message,
                                         uint8_t qos,
-                                        bool retain)
+                                        bool retain,
+                                        char *buf,
+                                        uint16_t buf_len)
 {
   char *loc1, *loc2, *loc3, *loc1_, *loc2_, *loc3_;
   int chars;
@@ -94,7 +96,15 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
        otb_mqtt_msg_s,
        qos,
        retain);
-  MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
+  if (buf == NULL)
+  {
+    MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
+  }
+  else
+  {
+    os_strncpy(buf, otb_mqtt_msg_s, buf_len);
+    buf[buf_len - 1] = 0;
+  }
 
   EXIT;
 
@@ -517,6 +527,8 @@ void ICACHE_FLASH_ATTR otb_mqtt_report_error(char *cmd, char *error)
                    cmd,
                    error,
                    2,
+                   0,
+                   NULL,
                    0);  
 
   EXIT;
@@ -528,6 +540,22 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
                                             char *val2,
                                             char *val3,
                                             char *val4)
+{
+  ENTRY;
+
+  otb_mqtt_send_status_or_buf(val1, val2, val3, val4, NULL, 0);
+
+  EXIT;
+
+  return;
+}
+
+void ICACHE_FLASH_ATTR otb_mqtt_send_status_or_buf(char *val1,
+                                                   char *val2,
+                                                   char *val3,
+                                                   char *val4,
+                                                   char *buf,
+                                                   uint16_t buf_len)
 {
   char *new_val2 = OTB_MQTT_EMPTY;
   int max_len;
@@ -573,7 +601,9 @@ void ICACHE_FLASH_ATTR otb_mqtt_send_status(char *val1,
                    val1,
                    new_val2,
                    2,
-                   0);  
+                   0,
+                   buf,
+                   buf_len);  
 
   EXIT;
 

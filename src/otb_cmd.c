@@ -50,7 +50,9 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
                                             const char* topic,
                                             uint32_t topic_len,
                                             const char *msg,
-                                            uint32_t msg_len)
+                                            uint32_t msg_len,
+                                            char *buf,
+                                            uint16_t buf_len)
 {
   unsigned char *cur_match = NULL;
   otb_cmd_control *cur_control = NULL;
@@ -209,10 +211,12 @@ EXIT_LABEL:
 
   // XXX Need to fill some indication of what we're responding to.  How best to do
   // this?
-  otb_mqtt_send_status(rc ? OTB_MQTT_STATUS_OK : OTB_MQTT_STATUS_ERROR,
-                       otb_cmd_rsp_get(),
-                       "",
-                       "");
+  otb_mqtt_send_status_or_buf(rc ? OTB_MQTT_STATUS_OK : OTB_MQTT_STATUS_ERROR,
+                              otb_cmd_rsp_get(),
+                              "",
+                              "",
+                              buf,
+                              buf_len);
   
   EXIT;
 
@@ -876,6 +880,8 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_config_all(unsigned char *next_cmd, void *arg
                    "ok",
                    otb_cmd_rsp_get(),
                    0,
+                   0,
+                   NULL,
                    0);  
   otb_cmd_rsp_clear();
   for (jj = 0; jj < sizeof(otb_conf_struct); jj++)
@@ -890,6 +896,8 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_config_all(unsigned char *next_cmd, void *arg
                        "data",
                        otb_cmd_rsp_get(),
                        0,
+                       0,
+                       NULL,
                        0);  
       otb_cmd_rsp_clear();
     }
@@ -907,6 +915,8 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_config_all(unsigned char *next_cmd, void *arg
                        "data",
                        otb_cmd_rsp_get(),
                        0,
+                       0,
+                       NULL,
                        0);  
     otb_cmd_rsp_clear();
   }

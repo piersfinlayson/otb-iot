@@ -917,16 +917,16 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
                                                   char *buf,
                                                   uint16_t buf_len)
 {
-  uint16_t body_len;
+  uint16_t body_len = 0;
+  char *msg_start;
+  bool bad_url = FALSE;
+  bool method_not_allowed = FALSE;
+  bool forbidden = FALSE;
 
   ENTRY;
 
   //
   // For MQTT:
-  // - /.../get/...     - GET method supported
-  // - /.../set/...     - POST method supported (no post data - all data
-  //                      should be in the URL as for MQTT
-  // - /.../trigger/... - as /.../set/...
   //
   // Some data may be URL encoded
   //
@@ -936,19 +936,93 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
   // - booted
   // - mbus data
   //
-  // Only process these URLs if setting is enabled, and we're at a suitable
-  //
 
+  // Only process these MQTT URLs if config setting is enabled (we must be at
+  // a suitable point to process if can get to web server!)
   if (otb_conf->mqtt_httpd)
   {
-    body_len = os_sprintf(buf, "Not yet supported");
+    msg_start = os_strstr((request->url)+1, "/");
+    if (msg_start != NULL)
+    {
+      msg_start++;
+      // /.../get/...     - GET method supported
+      // /.../set/...     - POST method supported (no post data - all data
+      //                      should be in the URL as for MQTT
+      // /.../trigger/... - as /.../set/...
+      if (!os_strncmp(msg_start, "get", 3))
+      {
+        if (request-> method == OTB_HTTPD_METHOD_GET)
+        {
+          MDETAIL("Have GET request for get MQTT command");
+        }
+        else
+        {
+        }
+      }
+      else if (!os_strncmp(msg_start, "set", 3) ||
+               !os_strncmp(msg_start, "trigger", 7))
+      {
+        if (request-> method == OTB_HTTPD_METHOD_POST)
+        {
+          MDETAIL("Have POST request for set or trigger MQTT command");
+        }
+        else
+        {
+          method_not_allowed = TRUE;
+        }
+      }
+      else
+      {
+        bad_url = TRUE;
+      }
+
+      if (!bad_url && !method_not_allowed)
+      {
+#define OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP "/espi/all"    
+        otb_cmd_mqtt_receive(NULL,
+                            OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP,
+                            os_strlen(OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP),
+                            msg_start,
+                            os_strlen(msg_start),
+                            buf,
+                            buf_len);
+        body_len = os_strnlen(buf, buf_len-1);
+      }
+    }
+    else
+    {
+      bad_url = TRUE;
+    }
   }
   else
   {
+    forbidden = TRUE;
+    goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  // Error handling
+  if (forbidden)
+  {
     request->status_code = 403;
     request->status_str = "Forbidden";
-    body_len = os_sprintf(buf, "MQTT HTTPD not enabled");
+    body_len = os_snprintf(buf, buf_len, "MQTT HTTPD not enabled");
   }
+  else if (method_not_allowed)
+  {
+    request->status_code = 405;
+    request->status_str = "Method Not Allowed";
+    body_len = os_snprintf(buf, buf_len, "Use GET for get, POST for set/trigger");
+  }
+  else if (bad_url)
+  {
+    request->status_code = 400;
+    request->status_str = "Bad Request";
+    body_len = os_snprintf(buf, buf_len, "Invalid MQTT URL: %s", request->url);
+  }
+
+  buf[buf_len - 1] = 0;
 
   EXIT;
 
@@ -960,7 +1034,7 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
                                                   char *buf,
                                                   uint16_t buf_len)
 {
-  uint16_t body_len;
+  uint16_t body_len = 0;
 
   ENTRY;
 
@@ -969,6 +1043,8 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
                                       buf,
                                       buf_len);
   
+  buf[buf_len - 1] = 0;
+
   EXIT;
 
   return(body_len);
@@ -979,7 +1055,7 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_not_found_handler(otb_httpd_request *reques
                                                        char *buf,
                                                        uint16_t buf_len)
 {
-  uint16_t body_len;
+  uint16_t body_len = 0;
 
   ENTRY;
 
@@ -987,6 +1063,8 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_not_found_handler(otb_httpd_request *reques
   request->status_code = 404;
   request->status_str = "Not Found";
   
+  buf[buf_len - 1] = 0;
+
   EXIT;
 
   return(body_len);

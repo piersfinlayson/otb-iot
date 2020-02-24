@@ -105,7 +105,7 @@ typedef enum {
 } tConnState;
 
 typedef void (*MqttCallback)(uint32_t *args);
-typedef void (*MqttDataCallback)(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t lengh);
+typedef void (*MqttDataCallback)(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t length, char *buf, uint16_t buf_len);
 
 typedef struct  {
 	struct espconn *pCon;

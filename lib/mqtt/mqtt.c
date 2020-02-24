@@ -136,7 +136,7 @@ deliver_publish(MQTT_Client* client, uint8_t* message, int length)
 	event_data.data = mqtt_get_publish_data(message, &event_data.data_length);
 
 	if(client->dataCb)
-		client->dataCb((uint32_t*)client, event_data.topic, event_data.topic_length, event_data.data, event_data.data_length);
+		client->dataCb((uint32_t*)client, event_data.topic, event_data.topic_length, event_data.data, event_data.data_length, NULL, 0);
 
   EXIT;
 }

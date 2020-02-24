@@ -295,7 +295,9 @@ extern void otb_mqtt_publish(MQTT_Client *mqtt_client,
                              char *message,
                              char *extra_message,
                              uint8_t qos,
-                             bool retain);
+                             bool retain,
+                             char *buf,
+                             uint16_t buf_len);
 void otb_mqtt_handle_loc(char **loc1,
                          char **loc1_,
                          char **loc2,
@@ -324,6 +326,12 @@ void otb_mqtt_send_status(char *val1,
                           char *val2,
                           char *val3,
                           char *val4);
+void otb_mqtt_send_status_or_buf(char *val1,
+                                 char *val2,
+                                 char *val3,
+                                 char *val4,
+                                 char *buf,
+                                 uint16_t buf_len);
 extern void otb_mqtt_on_receive_publish(uint32_t *client,
                                         const char* topic,
                                         uint32_t topic_len,

@@ -1288,7 +1288,9 @@ void otb_cmd_mqtt_receive(uint32_t *client,
                           const char* topic,
                           uint32_t topic_len,
                           const char *msg,
-                          uint32_t msg_len);
+                          uint32_t msg_len,
+                          char *buf,
+                          uint16_t buf_len);
 void otb_cmd_rsp_clear(void);
 void otb_cmd_rsp_append(char *format, ...);
 unsigned char *otb_cmd_rsp_get(void);
