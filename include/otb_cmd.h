@@ -1231,8 +1231,11 @@ void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()
 //   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_gpio_pca);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_config);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_info);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_info_ip);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_reason);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_info_logs);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_hat);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_get_mbus);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_status_led);
@@ -1268,6 +1271,13 @@ void ICACHE_FLASH_ATTR otb_cmd_control_check_sizes_do_not_call()
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_nixie);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_nixie_power);
   OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_neo);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_sensor);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_sensor_temp);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_sensor_temp_ds18b20);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_trigger_mbus);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_wifi);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_config_mqtt);
+  OTB_CMD_CONTROL_SIZE_CHECK(otb_cmd_control_set_mbus);
 }
 
 #endif // OTB_CMD_C
