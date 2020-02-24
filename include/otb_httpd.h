@@ -25,7 +25,7 @@
 #define OTB_HTTPD_METHOD_NONE  0
 #define OTB_HTTPD_METHOD_HEAD  1
 #define OTB_HTTPD_METHOD_GET   2
-#define OTB_HTTPD_METHOD_POST  3
+#define OTB_HTTPD_METHOD_POST  4
 
 #define OTB_HTTPD_MAX_URL_LEN  64
 #define OTB_HTTPD_MAX_HTTP_LEN 16
@@ -54,6 +54,49 @@
                            BUF_LEN,                  \
                            BODY)
 
+//
+// Fn: otb_httpd_url_handler_fn
+//
+// Purpose: Used to handle HTTP method for a particular URL and method as
+// configured in otb_httpd_url_match_array
+//
+// Returns:
+// - Length of data written to buf (ignoring NULL terminating byte)
+// - Status code (in request, if other than 200)
+// - Status string (in request, if other than OK)
+//
+// Args:
+// - request - request to be processed
+// - arg - any arg specified in otb_httpd_url_match_array
+// - buf - buffer to use for body response
+// - buf_len - maximum size of buf (including NULL terminating byte)
+//
+struct otb_httpd_request; // Need to define as incomplete type now
+typedef uint16_t otb_httpd_url_handler_fn(struct otb_httpd_request *request,
+                                          void *arg,
+                                          char *buf,
+                                          uint16_t buf_len);
+
+typedef struct otb_httpd_url_match
+{
+  // The URL prefix to match
+  unsigned char *match_prefix;
+
+  // Whether to match anything after this prefix
+  bool wildcard;
+  
+  // If sub_cmd_control is NULL, call this handler function instead.  Function must
+  // follow otb_cmd_handler prototype
+  otb_httpd_url_handler_fn *handler_fn;
+  
+  // If handler_fn is to be invoked, the following value is passed into as arg
+  void *arg;
+
+  // Supported methods
+  uint32_t methods;
+
+} otb_httpd_url_match;
+
 typedef struct otb_httpd_post
 {
   char *data;
@@ -74,6 +117,7 @@ typedef struct otb_httpd_request
   char *redirect_to;
   bool redirect;
   bool keepalive;
+  struct otb_httpd_url_match *match;
 } otb_httpd_request;
 
 typedef struct otb_httpd_connection
@@ -104,25 +148,72 @@ uint16 otb_httpd_get_next_header(char *data,
 uint16 otb_httpd_process_headers(otb_httpd_connection *hconn, char *data, uint16 len);
 uint16 otb_httpd_build_core_response(otb_httpd_connection *hconn, char *buf, uint16 len, uint16 body_len);
 sint16 otb_httpd_get_arg(char *data, char *find, char *found, uint16 found_len);
-uint16 otb_httpd_station_config(otb_httpd_connection *hconn, uint8 method, char *buf, uint16 len);
+uint16_t otb_httpd_mqtt_handler(otb_httpd_request *request,
+                                void *arg,
+                                char *buf,
+                                uint16_t buf_len);
+uint16_t otb_httpd_not_found_handler(otb_httpd_request *request,
+                                     void *arg,
+                                     char *buf,
+                                     uint16_t buf_len);
+uint16_t otb_httpd_base_handler(otb_httpd_request *request,
+                                void *arg,
+                                char *buf,
+                                uint16_t buf_len);
+uint16 otb_httpd_station_config(otb_httpd_request *request, uint8 method, char *buf, uint16 len);
 int otb_httpd_wifi_form(char *buffer, uint16_t buf_len);
 int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 
 #ifdef OTB_HTTPD_C
-
 bool otb_httpd_started;
 bool otb_httpd_dns_inited;
 
 #define OTB_HTTP_SCRATCH_LEN 2048
 char *otb_httpd_scratch;
-#define OTB_HTTP_SCRATCH2_LEN 2048
-char *otb_httpd_scratch2;
+#define OTB_HTTP_SCRATCH_MATCH_LEN 2048
+char *otb_httpd_scratch_match;
 #define OTB_HTTP_MSG_LEN 2048
 char *otb_httpd_msg;
 
 static otb_httpd_connection otb_httpd_conn[OTB_HTTPD_MAX_CONNS];
 static struct espconn otb_httpd_espconn;
 static esp_tcp otb_httpd_tcp;
+
+#define OTB_HTTPD_DEFAULT_BASE_URL "/"
+otb_httpd_url_match otb_httpd_url_match_array[] = 
+{
+  {"/otb-iot", 
+   TRUE,
+   otb_httpd_mqtt_handler,
+   NULL,
+   OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
+  {"/espi",
+   TRUE,
+   otb_httpd_mqtt_handler,
+   NULL,
+   OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
+  {"/mqtt",
+   TRUE,
+   otb_httpd_mqtt_handler,
+   NULL,
+   OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
+  {"/base",
+   FALSE,
+   otb_httpd_base_handler,
+   NULL,
+   OTB_HTTPD_METHOD_HEAD | OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
+  {"/favicon.ico",
+   FALSE,
+   otb_httpd_not_found_handler,
+   NULL,
+   OTB_HTTPD_METHOD_GET},
+  {OTB_HTTPD_DEFAULT_BASE_URL,
+   TRUE,
+   otb_httpd_base_handler,
+   NULL,
+   OTB_HTTPD_METHOD_HEAD | OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
+  {NULL, NULL, NULL}, // Must terminate with this
+};
 
 static const char ALIGN4 ICACHE_RODATA_ATTR otb_httpd_wifi_form_str[] =
 "<body><form name=\"otb-iot\" action=\"/\" method=\"post\">"

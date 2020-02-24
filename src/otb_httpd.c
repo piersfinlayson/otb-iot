@@ -52,11 +52,11 @@ bool ICACHE_FLASH_ATTR otb_httpd_start(bool dns)
   MDETAIL("Started listening on port %d", otb_httpd_tcp.local_port);
 
   otb_httpd_scratch = (char *)os_malloc(OTB_HTTP_SCRATCH_LEN);
-  otb_httpd_scratch2 = (char *)os_malloc(OTB_HTTP_SCRATCH2_LEN);
+  otb_httpd_scratch_match = (char *)os_malloc(OTB_HTTP_SCRATCH_MATCH_LEN);
   otb_httpd_msg = (char *)os_malloc(OTB_HTTP_MSG_LEN);
 
   if ((otb_httpd_scratch == NULL) ||
-      (otb_httpd_scratch2 == NULL) ||
+      (otb_httpd_scratch_match == NULL) ||
       (otb_httpd_msg == NULL))
   {
     MWARN("Failed to allocate scratch buffers");
@@ -101,13 +101,13 @@ void ICACHE_FLASH_ATTR otb_httpd_stop(void)
 
     // Free up scratch buffers
     OTB_ASSERT(otb_httpd_scratch != NULL);
-    OTB_ASSERT(otb_httpd_scratch2 != NULL);
+    OTB_ASSERT(otb_httpd_scratch_match != NULL);
     OTB_ASSERT(otb_httpd_msg != NULL);
     os_free(otb_httpd_scratch);
-    os_free(otb_httpd_scratch2);
+    os_free(otb_httpd_scratch_match);
     os_free(otb_httpd_msg);
     otb_httpd_scratch = NULL;
-    otb_httpd_scratch2 = NULL;
+    otb_httpd_scratch_match = NULL;
     otb_httpd_msg = NULL;
     otb_httpd_started = FALSE;
   }
@@ -204,10 +204,7 @@ void ICACHE_FLASH_ATTR otb_httpd_discon_callback(void *arg)
   }
 
   // Clear hconn out
-  hconn->active = false;
-  os_memset(&hconn->request.post, 0, sizeof(hconn->request.post));
-  os_memset(hconn->remote_ip, 0, 4);
-  hconn->remote_port = 0;
+  os_memset(hconn, 0, sizeof(hconn));
   conn->reverse = NULL;
 
   EXIT;
@@ -305,7 +302,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_url(otb_httpd_connection *hconn, char
     hconn->request.url[jj] = data[cur];
   }
   hconn->request.url[jj] = 0; // NULL terminate
-  MDETAIL("URL: %s", hconn->request.url);
+  MDEBUG("URL: %s", hconn->request.url);
 
   EXIT;
 
@@ -566,6 +563,11 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
   uint16 len2;
   uint16 body_len;
   uint16 cur = 0;
+  otb_httpd_url_match *cand;
+  int ii;
+  int url_len, cand_len;
+  bool handle = FALSE;
+  bool match_rc;
 
   ENTRY;
 
@@ -640,49 +642,44 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
       goto EXIT_LABEL;
     }
 
-    //
-    // URLs:
-    // /        - basic configuration
-    // /basic   - basic configuration
-    // /otb-iot - mqtt
-    // /espi    - mqtt
-    // /mqtt    - mqtt
-    //
-    // For MQTT:
-    // - /.../get/...     - GET method supported
-    // - /.../set/...     - POST method supported (no post data - all data
-    //                      should be in the URL as for MQTT
-    // - /.../trigger/... - as /.../set/...
-    //
-    // Some data may be URL encoded
-    //
-    // For now all responses will be of type text/plain
-    //
-    // Need an array of URLs to parse through in order with functions to call
-    // out to based on URL and method type (so only trigger when correct
-    // method)
-    //
-    // Need to decide what to do when invalid URL requested.  Should we just 
-    // return 404?
-    //
-    // Don't yet know how to deal with non-initiated messages, such as
-    // - booted
-    // - mbus data
-    //
-
     cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
-    // Match URLs
-    if (os_strcmp(hconn->request.url, "/"))
+    
+    // URLs to be handled are in otb_httpd_url_match_array which also
+    // specifies match function, methods supported and any args
+    url_len = os_strlen(hconn->request.url);
+    hconn->request.match = NULL; // Should already be NULL, but belt and braces
+    for (ii = 0; otb_httpd_url_match_array[ii].match_prefix != NULL; ii++)
     {
-      MDEBUG("Request for URL other than /");
-      hconn->request.status_code = 302;
-      hconn->request.status_str = "Found";
-      hconn->request.redirect_to = "/";
-      hconn->request.redirect = true;
-      body = "Moved to <a href=\"/\">/</a>";
+      cand = otb_httpd_url_match_array + ii;
+      cand_len = os_strlen(cand->match_prefix);
+      // Match if:
+      // - The URL prefix is at least a match for the entire candidate
+      // - and the method matches
+      // - and either
+      //   - it's a wildcard match (so any suffix matches)
+      //   - or it's not a wildcard match and both the URL and candidate
+      //     are the same length (so the same)
+      if (!os_strncmp(hconn->request.url,
+                      cand->match_prefix,
+                      cand_len) &&
+          (hconn->request.method & cand->methods) &&
+          (cand->wildcard ||
+           (cand_len == os_strlen(hconn->request.url))))
+      {
+        hconn->request.match = cand;
+        MDETAIL("URL match: %s with: %s", hconn->request.url, cand->match_prefix);
+        break;
+      }
+    }
+    if (hconn->request.match == NULL)
+    {
+      hconn->request.status_code = 404;
+      hconn->request.status_str = "Not Found";
+      MDETAIL("URL not found: %s %d", hconn->request.url, hconn->request.status_code);
       goto EXIT_LABEL;
     }
 
+    // If a POST check we have all of it before processing
     if (hconn->request.method == OTB_HTTPD_METHOD_POST)
     {
       if (hconn->request.post.expected_data_len > len-cur)
@@ -694,6 +691,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
           MDEBUG("Don't have enough buffer to process entire message");
           hconn->request.status_code = 413;
           hconn->request.status_str = "Request Entity Too Large";
+          body = "Can't handle a message this large";
         }
         else
         {
@@ -715,7 +713,12 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
         hconn->request.post.data = data+cur;
         hconn->request.post.data_capacity = len-cur;
         hconn->request.post.current_data_len = len-cur;
+        handle = TRUE;
       }
+    }
+    else
+    {
+      handle = TRUE;
     }
     
     // Waiting until after checking URL for this - as if a POST
@@ -728,29 +731,31 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
       // If any other messages just reject
       goto EXIT_LABEL;
     }
-
-    // Must be a /
-    station_config = true;
   }
   
 EXIT_LABEL:
 
   if (send_rsp)
   {
-    // If getting station config do this first - as need it for the body length
-    if (station_config)
+    if (handle)
     {
-      buf2 = otb_httpd_scratch2;
-      len2 = OTB_HTTP_SCRATCH2_LEN;
-      rsp_len2 = 0;
-      rsp_len2 += otb_httpd_station_config(hconn,
-                                           hconn->request.method,
-                                           buf2,
-                                           len2-rsp_len2);
-      body = buf2;
+      // See otb_httpd_url_handler_fn in otb_httpd.h for a description of what
+      // the match function does (hint, handles a URL/method!)
+      hconn->request.status_code = 200;
+      hconn->request.status_str = "OK";
+      body_len = hconn->request.match->handler_fn(&(hconn->request),
+                                                  hconn->request.match->arg,
+                                                  otb_httpd_scratch_match,
+                                                  OTB_HTTP_SCRATCH_MATCH_LEN);
+      MDETAIL("Match function status code: %d", hconn->request.status_code);
+      body = otb_httpd_scratch_match;
     }
+    else
+    {
+      body_len = os_strlen(body);
+    }
+   
 
-    body_len = os_strlen(body);
     buf = otb_httpd_scratch;
     len = OTB_HTTP_SCRATCH_LEN;
     rsp_len = 0;
@@ -907,7 +912,87 @@ sint16 ICACHE_FLASH_ATTR otb_httpd_get_arg(char *data, char *find, char *found, 
   return len;
 }
 
-uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, uint8 method, char *buf, uint16 len)
+uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
+                                                  void *arg,
+                                                  char *buf,
+                                                  uint16_t buf_len)
+{
+  uint16_t body_len;
+
+  ENTRY;
+
+  //
+  // For MQTT:
+  // - /.../get/...     - GET method supported
+  // - /.../set/...     - POST method supported (no post data - all data
+  //                      should be in the URL as for MQTT
+  // - /.../trigger/... - as /.../set/...
+  //
+  // Some data may be URL encoded
+  //
+  // For now all responses will be of type text/plain
+  //
+  // Don't yet know how to deal with non-initiated messages, such as
+  // - booted
+  // - mbus data
+  //
+  // Only process these URLs if setting is enabled, and we're at a suitable
+  //
+
+  if (otb_conf->mqtt_httpd)
+  {
+    body_len = os_sprintf(buf, "Not yet supported");
+  }
+  else
+  {
+    request->status_code = 403;
+    request->status_str = "Forbidden";
+    body_len = os_sprintf(buf, "MQTT HTTPD not enabled");
+  }
+
+  EXIT;
+
+  return(body_len);
+}
+
+uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
+                                                  void *arg,
+                                                  char *buf,
+                                                  uint16_t buf_len)
+{
+  uint16_t body_len;
+
+  ENTRY;
+
+  body_len = otb_httpd_station_config(request,
+                                      request->method,
+                                      buf,
+                                      buf_len);
+  
+  EXIT;
+
+  return(body_len);
+}
+
+uint16_t ICACHE_FLASH_ATTR otb_httpd_not_found_handler(otb_httpd_request *request,
+                                                       void *arg,
+                                                       char *buf,
+                                                       uint16_t buf_len)
+{
+  uint16_t body_len;
+
+  ENTRY;
+
+  body_len = 0;
+  request->status_code = 404;
+  request->status_str = "Not Found";
+  
+  EXIT;
+
+  return(body_len);
+}
+
+uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_request *request, uint8 method, char *buf, uint16 len)
 {
   bool conf_changed = FALSE;
   uint8_t ip[4];
@@ -966,8 +1051,8 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
 
     case OTB_HTTPD_METHOD_POST:
       MDETAIL("POST station config");
-      OTB_ASSERT(hconn->request.post.data != NULL);
-      MDEBUG("POST processing: %s", hconn->request.post.data);
+      OTB_ASSERT(request->post.data != NULL);
+      MDEBUG("POST processing: %s", request->post.data);
       wifi_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_svr_rc = OTB_CONF_RC_NOT_CHANGED;
       mqtt_user_rc = OTB_CONF_RC_NOT_CHANGED;
@@ -987,21 +1072,21 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       enable_ap[0] = 0;
       http_svr[0] = 0;
       ip_config[0] = 0;
-      ssid_len = otb_httpd_get_arg(hconn->request.post.data, "ssid", ssid, 32);
-      password_len = otb_httpd_get_arg(hconn->request.post.data, "password", password, 64);
-      mqtt_svr_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_svr", mqtt_svr, OTB_MQTT_MAX_SVR_LEN);
-      mqtt_port_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_port", mqtt_port, OTB_MQTT_MAX_SVR_LEN);
-      mqtt_user_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_user", mqtt_user, OTB_MQTT_MAX_USER_LEN);
-      mqtt_pass_len = otb_httpd_get_arg(hconn->request.post.data, "mqtt_pass", mqtt_pass, OTB_MQTT_MAX_PASS_LEN);
-      domain_name_len = otb_httpd_get_arg(hconn->request.post.data, "domain_name", domain_name, OTB_IP_MAX_DOMAIN_NAME_LEN);
-      ip_address_len = otb_httpd_get_arg(hconn->request.post.data, "ip_addr", ip_address, OTB_IP_MAX_IPV4_ADDR_LEN);
-      netmask_len = otb_httpd_get_arg(hconn->request.post.data, "subnet", netmask, OTB_IP_MAX_IPV4_ADDR_LEN);
-      gateway_len = otb_httpd_get_arg(hconn->request.post.data, "gateway", gateway, OTB_IP_MAX_IPV4_ADDR_LEN);
-      dns1_len = otb_httpd_get_arg(hconn->request.post.data, "dns1", dns1, OTB_IP_MAX_IPV4_ADDR_LEN);
-      dns2_len = otb_httpd_get_arg(hconn->request.post.data, "dns2", dns2, OTB_IP_MAX_IPV4_ADDR_LEN);
-      http_svr_len = otb_httpd_get_arg(hconn->request.post.data, "http_svr", http_svr, OTB_HTTPD_HTTP_SVR_MAX_LEN);
-      ip_config_len = otb_httpd_get_arg(hconn->request.post.data, "ip_config", ip_config, OTB_HTTPD_IP_CONFIG_MAX_LEN);
-      enable_ap_len = otb_httpd_get_arg(hconn->request.post.data, "enable_ap", enable_ap, OTB_HTTPD_ENABLE_AP_MAX_LEN);
+      ssid_len = otb_httpd_get_arg(request->post.data, "ssid", ssid, 32);
+      password_len = otb_httpd_get_arg(request->post.data, "password", password, 64);
+      mqtt_svr_len = otb_httpd_get_arg(request->post.data, "mqtt_svr", mqtt_svr, OTB_MQTT_MAX_SVR_LEN);
+      mqtt_port_len = otb_httpd_get_arg(request->post.data, "mqtt_port", mqtt_port, OTB_MQTT_MAX_SVR_LEN);
+      mqtt_user_len = otb_httpd_get_arg(request->post.data, "mqtt_user", mqtt_user, OTB_MQTT_MAX_USER_LEN);
+      mqtt_pass_len = otb_httpd_get_arg(request->post.data, "mqtt_pass", mqtt_pass, OTB_MQTT_MAX_PASS_LEN);
+      domain_name_len = otb_httpd_get_arg(request->post.data, "domain_name", domain_name, OTB_IP_MAX_DOMAIN_NAME_LEN);
+      ip_address_len = otb_httpd_get_arg(request->post.data, "ip_addr", ip_address, OTB_IP_MAX_IPV4_ADDR_LEN);
+      netmask_len = otb_httpd_get_arg(request->post.data, "subnet", netmask, OTB_IP_MAX_IPV4_ADDR_LEN);
+      gateway_len = otb_httpd_get_arg(request->post.data, "gateway", gateway, OTB_IP_MAX_IPV4_ADDR_LEN);
+      dns1_len = otb_httpd_get_arg(request->post.data, "dns1", dns1, OTB_IP_MAX_IPV4_ADDR_LEN);
+      dns2_len = otb_httpd_get_arg(request->post.data, "dns2", dns2, OTB_IP_MAX_IPV4_ADDR_LEN);
+      http_svr_len = otb_httpd_get_arg(request->post.data, "http_svr", http_svr, OTB_HTTPD_HTTP_SVR_MAX_LEN);
+      ip_config_len = otb_httpd_get_arg(request->post.data, "ip_config", ip_config, OTB_HTTPD_IP_CONFIG_MAX_LEN);
+      enable_ap_len = otb_httpd_get_arg(request->post.data, "enable_ap", enable_ap, OTB_HTTPD_ENABLE_AP_MAX_LEN);
       
       // NULL terminate everything just in case
       ssid[31] = 0;
@@ -1394,9 +1479,6 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_station_config(otb_httpd_connection *hconn, u
       break;
   }
 
-  
-
-      // XXX Handle configuring AP details
 EXIT_LABEL:
   
   EXIT;
