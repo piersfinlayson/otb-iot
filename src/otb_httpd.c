@@ -581,6 +581,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
   }
 
   MDEBUG("REQUEST: Len %d:\n---\n%s\n---", len, data);
+  hconn->request.content_type = otb_httpd_content_type_text_html;
 
   // Assume it's a new request if we're not mid-way through processing a POST
   if (hconn->request.handling)
@@ -798,6 +799,7 @@ EXIT_LABEL:
 uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hconn, char *buf, uint16 len, uint16 body_len)
 {
   uint16 rsp_len = 0;
+  char *content_type = otb_httpd_content_type_text_html;
 
   ENTRY;
 
@@ -832,9 +834,14 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
                                     len-rsp_len,
                                     "Content-Len: %d",
                                     body_len);
+    if (hconn->request.content_type != NULL)
+    {
+      content_type = hconn->request.content_type;
+    }
     rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                     len-rsp_len,
-                                    "Content-Type: text/html");
+                                    "Content-Type: %s",
+                                    hconn->request.content_type);
   }
   rsp_len += OTB_HTTPD_END_HEADERS(buf+rsp_len,
                                    len-rsp_len);
@@ -922,6 +929,8 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
   bool bad_url = FALSE;
   bool method_not_allowed = FALSE;
   bool forbidden = FALSE;
+#define OTB_HTTPD_MQTT_FAKE_TOPIC_LEN 64 
+  char fake_topic[OTB_HTTPD_MQTT_FAKE_TOPIC_LEN];
 
   ENTRY;
 
@@ -975,14 +984,29 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
 
       if (!bad_url && !method_not_allowed)
       {
-#define OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP "/espi/all"    
+        // Record via MQTT that this request came in
+        otb_mqtt_publish(&otb_mqtt_client,
+                        OTB_MQTT_STATUS_HTTP,
+                        "",
+                        msg_start,
+                        "",
+                        2,
+                        0,
+                        NULL,
+                        0);  
+
+        // Fake up the topic so MQTT stack deals properly with it
+        os_snprintf(fake_topic, OTB_HTTPD_MQTT_FAKE_TOPIC_LEN-1, "/%s/%s", otb_mqtt_root, OTB_MAIN_CHIPID);
+
+        // Give to the MQTT stack to process - passing in buf means as well
+        // as sending a response via MQTT, it also fills buf with the response
         otb_cmd_mqtt_receive(NULL,
-                            OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP,
-                            os_strlen(OTB_HTTPD_MQTT_FAKE_TOPIC_TEMP),
-                            msg_start,
-                            os_strlen(msg_start),
-                            buf,
-                            buf_len);
+                             fake_topic,
+                             os_strlen(fake_topic),
+                             msg_start,
+                             os_strlen(msg_start),
+                             buf,
+                             buf_len);
         body_len = os_strnlen(buf, buf_len-1);
       }
     }
@@ -1020,6 +1044,8 @@ EXIT_LABEL:
   }
 
   buf[buf_len - 1] = 0;
+
+  request->content_type = otb_httpd_content_type_text_plain;
 
   EXIT;
 

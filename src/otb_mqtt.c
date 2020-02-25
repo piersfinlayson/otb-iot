@@ -96,14 +96,14 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
        otb_mqtt_msg_s,
        qos,
        retain);
-  if (buf == NULL)
-  {
-    MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
-  }
-  else
+  if (buf != NULL)
   {
     os_strncpy(buf, otb_mqtt_msg_s, buf_len);
     buf[buf_len - 1] = 0;
+  }
+  if (otb_mqtt_connected)
+  {
+    MQTT_Publish(mqtt_client, otb_mqtt_topic_s, otb_mqtt_msg_s, chars, qos, retain);
   }
 
   EXIT;

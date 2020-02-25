@@ -118,6 +118,7 @@ typedef struct otb_httpd_request
   bool redirect;
   bool keepalive;
   struct otb_httpd_url_match *match;
+  char *content_type;
 } otb_httpd_request;
 
 typedef struct otb_httpd_connection
@@ -178,6 +179,9 @@ char *otb_httpd_msg;
 static otb_httpd_connection otb_httpd_conn[OTB_HTTPD_MAX_CONNS];
 static struct espconn otb_httpd_espconn;
 static esp_tcp otb_httpd_tcp;
+
+char otb_httpd_content_type_text_html[]  = "text/html";
+char otb_httpd_content_type_text_plain[] = "text/plain";
 
 #define OTB_HTTPD_DEFAULT_BASE_URL "/"
 otb_httpd_url_match otb_httpd_url_match_array[] = 

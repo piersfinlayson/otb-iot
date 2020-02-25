@@ -170,9 +170,10 @@ char *otb_mqtt_cmds[OTB_MQTT_CMD_LAST_ + 1] =
 #define OTB_MQTT_STATUS_PONG       "pong"
 #define OTB_MQTT_STATUS_OK         "ok"
 #define OTB_MQTT_STATUS_ERROR      "error"
-#define OTB_MQTT_STATUS_BOOTED "booted"
-#define OTB_MQTT_STATUS_VERSION "version"
-#define OTB_MQTT_STATUS_CHIPID "chipid"
+#define OTB_MQTT_STATUS_BOOTED     "booted"
+#define OTB_MQTT_STATUS_VERSION    "version"
+#define OTB_MQTT_STATUS_CHIPID     "chipid"
+#define OTB_MQTT_STATUS_HTTP       "http"
 
 #define OTB_MQTT_TEST_LED               "led"
 #define OTB_MQTT_BOOT_STATE             "boot_state"
@@ -357,6 +358,8 @@ extern char otb_mqtt_string_false[];
 extern char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
 extern char *otb_mqtt_root;
 
+extern bool otb_mqtt_connected;
+
 #ifdef OTB_MQTT_C
 
 // Need to statically assign, rather than from stack
@@ -374,7 +377,7 @@ char otb_mqtt_topic_s[OTB_MQTT_MAX_TOPIC_LENGTH];
 char otb_mqtt_msg_s[OTB_MQTT_MAX_MSG_LENGTH];
 char otb_mqtt_scratch[OTB_MQTT_MAX_MSG_LENGTH];
 
-bool otb_mqtt_connected = TRUE;
+bool otb_mqtt_connected = FALSE;
 os_timer_t otb_mqtt_connected_timer;
 os_timer_t otb_mqtt_wifi_timeout_timer;
 

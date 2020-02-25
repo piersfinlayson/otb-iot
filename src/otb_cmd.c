@@ -108,7 +108,7 @@ void ICACHE_FLASH_ATTR otb_cmd_mqtt_receive(uint32_t *client,
         // Do string_match
         if (depth == 0)
         {
-          // Override 
+          // Override topic - e.g. can be espi or otb-iot
           match_cmd = otb_mqtt_root;
         }
         else
