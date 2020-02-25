@@ -57,7 +57,7 @@ void ICACHE_FLASH_ATTR otb_mqtt_publish(MQTT_Client *mqtt_client,
   {
     otb_mqtt_msg_s[ii] = tolower(otb_mqtt_msg_s[ii]);
   }
-  
+
   if (extra_subtopic[0] == 0)
   {
     os_snprintf(otb_mqtt_topic_s,

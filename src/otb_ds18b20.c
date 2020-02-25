@@ -307,6 +307,17 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     if (tries > 1)
     {
       // Record the fact that we had to retry
+      chars = os_snprintf(output, 31, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
+      otb_mqtt_publish(&otb_mqtt_client,
+                       "error/temp", // Should use #define
+                       sensor_loc,
+                       output,
+                       "",
+                       0,
+                       1,
+                       NULL,
+                       0);
+#if 0
       os_snprintf(otb_mqtt_topic_s,
                   OTB_MQTT_MAX_TOPIC_LENGTH,
                   "/%s/%s/%s/%s/%s/%s/%s/%s",
@@ -319,9 +330,9 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                   OTB_MQTT_TEMPERATURE,
                   sensor_loc);
       MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
-      chars = os_snprintf(output, 32, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
       MDEBUG("      message: %s", output);
       MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, output, chars, 0, 1);  
+#endif      
     }
 
     if (strcmp(otb_ds18b20_last_temp_s[addr->index], "-127.00") &&
@@ -334,6 +345,16 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
       // publish)
       // XXX Should replace with otb_mqtt_publish call
       
+      otb_mqtt_publish(&otb_mqtt_client,
+                       OTB_MQTT_TEMPERATURE,
+                       sensor_loc,
+                       otb_ds18b20_last_temp_s[addr->index],
+                       "",
+                       0,
+                       1,
+                       NULL,
+                       0);
+#if 0
       os_snprintf(otb_mqtt_topic_s,
                   OTB_MQTT_MAX_TOPIC_LENGTH,
                   "/%s/%s/%s/%s/%s/%s/%s",
@@ -346,8 +367,8 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                   sensor_loc);
       MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
       MDEBUG("      message: %s", otb_ds18b20_last_temp_s[addr->index]);
-      chars = strlen(otb_ds18b20_last_temp_s[addr->index]);
       MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[addr->index], chars, 0, 1);
+#endif
     }
   }
   else

@@ -350,7 +350,6 @@ bool otb_mqtt_config_handler(unsigned char *next_cmd, void *arg, unsigned char *
 
 extern char otb_mqtt_string_empty[];
 extern char otb_mqtt_string_slash[];
-extern char otb_mqtt_string_slash[];
 extern char otb_mqtt_string_colon[];
 extern char otb_mqtt_string_period[];
 extern char otb_mqtt_string_true[];
