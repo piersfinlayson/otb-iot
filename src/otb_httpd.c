@@ -955,6 +955,7 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
       // /.../set/...     - POST method supported (no post data - all data
       //                      should be in the URL as for MQTT
       // /.../trigger/... - as /.../set/...
+      // /.../delete/... - as /.../set/...
       if (!os_strncmp(msg_start, "get", 3))
       {
         if (request-> method == OTB_HTTPD_METHOD_GET)
@@ -966,7 +967,8 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_mqtt_handler(otb_httpd_request *request,
         }
       }
       else if (!os_strncmp(msg_start, "set", 3) ||
-               !os_strncmp(msg_start, "trigger", 7))
+               !os_strncmp(msg_start, "trigger", 7) ||
+               !os_strncmp(msg_start, "delete", 6))
       {
         if (request-> method == OTB_HTTPD_METHOD_POST)
         {

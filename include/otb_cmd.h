@@ -459,6 +459,7 @@ typedef struct otb_cmd_control
 //   sensor
 //     temp
 //       ds18b20
+//         refresh
 //   mbus
 //     on  // Powers on the M-Bus
 //     off // Powers off the M-Bus

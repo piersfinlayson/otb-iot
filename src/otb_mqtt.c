@@ -146,6 +146,10 @@ void ICACHE_FLASH_ATTR otb_mqtt_handle_loc(char **loc1,
     *loc3 = OTB_MQTT_LOCATION_3;
   }
 
+  MDEBUG("Loc 1: %s %s", *loc1, *loc1_);
+  MDEBUG("Loc 2: %s %s", *loc2, *loc2_);
+  MDEBUG("Loc 3: %s %s", *loc3, *loc3_);
+
   EXIT;
 
   return;
