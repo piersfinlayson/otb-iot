@@ -534,7 +534,7 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
   otb_conf_log(otb_conf);
   
   // Now process the config
-  if (otb_conf->keep_ap_active)
+  if (otb_conf->keep_ap_active || otb_conf->mqtt_httpd)
   {
     otb_wifi_ap_keep_alive();
   }

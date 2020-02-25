@@ -1061,11 +1061,24 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
 
   ENTRY;
 
-  body_len = otb_httpd_station_config(request,
-                                      request->method,
-                                      buf,
-                                      buf_len);
-  
+  // Expose base config pages if AP is supposed to be kept active, or if we
+  // don't have MQTT running (yet)
+  if (otb_conf->keep_ap_active || !otb_mqtt_connected)
+  {
+    body_len = otb_httpd_station_config(request,
+                                        request->method,
+                                        buf,
+                                        buf_len);
+    request->content_type = otb_httpd_content_type_text_html;
+  }
+  else
+  {
+    request->status_code = 403;
+    request->status_str = "Forbidden";
+    body_len = os_snprintf(buf, buf_len, "Keep AP alive not enabled");
+    request->content_type = otb_httpd_content_type_text_plain;
+  }
+
   buf[buf_len - 1] = 0;
 
   EXIT;

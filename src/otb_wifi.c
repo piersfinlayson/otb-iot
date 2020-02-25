@@ -744,7 +744,10 @@ bool ICACHE_FLASH_ATTR otb_wifi_ap_stop(void)
   {
     rc = wifi_set_opmode_current(STATION_MODE);
     otb_wifi_ap_sta_con_count = 0;
-    otb_httpd_stop();
+    if (!otb_conf->mqtt_httpd)
+    {
+      otb_httpd_stop();
+    }
     MDETAIL("Stopped own AP");
   }
 
