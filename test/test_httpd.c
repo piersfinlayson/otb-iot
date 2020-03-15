@@ -90,7 +90,6 @@ bool test4(char *test_name)
   
   for (tdata = data; tdata->data != NULL; tdata++)
   {
-    LOG("Create connection");
     // Create a connection
     otb_httpd_recv_cb = NULL;
     otb_httpd_recon_cb = NULL;
