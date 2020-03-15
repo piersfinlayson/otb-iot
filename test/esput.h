@@ -1,3 +1,5 @@
+
+#define OTB_DEBUG 1
 #define ICACHE_FLASH_ATTR
 #define ICACHE_RODATA_ATTR
 #define ALIGN4

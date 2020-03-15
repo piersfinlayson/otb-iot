@@ -165,9 +165,9 @@ int otb_httpd_display_ap_list(char *buffer, uint16_t buf_len);
 bool otb_httpd_started;
 bool otb_httpd_dns_inited;
 
-#define OTB_HTTP_SCRATCH_LEN 4096
+#define OTB_HTTP_SCRATCH_LEN 2048
 char *otb_httpd_scratch;
-#define OTB_HTTP_SCRATCH_MATCH_LEN 4096
+#define OTB_HTTP_SCRATCH_MATCH_LEN 2048
 char *otb_httpd_scratch_match;
 #define OTB_HTTP_MSG_LEN 2048
 char *otb_httpd_msg;

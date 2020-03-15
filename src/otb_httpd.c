@@ -19,8 +19,6 @@
  * 
  */
 
-#define OTB_DEBUG
-
 #define OTB_HTTPD_C
 #include "otb.h"
 
@@ -761,7 +759,8 @@ EXIT_LABEL:
       rsp_len += OTB_MIN(len-rsp_len, body_len);
     }
 
-    MDEBUG("RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
+    // Don't log as if too big will blow up (can't log above certain length)
+    //MDEBUG("RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
     espconn_send(conn, otb_httpd_scratch, rsp_len);
 
     if (!hconn->request.keepalive)
@@ -1639,10 +1638,10 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
     {
       *(((uint32_t*)(form_str))+str_ii) = *(((uint32_t*)(&otb_httpd_wifi_form_str))+str_ii);
     }
+    //MDEBUG("wifi form copied to ram");
     output_len += os_snprintf(buffer + output_len,
                               buf_len - output_len,
                               form_str,
-                              otb_httpd_wifi_form_str,
                               otb_conf->ssid,
                               otb_conf->mqtt.svr,
                               otb_conf->mqtt.port,
