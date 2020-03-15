@@ -58,15 +58,12 @@ espconn_reconnect_callback otb_httpd_recon_cb;
 espconn_connect_callback otb_httpd_discon_cb;
 espconn_sent_callback otb_httpd_sent_cb;
 uint8 *esput_sent_msg;
-bool test4(char *test_name)
+
+bool test_urls(char *test_name, test_httpd_data *data)
 {
   struct otb_httpd_connection *hconn;
   test_httpd_data *tdata;
-  otb_conf_struct conf;
   
-  // Set up otb_conf (is used in otb_httpd_base_handler)
-  memset(&conf, 0, sizeof(conf));
-  otb_conf = &conf;
   otb_mqtt_root = "espi";
 
   LOG("Start HTTPD");
@@ -77,18 +74,6 @@ bool test4(char *test_name)
   ESPUT_ASSERT(otb_httpd_espconn != NULL);
   ESPUT_ASSERT(otb_httpd_connect_cb != NULL);
 
-  test_httpd_data data[] =
-  {
-    {"GET / HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"GET / HTTP/1.0 ", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"GET / HTTP/1.0 \r\n\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"GET / HTTP/1.0 \r\n\r\nServer: esput", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_HEAD, 200, "HTTP/1.0 200 OK"},
-    {"PUT / HTTP/1.0", 3, 0, 200, "HTTP/1.0 405 Method Not Allowed"},
-    {NULL, 0, 0, 0},
-  };
-  
   for (tdata = data; tdata->data != NULL; tdata++)
   {
     // Create a connection
@@ -130,11 +115,75 @@ bool test4(char *test_name)
   return TRUE;
 }
 
+
+test_httpd_data base_urls_enabled[] =
+{
+  {"GET / HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET / HTTP/1.0 ", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET / HTTP/1.0 \r\n\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET / HTTP/1.0 \r\n\r\nServer: esput", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_HEAD, 200, "HTTP/1.0 200 OK"},
+  {"PUT / HTTP/1.0", 3, 0, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {NULL, 0, 0, 0},
+};
+
+test_httpd_data base_urls_disabled[] =
+{
+  {"GET / HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET / HTTP/1.0 ", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET / HTTP/1.0 \r\n\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET / HTTP/1.0 \r\n\r\nServer: esput", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_HEAD, 200, "HTTP/1.0 403 Forbidden"},
+  {"PUT / HTTP/1.0", 3, 0, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {NULL, 0, 0, 0},
+};
+
+bool test4(char *test_name)
+{
+  otb_conf_struct conf;
+  bool rc;
+
+  // Set up otb_conf (is used in otb_httpd_base_handler)
+  memset(&conf, 0, sizeof(conf));
+  otb_conf = &conf;
+
+  otb_conf->keep_ap_active = TRUE;
+  otb_mqtt_connected = FALSE;
+  rc = test_urls(test_name, base_urls_enabled);
+  if (!rc) return FALSE;
+
+  otb_conf->keep_ap_active = TRUE;
+  otb_mqtt_connected = TRUE;
+  rc = test_urls(test_name, base_urls_enabled);
+  if (!rc) return FALSE;
+
+  return TRUE;
+}
+
+bool test5(char *test_name)
+{
+  otb_conf_struct conf;
+  bool rc;
+
+  // Set up otb_conf (is used in otb_httpd_base_handler)
+  memset(&conf, 0, sizeof(conf));
+  otb_conf = &conf;
+
+  otb_conf->keep_ap_active = FALSE;
+  otb_mqtt_connected = TRUE;
+  rc = test_urls(test_name, base_urls_disabled);
+
+  return rc;
+}
+
 esput_test esput_tests[] =
 {
   {test1, "Test 1", "Start HTTPD without captive DNS, and then stop"},
   {test2, "Test 2", "Start HTTPD with captive DNS, and then stopp"},
   {test3, "Test 3", "Check correct method selected"},
   {test4, "Test 4", "Test / URL handling, with base handling enabled"},
+  {test5, "Test 5", "Test / URL handling, with base handling disabled"},
   {NULL, NULL, NULL},
 };
