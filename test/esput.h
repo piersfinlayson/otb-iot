@@ -22,18 +22,21 @@ typedef unsigned long uint32_t;
 #define OTB_MIN(A, B) (A < B) ? A : B
 
 extern char *mlog;
-#define MDETAIL(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define MDEBUG(...)
-#define MINFO(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define MWARN(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define MERROR(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define DETAIL(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define DEBUG(...)
-#define INFO(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define WARN(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
-#define ERROR(X, ...) printf("%s: " X "\n", mlog, ##__VA_ARGS__)
 #define MLOG(X) char *mlog = X
-#define LOG(X, ...) printf("ESPUT: " X "\n", ##__VA_ARGS__)
+
+extern bool esput_debug;
+
+#define MDETAIL(X, ...)  printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define MDEBUG(X, ...)   esput_debug ? printf("  %s: " X "\n", mlog, ##__VA_ARGS__) : 0
+#define MINFO(X, ...)    printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define MWARN(X, ...)    printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define MERROR(X, ...)   printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define DETAIL(X, ...)   printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define DEBUG(X, ...)    esput_debug ? printf("  %s: " X "\n", mlog, ##__VA_ARGS__) : 0
+#define INFO(X, ...)     printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define WARN(X, ...)     printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define ERROR(X, ...)    printf("  %s: " X "\n", mlog, ##__VA_ARGS__)
+#define LOG(X, ...)      printf("ESPUT: " X "\n", ##__VA_ARGS__)
 #define ENTRY
 #define EXIT
 
@@ -150,4 +153,15 @@ typedef void MQTT_Client;
         os_snprintf(STR, OTB_IP_MAX_IPV4_ADDR_LEN, "%d.%d.%d.%d", IP[0], IP[1], IP[2], IP[3]); \
         STR[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0
 
-#define ESPUT_ASSERT(X) if (!X) { printf("%s failed", #X); exit(1); }
+#define ESPUT_ASSERT(X) if (!(X)) { printf("%s: %s failed\n", test_name, #X); return(FALSE); }
+
+typedef bool esput_test_fn(char *test_name);
+
+typedef struct esput_test
+{
+  esput_test_fn *fn;
+  char *name;
+  char *descr;
+} esput_test;
+
+extern esput_test esput_tests[];

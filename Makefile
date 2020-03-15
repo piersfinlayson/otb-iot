@@ -471,7 +471,7 @@ mbus_tools: FORCE
 	cd extras/mbus_tools;. ./build.sh
 
 test_httpd:
-	gcc -Itest -Iinclude -DTEST_HTTPD=1 src/otb_httpd.c test/esput_httpd.c test/test_httpd.c -o bin/test_httpd
+	gcc -Itest -Iinclude -DTEST_HTTPD=1 test/esput.c test/test_httpd.c test/esput_httpd.c src/otb_httpd.c -o bin/test_httpd
 
 FORCE:
 

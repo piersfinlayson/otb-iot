@@ -496,10 +496,7 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_headers(otb_httpd_connection *hconn, 
   end = strstr(data, "\r\n\r\n");
   if (end == NULL)
   {
-    // Don't have entire string - bail out with 0 byte return which must
-    // meant we don't have headers yet
-    hconn->request.status_code = 400;
-    hconn->request.status_str = "Bad Request";
+    // No headers.  This isn't an illegal request.
     goto EXIT_LABEL;
   }
   end += 4;
@@ -582,7 +579,7 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     goto EXIT_LABEL;
   }
 
-  MDETAIL("REQUEST: Len %d:\n---\n%s\n---", len, data);
+  MDEBUG("REQUEST: Len %d:\n---\n%s\n---", len, data);
   hconn->request.content_type = otb_httpd_content_type_text_html;
 
   hconn->request.status_code = 200;
@@ -636,15 +633,12 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     goto EXIT_LABEL;
   }
 
-  // Ran out of message before handling it all
-  if (len <= cur)
+  // Do we have anything less to process (note no headers is legal)
+  if (len > cur)
   {
-    hconn->request.status_code = 400;
-    hconn->request.status_str = "Bad Request";
-    goto EXIT_LABEL;
+    cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
   }
 
-  cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
   
   // If a POST check we have all of it before processing
   if (hconn->request.method == OTB_HTTPD_METHOD_POST)
@@ -749,12 +743,14 @@ EXIT_LABEL:
                                              buf+rsp_len,
                                              len-rsp_len,
                                              body_len);
+    MDEBUG("core response: %s", buf);
     if (hconn->request.method != OTB_HTTPD_METHOD_HEAD)
     {
       // Don't send the body if HEAD (but do send the body_len)
-      rsp_len += OTB_HTTPD_ADD_BODY(buf+rsp_len,
-                                    len-rsp_len,
-                                    body);
+      // MDEBUG("Buf: %p buf_len: %d body: %p body_len: %d", buf+rsp_len, len-rsp_len, body, strlen(body));
+      os_memcpy(buf+rsp_len, body, OTB_MIN(len-rsp_len, body_len));
+      buf[len-1] = 0;
+      rsp_len += OTB_MIN(len-rsp_len, body_len);
     }
 
     MDEBUG("RESPONSE: Len %d:\n---\n%s\n---", rsp_len, otb_httpd_scratch);
@@ -791,7 +787,6 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_build_core_response(otb_httpd_connection *hco
   char *content_type = otb_httpd_content_type_text_html;
 
   ENTRY;
-
 
   rsp_len += OTB_HTTPD_ADD_HEADER(buf+rsp_len,
                                   len-rsp_len,
@@ -1056,6 +1051,7 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
   // don't have MQTT running (yet)
   if (otb_conf->keep_ap_active || !otb_mqtt_connected)
   {
+    MDEBUG("Base handling enabled");
     body_len = otb_httpd_station_config(request,
                                         request->method,
                                         buf,
@@ -1064,6 +1060,7 @@ uint16_t ICACHE_FLASH_ATTR otb_httpd_base_handler(otb_httpd_request *request,
   }
   else
   {
+    MDEBUG("Base handling not enabled");
     request->status_code = 403;
     request->status_str = "Forbidden";
     body_len = os_snprintf(buf, buf_len, "Keep AP alive not enabled");
@@ -1618,18 +1615,26 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   // 4 byte aligned memory rather than doing operations on it that might not
   // be 4 byte aligned!
   size_t str_size;
-  str_size = sizeof(otb_httpd_wifi_form_str)/sizeof(otb_httpd_wifi_form_str[0]);
-  form_str_orig = (unsigned char *)os_malloc(str_size + 4);
+  size_t uint32_size = sizeof(uint32_t);
+  //MDEBUG("sizeof uint32: %d", uint32_size);
+  str_size = sizeof(otb_httpd_wifi_form_str);
+  //MDEBUG("wifi form string size: %d", str_size);
+  form_str_orig = (unsigned char *)os_malloc(str_size + uint32_size);
   if (form_str_orig != NULL)
   {
-    form_str = form_str_orig + (4 - (((uint32_t)form_str_orig)%4));
-    for (str_ii = 0; str_ii < ((str_size/4)+1); str_ii++)
+    uint32_t offset = (((uint32_t)form_str_orig) % uint32_size);
+    form_str = form_str_orig + (offset ? (uint32_size - offset) : 0);
+    //MDEBUG("form_str_orig %p form_str %p", form_str_orig, form_str);
+    uint32_t str_size_ints = (str_size/uint32_size) + ((str_size%uint32_size) ? 1 : 0);
+    //MDEBUG("wifi form string size in uint32s: %d", str_size_ints);
+    for (str_ii = 0; str_ii < str_size_ints; str_ii++)
     {
       *(((uint32_t*)(form_str))+str_ii) = *(((uint32_t*)(&otb_httpd_wifi_form_str))+str_ii);
     }
     output_len += os_snprintf(buffer + output_len,
                               buf_len - output_len,
                               form_str,
+                              otb_httpd_wifi_form_str,
                               otb_conf->ssid,
                               otb_conf->mqtt.svr,
                               otb_conf->mqtt.port,
@@ -1651,6 +1656,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
   }
   else
   {
+    MWARN("Failed to allocate memory");
     output_len += os_snprintf(buffer + output_len,
                               buf_len - output_len,
                               "Internal error");

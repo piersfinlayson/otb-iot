@@ -45,3 +45,22 @@ void *otb_mqtt_client;
 #define OTB_MQTT_STATUS_HTTP "status"
 
 extern bool otb_mqtt_connected;
+
+#ifndef OTB_HTTPD_C
+extern struct espconn *otb_httpd_espconn;
+extern espconn_connect_callback otb_httpd_connect_cb;
+extern espconn_recv_callback otb_httpd_recv_cb;
+extern espconn_reconnect_callback otb_httpd_recon_cb;
+extern espconn_connect_callback otb_httpd_discon_cb;
+extern espconn_sent_callback otb_httpd_sent_cb;
+extern uint8 *esput_sent_msg;
+#endif // OTB_HTTPD_C
+
+typedef struct test_httpd_data
+{
+  char *data;
+  uint16 len;
+  uint8 method;
+  uint16 status_code;
+  char *status_str;
+} test_httpd_data;
