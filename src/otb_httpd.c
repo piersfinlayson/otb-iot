@@ -19,6 +19,8 @@
  * 
  */
 
+#define OTB_DEBUG
+
 #define OTB_HTTPD_C
 #include "otb.h"
 
@@ -580,8 +582,11 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
     goto EXIT_LABEL;
   }
 
-  MDEBUG("REQUEST: Len %d:\n---\n%s\n---", len, data);
+  MDETAIL("REQUEST: Len %d:\n---\n%s\n---", len, data);
   hconn->request.content_type = otb_httpd_content_type_text_html;
+
+  hconn->request.status_code = 200;
+  hconn->request.status_str = "OK";
 
   // Assume it's a new request if we're not mid-way through processing a POST
   if (hconn->request.handling)
@@ -608,130 +613,110 @@ void ICACHE_FLASH_ATTR otb_httpd_recv_callback(void *arg, char *data, unsigned s
 
     if (hconn->request.post.expected_data_len > len-cur)
     {
-      MDEBUG("Waiting for %d bytes more data", hconn->request.post.expected_data_len-(len-cur));
+      MDETAIL("Waiting for %d bytes more data", hconn->request.post.expected_data_len-(len-cur));
       send_rsp = false;
       goto EXIT_LABEL;
     }
 
     // Set up post data to just point at the body
-    MDEBUG("Have whole POST, so process");
+    MDETAIL("Have whole POST, so process");
     hconn->request.post.data += cur;
     hconn->request.post.current_data_len -= cur;
     hconn->request.post.data_capacity -= cur;
-    hconn->request.status_code = 200;
-    hconn->request.status_str = "OK";
-    station_config = true;
   }
   else
   {
-    hconn->request.status_code = 200;
-    hconn->request.status_str = "OK";
     cur = 0;
     cur += otb_httpd_process_start_line(hconn, data+cur, len-cur);
+  }
+  
+  if (hconn->request.status_code != 200)
+  {
+    // Failed to process headers successfully
+    goto EXIT_LABEL;
+  }
 
-    if (hconn->request.status_code != 200)
-    {
-      // Failed to process headers successfully
-      goto EXIT_LABEL;
-    }
+  // Ran out of message before handling it all
+  if (len <= cur)
+  {
+    hconn->request.status_code = 400;
+    hconn->request.status_str = "Bad Request";
+    goto EXIT_LABEL;
+  }
 
-    // Ran out of message before handling it all
-    if (len <= cur)
+  cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
+  
+  // If a POST check we have all of it before processing
+  if (hconn->request.method == OTB_HTTPD_METHOD_POST)
+  {
+    if (hconn->request.post.expected_data_len > len-cur)
     {
-      hconn->request.status_code = 400;
-      hconn->request.status_str = "Bad Request";
-      goto EXIT_LABEL;
-    }
-
-    cur += otb_httpd_process_headers(hconn, data+cur, len-cur);
-    
-    // URLs to be handled are in otb_httpd_url_match_array which also
-    // specifies match function, methods supported and any args
-    url_len = os_strlen(hconn->request.url);
-    hconn->request.match = NULL; // Should already be NULL, but belt and braces
-    for (ii = 0; otb_httpd_url_match_array[ii].match_prefix != NULL; ii++)
-    {
-      cand = otb_httpd_url_match_array + ii;
-      cand_len = os_strlen(cand->match_prefix);
-      // Match if:
-      // - The URL prefix is at least a match for the entire candidate
-      // - and the method matches
-      // - and either
-      //   - it's a wildcard match (so any suffix matches)
-      //   - or it's not a wildcard match and both the URL and candidate
-      //     are the same length (so the same)
-      if (!os_strncmp(hconn->request.url,
-                      cand->match_prefix,
-                      cand_len) &&
-          (hconn->request.method & cand->methods) &&
-          (cand->wildcard ||
-           (cand_len == os_strlen(hconn->request.url))))
+      // Don't have the whole message yet
+      MDEBUG("Haven't got whole POST, so don't process");
+      if ((hconn->request.post.expected_data_len + 1 ) > OTB_HTTP_MSG_LEN)  // +1 for NULL term
       {
-        hconn->request.match = cand;
-        MDETAIL("URL match: %s with: %s", hconn->request.url, cand->match_prefix);
-        break;
-      }
-    }
-    if (hconn->request.match == NULL)
-    {
-      hconn->request.status_code = 404;
-      hconn->request.status_str = "Not Found";
-      MDETAIL("URL not found: %s %d", hconn->request.url, hconn->request.status_code);
-      goto EXIT_LABEL;
-    }
-
-    // If a POST check we have all of it before processing
-    if (hconn->request.method == OTB_HTTPD_METHOD_POST)
-    {
-      if (hconn->request.post.expected_data_len > len-cur)
-      {
-        // Don't have the whole message yet
-        MDEBUG("Haven't got whole POST, so don't process");
-        if ((hconn->request.post.expected_data_len + 1 ) > OTB_HTTP_MSG_LEN)  // +1 for NULL term
-        {
-          MDEBUG("Don't have enough buffer to process entire message");
-          hconn->request.status_code = 413;
-          hconn->request.status_str = "Request Entity Too Large";
-          body = "Can't handle a message this large";
-        }
-        else
-        {
-          hconn->request.status_code = 200;
-          hconn->request.status_str = "OK";
-          send_rsp = false;
-          hconn->request.post.data = otb_httpd_msg;
-          os_memcpy(hconn->request.post.data, data, len);
-          hconn->request.post.data_capacity = OTB_HTTP_MSG_LEN;
-          hconn->request.post.current_data_len = len;
-          hconn->request.post.data[hconn->request.post.current_data_len] = 0; // NULL terminate
-          hconn->request.handling = true;
-        }
-        goto EXIT_LABEL;
+        MDEBUG("Don't have enough buffer to process entire message");
+        hconn->request.status_code = 413;
+        hconn->request.status_str = "Request Entity Too Large";
+        body = "Can't handle a message this large";
       }
       else
       {
-        MDEBUG("Have whole POST, so process");
-        hconn->request.post.data = data+cur;
-        hconn->request.post.data_capacity = len-cur;
-        hconn->request.post.current_data_len = len-cur;
-        handle = TRUE;
+        hconn->request.status_code = 200;
+        hconn->request.status_str = "OK";
+        send_rsp = false;
+        hconn->request.post.data = otb_httpd_msg;
+        os_memcpy(hconn->request.post.data, data, len);
+        hconn->request.post.data_capacity = OTB_HTTP_MSG_LEN;
+        hconn->request.post.current_data_len = len;
+        hconn->request.post.data[hconn->request.post.current_data_len] = 0; // NULL terminate
+        hconn->request.handling = true;
       }
+      goto EXIT_LABEL;
     }
     else
     {
-      handle = TRUE;
+      MDEBUG("Have whole POST, so process");
+      hconn->request.post.data = data+cur;
+      hconn->request.post.data_capacity = len-cur;
+      hconn->request.post.current_data_len = len-cur;
     }
+  }
     
-    // Waiting until after checking URL for this - as if a POST
-    // to the wrong URL we can just return immediately whether
-    // we have all this message or not
-    if (hconn->request.status_code != 200)
+  // URLs to be handled are in otb_httpd_url_match_array which also
+  // specifies match function, methods supported and any args
+  url_len = os_strlen(hconn->request.url);
+  hconn->request.match = NULL; // Should already be NULL, but belt and braces
+  for (ii = 0; otb_httpd_url_match_array[ii].match_prefix != NULL; ii++)
+  {
+    cand = otb_httpd_url_match_array + ii;
+    cand_len = os_strlen(cand->match_prefix);
+    // Match if:
+    // - The URL prefix is at least a match for the entire candidate
+    // - and the method matches
+    // - and either
+    //   - it's a wildcard match (so any suffix matches)
+    //   - or it's not a wildcard match and both the URL and candidate
+    //     are the same length (so the same)
+    if (!os_strncmp(hconn->request.url,
+                    cand->match_prefix,
+                    cand_len) &&
+        (hconn->request.method & cand->methods) &&
+        (cand->wildcard ||
+          (cand_len == os_strlen(hconn->request.url))))
     {
-      // Failed to process headers successfully.
-      // If a POST bail out and wait for another message
-      // If any other messages just reject
-      goto EXIT_LABEL;
+      hconn->request.match = cand;
+      MDETAIL("URL match: %s with: %s", hconn->request.url, cand->match_prefix);
+      handle = TRUE;
+      break;
     }
+  }
+  if (hconn->request.match == NULL)
+  {
+    hconn->request.status_code = 404;
+    hconn->request.status_str = "Not Found";
+    MDETAIL("URL not found: %s %d", hconn->request.url, hconn->request.status_code);
+    goto EXIT_LABEL;
   }
   
 EXIT_LABEL:
@@ -744,6 +729,7 @@ EXIT_LABEL:
       // the match function does (hint, handles a URL/method!)
       hconn->request.status_code = 200;
       hconn->request.status_str = "OK";
+      otb_httpd_scratch_match[0] = 0;
       body_len = hconn->request.match->handler_fn(&(hconn->request),
                                                   hconn->request.match->arg,
                                                   otb_httpd_scratch_match,
@@ -755,7 +741,6 @@ EXIT_LABEL:
     {
       body_len = os_strlen(body);
     }
-   
 
     buf = otb_httpd_scratch;
     len = OTB_HTTP_SCRATCH_LEN;
@@ -789,6 +774,10 @@ EXIT_LABEL:
 
     // We've handled this request, so clear it out
     os_memset(&hconn->request, 0, sizeof(hconn->request));
+  }
+  else
+  {
+    MDEBUG("Don't send a response");
   }
 
   EXIT;

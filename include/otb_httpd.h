@@ -216,7 +216,7 @@ otb_httpd_url_match otb_httpd_url_match_array[] =
    otb_httpd_base_handler,
    NULL,
    OTB_HTTPD_METHOD_HEAD | OTB_HTTPD_METHOD_GET | OTB_HTTPD_METHOD_POST},
-  {NULL, NULL, NULL}, // Must terminate with this
+  {NULL, FALSE, NULL, NULL, OTB_HTTPD_METHOD_NONE}, // Must terminate with this
 };
 
 static const char ALIGN4 ICACHE_RODATA_ATTR otb_httpd_wifi_form_str[] =
