@@ -373,8 +373,16 @@ uint16 ICACHE_FLASH_ATTR otb_httpd_process_start_line(otb_httpd_connection *hcon
 
 
   cur += otb_httpd_process_method(hconn, data+cur, len-cur);
+  if (hconn->request.status_code != 200)
+  {
+    // Need to hard code HTTP version - as otherwise won't have one set
+    os_strcpy(hconn->request.http, OTB_HTTPD_HTTP_1_0);
+    goto EXIT_LABEL;
+  }
   cur += otb_httpd_process_url(hconn, data+cur, len-cur);
   cur += otb_httpd_process_http(hconn, data+cur, len-cur);
+
+EXIT_LABEL:
 
   EXIT;
 

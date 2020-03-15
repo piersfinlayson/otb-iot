@@ -83,8 +83,9 @@ bool test4(char *test_name)
     {"GET / HTTP/1.0 ", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
     {"GET / HTTP/1.0 \r\n\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
     {"GET / HTTP/1.0 \r\n\r\nServer: esput", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
-    {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+    {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+    {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_HEAD, 200, "HTTP/1.0 200 OK"},
+    {"PUT / HTTP/1.0", 3, 0, 200, "HTTP/1.0 405 Method Not Allowed"},
     {NULL, 0, 0, 0},
   };
   
@@ -118,6 +119,7 @@ bool test4(char *test_name)
     // We can't check the hconn->request as the recv_cb function clears it
     // after sending
     ESPUT_ASSERT(esput_sent_msg != NULL);
+    esput_debug ? LOG("Response: %s", esput_sent_msg) : 0;
     ESPUT_ASSERT(!memcmp(tdata->status_str, esput_sent_msg, strlen(tdata->status_str)));
     free(esput_sent_msg);
   }

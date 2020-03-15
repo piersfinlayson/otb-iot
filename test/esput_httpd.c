@@ -23,9 +23,10 @@ sint8 esput_espconn_disconnect(struct espconn *espconn)
 
 sint8 esput_espconn_send(struct espconn *espconn, uint8 *psent, uint16 length)
 {
-  esput_sent_msg = malloc(length);
+  esput_sent_msg = malloc(length+1);
   assert(esput_sent_msg != NULL);
   memcpy(esput_sent_msg, psent, length);
+  esput_sent_msg[length] = 0; // NULL terminate
   return 0;
 }
 
