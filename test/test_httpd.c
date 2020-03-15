@@ -115,7 +115,6 @@ bool test_urls(char *test_name, test_httpd_data *data)
   return TRUE;
 }
 
-
 test_httpd_data base_urls_enabled[] =
 {
   {"GET / HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
@@ -125,6 +124,8 @@ test_httpd_data base_urls_enabled[] =
   {"GET / HTTP/1.0 \r\n\r\nServer: esput\r\n", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
   {"HEAD / HTTP/1.0", 3, OTB_HTTPD_METHOD_HEAD, 200, "HTTP/1.0 200 OK"},
   {"PUT / HTTP/1.0", 3, 0, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {"GET /random_url HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET /base HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
   {NULL, 0, 0, 0},
 };
 
@@ -178,6 +179,117 @@ bool test5(char *test_name)
   return rc;
 }
 
+test_httpd_data favicon_urls[] =
+{
+  {"GET /favicon.ico HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 404 Not Found"},
+  {NULL, 0, 0, 0},
+};
+
+bool test6(char *test_name)
+{
+  otb_conf_struct conf;
+  bool rc;
+
+  // Set up otb_conf (is used in otb_httpd_base_handler)
+  memset(&conf, 0, sizeof(conf));
+  otb_conf = &conf;
+
+  rc = test_urls(test_name, favicon_urls);
+
+  return rc;
+}
+
+test_httpd_data mqtt_urls_enabled[] =
+{
+  {"GET /mqtt HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 400 Bad Request"},
+  {"GET /otb-iot HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 400 Bad Request"},
+  {"GET /espi HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 400 Bad Request"},
+  {"GET /espi/get HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"POST /espi/get HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET /espi/set HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {"POST /espi/set HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET /espi/trigger HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {"POST /espi/trigger HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {"GET /espi/delete HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 405 Method Not Allowed"},
+  {"POST /espi/delete HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 200 OK"},
+  {NULL, 0, 0, 0},
+};
+
+test_httpd_data mqtt_urls_disabled[] =
+{
+  {"GET /mqtt HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /otb-iot HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /espi HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /espi/get HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"POST /espi/get HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /espi/set HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"POST /espi/set HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /espi/trigger HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"POST /espi/trigger HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"GET /espi/delete HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {"POST /espi/delete HTTP/1.0", 3, OTB_HTTPD_METHOD_GET, 200, "HTTP/1.0 403 Forbidden"},
+  {NULL, 0, 0, 0},
+};
+
+bool test7(char *test_name)
+{
+  otb_conf_struct conf;
+  bool rc;
+
+  // Set up otb_conf (is used in otb_httpd_base_handler)
+  memset(&conf, 0, sizeof(conf));
+  otb_conf = &conf;
+
+  otb_conf->mqtt_httpd = TRUE;
+  otb_conf->keep_ap_active = TRUE;
+  otb_mqtt_connected = FALSE;
+  rc = test_urls(test_name, mqtt_urls_enabled);
+  if (!rc) return FALSE;
+
+  otb_conf->mqtt_httpd = TRUE;
+  otb_conf->keep_ap_active = FALSE;
+  otb_mqtt_connected = FALSE;
+  rc = test_urls(test_name, mqtt_urls_enabled);
+  if (!rc) return FALSE;
+
+  otb_conf->mqtt_httpd = TRUE;
+  otb_conf->keep_ap_active = FALSE;
+  otb_mqtt_connected = TRUE;
+  rc = test_urls(test_name, mqtt_urls_enabled);
+  if (!rc) return FALSE;
+
+  return TRUE;
+}
+
+bool test8(char *test_name)
+{
+  otb_conf_struct conf;
+  bool rc;
+
+  memset(&conf, 0, sizeof(conf));
+  otb_conf = &conf;
+
+  otb_conf->mqtt_httpd = FALSE;
+  otb_conf->keep_ap_active = TRUE;
+  otb_mqtt_connected = FALSE;
+  rc = test_urls(test_name, mqtt_urls_disabled);
+  if (!rc) return FALSE;
+
+  otb_conf->mqtt_httpd = FALSE;
+  otb_conf->keep_ap_active = FALSE;
+  otb_mqtt_connected = FALSE;
+  rc = test_urls(test_name, mqtt_urls_disabled);
+  if (!rc) return FALSE;
+
+  otb_conf->mqtt_httpd = FALSE;
+  otb_conf->keep_ap_active = FALSE;
+  otb_mqtt_connected = TRUE;
+  rc = test_urls(test_name, mqtt_urls_disabled);
+  if (!rc) return FALSE;
+
+  return TRUE;
+}
+
 esput_test esput_tests[] =
 {
   {test1, "Test 1", "Start HTTPD without captive DNS, and then stop"},
@@ -185,5 +297,8 @@ esput_test esput_tests[] =
   {test3, "Test 3", "Check correct method selected"},
   {test4, "Test 4", "Test / URL handling, with base handling enabled"},
   {test5, "Test 5", "Test / URL handling, with base handling disabled"},
+  {test6, "Test 6", "Test /favicon.ico URL handling"},
+  {test7, "Test 7", "Test MQTT URL handling, with it enabled"},
+  {test8, "Test 8", "Test MQTT URL handling, with it enabled"},
   {NULL, NULL, NULL},
 };
