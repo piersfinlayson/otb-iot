@@ -136,6 +136,6 @@ esput_test esput_tests[] =
   {test1, "Test 1", "Start HTTPD without captive DNS, and then stop"},
   {test2, "Test 2", "Start HTTPD with captive DNS, and then stopp"},
   {test3, "Test 3", "Check correct method selected"},
-  {test4, "Test 4", "Process full HTTP message"},
+  {test4, "Test 4", "Test / URL handling, with base handling enabled"},
   {NULL, NULL, NULL},
 };
