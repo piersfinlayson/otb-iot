@@ -1660,6 +1660,7 @@ int ICACHE_FLASH_ATTR otb_httpd_wifi_form(char *buffer, uint16_t buf_len)
                               gateway,
                               dns1,
                               dns2);
+    buffer[buf_len-1] = 0;
     os_free(form_str_orig);
   }
   else
