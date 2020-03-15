@@ -455,33 +455,24 @@ void ICACHE_FLASH_ATTR otb_i2c_ads_finish_sample(otb_i2c_ads_samples *samples)
   chars_mains += os_snprintf(message_mains+chars_mains, OTB_I2C_ADS_ON_TIMER_MSG_LEN-chars_mains, ":%d.%02dV", OTB_I2C_ADS_ON_TIMER_MAINS_VOLTAGE, 0);
 
   // ADS ADC measurements (reading, time taken, mV)
-  os_snprintf(otb_mqtt_topic_s,
-              OTB_MQTT_MAX_TOPIC_LENGTH,
-              "/%s/%s/%s/%s/%s/%s/%s",
-              otb_mqtt_root,
-              OTB_MQTT_LOCATION_1,
-              OTB_MQTT_LOCATION_2,
-              OTB_MQTT_LOCATION_3,
-              OTB_MAIN_CHIPID,
-              OTB_MQTT_ADC,
-              ads->loc);
-  MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
-  MDEBUG("      message: %s", message);
-  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message, chars, 0, 0);
-
-  os_snprintf(otb_mqtt_topic_s,
-              OTB_MQTT_MAX_TOPIC_LENGTH,
-              "/%s/%s/%s/%s/%s/%s/%s",
-              otb_mqtt_root,
-              OTB_MQTT_LOCATION_1,
-              OTB_MQTT_LOCATION_2,
-              OTB_MQTT_LOCATION_3,
-              OTB_MAIN_CHIPID,
-              OTB_MQTT_POWER,
-              ads->loc);
-  MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
-  MDEBUG("      message: %s", message_mains);
-  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, message_mains, chars_mains, 0, 0);
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_ADC,
+                   ads->loc,
+                   message,
+                   "",
+                   0,
+                   0,
+                   NULL,
+                   0);
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_POWER,
+                   ads->loc,
+                   message_mains,
+                   "",
+                   0,
+                   0,
+                   NULL,
+                   0);
 
   EXIT;
   

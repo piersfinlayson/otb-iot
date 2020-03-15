@@ -121,7 +121,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
   #define DEBUG(...)      LOG(NULL, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
   #define DEBUG_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else // OTB_DEBUG
-  #define MDEBUG(...)
+  #define MDEBUG(...) 
   #define DEBUG(...)
   #define DEBUG_VAR(...)
 #endif // OTB_DEBUG

@@ -1523,18 +1523,16 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
 {
   ENTRY;
 
-  os_snprintf(otb_mqtt_topic_s,
-              OTB_MQTT_MAX_TOPIC_LENGTH,
-              "/%s/%s/%s/%s/%s/%s",
-              otb_mqtt_root,
-              OTB_MQTT_LOCATION_1,
-              OTB_MQTT_LOCATION_2,
-              OTB_MQTT_LOCATION_3,
-              OTB_MAIN_CHIPID,
-              OTB_MQTT_PUB_LOG);
-
   // QOS=1 so gets through at least once, retain=0 so last log not retained
-  MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, text, strlen(text),  1, 0);
+  otb_mqtt_publish(&otb_mqtt_client,
+                   OTB_MQTT_PUB_LOG,
+                   "",
+                   text,
+                   "",
+                   1,
+                   0,
+                   NULL,
+                   0);
 
   EXIT;
 

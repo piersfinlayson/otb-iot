@@ -245,6 +245,7 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
   char *sensor_loc;
   int tries;
   char output[32];
+  char output2[32];
   
   ENTRY;
 
@@ -307,9 +308,10 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
     if (tries > 1)
     {
       // Record the fact that we had to retry
-      chars = os_snprintf(output, 31, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
+      os_snprintf(output, 31, "retries:%d/final:%s", tries-1, otb_ds18b20_last_temp_s[addr->index]);
+      os_snprintf(output2, 31, "%s/%s", OTB_MQTT_STATUS_ERROR, OTB_MQTT_TEMPERATURE);
       otb_mqtt_publish(&otb_mqtt_client,
-                       "error/temp", // Should use #define
+                       output2,
                        sensor_loc,
                        output,
                        "",
@@ -317,22 +319,6 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                        1,
                        NULL,
                        0);
-#if 0
-      os_snprintf(otb_mqtt_topic_s,
-                  OTB_MQTT_MAX_TOPIC_LENGTH,
-                  "/%s/%s/%s/%s/%s/%s/%s/%s",
-                  otb_mqtt_root,
-                  OTB_MQTT_LOCATION_1,
-                  OTB_MQTT_LOCATION_2,
-                  OTB_MQTT_LOCATION_3,
-                  OTB_MAIN_CHIPID,
-                  "error",
-                  OTB_MQTT_TEMPERATURE,
-                  sensor_loc);
-      MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
-      MDEBUG("      message: %s", output);
-      MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, output, chars, 0, 1);  
-#endif      
     }
 
     if (strcmp(otb_ds18b20_last_temp_s[addr->index], "-127.00") &&
@@ -343,8 +329,6 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
       // size.
       // Setting qos = 0 (don't care if gets lost), retain = 1 (always retain last
       // publish)
-      // XXX Should replace with otb_mqtt_publish call
-      
       otb_mqtt_publish(&otb_mqtt_client,
                        OTB_MQTT_TEMPERATURE,
                        sensor_loc,
@@ -354,21 +338,6 @@ void ICACHE_FLASH_ATTR otb_ds18b20_callback(void *arg)
                        1,
                        NULL,
                        0);
-#if 0
-      os_snprintf(otb_mqtt_topic_s,
-                  OTB_MQTT_MAX_TOPIC_LENGTH,
-                  "/%s/%s/%s/%s/%s/%s/%s",
-                  otb_mqtt_root,
-                  OTB_MQTT_LOCATION_1,
-                  OTB_MQTT_LOCATION_2,
-                  OTB_MQTT_LOCATION_3,
-                  OTB_MAIN_CHIPID,
-                  OTB_MQTT_TEMPERATURE,
-                  sensor_loc);
-      MDEBUG("Publish topic: %s", otb_mqtt_topic_s);
-      MDEBUG("      message: %s", otb_ds18b20_last_temp_s[addr->index]);
-      MQTT_Publish(&otb_mqtt_client, otb_mqtt_topic_s, otb_ds18b20_last_temp_s[addr->index], chars, 0, 1);
-#endif
     }
   }
   else
