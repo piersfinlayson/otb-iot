@@ -150,4 +150,4 @@ typedef void MQTT_Client;
         os_snprintf(STR, OTB_IP_MAX_IPV4_ADDR_LEN, "%d.%d.%d.%d", IP[0], IP[1], IP[2], IP[3]); \
         STR[OTB_IP_MAX_IPV4_ADDR_LEN-1] = 0
 
-#define ESPUT_ASSERT(X) if (!X) { printf("%s failed", #X); return 1; }
+#define ESPUT_ASSERT(X) if (!X) { printf("%s failed", #X); exit(1); }
