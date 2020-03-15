@@ -114,12 +114,10 @@ bool test4(char *test_name)
     ESPUT_ASSERT(hconn->remote_ip[3] == 1);
     ESPUT_ASSERT(hconn->remote_port == 8080);
 
-    LOG("Send in message: %s", tdata->data);
     esput_sent_msg = NULL;
     otb_httpd_recv_cb(otb_httpd_espconn, tdata->data, strlen(tdata->data));
     // We can't check the hconn->request as the recv_cb function clears it
     // after sending
-    LOG("Received response");
     ESPUT_ASSERT(esput_sent_msg != NULL);
     ESPUT_ASSERT(!memcmp(tdata->status_str, esput_sent_msg, strlen(tdata->status_str)));
     free(esput_sent_msg);
