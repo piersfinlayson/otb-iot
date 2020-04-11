@@ -26,8 +26,6 @@
 #include <Arduino.h>
 #endif
 #ifndef ESPUT
-#include "osapi.h"
-#include <os_type.h>
 #else
 #include "esput.h"
 #endif // ESPUT

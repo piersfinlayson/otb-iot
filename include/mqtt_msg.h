@@ -29,7 +29,7 @@
 #ifndef MQTT_MSG_H
 #define	MQTT_MSG_H
 #ifndef ESPUT
-#include "c_types.h"
+#include "esp_types.h"
 #else
 #include "ctype.h"
 #endif // ESPUT

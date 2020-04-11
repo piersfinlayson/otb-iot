@@ -24,7 +24,7 @@
 
 #include "uart_register.h"
 #include "eagle_soc.h"
-#include "c_types.h"
+#include "esp_types.h"
 
 #define RX_BUFF_SIZE    256
 #define TX_BUFF_SIZE    100
@@ -81,17 +81,17 @@ typedef enum {
 } RcvMsgBuffState;
 
 typedef struct {
-    uint32     RcvBuffSize;
-    uint8     *pRcvMsgBuff;
-    uint8     *pWritePos;
-    uint8     *pReadPos;
-    uint8      TrigLvl; //JLU: may need to pad
+    uint32_t     RcvBuffSize;
+    uint8_t     *pRcvMsgBuff;
+    uint8_t     *pWritePos;
+    uint8_t     *pReadPos;
+    uint8_t      TrigLvl; //JLU: may need to pad
     RcvMsgBuffState  BuffState;
 } RcvMsgBuff;
 
 typedef struct {
-    uint32   TrxBuffSize;
-    uint8   *pTrxBuff;
+    uint32_t   TrxBuffSize;
+    uint8_t   *pTrxBuff;
 } TrxMsgBuff;
 
 typedef enum {

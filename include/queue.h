@@ -55,7 +55,6 @@
 #include <Arduino.h>
 #endif
 #ifndef ESPUT
-#include "os_type.h"
 #else
 #include "ctype.h"
 #endif

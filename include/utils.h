@@ -23,7 +23,7 @@
 #define	_UTILS_H_
 
 #ifndef ESPUT
-#include "c_types.h"
+#include "esp_types.h"
 #else
 #include "esput.h"
 #endif

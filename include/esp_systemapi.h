@@ -3,13 +3,8 @@
 #ifndef __ESP_SYSTEM_API_H__
 #define __ESP_SYSTEM_API_H__
 
-#include <ets_sys.h>
-#include <osapi.h>
-#include <gpio.h>
-#include <os_type.h>
-#include <user_interface.h>
-#include <spi_flash.h>
-#include <espconn.h>
+#include <rom/ets_sys.h>
+#include <sdkconfig.h>
 
 #include <stdarg.h>
 
@@ -17,7 +12,6 @@
 
 #define __ESP8266_EX__ // System definition ESP8266 SOC
 
-#define IRAM_ATTR __attribute__((section(".iram.text")))
 #define __forceinline __attribute__((always_inline)) inline
 #define STORE_TYPEDEF_ATTR __attribute__((aligned(4),packed))
 #define STORE_ATTR __attribute__((aligned(4)))
@@ -28,8 +22,8 @@
 #define SYSTEM_ERROR(fmt, ...) m_printf("ERROR: " fmt "\r\n", ##__VA_ARGS__)
 
 extern void ets_timer_arm_new(os_timer_t *ptimer, uint32_t time, bool repeat_flag, bool ms_flag);
-extern void ets_timer_disarm(ETSTimer *a);
-extern void ets_timer_setfn(ETSTimer *t, ETSTimerFunc *pfunction, void *parg);
+//extern void ets_timer_disarm(ETSTimer *a);
+//extern void ets_timer_setfn(ETSTimer *t, ETSTimerFunc *pfunction, void *parg);
 
 extern void ets_wdt_enable(void);
 extern void ets_wdt_disable(void);
@@ -61,12 +55,12 @@ extern int os_snprintf(char *str, size_t size, const char *format, ...) __attrib
 extern int ets_snprintf(char *str, size_t size, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
 extern int ets_vsnprintf(char * s, size_t n, const char * format, va_list arg) __attribute__ ((format (printf, 3, 0)));
 
-extern void *pvPortZalloc(size_t xWantedSize, const char *file, uint32 line);
-extern void pvPortFree(void *ptr);
-extern void vPortFree(void *ptr, const char *file, uint32 line);
-extern void *vPortMalloc(size_t xWantedSize);
+//extern void *pvPortZalloc(size_t xWantedSize, const char *file, uint32_t line);
+//extern void pvPortFree(void *ptr);
+//extern void vPortFree(void *ptr, const char *file, uint32_t line);
+//extern void *vPortMalloc(size_t xWantedSize);
 
-extern void uart_div_modify(uint8 uart_no, uint32 DivLatchValue);
+extern void uart_div_modify(uint8_t uart_no, uint32_t DivLatchValue);
 extern int ets_uart_printf(const char *fmt, ...);
 extern int ets_printf(const char *fmt, ...);
 extern void uart_tx_one_char(char ch);

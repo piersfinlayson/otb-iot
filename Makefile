@@ -21,7 +21,8 @@ include hardware
 # SDK versions, etc
 SDK_BASE ?= ~
 RTOS_DIR ?= ESP8266_RTOS_SDK
-ESP_SDK = $(RTOS_DIR)/components/esp8266
+IDF_COMP = $(SDK_BASE)/$(RTOS_DIR)/components
+ESP_SDK = $(IDF_COMP)/esp8266
 
 # Build tools
 XTENSA_DIR = $(SDK_BASE)/xtensa-lx106-elf/bin
@@ -48,7 +49,19 @@ SERIAL_CMD = python2.7 /usr/lib/python2.7/dist-packages/serial/tools/miniterm.py
 SERIAL = $(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
-CFLAGS = -Os -Iinclude -Iinclude/boards -I$(SDK_BASE)/sdk/include -I$(SDK_BASE)/ESP8266_NONOS_SDK-3.0/driver_lib/include -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
+IDF_INCLUDE = -I$(ESP_SDK)/include \
+							-I$(IDF_COMP)/esp8266/include/esp8266 \
+              -I$(IDF_COMP)/lwip/lwip/src/include \
+							-I$(IDF_COMP)/lwip/include/lwip/apps \
+							-I$(IDF_COMP)/lwip/port/esp8266/include \
+							-I$(IDF_COMP)/heap/include \
+							-I$(IDF_COMP)/heap/port/esp8266/include \
+							-I$(IDF_COMP)/tcpip_adapter/include \
+							-I$(IDF_COMP)/freertos/include \
+							-I$(IDF_COMP)/freertos/port/esp8266/include \
+							-I$(IDF_COMP)/freertos/port/esp8266/include/freertos \
+							-I$(IDF_COMP)/freertos/include/freertos/private
+CFLAGS = -Os -Iinclude -Iinclude/boards $(IDF_INCLUDE) -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=4 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 
@@ -133,7 +146,7 @@ CHECK_STAGE_APP_IMAGE_FILE_SIZE = \
 LD_DIR = ld
 LDLIBS = -Wl,--start-group -lc -lcirom -lgcc -lhal -lphy -lpp -lnet80211 -lwpa -lmain2 -llwip -Wl,--end-group
 BUILD_NUM_FILE = include/otb_build_num.txt
-LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(SDK_BASE)/$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
+LDFLAGS = -T$(LD_DIR)/eagle.app.v6.ld -nostdlib -Wl,--no-check-sections -Wl,-static -L$(ESP_SDK)/lib -u call_user_start -u Cache_Read_Enable_New -Lbin
 LDFLAGS += -Xlinker --defsym -Xlinker otb_build_num=$$(cat $(BUILD_NUM_FILE))
 RBOOT_LDFLAGS = -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 LD_SCRIPT = $(LD_DIR)/eagle.app.v6.ld
@@ -260,7 +273,7 @@ bin/stage_app_image.elf: build_num libphy2 stage_objects
 
 sdk_init_data.bin: directories
 	rm -f $(HWINFO_OBJ_DIR)/sdk_init_data.bin
-	if test -f $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default_v05.bin; then ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default_v05.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin; else ln -s $(SDK_BASE)/$(ESP_SDK)/bin/esp_init_data_default.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin; fi
+	if test -f $(ESP_SDK)/bin/esp_init_data_default_v05.bin; then ln -s $(ESP_SDK)/bin/esp_init_data_default_v05.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin; else ln -s $(ESP_SDK)/bin/esp_init_data_default.bin $(HWINFO_OBJ_DIR)/sdk_init_data.bin; fi
 
 otb_hwinfo_sdk_init_data.h: sdk_init_data.bin
 	xxd -i $(HWINFO_OBJ_DIR)/sdk_init_data.bin $(HWINFO_OBJ_DIR)/otb_hwinfo_sdk_init_data.h
@@ -273,7 +286,7 @@ stage: $(stageObjects)
 
 # can replace with our own version (from rboot-bigflash.c)
 libphy2: directories
-	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libphy.a bin/libphy2.a
+	$(OBJCOPY) -W Cache_Read_Enable_New $(ESP_SDK)/lib/libphy.a bin/libphy2.a
 
 #otb_objects: clean_otb_util_o $(otbObjects)
 otb_objects: $(otbObjects)
@@ -391,9 +404,9 @@ flash: flash_boot flash_app
 
 flash_blank:
 	$(STANDBY)
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fb000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fb000 $(ESP_SDK)/bin/blank.bin
 	$(STANDBY)
-	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fe000 $(SDK_BASE)/$(ESP_SDK)/bin/blank.bin
+	$(ESPTOOL_PY) $(ESPTOOL_PY_OPTS) write_flash 0x3fe000 $(ESP_SDK)/bin/blank.bin
 	$(RUN)
 
 flash_sdk: hwinfo

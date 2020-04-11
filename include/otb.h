@@ -2,7 +2,7 @@
  *
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-2018 Piers Finlayson
+ * Copyright (C) 2016-2020 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -39,26 +39,42 @@
 #include "stdarg.h"
 
 #ifndef ESPUT
-// ESP SDK
-#include "osapi.h"
-#include "c_types.h"
-#include "ets_sys.h"
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
-#include "user_interface.h"
-#include "smartconfig.h"
+// RTOS SDK include
+#include "esp_types.h"
+#include "esp_attr.h"
+#include "esp_clk.h"
+#include "esp_err.h"
+#include "esp_event.h"
+#include "esp_event_loop.h"
+#include "esp_idf_version.h"
+#include "esp_interface.h"
+#include "esp_libc.h"
+// #include "esp_now.h"
+#include "esp_phy_init.h"
+#include "esp_sleep.h"
+#include "esp_smartconfig.h"
+// #include "esp_ssc.h"
+#include "esp_system.h"
+#include "esp_task_wdt.h"
+#include "esp_timer.h"
+#include "esp_wifi.h"
+// #include "esp_wifi_crypto_types.h"
+// #include "esp_wifi_osi.h"
+#include "esp_wifi_types.h"
+#include "esp_wpa2.h"
+#include "esp_wps.h"
+
+// otb-iot includes
 #include "esp_systemapi.h"
+#include "rom/ets_sys.h"
+#include "sdkconfig.h"
 #include "uart.h"
-#include "esp_sdk_ver.h"
-#include "espconn.h"
 #else
 #include "esput.h"
 #endif // ESPUT
 
 // MQTT
 #ifndef ESPUT
-#include "espconn.h"
 #else
 // XXX
 #endif // ESPUT
