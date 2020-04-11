@@ -66,6 +66,7 @@
 #include "os.h"
 #include "gpio.h"
 #include "spi_flash.h"
+#include "rom_functions.h"
 
 typedef uint8_t BOOL;
 typedef uint8_t uint8;
@@ -103,6 +104,8 @@ extern uint32 system_get_chip_id ( void );
 #define system_get_free_heap_size esp_get_free_heap_size
 #define ETS_INTR_LOCK ets_intr_lock
 #define ETS_INTR_UNLOCK ets_intr_lock
+#define wifi_station_set_auto_connect esp_wifi_set_auto_connect
+#define os_sprintf sprintf
 
 // otb-iot includes
 #include "esp_systemapi.h"

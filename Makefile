@@ -188,8 +188,6 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_break.o \
              $(OTB_OBJ_DIR)/otb_font.o \
              $(OTB_OBJ_DIR)/otb_led.o \
-             $(OTB_OBJ_DIR)/otb_wifi.o \
-             $(OTB_OBJ_DIR)/otb_main.o \
              $(OTB_OBJ_DIR)/otb_util.o \
              $(OTB_OBJ_DIR)/otb_rboot.o \
              $(OTB_OBJ_DIR)/otb_gpio.o \
@@ -203,6 +201,8 @@ otbObjects = $(OTB_OBJ_DIR)/otb_ds18b20.o \
              $(OTB_OBJ_DIR)/otb_nixie.o \
              $(OTB_OBJ_DIR)/otb_intr.o \
              $(OTB_OBJ_DIR)/otb_mbus.o \
+             $(OTB_OBJ_DIR)/otb_main.o \
+             $(OTB_OBJ_DIR)/otb_wifi.o \
              $(RBOOT_OBJ_DIR)/rboot_ota.o \
              $(RBOOT_OBJ_DIR)/rboot-api.o \
              $(RBOOT_OBJ_DIR)/rboot-bigflash.o \
