@@ -50,6 +50,7 @@ SERIAL = $(SERIAL_CMD) $(SERIAL_PORT) $(SERIAL_BAUD) --raw
 
 # Compile options
 IDF_INCLUDE = -I$(ESP_SDK)/include \
+							-I$(IDF_COMP)/spi_flash/include \
 							-I$(IDF_COMP)/esp8266/include/esp8266 \
 							-I$(IDF_COMP)/esp8266/include/rom \
               -I$(IDF_COMP)/lwip/lwip/src/include \
@@ -64,7 +65,8 @@ IDF_INCLUDE = -I$(ESP_SDK)/include \
 							-I$(IDF_COMP)/freertos/port/esp8266/include/freertos \
 							-I$(IDF_COMP)/freertos/include/freertos/private \
 							-I$(IDF_COMP)/wpa_supplicant/port/include
-CFLAGS = -Os -Iinclude -Iinclude/boards $(IDF_INCLUDE) -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
+ESP_D = -D__ESP_FILE__=__FILE__				
+CFLAGS = -Os -Iinclude -Iinclude/boards $(IDF_INCLUDE) $(ESP_D) -mlongcalls -c -ggdb -Wpointer-arith -Wundef -Wno-address -Wl,-El -fno-inline-functions -nostdlib -mtext-section-literals -DICACHE_FLASH -Werror -D__ets__ -Ilib/rboot $(HW_DEFINES) -Ilib/esp8266-software-uart/softuart/include
 HTTPD_CFLAGS = -Ilib/httpd -DHTTPD_MAX_CONNECTIONS=4 -std=c99 
 RBOOT_CFLAGS = -Ilib/rboot -Ilib/rboot/appcode -Ilib/esp8266-software-uart/softuart/include -Ilib/brzo_i2c -DBOOT_BIG_FLASH -DBOOT_CONFIG_CHKSUM -DBOOT_IROM_CHKSUM -DOTB_RBOOT_BOOTLOADER
 MQTT_CFLAGS = -Ilib/mqtt -Ilib/httpd -std=c99 

@@ -60,7 +60,7 @@ extern int ets_vsnprintf(char * s, size_t n, const char * format, va_list arg) _
 //extern void vPortFree(void *ptr, const char *file, uint32_t line);
 //extern void *vPortMalloc(size_t xWantedSize);
 
-extern void uart_div_modify(uint8_t uart_no, uint32_t DivLatchValue);
+//extern void uart_div_modify(uint32_t uart_no, uint32_t DivLatchValue);
 extern int ets_uart_printf(const char *fmt, ...);
 extern int ets_printf(const char *fmt, ...);
 extern void uart_tx_one_char(char ch);

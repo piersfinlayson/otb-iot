@@ -65,6 +65,7 @@
 #include "esp_wps.h"
 #include "os.h"
 #include "gpio.h"
+#include "spi_flash.h"
 
 typedef uint8_t BOOL;
 typedef uint8_t uint8;
@@ -92,6 +93,16 @@ typedef system_event_t System_Event_t;
 #define GPIO_DIS_OUTPUT(gpio_no)        gpio_output_set(0,0,0, 1<<gpio_no)
 #define GPIO_OUTPUT_SET(gpio_no, bit_value) \
     gpio_output_set((bit_value)<<gpio_no, ((~(bit_value))&0x01)<<gpio_no, 1<<gpio_no,0)
+extern uint32_t esp_get_time(void);
+#define system_get_time esp_get_time
+extern void os_timer_arm_us ( os_timer_t * ptimer, uint32 usec, bool repeat_flag );
+extern uint32 system_get_chip_id ( void );
+#define STATION_IF WIFI_IF_STA
+#define SOFTAP_IF WIFI_IF_AP
+#define wifi_get_macaddr esp_wifi_get_mac
+#define system_get_free_heap_size esp_get_free_heap_size
+#define ETS_INTR_LOCK ets_intr_lock
+#define ETS_INTR_UNLOCK ets_intr_lock
 
 // otb-iot includes
 #include "esp_systemapi.h"
