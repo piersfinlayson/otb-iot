@@ -54,7 +54,6 @@
 #include "ctype.h"
 #endif // ESPUT
 #include "user_config.h"
-#include "gpio.h"
 
 #define GPIO_PIN_NUM 17
 #define GPIO_PIN_FUNC_INVALID (uint8_t)(-1)

@@ -63,6 +63,35 @@
 #include "esp_wifi_types.h"
 #include "esp_wpa2.h"
 #include "esp_wps.h"
+#include "os.h"
+#include "gpio.h"
+
+typedef uint8_t BOOL;
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int8_t sint8;
+typedef int16_t sint16;
+typedef int32_t sint32;
+typedef int8_t sint8_t;
+typedef int16_t sint16_t;
+typedef int32_t sint32_t;
+typedef os_timer_t ETSTimer;
+typedef os_timer_func_t ETSTimerFunc;
+typedef system_event_t System_Event_t;
+#define FALSE 0
+#define TRUE 1
+#undef os_snprintf
+#define os_snprintf snprintf
+#ifndef os_strcpy
+#define os_strcpy strcpy
+#endif // os_strcpy
+#define GPIO_DIS_OUTPUT(gpio_no)        gpio_output_set(0,0,0, 1<<gpio_no)
+#define GPIO_OUTPUT_SET(gpio_no, bit_value) \
+    gpio_output_set((bit_value)<<gpio_no, ((~(bit_value))&0x01)<<gpio_no, 1<<gpio_no,0)
 
 // otb-iot includes
 #include "esp_systemapi.h"
@@ -90,7 +119,6 @@
 #include "captdns.h"
 
 // DS18B20
-#include "gpio.h"
 #include "pin_map.h"
 
 // RBOOT

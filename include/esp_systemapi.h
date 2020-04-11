@@ -51,7 +51,7 @@ extern int ets_strncmp(const char *s1, const char *s2, unsigned int n);
 extern char *ets_strncpy(char *dest, const char *src, size_t n);
 extern char *ets_strstr(const char *haystack, const char *needle);
 extern int os_printf_plus(const char *format, ...)  __attribute__ ((format (printf, 1, 2)));
-extern int os_snprintf(char *str, size_t size, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
+//extern int os_snprintf(char *str, size_t size, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
 extern int ets_snprintf(char *str, size_t size, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
 extern int ets_vsnprintf(char * s, size_t n, const char * format, va_list arg) __attribute__ ((format (printf, 3, 0)));
 
