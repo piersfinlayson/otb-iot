@@ -19,8 +19,9 @@
 include hardware
 
 # SDK versions, etc
-SDK_BASE ?= /opt/esp-open-sdk
-ESP_SDK = sdk
+SDK_BASE ?= ~
+RTOS_DIR ?= ESP8266_RTOS_SDK
+ESP_SDK = $(RTOS_DIR)/components/esp8266
 
 # Build tools
 XTENSA_DIR = $(SDK_BASE)/xtensa-lx106-elf/bin
@@ -245,14 +246,14 @@ bin/stage_app_image.bin: bin/stage_app_image.elf $(ESPTOOL2)
 	@$(CHECK_STAGE_APP_IMAGE_FILE_SIZE)
 
 # Increment build number
-build_num: libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
+build_num: libphy2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
 	@if ! test -f $(BUILD_NUM_FILE); then echo 0 > $(BUILD_NUM_FILE); fi
 	@echo $$(($$(cat $(BUILD_NUM_FILE))+1)) > $(BUILD_NUM_FILE)
 
-bin/app_image.elf: build_num libmain2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
+bin/app_image.elf: build_num libphy2 otb_objects httpd_objects mqtt_objects i2c_objects softuart_objects libb64_objects
 	$(LD) $(LDFLAGS) -o bin/app_image.elf $(otbObjects) $(httpdObjects) $(mqttObjects) $(i2cObjects) $(softuartObjects) $(LDLIBS)
 
-bin/stage_app_image.elf: build_num libmain2 stage_objects
+bin/stage_app_image.elf: build_num libphy2 stage_objects
 	$(LD) $(LDFLAGS) -o bin/stage_app_image.elf $(stageObjects) $(LDLIBS) 
 
 -include $(otbDep) $(mqttDep) $(httpdDep) $(rbootDep) $(i2cDep) $(softuartDep) $(libb64Dep) $(hwinfoDep)
@@ -271,8 +272,8 @@ stage: $(stageObjects)
 	$(LD) $(LDFLAGS) -o bin/stage_image.elf $(stageObjects) $(LDLIBS)
 
 # can replace with our own version (from rboot-bigflash.c)
-libmain2: directories
-	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libmain.a bin/libmain2.a
+libphy2: directories
+	$(OBJCOPY) -W Cache_Read_Enable_New $(SDK_BASE)/$(ESP_SDK)/lib/libphy.a bin/libphy2.a
 
 #otb_objects: clean_otb_util_o $(otbObjects)
 otb_objects: $(otbObjects)
