@@ -61,7 +61,9 @@ void ICACHE_FLASH_ATTR otb_intr_set()
   {
     if (otb_intr_reg_info[ii].fn != NULL)
     {
-      gpio_pin_intr_state_set(GPIO_ID_PIN(ii), 3);  // ANYEDGE
+      // XXX RTOS change
+      // XXX Check return code
+      gpio_set_intr_type(GPIO_ID_PIN(ii), GPIO_INTR_ANYEDGE);
       otb_intr_clear(1<<ii);
       have_intr = TRUE;
     }
@@ -69,10 +71,9 @@ void ICACHE_FLASH_ATTR otb_intr_set()
 
   if (have_intr)
   {
-		ETS_GPIO_INTR_DISABLE();
-		ETS_GPIO_INTR_ATTACH(otb_intr_main_handler, NULL);
-		ETS_GPIO_INTR_ENABLE();
-    
+    // XXX RTOS change
+    // XXX Check return code
+    gpio_isr_register(otb_intr_main_handler, NULL, 0, NULL);
   }
 
   EXIT;

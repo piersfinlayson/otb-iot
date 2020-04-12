@@ -49,6 +49,7 @@
 #include "esp_idf_version.h"
 #include "esp_interface.h"
 #include "esp_libc.h"
+#include "esp_log.h"
 // #include "esp_now.h"
 #include "esp_phy_init.h"
 #include "esp_sleep.h"
@@ -66,7 +67,14 @@
 #include "os.h"
 #include "gpio.h"
 #include "spi_flash.h"
-#include "rom_functions.h"
+#include "uart.h"
+#include "uart_select.h"
+#include "esp8266/uart_register.h"
+#include "esp8266/uart_struct.h"
+//#include "rom_functions.h"
+//#include "tcpip_adapter.h"
+//#include "lwip/err.h"
+//#include "lwip/dns.h"
 
 typedef uint8_t BOOL;
 typedef uint8_t uint8;
@@ -84,6 +92,7 @@ typedef int32_t sint32_t;
 typedef os_timer_t ETSTimer;
 typedef os_timer_func_t ETSTimerFunc;
 typedef system_event_t System_Event_t;
+typedef tcpip_adapter_ip_info_t ip_info;
 #define FALSE 0
 #define TRUE 1
 #undef os_snprintf
@@ -106,12 +115,14 @@ extern uint32 system_get_chip_id ( void );
 #define ETS_INTR_UNLOCK ets_intr_lock
 #define wifi_station_set_auto_connect esp_wifi_set_auto_connect
 #define os_sprintf sprintf
+#define espconn_dns_getserver dns_getserver
+#define wifi_get_ip_info tcpip_adapter_get_ip_info 
+#define gpio_pin_intr_state_set gpio_set_intr_type
 
 // otb-iot includes
 #include "esp_systemapi.h"
 #include "rom/ets_sys.h"
 #include "sdkconfig.h"
-#include "uart.h"
 #else
 #include "esput.h"
 #endif // ESPUT

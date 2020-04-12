@@ -64,7 +64,9 @@ void ICACHE_FLASH_ATTR otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_ha
   // Attach interrupt handler
   if (intr_handler != NULL)
   {
-    ETS_UART_INTR_ATTACH(intr_handler, arg);
+    // XXX RTOS change
+    // XXX Check return code
+    gpio_isr_register(intr_handler, arg, 0, NULL);
   }
 
   // Set baud rate
@@ -92,13 +94,14 @@ void ICACHE_FLASH_ATTR otb_mbus_uart_conf(otb_mbus_uart_intr_handler_fn *intr_ha
   PIN_PULLUP_DIS(PERIPHS_IO_MUX_U0TXD_U);
   PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0TXD_U, FUNC_U0TXD);
 
+  // XXX RTOS change
   if (intr_handler != NULL)
   {
-    ETS_UART_INTR_ENABLE();
+    gpio_set_intr_type(GPIO_NUM_3, GPIO_INTR_ANYEDGE);
   }
   else
   {
-    ETS_UART_INTR_DISABLE();
+    gpio_set_intr_type(GPIO_NUM_3, GPIO_INTR_DISABLE);
   }
 
   EXIT;

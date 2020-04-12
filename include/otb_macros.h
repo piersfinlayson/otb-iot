@@ -40,22 +40,42 @@
 // logged.  May look inefficient but the compiler should optimise this out.
 #define OTB_COMPILE_ASSERT(cond) switch(0){case 0: case cond:;}
 
+#define ESP_ERR_ABORT(X) \
+  { \
+    esp_err_t __rc = (X); \
+    if (__rc != ESP_OK) \
+    { \
+      abort(); \
+    } \
+  }
+
+#define ESP_ERR_WARN(X) \
+  { \
+    esp_err_t __rc = (X); \
+    if (__rc != ESP_OK) \
+    { \
+      MWARN("ESP call failed: %s", STRINGIFY(X)); \
+    } \
+  }
+
+#define DELAY(X) vTaskDelay(X/portTICK_RATE_MS)
+
 // The below should really be in otb_util.h but can't be there cos otb_macros.h gets
 // included before otb_util.h
 #define OTB_UTIL_LOG_FLASH_BUFFER_LEN 128
 extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 
-#define OTB_LOG_LEVEL_DEBUG    0
-#define OTB_LOG_LEVEL_DETAIL   1
-#define OTB_LOG_LEVEL_INFO     2
-#define OTB_LOG_LEVEL_WARN     3
-#define OTB_LOG_LEVEL_ERROR    4
-#define OTB_LOG_LEVEL_NONE     5
+#define OTB_LOG_LEVEL_DEBUG    5
+#define OTB_LOG_LEVEL_DETAIL   4
+#define OTB_LOG_LEVEL_INFO     3
+#define OTB_LOG_LEVEL_WARN     2
+#define OTB_LOG_LEVEL_ERROR    1
+#define OTB_LOG_LEVEL_NONE     0
 #define OTB_LOG_LEVEL_DISABLE  255
 #define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_INFO
 
 // Put at the top of the module in order to use M... log macros
-#define MLOG(X)  static char otb_log_module[] = X
+#define MLOG(X)  static const char TAG[] = X
 
 // Used when you want to log a variable format rather than a fixed one which can be 
 // allocated and compile time and stored on flash (in which case use LOG).
@@ -99,27 +119,28 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
                                               
 #ifndef OTB_RBOOT_BOOTLOADER
 
-#define MDETAIL(...) LOG(otb_log_module, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define MINFO(...)   LOG(otb_log_module, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
-#define MWARN(...)   LOG(otb_log_module, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
-#define MERROR(...)  LOG(otb_log_module, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define MDETAIL(...)      ESP_LOGD(TAG, __VA_ARGS__)
+#define MINFO(...)        ESP_LOGI(TAG, __VA_ARGS__)
+#define MWARN(...)        ESP_LOGW(TAG, __VA_ARGS__)
+#define MERROR(...)       ESP_LOGE(TAG, __VA_ARGS__)
 
-#define DETAIL(...)  LOG(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define INFO(...)    LOG(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
-#define WARN(...)    LOG(NULL, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
-#define ERROR(...)   LOG(NULL, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
-#define NONE(...)    LOG(NULL, OTB_LOG_LEVEL_NONE, __VA_ARGS__)
+static const char otb_macros_TAG[] = "otb-iot";
 
-#define DETAIL_VAR(...) LOG_VAR(NULL, OTB_LOG_LEVEL_DETAIL, __VA_ARGS__)
-#define INFO_VAR(...)   LOG_VAR(NULL, OTB_LOG_LEVEL_INFO, __VA_ARGS__)
-#define WARN_VAR(...)   LOG_VAR(NULL, OTB_LOG_LEVEL_WARN, __VA_ARGS__)
-#define ERROR_VAR(...)  LOG_VAR(NULL, OTB_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define DETAIL(...)       ESP_LOGD(otb_macros_TAG, __VA_ARGS__)
+#define INFO(...)         ESP_LOGI(otb_macros_TAG,  __VA_ARGS__)
+#define WARN(...)         ESP_LOGW(otb_macros_TAG, __VA_ARGS__)
+#define ERROR(...)        ESP_LOGE(otb_macros_TAG, __VA_ARGS__)
+
+#define DETAIL_VAR(...)   ESP_LOGD(otb_macros_TAG, __VA_ARGS__)
+#define INFO_VAR(...)     ESP_LOGI(otb_macros_TAG, __VA_ARGS__)
+#define WARN_VAR(...)     ESP_LOGW(otb_macros_TAG, __VA_ARGS__)
+#define ERROR_VAR(...)    ESP_LOGE(otb_macros_TAG, __VA_ARGS__)
 
 #ifndef ESPUT
 #ifdef OTB_DEBUG
-  #define MDEBUG(...)     LOG(otb_log_module, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
-  #define DEBUG(...)      LOG(NULL, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
-  #define DEBUG_VAR(...)  LOG_VAR(OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
+  #define MDEBUG(...)     ESP_LOGV(TAG, __VA_ARGS__)
+  #define DEBUG(...)      ESP_LOGV(otb_macros_TAG, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
+  #define DEBUG_VAR(...)  ESP_LOGV(otb_macros_TAG, OTB_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else // OTB_DEBUG
   #define MDEBUG(...) 
   #define DEBUG(...)
@@ -151,14 +172,14 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 // Definitely don't want DEBUG (would make bootloader very large.  Probably do want other
 // logs - but we need to call ets_printf directly, and add in CRLF.
 #define DETAIL(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
-#define INFO(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
-#define WARN(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
-#define ERROR(FORMAT, ...)  ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define INFO(FORMAT, ...)    ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define WARN(FORMAT, ...)    ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
+#define ERROR(FORMAT, ...)   ets_printf(FORMAT "\r\n", ##__VA_ARGS__)
 #define DEBUG(FORMAT, ...)  
 
-#define MDETAIL(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
-#define MINFO(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
-#define MWARN(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MDETAIL(FORMAT, ...) ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MINFO(FORMAT, ...)   ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
+#define MWARN(FORMAT, ...)   ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
 #define MERROR(FORMAT, ...)  ets_printf("%s: " FORMAT "\r\n", otb_log_module, ##__VA_ARGS__)
 #define MDEBUG(FORMAT, ...)  
 

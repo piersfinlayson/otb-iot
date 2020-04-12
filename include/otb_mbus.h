@@ -31,7 +31,8 @@
 
 #define OTB_MBUS_SCAN_TIMER 250
 
-extern UartDevice    UartDev;
+// XXX RTOS change
+//extern UartDevice    UartDev;
 extern bool otb_mbus_hat_installed;
 typedef void (otb_mbus_uart_intr_handler_fn)(void *arg);
 

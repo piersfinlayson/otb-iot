@@ -471,6 +471,7 @@ void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
   return;
 }
 
+// XXX RTOS don't need as using IDF logging?
 void ICACHE_FLASH_ATTR otb_util_init_logging(void)
 {
   otb_util_log_level = OTB_LOG_LEVEL_DEFAULT;
@@ -1824,26 +1825,6 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
   WRITE_PERI_REG(UART_INT_CLR(UART0), 0xffff);
   CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_RXFIFO_FULL_INT_ENA|UART_RXFIFO_OVF_INT_ENA);
   ETS_UART_INTR_DISABLE();
-
-  EXIT;
-
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_util_check_for_log_level(void)
-{
-
-  ENTRY;
-
-  MDETAIL("check for log level input");
-
-  otb_util_uart0_rx_en();
-  otb_util_break_enabled = FALSE;
-  otb_util_log_level_checking = TRUE;
-  otb_break_rx_buf_len = 0;
-
-  // Overload the break timer as only use one at once
-  otb_util_break_enable_timer(250);
 
   EXIT;
 

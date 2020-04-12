@@ -949,8 +949,8 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
 {
   bool rc = FALSE;
   int cmd;
-  struct ip_info ip_inf;
-  ip_addr_t dns;
+  ip_info ip_inf;
+  const ip_addr_t *dns;
   bool ip_info_rc;
   char addr_s[OTB_WIFI_MAX_IPV4_STRING_LEN];
   int dns_num;
@@ -994,7 +994,7 @@ bool ICACHE_FLASH_ATTR otb_cmd_get_ip_info(unsigned char *next_cmd,
       OTB_ASSERT(OTB_CMD_IP_DNS1 == (OTB_CMD_IP_DNS2 - 1));
       dns_num = cmd - OTB_CMD_IP_DNS1;
       dns = espconn_dns_getserver(dns_num);
-      otb_wifi_get_ip_string(dns.addr, addr_s);
+      otb_wifi_get_ip_string(dns->addr, addr_s);
       otb_cmd_rsp_append(addr_s);
       rc = TRUE;
       break;
