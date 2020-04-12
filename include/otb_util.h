@@ -20,10 +20,35 @@
 #ifndef OTB_UTIL_H_INCLUDED
 #define OTB_UTIL_H_INCLUDED
 
+typedef struct {
+  size_t buf_len;
+  size_t chars;
+  char *buf;
+} otb_util_rx_buf;
+
+void otb_util_init(void *arg);
+void otb_util_init_uart(void);
+void otb_util_check_log_level(void);
+void otb_util_process_log_level(char log_level);
+void otb_util_log_useful_info(void);
+void otb_util_convert_char_to_char(char *text, int from, int to);
+
+extern uint8_t otb_util_log_level;
+extern unsigned long otb_build_num;
+#define OTB_BUILD_NUM otb_build_num
+extern char otb_hw_info[10];
+
+#ifdef OTB_UTIL_C
+
+bool otb_util_booted_g;
+uint8_t otb_util_log_level = ESP_LOG_INFO;
+bool otb_util_asserting;
+char otb_hw_info[10];
+unsigned long otb_build_num = 0;
+#endif
+
 // This is a linker symbol, the address of which is actually the build number.
 // As a result don't attempt to access the contents of this address!
-extern char otb_build_num;
-#define OTB_BUILD_NUM (unsigned long)&otb_build_num
 
 #define OTB_UTIL_LOG_BUFFER_LEN 1024 // 1024
 #define OTB_UTIL_NS_PER_CYCLE 12.5
@@ -57,7 +82,6 @@ int isalpha(int c);
 int isalnum(int c);
 void otb_util_get_chip_id(void);
 void otb_util_convert_colon_to_period(char *text);
-extern void otb_util_log_useful_info(bool recovery);
 extern void otb_util_init_logging(void);
 void otb_util_resume_init(void);
 extern void otb_util_log_fn(char *text);
@@ -150,12 +174,9 @@ struct otb_reset_reason
   bool error;
 } otb_reset_reason;
 
-extern uint8_t otb_util_log_level;
-
-#ifdef OTB_UTIL_C
+#if 0
 
 bool otb_util_booted_g;
-uint8_t otb_util_log_level;
 uint8_t otb_util_log_level_stored;
 os_timer_t otb_util_reset_timer;
 unsigned char otb_util_factory_reset_reason[] = "Factory reset completed";
@@ -168,7 +189,6 @@ char otb_compile_date[12];
 char otb_compile_time[9];
 char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
-char otb_hw_info[10];
 
 char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
 
@@ -178,7 +198,6 @@ uint32 otb_util_log_buf_int32[OTB_UTIL_LOG_BUFFER_LEN/4];
 char *otb_util_log_buf;
 otb_util_log_buffer otb_util_log_buffer_struct;
 
-bool otb_util_asserting;
 bool otb_util_break_enabled;
 bool otb_util_break_checking;
 bool otb_util_log_level_checking;

@@ -19,13 +19,277 @@
 
 #define OTB_UTIL_C
 #include "otb.h"
-#include <stdarg.h>
-#include <limits.h>
-#include <errno.h>
-#include <uart_register.h>
 
-MLOG("UTIL");
+MLOG("otb-util");
 
+void otb_util_init(void *arg)
+{
+  ENTRY;
+
+  MDETAIL("Check required log level");
+  otb_util_check_log_level();
+
+  MDETAIL("Initialize networking");
+  tcpip_adapter_init();
+
+  // Log some useful info
+  otb_util_log_useful_info();
+
+#if 0
+  // Do some sanity checking
+  otb_util_check_defs();
+
+  // Initial internal I2C bus (must be done before try and read eeprom)
+  otb_i2c_initialize_bus_internal();
+  
+  // Read the eeprom (if present) - this initializes the chip ID
+  otb_eeprom_read();
+
+  // Relog heap size (now have read into eeprom)
+  DETAIL("OTB: Free heap size: %d bytes", system_get_free_heap_size());
+
+  // Initialise flash access (this makes it work if OTB_SUPER_BIG_FLASH_8266 if defined).
+  otb_flash_init();
+  
+  // Initialize GPIO.  Must happen before we clear reset (as this uses GPIO), but
+  // after have populated them 
+  otb_gpio_init();
+  
+  // Reset GPIO - pull pin 16 high
+  otb_util_clear_reset();
+  
+  // Initialize serial
+  otb_serial_init();
+
+  // Initialize wifi - mostly this just disables wifi until we're ready to turn it on!
+  otb_wifi_init();
+
+  // Initialize nixie module
+  otb_nixie_module_init();
+
+  // Initialize and load config
+  otb_conf_init();
+  otb_conf_load();
+  
+  otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
+
+#ifdef OTB_DEBUG
+  otb_util_log_heap_size_start_timer();
+#endif // OTB_DEBUG
+
+  otb_util_check_for_break();
+#endif
+
+  vTaskDelete(NULL);
+
+  EXIT;
+
+  return;
+}
+
+void otb_util_init_uart(void)
+{
+  uart_config_t uart_config;
+
+  ENTRY;
+
+  uart_config.baud_rate = 74880;
+  uart_config.data_bits = UART_DATA_8_BITS;
+  uart_config.parity = UART_PARITY_DISABLE;
+  uart_config.stop_bits = UART_STOP_BITS_1;
+  uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+  uart_param_config(UART_NUM_0, &uart_config);
+
+  EXIT;
+}
+
+void otb_util_check_log_level(void)
+{
+  uint8_t byte;
+  int read;
+
+  ENTRY;
+
+  otb_util_init_uart();
+  uart_driver_install(UART_NUM_0, 256, 0, 0, NULL, 0);
+  read = uart_read_bytes(UART_NUM_0, &byte, 1, 250/portTICK_RATE_MS);
+  uart_driver_delete(UART_NUM_0);
+
+  if (read > 0)
+  {
+    MDETAIL("Detected log level input");
+    otb_util_process_log_level(byte);
+  }
+  else
+  {
+    MDETAIL("No log level input detected");
+  }
+ 
+  EXIT;
+
+  return;
+}
+
+void otb_util_process_log_level(char log_level)
+{
+  ENTRY;
+
+  switch (log_level)
+  {
+    case '0':
+      otb_util_log_level = ESP_LOG_NONE;
+      break;
+
+    case '1':
+      otb_util_log_level = ESP_LOG_ERROR;
+      break;
+
+    case '2':
+      otb_util_log_level = ESP_LOG_WARN;
+      break;
+
+    case '3':
+      otb_util_log_level = ESP_LOG_INFO;
+      break;
+      
+    case '4':
+      otb_util_log_level = ESP_LOG_DEBUG;
+      break;
+      
+    case '5':
+      // Note VERBOSE (OTB_DEBUG) may not be compiled in - log this later
+      otb_util_log_level = ESP_LOG_VERBOSE;
+      break;
+
+    default:
+      MWARN("Unexpected character received when checking log level 0x%02x, using default %d", log_level, otb_util_log_level);
+  }
+
+  esp_log_level_set("*", otb_util_log_level);
+
+  switch (otb_util_log_level)
+  {
+    case ESP_LOG_VERBOSE:
+      MINFO("Log level selected: VERBOSE");
+#ifndef OTB_DEBUG
+        MERROR("VERBOSE logging selected, but not compiled into firmware");
+#endif // OTB_DEBUG          
+      break;
+
+    case ESP_LOG_DEBUG:
+      MINFO("Log level selected: DETAIL");
+      break;
+
+    case ESP_LOG_INFO:
+      MINFO("Log level selected: INFO");
+      break;
+
+    case ESP_LOG_WARN:
+      MINFO("Log level selected: WARN");
+      break;
+
+    case ESP_LOG_ERROR:
+      MINFO("Log level selected: ERROR");
+      break;
+
+    case ESP_LOG_NONE:
+      MINFO("Log level selected: NONE");
+      break;
+
+    default:
+      break;
+  }
+
+  EXIT;
+}
+
+char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
+void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
+{
+  ENTRY;
+
+  if(!value && !otb_util_asserting)
+  {
+    otb_util_asserting = TRUE;
+    ERROR("------------- ASSERTION FAILED -------------");
+    ERROR_VAR(value_s);
+    ERROR("File: %s Line: %d", file, line);
+    ERROR("Rebooting");
+    ERROR("--------------------------------------------");
+    // XXX RTOS Change
+    DELAY(1000);
+    esp_restart();
+  }
+
+  EXIT;
+  
+  return;
+}
+
+void otb_util_log_useful_info(void)
+{
+  ENTRY;
+
+  // Set up and log some useful info
+  os_sprintf(otb_compile_date, "%s", __DATE__);
+  otb_util_convert_char_to_char(otb_compile_date, ' ', '_');
+  otb_util_convert_char_to_char(otb_compile_date, '.', '_');
+  otb_util_convert_char_to_char(otb_compile_date, ':', '.');
+  os_sprintf(otb_compile_time, "%s", __TIME__);
+  otb_util_convert_char_to_char(otb_compile_time, ' ', '_');
+  otb_util_convert_char_to_char(otb_compile_time, ':', '_');
+  os_snprintf(otb_version_id,
+              OTB_MAIN_MAX_VERSION_LENGTH,
+              "%s:%s:Build_%lu:%s:%s",
+              OTB_MAIN_OTB_IOT,
+              OTB_MAIN_FW_VERSION,
+              OTB_BUILD_NUM,
+              otb_compile_date, 
+              otb_compile_time);
+  otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH-1] = 0;
+  os_snprintf(otb_sdk_version_id,
+              OTB_MAIN_SDK_MAX_VERSION_LENGTH,
+              "%06x", 
+              ESP_IDF_VERSION);
+  otb_sdk_version_id[OTB_MAIN_SDK_MAX_VERSION_LENGTH-1] = 0;
+  // First log needs a line break!
+  INFO("Software version: %s", otb_version_id);
+  INFO("Espressif IDF version: %s", otb_sdk_version_id);
+  //INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
+  MDETAIL("Free heap size: %d bytes", system_get_free_heap_size());
+  
+  // This is updated later when the EEPROM is read
+  os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
+
+  EXIT;  
+
+  return;
+}
+
+void otb_util_convert_char_to_char(char *text, int from, int to)
+{
+  char froms[2];
+  char *match;
+  
+  ENTRY;
+  
+  OTB_ASSERT(from != to);
+  
+  froms[0] = (char)from;
+  froms[1] = 0;
+  match = strstr(text, froms);
+  while (match)
+  {
+    *match = to;
+    match = strstr(match, froms);
+  }
+
+  EXIT;
+
+  return;  
+}
+
+#if 0
 void ICACHE_FLASH_ATTR otb_util_booted(void)
 {
   ENTRY;
@@ -221,29 +485,6 @@ done:
         return(to);
 }
 
-void ICACHE_FLASH_ATTR otb_util_convert_char_to_char(char *text, int from, int to)
-{
-  char froms[2];
-  char *match;
-  
-  ENTRY;
-  
-  OTB_ASSERT(from != to);
-  
-  froms[0] = (char)from;
-  froms[1] = 0;
-  match = os_strstr(text, froms);
-  while (match)
-  {
-    *match = to;
-    match = os_strstr(match, froms);
-  }
-
-  EXIT;
-
-  return;  
-}
-
 // 3 options:
 // - if have serial number (from eeprom) use it
 // - otherwise if can get station mac use it
@@ -413,61 +654,6 @@ EXIT_LABEL:
   
   EXIT;
 
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_util_log_useful_info(bool recovery)
-{
-  char recovery_str[16];
-
-  if (recovery)
-  {
-    os_strncpy(recovery_str, "/!!!RECOVERY!!!", 16);
-  }
-  else
-  {
-    recovery_str[0] = 0;
-  }
-
-  // Set up and log some useful info
-  os_sprintf(otb_compile_date, "%s", __DATE__);
-  otb_util_convert_char_to_char(otb_compile_date, ' ', '_');
-  otb_util_convert_char_to_char(otb_compile_date, '.', '_');
-  otb_util_convert_char_to_char(otb_compile_date, ':', '.');
-  os_sprintf(otb_compile_time, "%s", __TIME__);
-  otb_util_convert_char_to_char(otb_compile_time, ' ', '_');
-  otb_util_convert_char_to_char(otb_compile_time, ':', '_');
-  os_snprintf(otb_version_id,
-              OTB_MAIN_MAX_VERSION_LENGTH,
-              "%s:%s:Build_%u:%s:%s",
-              OTB_MAIN_OTB_IOT,
-              OTB_MAIN_FW_VERSION,
-              OTB_BUILD_NUM,
-              otb_compile_date, 
-              otb_compile_time);
-  otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH-1] = 0;
-  os_snprintf(otb_sdk_version_id,
-              OTB_MAIN_SDK_MAX_VERSION_LENGTH,
-              "%s", 
-              STRINGIFY(ESP_SDK_VERSION));
-  otb_sdk_version_id[OTB_MAIN_SDK_MAX_VERSION_LENGTH-1] = 0;
-  // First log needs a line break!
-  INFO("OTB: %s%s", otb_version_id, recovery_str);
-  INFO("OTB: SDK Version: %s", otb_sdk_version_id);
-  INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  DETAIL("OTB: Free heap size: %d bytes", system_get_free_heap_size());
-  
-  // This is updated later when the EEPROM is read
-  os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
-  
-  if (recovery)
-  {
-    INFO("");
-    INFO("OTB: ---------------------");
-    INFO("OTB: !!! Recovery Mode !!!");
-    INFO("OTB: ---------------------");
-    INFO("");
-  }
   return;
 }
 
@@ -800,28 +986,6 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
   }
   
   otb_util_log_save(text);
-  
-  return;
-}
-
-char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
-void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
-{
-  ENTRY;
-
-  if(!value && !otb_util_asserting)
-  {
-    otb_util_asserting = TRUE;
-    ERROR("------------- ASSERTION FAILED -------------");
-    ERROR_VAR(value_s);
-    ERROR("File: %s Line: %d", file, line);
-    ERROR("Rebooting");
-    ERROR("--------------------------------------------");
-    otb_reset_error(otb_util_assert_error_string);
-    otb_util_delay_ms(1000);
-  }
-
-  EXIT;
   
   return;
 }
@@ -2324,3 +2488,5 @@ char *os_strdup(const char *s)
   }
   return new;
 }
+
+#endif
