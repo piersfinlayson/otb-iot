@@ -35,10 +35,10 @@ void otb_util_init(void *arg)
   // Log some useful info
   otb_util_log_useful_info();
 
-#if 0
   // Do some sanity checking
   otb_util_check_defs();
 
+#if 0
   // Initial internal I2C bus (must be done before try and read eeprom)
   otb_i2c_initialize_bus_internal();
   
@@ -288,6 +288,24 @@ void otb_util_convert_char_to_char(char *text, int from, int to)
 
   return;  
 }
+
+void ICACHE_FLASH_ATTR otb_util_check_defs(void)
+{
+  ENTRY;
+  
+  // XXX RTOS
+  // May not need first one anymore
+  OTB_ASSERT(OTB_UTIL_DELAY_WAIT_MS <= OTB_ESP_MAX_DELAY_MS);
+  OTB_ASSERT(strlen(OTB_MAIN_OTB_IOT) <= 8);
+  OTB_ASSERT(strlen(OTB_MQTT_ROOT) <= 8);
+  OTB_ASSERT(strlen(OTB_MAIN_ESPI_PREFIX) <= 8);
+  OTB_ASSERT(strlen(OTB_MAIN_FW_VERSION) <= 8);
+  
+  EXIT;
+  
+  return;
+}
+
 
 #if 0
 void ICACHE_FLASH_ATTR otb_util_booted(void)
@@ -1538,21 +1556,6 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
       }
     }
   }
-  
-  EXIT;
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_util_check_defs(void)
-{
-  ENTRY;
-  
-  OTB_ASSERT(OTB_UTIL_DELAY_WAIT_MS <= OTB_ESP_MAX_DELAY_MS);
-  OTB_ASSERT(strlen(OTB_MAIN_OTB_IOT) <= 8);
-  OTB_ASSERT(strlen(OTB_MQTT_ROOT) <= 8);
-  OTB_ASSERT(strlen(OTB_MAIN_ESPI_PREFIX) <= 8);
-  OTB_ASSERT(strlen(OTB_MAIN_FW_VERSION) <= 8);
   
   EXIT;
   

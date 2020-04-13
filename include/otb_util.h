@@ -32,6 +32,7 @@ void otb_util_check_log_level(void);
 void otb_util_process_log_level(char log_level);
 void otb_util_log_useful_info(void);
 void otb_util_convert_char_to_char(char *text, int from, int to);
+void otb_util_check_defs(void);
 
 extern uint8_t otb_util_log_level;
 extern unsigned long otb_build_num;
@@ -118,7 +119,6 @@ void otb_util_timer_set(os_timer_t *timer,
                         bool repeat);
 extern bool otb_util_timer_finished(otb_util_timeout *timeout);
 extern void otb_util_delay_ms(uint32_t value);
-extern void otb_util_check_defs(void);
 extern void otb_util_log_snprintf(char *log_string,
                                   uint16_t max_log_string_len,
                                   const char *module,
