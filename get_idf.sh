@@ -1,4 +1,11 @@
 #!/bin/bash
+
+#
+# If not using piersfinlayson/idf-build container or don't alrady have the IDF
+# and xtensa toolchain installed, use this script to get them.
+# They will be placed in the current directory.
+#
+
 echo "Cleaning up any old directories ..."
 echo "  xtensa-lx106-elf"
 rm -fr xtensa-lx106-elf
@@ -23,4 +30,6 @@ echo "Install IDF Python pre-requisities"
 echo "Done - now run:"
 echo "export IDF_PATH=`pwd`/ESP8266_RTOS_SDK"
 echo "export PATH=$PATH:`pwd`/xtensa-lx106-elf/bin:`pwd`/ESP8266_RTOS_SDK/tools"
+echo "idf.py build"
+echo "idf.py app-flash && idf.py monitor"
 
