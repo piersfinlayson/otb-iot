@@ -69,6 +69,10 @@ typedef int8_t sint8_t;
 typedef int16_t sint16_t;
 typedef int32_t sint32_t;
 
+#ifdef CONFIG_LOG_DEFAULT_LEVEL_VERBOSE
+#define OTB_DEBUG
+#endif 
+
 // otb-iot includes
 #include "otb_def.h"
 #include "otb_macros.h"

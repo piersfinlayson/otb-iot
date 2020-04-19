@@ -100,6 +100,14 @@
 // Number of bytes supported by a 24AA00 - 4 bits
 #define OTB_I2C_24AA00_BYTES            0x10
 
+// Assumes minimum 4KB (32kbit) EEPROM
+#define OTB_I2C_24XXYY_MAX_BYTES        32*1024
+
 bool otb_i2c_24xxyy_init(uint8_t addr, otb_i2c_bus_t *bus);
+bool otb_i2c_24xx128_read_data(uint8_t addr,
+                               uint16_t start_addr,
+                               uint8_t *buf,
+                               uint16_t bytes,
+                               otb_i2c_bus_t *bus);
 
 #endif // OTB_I2C_24XXYY_H

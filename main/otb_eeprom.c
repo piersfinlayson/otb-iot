@@ -70,10 +70,47 @@ EXIT_LABEL:
 bool otb_eeprom_data_read(void)
 {
   bool success = FALSE;
+  uint8_t val[4];
+  uint32_t magic;
+  int ii;
+  bool match;
 
   ENTRY;
 
   success = otb_i2c_24xxyy_init(OTB_EEPROM_MAIN_BOARD_ADDR, &otb_i2c_bus);
+  if (!success)
+  {
+    goto EXIT_LABEL;
+  }
+
+  success = otb_i2c_24xx128_read_data(OTB_EEPROM_MAIN_BOARD_ADDR,
+                                      0x0,
+                                      val,
+                                      4,
+                                      &otb_i2c_bus);
+  if (!success)
+  {
+    goto EXIT_LABEL;
+  }
+
+  magic = OTB_EEPROM_INFO_MAGIC;
+  match = TRUE;
+  for (ii = 0; ii < 4; ii++)
+  {
+    MDEBUG("Checking byte %d eeprom: 0x%02x magic 0x%02x", ii, val[ii], ((magic >> (8*ii)) & 0xff));
+    if (val[ii] != ((magic >> (8*ii)) & 0xff))
+    {
+      match = FALSE;
+      break;
+    }
+  }
+
+  if (match)
+  {
+    MDETAIL("Found otb-iot format eeprom");
+  }
+
+EXIT_LABEL:
 
   EXIT;
 

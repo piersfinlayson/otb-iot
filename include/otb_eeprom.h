@@ -24,6 +24,8 @@
 
 #define OTB_EEPROM_MAIN_BOARD_ADDR  0x57
 
+#define OTB_EEPROM_INFO_MAGIC    0xbc13ee7a
+
 void otb_eeprom_read(void);
 bool otb_eeprom_data_read(void);
 bool otb_eeprom_data_process(void);
