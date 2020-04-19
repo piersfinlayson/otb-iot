@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-2020 Piers Finlayson
+ * Copyright (C) 2016 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -17,23 +17,16 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define OTB_MAIN_C
-#include "otb.h"
+extern char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
+extern char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
+extern MQTT_Client otb_mqtt_client;
+extern char otb_mqtt_topic_s[OTB_MQTT_MAX_TOPIC_LENGTH];
+extern char otb_mqtt_msg_s[OTB_MQTT_MAX_MSG_LENGTH];
+extern char otb_compile_date[12];
+extern char otb_compile_time[9];
+extern char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+extern char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+extern bool otb_wifi_ap_mode_done;
+extern char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
+extern char otb_hw_info[10];
 
-MLOG("otb-main");
-
-void app_main(void)
-{
-  ENTRY;
-
-  INFO("otb-iot application started");
-
-  xTaskCreate(&otb_util_init,
-              "otb_util_init",
-              2048,
-              NULL,
-              3,
-              NULL);
-
-  EXIT;
-}

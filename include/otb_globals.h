@@ -17,16 +17,32 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef OTB_GLOBALS_H
+#define OTB_GLOBALS_H
+
 extern char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
 extern char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-extern MQTT_Client otb_mqtt_client;
-extern char otb_mqtt_topic_s[OTB_MQTT_MAX_TOPIC_LENGTH];
-extern char otb_mqtt_msg_s[OTB_MQTT_MAX_MSG_LENGTH];
 extern char otb_compile_date[12];
 extern char otb_compile_time[9];
 extern char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
 extern char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-extern bool otb_wifi_ap_mode_done;
 extern char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
 extern char otb_hw_info[10];
+#ifdef OTB_MAIN_C
+char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
+char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
+char otb_compile_date[12];
+char otb_compile_time[9];
+char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
+char OTB_MAIN_DEVICE_ID[OTB_MAIN_DEVICE_ID_STR_LENGTH];
+char otb_hw_info[10];
+#endif // OTB_MAIN_C
 
+// Internal I2C bus
+extern otb_i2c_bus_t otb_i2c_bus;
+#ifdef OTB_I2C_C
+otb_i2c_bus_t otb_i2c_bus;
+#endif // OTB_I2C_C
+
+#endif // OTB_GLOBALS_H

@@ -24,7 +24,6 @@ MLOG("otb-util");
 
 void otb_util_init(void *arg)
 {
-
   ENTRY;
 
   MDETAIL("Check required log level");
@@ -106,8 +105,8 @@ void otb_util_init_uart(void)
 
 void otb_util_check_log_level(void)
 {
-  uint8_t byte = 0; // Set to 0 in case byte not read
-  int __attribute__((unused)) read;
+  uint8_t byte;
+  int read;
 
   ENTRY;
 
@@ -116,8 +115,16 @@ void otb_util_check_log_level(void)
   read = uart_read_bytes(UART_NUM_0, &byte, 1, 250/portTICK_RATE_MS);
   uart_driver_delete(UART_NUM_0);
 
-  otb_util_process_log_level(byte);
-
+  if (read > 0)
+  {
+    MDETAIL("Detected log level input");
+    otb_util_process_log_level(byte);
+  }
+  else
+  {
+    MDETAIL("No log level input detected");
+  }
+ 
   EXIT;
 
   return;
@@ -129,12 +136,6 @@ void otb_util_process_log_level(char log_level)
 
   switch (log_level)
   {
-    case 0:
-      // No input, use default
-      otb_util_log_level = OTB_LOG_LEVEL_DEFAULT;
-      MDETAIL("Using default log level: %d", otb_util_log_level);
-      break;
-
     case '0':
       otb_util_log_level = ESP_LOG_NONE;
       break;
@@ -171,7 +172,7 @@ void otb_util_process_log_level(char log_level)
     case ESP_LOG_VERBOSE:
       MINFO("Log level selected: VERBOSE");
 #ifndef OTB_DEBUG
-        MERROR("VERBOSE logging selected, but otb-iot DEBUG not compiled into firmware");
+        MERROR("VERBOSE logging selected, but not compiled into firmware");
 #endif // OTB_DEBUG          
       break;
 
@@ -216,7 +217,7 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, ui
     ERROR("Rebooting");
     ERROR("--------------------------------------------");
     // XXX RTOS Change
-    DELAY_MS(1000);
+    DELAY(1000);
     esp_restart();
   }
 
@@ -230,14 +231,14 @@ void otb_util_log_useful_info(void)
   ENTRY;
 
   // Set up and log some useful info
-  sprintf(otb_compile_date, "%s", __DATE__);
+  os_sprintf(otb_compile_date, "%s", __DATE__);
   otb_util_convert_char_to_char(otb_compile_date, ' ', '_');
   otb_util_convert_char_to_char(otb_compile_date, '.', '_');
   otb_util_convert_char_to_char(otb_compile_date, ':', '.');
-  printf(otb_compile_time, "%s", __TIME__);
+  os_sprintf(otb_compile_time, "%s", __TIME__);
   otb_util_convert_char_to_char(otb_compile_time, ' ', '_');
   otb_util_convert_char_to_char(otb_compile_time, ':', '_');
-  snprintf(otb_version_id,
+  os_snprintf(otb_version_id,
               OTB_MAIN_MAX_VERSION_LENGTH,
               "%s:%s:Build_%lu:%s:%s",
               OTB_MAIN_OTB_IOT,
@@ -246,7 +247,7 @@ void otb_util_log_useful_info(void)
               otb_compile_date, 
               otb_compile_time);
   otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH-1] = 0;
-  snprintf(otb_sdk_version_id,
+  os_snprintf(otb_sdk_version_id,
               OTB_MAIN_SDK_MAX_VERSION_LENGTH,
               "%06x", 
               ESP_IDF_VERSION);
@@ -255,11 +256,10 @@ void otb_util_log_useful_info(void)
   INFO("Software version: %s", otb_version_id);
   INFO("Espressif IDF version: %s", otb_sdk_version_id);
   //INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
-  MDETAIL("Free heap size: %d bytes", esp_get_free_heap_size());
-  MDETAIL("FreeRTOS tick rate: %lu Hz", configTICK_RATE_HZ);
+  MDETAIL("Free heap size: %d bytes", system_get_free_heap_size());
   
   // This is updated later when the EEPROM is read
-  sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
+  os_sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);
 
   EXIT;  
 

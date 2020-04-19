@@ -45,7 +45,6 @@
     esp_err_t __rc = (X); \
     if (__rc != ESP_OK) \
     { \
-    ets_print("ESP call failed: %s err: %d %s file: %s line: %d\r\n", STRINGIFY(X), __rc, esp_err_to_name(_rc), __FILE__, __LINE__); \
       abort(); \
     } \
   }
@@ -55,7 +54,7 @@
     esp_err_t __rc = (X); \
     if (__rc != ESP_OK) \
     { \
-      MWARN("ESP call failed: %s err: %d %s file: %s line: %d", STRINGIFY(X), __rc, esp_err_to_name(__rc), __FILE__, __LINE__); \
+      MWARN("ESP call failed: %s", STRINGIFY(X)); \
     } \
   }
 
@@ -64,28 +63,13 @@
     esp_err_t __rc = (X); \
     if (__rc != ESP_OK) \
     { \
-      MWARN("ESP call failed: %s err: %d %s file: %s line: %d", STRINGIFY(X), __rc, esp_err_to_name(__rc), __FILE__, __LINE__); \
-      Y = FALSE; \
-      goto EXIT_LABEL; \
+      MWARN("ESP call failed: %s", STRINGIFY(X)); \
+      Y = FALSE;
+      goto EXIT_LABEL;
     } \
   }
 
-#define ESP_ALLOC_WARN_AND_GOTO_EXIT_LABEL(Z, Y, X) \
-  { \
-    Y = (X); \
-    if (Y == NULL) \
-    { \
-      MWARN("ESP alloc call failed: %s file: %s line: %d", STRINGIFY(X), __FILE__, __LINE__); \
-      Z = FALSE; \
-      goto EXIT_LABEL; \
-    } \
-  }
-
-#define TICKS_MS(X)  pdMS_TO_TICKS(X)
-#define TICKS_US(X)  TICKS_MS(X) / 1000
-
-#define DELAY_MS(X)  vTaskDelay(TICKS_MS(X))
-#define DELAY_US(X)  vTaskDelay(TICKS_US(X))
+#define DELAY(X) vTaskDelay(X/portTICK_RATE_MS)
 
 // The below should really be in otb_util.h but can't be there cos otb_macros.h gets
 // included before otb_util.h
@@ -99,7 +83,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define OTB_LOG_LEVEL_ERROR    1
 #define OTB_LOG_LEVEL_NONE     0
 #define OTB_LOG_LEVEL_DISABLE  255
-#define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_DEBUG
+#define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_INFO
 
 // Put at the top of the module in order to use M... log macros
 #define MLOG(X)  static const char TAG[] = X

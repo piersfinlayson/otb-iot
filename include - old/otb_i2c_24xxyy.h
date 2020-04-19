@@ -1,7 +1,7 @@
 /*
  * OTB-IOT - Out of The Box Internet Of Things
  *
- * Copyright (C) 2016-2020 Piers Finlayson
+ * Copyright (C) 2016 Piers Finlayson
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -100,6 +100,26 @@
 // Number of bytes supported by a 24AA00 - 4 bits
 #define OTB_I2C_24AA00_BYTES            0x10
 
-bool otb_i2c_24xxyy_init(uint8_t addr, otb_i2c_bus_t *bus);
+
+// Note 24XXYY has no registers except IO pin state, and no configuration
+
+#ifndef OTB_I2C_24XXYY_C
+
+
+#else
+
+bool otb_i2c_24xxyy_written;
+static volatile os_timer_t otb_i2c_24xxyy_test_timer;
+uint8_t otb_i2c_24xxyy_test_addr;
+uint8_t otb_i2c_24xxyy_next_byte;
+
+#endif // OTB_I2C_24XXYY_C
+
+void otb_i2c_24xxyy_test_timerfunc(void);
+void otb_i2c_24xxyy_test_init(void);
+bool otb_i2c_24xxyy_read_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info);
+bool otb_i2c_24xxyy_write_bytes(uint8_t addr, uint8_t word_addr, uint8_t *bytes, uint8_t num_bytes, brzo_i2c_info *info);
+bool otb_i2c_24xxyy_init(uint8_t addr, brzo_i2c_info *info);
+bool otb_i2c_24xx128_read_data(uint8_t addr, uint16_t start_addr, uint16_t bytes, uint8_t *buf, brzo_i2c_info *info);
 
 #endif // OTB_I2C_24XXYY_H

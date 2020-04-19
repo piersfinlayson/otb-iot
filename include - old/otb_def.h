@@ -17,9 +17,6 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OTB_DEF_H
-#define OTB_DEF_H
-
 // Configurable stuff
 #define OTB_MAIN_OTBIOT_PREFIX "otb-iot"
 #define OTB_MAIN_ESPI_PREFIX "espi"
@@ -82,5 +79,3 @@
 #ifndef ICACHE_RAM_ATTR
 #define ICACHE_RAM_ATTR
 #endif // ICACHE_RAM_ATTR
-
-#endif // OTB_DEF_H

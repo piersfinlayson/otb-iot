@@ -17,15 +17,9 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-char otb_log_s[OTB_MAIN_MAX_LOG_LENGTH];
-char otb_compile_date[12];
-char otb_compile_time[9];
-char otb_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-char otb_sdk_version_id[OTB_MAIN_MAX_VERSION_LENGTH];
-void configModeCallback();
-char ssid[32];
-char OTB_MAIN_CHIPID[OTB_MAIN_CHIPID_STR_LENGTH];
-volatile os_timer_t init_timer;
- 
-extern void user_init(void);
+#ifndef OTB_MAIN_H
+#define OTB_MAIN_H
 
+extern void app_main(void);
+
+#endif // OTB_MAIN_H

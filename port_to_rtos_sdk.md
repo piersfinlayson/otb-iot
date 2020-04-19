@@ -29,3 +29,5 @@ cd ~/builds/otb-iot
 idf.py build
 idf.py flash
 idf.py monitor
+
+python2.7 /usr/lib/python2.7/dist-packages/serial/tools/miniterm.py /dev/ttyUSB0 74880 --raw
