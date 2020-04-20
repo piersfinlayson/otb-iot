@@ -37,5 +37,19 @@ bool otb_i2c_initialize_bus(otb_i2c_bus_t *bus,
                             uint8_t sda_pin,
                             uint8_t scl_pin);
 void otb_i2c_uninitialize_bus(otb_i2c_bus_t *bus);
+bool otb_i2c_write_data(uint8_t addr,
+                        uint8_t *write_buf,
+                        uint16_t write_bytes,
+                        otb_i2c_bus_t *bus);
+bool otb_i2c_read_data(uint8_t addr,
+                       uint8_t *read_buf,
+                       uint16_t read_bytes,
+                       otb_i2c_bus_t *bus);
+bool otb_i2c_write_then_read_data(uint8_t addr,
+                                  uint8_t *write_buf,
+                                  uint16_t write_bytes,
+                                  uint8_t *read_buf,
+                                  uint16_t read_bytes,
+                                  otb_i2c_bus_t *bus);
 
 #endif // OTB_I2C_H

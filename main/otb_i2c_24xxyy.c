@@ -60,7 +60,6 @@ bool otb_i2c_24xx128_read_data(uint8_t addr,
                                otb_i2c_bus_t *bus)
 {
   bool success = FALSE;
-  i2c_cmd_handle_t cmd = NULL;
   uint8_t start_addr_b[2];
 
   // Reading is achieved as follows:
@@ -74,33 +73,23 @@ bool otb_i2c_24xx128_read_data(uint8_t addr,
 
   start_addr_b[0] = start_addr >> 8;
   start_addr_b[1] = start_addr & 0xff;
-  ESP_ALLOC_WARN_AND_GOTO_EXIT_LABEL(success, cmd, i2c_cmd_link_create());
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, TRUE);
-  i2c_master_write(cmd, start_addr_b, 2, TRUE);
-  ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success, i2c_master_cmd_begin(bus->num, cmd, 1000 / portTICK_RATE_MS));
-  i2c_cmd_link_delete(cmd);
-  cmd = NULL;
+  success = otb_i2c_write_then_read_data(addr,
+                                         start_addr_b,
+                                         2,
+                                         buf,
+                                         bytes,
+                                         bus);
 
-  ESP_ALLOC_WARN_AND_GOTO_EXIT_LABEL(success, cmd, i2c_cmd_link_create());
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, TRUE);
-  i2c_master_read(cmd, buf, bytes, I2C_MASTER_LAST_NACK);
-  ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success, i2c_master_cmd_begin(bus->num, cmd, 1000 / portTICK_RATE_MS));
-  i2c_cmd_link_delete(cmd);
-  cmd = NULL;
-  success = TRUE;
-
-  MDETAIL("Successfully read %d bytes starting at 0x%04x", bytes, start_addr);
-  
-EXIT_LABEL:
-  
-  if (cmd != NULL)
+  if (success)
   {
-    i2c_cmd_link_delete(cmd);
-    cmd = NULL;
+    MDETAIL("Successfully read %d bytes from device addr 0x%02x starting at addr 0x%04x", bytes, addr, start_addr);
   }
-
+  else
+  {
+    MDETAIL("Failed to read %d bytes from device addr 0x%02x starting at addr 0x%04x", bytes, addr, start_addr);
+  }
+  
+  
   EXIT;
   
   return success;

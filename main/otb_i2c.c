@@ -116,3 +116,91 @@ void otb_i2c_uninitialize_bus(otb_i2c_bus_t *bus)
   return;
 }
 
+bool otb_i2c_write_data(uint8_t addr,
+                        uint8_t *write_buf,
+                        uint16_t write_bytes,
+                        otb_i2c_bus_t *bus)
+{
+  i2c_cmd_handle_t cmd;
+  bool success;
+
+  ENTRY;
+
+  ESP_ALLOC_WARN_AND_GOTO_EXIT_LABEL(success, cmd, i2c_cmd_link_create());
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, TRUE);
+  i2c_master_write(cmd, write_buf, write_bytes, TRUE);
+  ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
+                                   i2c_master_cmd_begin(bus->num,
+                                                        cmd,
+                                                        1000 / portTICK_RATE_MS));
+  i2c_cmd_link_delete(cmd);
+  cmd = NULL;
+  success = TRUE;
+
+EXIT_LABEL:
+
+  if (cmd != NULL)
+  {
+    i2c_cmd_link_delete(cmd);
+    cmd = NULL;
+  }
+
+  EXIT;
+
+  return success;
+}                        
+
+bool otb_i2c_read_data(uint8_t addr,
+                       uint8_t *read_buf,
+                       uint16_t read_bytes,
+                       otb_i2c_bus_t *bus)
+{
+  i2c_cmd_handle_t cmd;
+  bool success;
+
+  ENTRY;
+
+  ESP_ALLOC_WARN_AND_GOTO_EXIT_LABEL(success, cmd, i2c_cmd_link_create());
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_READ, TRUE);
+  i2c_master_read(cmd, read_buf, read_bytes, I2C_MASTER_LAST_NACK);
+  ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
+                                   i2c_master_cmd_begin(bus->num,
+                                                        cmd,
+                                                        1000 / portTICK_RATE_MS));
+  i2c_cmd_link_delete(cmd);
+  cmd = NULL;
+  success = TRUE;
+
+EXIT_LABEL:
+
+  if (cmd != NULL)
+  {
+    i2c_cmd_link_delete(cmd);
+    cmd = NULL;
+  }
+
+  EXIT;
+
+  return success;
+}                        
+
+bool otb_i2c_write_then_read_data(uint8_t addr,
+                                  uint8_t *write_buf,
+                                  uint16_t write_bytes,
+                                  uint8_t *read_buf,
+                                  uint16_t read_bytes,
+                                  otb_i2c_bus_t *bus)
+{
+  bool success;
+
+  ENTRY;
+
+  success = otb_i2c_write_data(addr, write_buf, write_bytes, bus) &&
+            otb_i2c_read_data(addr, read_buf, read_bytes, bus);
+
+  EXIT;
+
+  return success;
+}
