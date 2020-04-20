@@ -99,7 +99,7 @@ extern char ALIGN4 otb_util_log_flash_buffer[OTB_UTIL_LOG_FLASH_BUFFER_LEN];
 #define OTB_LOG_LEVEL_ERROR    1
 #define OTB_LOG_LEVEL_NONE     0
 #define OTB_LOG_LEVEL_DISABLE  255
-#define OTB_LOG_LEVEL_DEFAULT  OTB_LOG_LEVEL_DEBUG
+#define OTB_LOG_LEVEL_DEFAULT  CONFIG_LOG_DEFAULT_LEVEL
 
 // Put at the top of the module in order to use M... log macros
 #define MLOG(X)  static const char TAG[] = X
