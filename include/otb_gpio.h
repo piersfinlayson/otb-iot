@@ -49,10 +49,10 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
 {
   {
     0,
-    OTB_GPIO_STATE_OUTPUT,
+    OTB_GPIO_STATE_OUTPUT_OD,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     1,
@@ -63,10 +63,10 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
   },
   {
     2,
-    OTB_GPIO_STATE_OUTPUT,
+    OTB_GPIO_STATE_OUTPUT_OD,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     3,
@@ -80,14 +80,14 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     5,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     6,
@@ -136,18 +136,18 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     13,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     14,
-    OTB_GPIO_STATE_OUTPUT,
+    OTB_GPIO_STATE_INPUT,
     FALSE,
     FALSE,
     0
@@ -157,7 +157,7 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    0
+    1
   },
   {
     16,
