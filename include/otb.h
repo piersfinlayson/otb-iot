@@ -81,6 +81,7 @@ typedef int32_t sint32_t;
 #include "otb_eeprom.h"
 #include "otb_i2c.h"
 #include "otb_i2c_24xxyy.h"
+#include "otb_gpio.h"
 #include "otb_globals.h"
 
 #endif // OTB_H_INCLUDED

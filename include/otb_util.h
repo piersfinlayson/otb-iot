@@ -26,6 +26,12 @@ typedef struct {
   char *buf;
 } otb_util_rx_buf;
 
+typedef enum
+{
+  OTB_RUN_STATE_BOOT,
+  OTB_RUN_STATE_MAX
+} otb_run_state_t;
+
 void otb_util_init(void *arg);
 void otb_util_init_uart(void);
 void otb_util_check_log_level(void);
@@ -39,14 +45,15 @@ extern uint8_t otb_util_log_level;
 extern unsigned long otb_build_num;
 #define OTB_BUILD_NUM otb_build_num
 extern char otb_hw_info[10];
+extern otb_run_state_t otb_run_state;
 
 #ifdef OTB_UTIL_C
-
 bool otb_util_booted_g;
 uint8_t otb_util_log_level = ESP_LOG_INFO;
 bool otb_util_asserting;
 char otb_hw_info[10];
 unsigned long otb_build_num = 0;
+otb_run_state_t otb_run_state;
 #endif
 
 #endif // OTB_UTIL_H_INCLUDED

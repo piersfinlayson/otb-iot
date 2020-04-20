@@ -28,6 +28,7 @@ void app_main(void)
 
   INFO("otb-iot application started");
 
+  otb_run_state = OTB_RUN_STATE_BOOT;
   xTaskCreate(&otb_util_init,
               "otb_util_init",
               2048,

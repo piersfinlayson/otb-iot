@@ -39,8 +39,13 @@ void otb_util_init(void *arg)
   // Do some sanity checking
   otb_util_check_defs();
 
+  // Apply GPIO state
+  otb_gpio_init(otb_run_state);
+
   // Read the eeprom (if present) - this initializes the chip ID
   otb_eeprom_read();
+
+  // Apply GPIO state again
 
 #if 0
   // Initial internal I2C bus (must be done before try and read eeprom)
