@@ -211,10 +211,10 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
   {
     14,
     OTB_GPIO_STATE_INPUT,
-    TRUE,
+    FALSE,
     FALSE,
     1,
-    GPIO_INTR_ANYEDGE,
+    GPIO_INTR_NEGEDGE,
     otb_gpio_soft_reset_isr,
     NULL,
     FALSE,

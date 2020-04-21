@@ -157,7 +157,7 @@ bool otb_gpio_apply_pin_state(otb_gpio_state_t *state)
   }
   conf.pull_up_en = state->pull_up;
   conf.pull_down_en = state->pull_down;
-  conf.intr_type = GPIO_INTR_DISABLE; // XXX allow to be configured
+  conf.intr_type = state->int_type;
   ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success, gpio_config(&conf));
 
   if ((conf.mode ==  GPIO_MODE_OUTPUT) ||
@@ -213,13 +213,16 @@ EXIT_LABEL:
 
 void otb_gpio_soft_reset_isr(void *arg)
 {
-  ENTRY;
+  // ENTRY;
 
-  ets_printf("Reset button pressed\r\n");
-  MINFO("Reset button pressed");
-  gpio_set_level(16, 0);
+  // If GPIO 14 is low
+  if (!gpio_get_level(14))
+  {
+    ets_printf("Reset button pressed\r\n");
+    abort();
+  }
 
-  EXIT;
+  // EXIT;
 
   return;
 }
