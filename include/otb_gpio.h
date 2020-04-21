@@ -37,14 +37,21 @@ typedef struct
   bool pull_up;
   bool pull_down;
   bool level;
+  gpio_int_type_t int_type;
+  gpio_isr_t isr;
+  void *isr_arg;
+  bool isr_added;
 } otb_gpio_state_t;
 
 #define OTB_GPIO_ESP8266_NUM_GPIOS 17
 
 void otb_gpio_init(otb_run_state_t state);
 bool otb_gpio_apply_pin_state(otb_gpio_state_t *state);
+void otb_gpio_soft_reset_isr(void *arg);
 
 #ifdef OTB_GPIO_C
+static bool otb_gpio_isr_installed = FALSE;
+static bool otb_gpio_applied_initial_state = FALSE;
 const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
 {
   {
@@ -52,119 +59,187 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
     OTB_GPIO_STATE_OUTPUT_OD,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     1,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     2,
     OTB_GPIO_STATE_OUTPUT_OD,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     3,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     4,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     5,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     6,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     7,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     8,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     9,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     10,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     11,
     OTB_GPIO_STATE_IGNORE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     12,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     13,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     14,
     OTB_GPIO_STATE_INPUT,
+    TRUE,
     FALSE,
+    1,
+    GPIO_INTR_ANYEDGE,
+    otb_gpio_soft_reset_isr,
+    NULL,
     FALSE,
-    0
   },
   {
     15,
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1
+    1,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   },
   {
     16,
     OTB_GPIO_STATE_DISABLE,
     FALSE,
     FALSE,
-    0
+    0,
+    GPIO_INTR_DISABLE,
+    NULL,
+    NULL,
+    FALSE,
   }
 };
 otb_gpio_state_t otb_gpio_state_current[OTB_GPIO_ESP8266_NUM_GPIOS];

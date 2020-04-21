@@ -28,6 +28,8 @@ void otb_gpio_init(otb_run_state_t state)
   otb_gpio_state_t *current;
   bool apply_state;
   bool success;
+  bool isr = FALSE;
+  bool isr_added;
 
   ENTRY;
 
@@ -41,9 +43,12 @@ void otb_gpio_init(otb_run_state_t state)
   {
     case OTB_RUN_STATE_BOOT:
       target = otb_gpio_state_target_boot;
-      memset(current,
-             0,
-             sizeof(otb_gpio_state_t) * OTB_GPIO_ESP8266_NUM_GPIOS);
+      if (!otb_gpio_applied_initial_state)
+      {
+        memset(current,
+              0,
+              sizeof(otb_gpio_state_t) * OTB_GPIO_ESP8266_NUM_GPIOS);
+      }
       break;
     
     default:
@@ -78,7 +83,9 @@ void otb_gpio_init(otb_run_state_t state)
         break;
     }
 
+    isr_added = current->isr_added;
     memcpy(current, target, sizeof(*current));
+    current->isr_added = isr_added;
 
     if (apply_state)
     {
@@ -91,11 +98,25 @@ void otb_gpio_init(otb_run_state_t state)
       {
         MWARN("Failed to apply pin state for gpio %d", current->gpio_num);
       }
+
+      if (current->isr_added)
+      {
+        isr = TRUE;
+      }
     }
 
     current++;
     target++;
   }
+
+  if ((!isr) && (otb_gpio_isr_installed))
+  {
+    MDETAIL("No interrupt handlers required");
+    gpio_uninstall_isr_service();
+    otb_gpio_isr_installed = FALSE;
+  }
+
+  otb_gpio_applied_initial_state = TRUE;
 
   EXIT;
 
@@ -134,7 +155,6 @@ bool otb_gpio_apply_pin_state(otb_gpio_state_t *state)
       conf.mode = GPIO_MODE_DISABLE;
       break;
   }
-  conf.mode = state->state;
   conf.pull_up_en = state->pull_up;
   conf.pull_down_en = state->pull_down;
   conf.intr_type = GPIO_INTR_DISABLE; // XXX allow to be configured
@@ -145,8 +165,41 @@ bool otb_gpio_apply_pin_state(otb_gpio_state_t *state)
   {
     MDEBUG("Apply level %d for gpio %d", state->level, state->gpio_num);
     ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
-                                      gpio_set_level(state->gpio_num,
-                                                     state->level));
+                                     gpio_set_level(state->gpio_num,
+                                                    state->level));
+  }
+
+  if ((state->isr != NULL) && (state->int_type != GPIO_INTR_DISABLE))
+  {
+    if (!state->isr_added)
+    {
+      MDETAIL("Register interrupt handler for gpio %d", state->gpio_num);
+      OTB_ASSERT((state->int_type > GPIO_INTR_DISABLE) &&
+                (state->int_type < GPIO_INTR_MAX));
+      if (!otb_gpio_isr_installed)
+      {
+        ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success, gpio_install_isr_service(0));
+        otb_gpio_isr_installed = TRUE;
+      }
+      ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
+                                      gpio_set_intr_type(state->gpio_num,
+                                                          state->int_type));
+      ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
+                                      gpio_isr_handler_add(state->gpio_num,
+                                                            state->isr,
+                                                            state->isr_arg));
+      state->isr_added = TRUE;
+    }
+  }
+  else
+  {
+    if (state->isr_added)
+    {
+      MDETAIL("Unregister interrupt handler for gpio %d", state->gpio_num);
+      ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(success,
+                                      gpio_isr_handler_remove(state->gpio_num));
+      state->isr_added = FALSE;
+    }
   }
 
   success = TRUE;
@@ -156,4 +209,17 @@ EXIT_LABEL:
   EXIT;
 
   return success;
+}
+
+void otb_gpio_soft_reset_isr(void *arg)
+{
+  ENTRY;
+
+  ets_printf("Reset button pressed\r\n");
+  MINFO("Reset button pressed");
+  gpio_set_level(16, 0);
+
+  EXIT;
+
+  return;
 }

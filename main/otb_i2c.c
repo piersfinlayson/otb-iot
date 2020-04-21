@@ -108,9 +108,10 @@ void otb_i2c_uninitialize_bus(otb_i2c_bus_t *bus)
   ESP_ERR_WARN(i2c_driver_delete(bus->num))
   bus->installed = FALSE;
   os_memset(&(bus->info), 0, sizeof(bus->info));
+  MDETAIL("I2C Bus %d uninitialized", num);
+
   otb_gpio_init(otb_run_state);
 
-  MDETAIL("I2C Bus %d uninitialized", num);
 
   EXIT;
 
