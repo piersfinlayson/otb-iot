@@ -31,7 +31,7 @@ from user_config import *
 # Name of this script - used in logs
 script_name = "nixie_temp"
 
-temp_topic = "/otb-iot/%s/temp/" % temp_chip_id
+temp_topic = "/espi/%s/temp/" % temp_chip_id
 temp_topic2 = "/otb-iot////%s/temp/" % temp_chip_id
 
 temp_sub = temp_topic + '#'

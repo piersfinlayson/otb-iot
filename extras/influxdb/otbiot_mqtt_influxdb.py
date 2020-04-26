@@ -89,6 +89,12 @@ def create_temp_topic(chipId, sensorId, location, otb_type):
   print("Topic: %s" % topic)
   return topic
 
+def create_temp_topic2(chipId, sensorId, location, otb_type):
+  print("Create temp topic for chipId: %s, sensorId: %s, location: %s" % (chipId, sensorId, location))
+  topic = "/%s/%s/temp/%s" % (otb_type, chipId, sensorId)
+  print("Topic: %s" % topic)
+  return topic
+
 def create_power_topic(chipId, location, otb_type):
   print("Create power topic for chipId: %s, location: %s" % (chipId, location))
   topic = "/%s////%s/power/" % (otb_type, chipId)
@@ -106,10 +112,14 @@ def process_topic(temp_sensors, power_sensors, topic, payload):
       pass
     elif (substrings[1] not in otb_types):
       pass
-    elif (substrings[6] == 'temp'):
+    elif ((substrings[3] == 'temp') or (substrings[6] == 'temp')):
       # Format OK - try and match chipId and sensorId
-      chipid = substrings[5]
-      sensorid = substrings[7]
+      if (substrings[3] == 'temp'):
+        chipid = substrings[2]
+        sensorid = substrings[4]
+      else:
+        chipid = substrings[5]
+        sensorid = substrings[7]
       for tsensor in temp_sensors:
         if (chipid == tsensor[CHIPID]):
           for sensor in tsensor[SENSORS]:
@@ -144,6 +154,9 @@ def subscribe(client, temp_sensors):
         topic = create_temp_topic(tsensor[CHIPID], sensor[SENSORID], sensor[LOCATION], otb_type)
         client.subscribe(topic)
         print("Subscribed to topic: %s" % topic)
+        topic2 = create_temp_topic2(tsensor[CHIPID], sensor[SENSORID], sensor[LOCATION], otb_type)
+        client.subscribe(topic2)
+        print("Subscribed to topic: %s" % topic2)
   for psensor in power_sensors:
     for sensor in psensor[SENSORS]:
       for otb_type in otb_types:

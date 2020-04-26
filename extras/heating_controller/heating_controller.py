@@ -58,7 +58,7 @@ floor_sensor = "28-021562ab19ff"
 wall_sensor = "28-0415a18a8fff"
 
 # Chip IDs of otb-iot devices with temperature sensors, and controlling pump
-temp_chip_id = "289cde"
+temp_chip_id = "30016"
 pump_chip_id = "d76a7d"
 
 #
@@ -73,7 +73,7 @@ requested_pump_state = INVALID
 pump_states = {ON:"on", OFF:"off", INVALID:"unknown"}
 FLOOR = "floor"
 WALL = "wall"
-temp_topic = "/otb-iot/%s/temp/" % temp_chip_id
+temp_topic = "/espi/%s/temp/" % temp_chip_id
 temp_topic2 = "/otb-iot////%s/temp/" % temp_chip_id
 temp_sensor_topics = {temp_topic + floor_sensor:FLOOR, temp_topic + wall_sensor:WALL, temp_topic2 + floor_sensor:FLOOR, temp_topic2 + wall_sensor:WALL}
 temp_locations = {FLOOR:temp_topic + floor_sensor, WALL:temp_topic + wall_sensor}
