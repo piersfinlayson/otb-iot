@@ -60,6 +60,9 @@
 #define OTB_MQTT_ADC "adc"
 #define OTB_MQTT_POWER "power"
 #define OTB_MQTT_PUB_LOG "log"
+#define OTB_MQTT_MAX_SVR_LEN            32
+#define OTB_MQTT_MAX_USER_LEN           32
+#define OTB_MQTT_MAX_PASS_LEN           32
 
 // Fixed stuff
 #define OTB_GPIO_ESP_GPIO_PINS 17

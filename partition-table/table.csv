@@ -1,6 +1,14 @@
 # Name,   Type, SubType,  Offset,   Size,      Flags
 # Note: if you change the phy_init or app partition offset, make sure to change the offset in Kconfig.projbuild
 
+#
+# !!!!!
+#
+# MUST BE KEPT IN SYNC WITH include/otb_part.h
+#
+# !!!!!
+#
+
 # Partition table
 # 0x8000 - ensure configured in sdkconfig:
 # CONFIG_PARTITION_TABLE_OFFSET=0x8000

@@ -77,6 +77,7 @@ typedef int32_t sint32_t;
 // otb-iot includes
 #include "otb_def.h"
 #include "otb_macros.h"
+#include "otb_part.h"
 #include "otb_main.h"
 #include "otb_util.h"
 #include "otb_eeprom.h"
@@ -84,6 +85,7 @@ typedef int32_t sint32_t;
 #include "otb_i2c_24xxyy.h"
 #include "otb_gpio.h"
 #include "otb_led.h"
+#include "otb_conf.h"
 #include "otb_globals.h"
 
 #endif // OTB_H_INCLUDED

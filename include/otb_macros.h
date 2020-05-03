@@ -40,6 +40,8 @@
 // logged.  May look inefficient but the compiler should optimise this out.
 #define OTB_COMPILE_ASSERT(cond) switch(0){case 0: case cond:;}
 
+#define OTB_IS_SIGNED(VAR) (((VAR)-1)<0)
+
 #define ESP_ERR_ABORT(X) \
   { \
     esp_err_t __rc = (X); \
