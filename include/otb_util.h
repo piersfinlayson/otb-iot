@@ -20,7 +20,13 @@
 #ifndef OTB_UTIL_H_INCLUDED
 #define OTB_UTIL_H_INCLUDED
 
-typedef struct {
+// Booting
+#define OTB_UTIL_RGB_STATE_BOOT  otb_led_neo_get_rgb(0xff, 0, 0)
+// Retrieved config
+#define OTB_UTIL_RGB_STATE_CONF  otb_led_neo_get_rgb(0xff, 0x40, 0)
+
+typedef struct
+{
   size_t buf_len;
   size_t chars;
   char *buf;
@@ -29,8 +35,16 @@ typedef struct {
 typedef enum
 {
   OTB_RUN_STATE_BOOT,
+  OTB_RUN_STATE_CONF,
   OTB_RUN_STATE_MAX
 } otb_run_state_t;
+
+typedef struct
+{
+  uint8_t red;
+  uint8_t green;
+  uint8_t blue;
+} otb_util_rgb_t;
 
 void otb_util_init(void *arg);
 void otb_util_state_change(otb_run_state_t state);
@@ -55,6 +69,11 @@ bool otb_util_asserting;
 char otb_hw_info[10];
 unsigned long otb_build_num = 0;
 otb_run_state_t otb_run_state;
+otb_util_rgb_t otb_util_rgb_state[OTB_RUN_STATE_MAX] =
+{
+  {0xff, 0, 0},     // BOOT
+  {0xff, 0x40, 0},  // CONF
+};
 #endif
 
 #endif // OTB_UTIL_H_INCLUDED

@@ -20,6 +20,8 @@
 #ifndef OTB_GPIO_H_INCLUDED
 #define OTB_GPIO_H_INCLUDED
 
+#define OTB_GPIO_STATUS_LED 15
+
 typedef enum
 {
   OTB_GPIO_STATE_IGNORE,     // gpio_mode_t - no match

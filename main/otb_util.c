@@ -103,22 +103,16 @@ void otb_util_init(void *arg)
 
 void otb_util_state_change(otb_run_state_t state)
 {
-  uint32_t rgb[0];
+  otb_util_rgb_t *state_rgb;
+  uint32_t neo_rgb;
   ENTRY;
 
-  switch (state)
-  {
-    case OTB_RUN_STATE_BOOT:
-      MDETAIL("Enter boot state");
-      rgb[0] = otb_led_neo_get_rgb(0xff, 0, 0);
-      otb_led_neo_update(rgb, 1, 15, FALSE);
-      break;
-
-    default:
-      MERROR("Invalid run state %d", state);
-      OTB_ASSERT(FALSE);
-      break;
-  }
+  OTB_ASSERT(state < OTB_RUN_STATE_MAX);
+  state_rgb = otb_util_rgb_state + state;
+  neo_rgb = otb_led_neo_get_rgb(state_rgb->red,
+                                state_rgb->green,
+                                state_rgb->blue);
+  otb_led_neo_update(&neo_rgb, 1, OTB_GPIO_STATUS_LED, FALSE);
 
   EXIT;
 
