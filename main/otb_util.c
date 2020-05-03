@@ -105,9 +105,12 @@ void otb_util_state_change(otb_run_state_t state)
 {
   otb_util_rgb_t *state_rgb;
   uint32_t neo_rgb;
+
   ENTRY;
 
   OTB_ASSERT(state < OTB_RUN_STATE_MAX);
+  MDEBUG("Enter state: %d", state);
+
   state_rgb = otb_util_rgb_state + state;
   neo_rgb = otb_led_neo_get_rgb(state_rgb->red,
                                 state_rgb->green,
