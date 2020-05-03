@@ -449,6 +449,10 @@ void otb_led_wifi_update(uint32_t rgb, bool store)
 
 #endif
 
+// rgb[]: [0xRRGGBB, ...]
+// num: How many entries in rgb
+// pin: Which pin - must alraeady be pulled low (or high if flip selected)
+// flip: Reverse polarity - high->low, low->high
 void otb_led_neo_update(uint32_t *rgb, int num, uint32_t pin, bool flip)
 {
   int ii;
