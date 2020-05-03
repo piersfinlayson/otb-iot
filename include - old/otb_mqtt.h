@@ -285,7 +285,6 @@ char *otb_mqtt_i2c_ads_fields[OTB_MQTT_I2C_ADS_FIELD_LAST_ + 1] =
 #define OTB_MQTT_LED_WIFI_BLINK_TIMES_ON_CONNECTED  3
 
 
-#define OTB_MQTT_DEFAULT_PORT           1883
 
 extern void otb_mqtt_publish(MQTT_Client *mqtt_client,
                              char *subtopic,

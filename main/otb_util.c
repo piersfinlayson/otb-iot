@@ -53,8 +53,11 @@ void otb_util_init(void *arg)
   // Read the eeprom (if present) - this initializes the chip ID
   otb_eeprom_read();
 
-  // Apply GPIO state again
-
+  // Initialize and load config
+  otb_conf_init();
+  otb_conf_load();
+  otb_util_state_change(OTB_RUN_STATE_CONF);
+  
 #if 0
   // Initial internal I2C bus (must be done before try and read eeprom)
   otb_i2c_initialize_bus_internal();
@@ -81,10 +84,6 @@ void otb_util_init(void *arg)
   // Initialize nixie module
   otb_nixie_module_init();
 
-  // Initialize and load config
-  otb_conf_init();
-  otb_conf_load();
-  
   otb_led_wifi_update(OTB_LED_NEO_COLOUR_BLUE, TRUE);
 
 #ifdef OTB_DEBUG
@@ -166,6 +165,14 @@ void otb_util_process_log_level(char log_level)
     case 0:
       // No input, use default
       otb_util_log_level = OTB_LOG_LEVEL_DEFAULT;
+      if (otb_util_log_level == OTB_LOG_LEVEL_DEBUG)
+      {
+        MDETAIL("Defaulting log level to default");
+#ifdef OTB_DEBUG        
+        MDETAIL("Note debug logging compiled in");
+#endif // OTB_DEBUG        
+        otb_util_log_level = OTB_LOG_LEVEL_DETAIL;
+      }
       MDETAIL("Using default log level: %d", otb_util_log_level);
       break;
 
@@ -237,7 +244,7 @@ void otb_util_process_log_level(char log_level)
 }
 
 char ALIGN4 otb_util_assert_error_string[] = "UTIL: Assertion Failed";
-void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
+void otb_util_assert(bool value, char *value_s, char *file, uint32_t line)
 {
   ENTRY;
 
@@ -342,7 +349,7 @@ void otb_util_convert_char_to_char(char *text, int from, int to)
   return;  
 }
 
-void ICACHE_FLASH_ATTR otb_util_check_defs(void)
+void otb_util_check_defs(void)
 {
   ENTRY;
   
@@ -359,9 +366,376 @@ void ICACHE_FLASH_ATTR otb_util_check_defs(void)
   return;
 }
 
+// ip_out must be 4 byte array
+bool otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
+{
+#define OTB_UTIL_MAX_IPV4_STR_LEN 15
+#define OTB_UTIL_MAX_IPV4_BYTE_LEN 3
+  char ip_byte_str[4][OTB_UTIL_MAX_IPV4_BYTE_LEN+1];
+  bool rc = FALSE;
+  size_t len;
+  int ii, jj, kk;
+  int ip_byte;
+
+  ENTRY;
+
+  len = strnlen(ip_in, OTB_UTIL_MAX_IPV4_STR_LEN+1);
+  if (len > OTB_UTIL_MAX_IPV4_STR_LEN)
+  {
+    // Too long to be a valid IPv4 address (123.123.123.123 is 15 chars)
+    MDETAIL("IPv4 address too long to be valid");
+    goto EXIT_LABEL;
+  }
+
+  memset(ip_byte_str, 0, 4*(OTB_UTIL_MAX_IPV4_BYTE_LEN+1));
+  // ii is position in up_in string, jj is digits in current "byte", kk is byte
+  for (ii = 0, jj = 0, kk = 0; ii < len; ii++)
+  {
+    if (ip_in[ii] == '.')
+    {
+      jj = 0;
+      kk++;
+    }
+    else if (jj > 2)
+    {
+      // byte is too many digits
+      MDETAIL("IP address byte has too many digits: %d", jj);
+      goto EXIT_LABEL;
+    }
+    else if ((ip_in[ii] >= '0') && (ip_in[ii] <= '9'))
+    {
+      // Digit
+      ip_byte_str[kk][jj] = ip_in[ii];
+      jj++;
+    }
+    else
+    {
+      // invalid character in IP address
+      MDETAIL("Invalid character in IP address: %d", ip_in[ii]);
+      goto EXIT_LABEL;
+    }
+
+    if (kk > 3)
+    {
+      // Too many "bytes"
+      MDETAIL("Too many bytes in IPv4 address: %d", kk+1);
+      goto EXIT_LABEL;
+    }
+  }
+  if (kk < 3)
+  {
+    // Too few "bytes"
+    MDETAIL("Too few bytes in IPv4 address: %d", kk+1);
+    goto EXIT_LABEL;
+  }
+
+  for (ii = 0; ii < 4; ii++)
+  {
+    ip_byte = atoi(ip_byte_str[ii]);
+    if ((ip_byte < 0) || (ip_byte > 255))
+    {
+      MDETAIL("IP byte less than 0 or greater than 255: %d %s", ip_byte, ip_byte_str[ii]);
+      goto EXIT_LABEL;
+    }
+    ip_out[ii] = ip_byte;
+  }
+
+  MDETAIL("Parsed IP address: %d.%d.%d.%d",
+         ip_out[0],
+         ip_out[1],
+         ip_out[2],
+         ip_out[3]);
+  rc = TRUE;
+
+EXIT_LABEL:
+
+  EXIT;
+
+  return rc;
+}
+
+bool otb_util_ip_is_all_val(uint8_t *ip, uint8_t val)
+{
+  bool rc = TRUE;
+  int ii;
+
+  ENTRY;
+
+  for (ii = 0; ii < 4; ii++)
+  {
+    if (ip[ii] != val)
+    {
+      rc = FALSE;
+      break;
+    }
+  }
+
+  EXIT;
+
+  return rc;
+}
+
+bool otb_util_ip_is_subnet_valid(uint8_t *subnet)
+{
+  bool rc = TRUE;
+  uint32_t mask;
+
+  ENTRY;
+
+  if (otb_util_ip_is_all_val(subnet, 0))
+  {
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  mask = (subnet[0] << 24) | (subnet[1] << 16) | (subnet[2] << 8) | subnet[3];
+  if (mask & (~mask >> 1))
+  {
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+
+EXIT_LABEL:
+
+  EXIT;
+
+  return rc;
+}
+
+bool otb_util_flash_read(uint32 location,
+                         uint32 *dest,
+                         uint32 len)
+{
+  bool rc = TRUE;
+  uint8 tries;
+  esp_err_t spi_rc = ESP_FAIL;
+
+  ENTRY;
+  
+  // Check everything is 4 byte aligned
+  OTB_ASSERT((uint32)location % 4 == 0);
+  OTB_ASSERT((uint32)dest % 4 == 0);
+  OTB_ASSERT((uint32)len % 4 == 0);
+  
+  tries = 0;
+  while ((tries < 2) && (spi_rc != ESP_OK))
+  {
+    spi_rc = spi_flash_read(location, dest, len);
+  }
+
+  if (tries == 2)
+  {
+    MERROR("Failed to read at 0x%08x, error %d", location, spi_rc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+EXIT_LABEL:  
+  
+  EXIT;
+  
+  return rc;
+}                                                  
+
+bool otb_util_flash_write_string(uint32 location,
+                                 uint32 *source,
+                                 uint32 len)
+{
+  bool rc;
+  uint32 newlen;
+  uint8 mod4;
+  
+  ENTRY;
+  
+  // 4 byte align the string - this should be safeish - we're not writing past the end
+  // of the passed in string, but we are ready past it so may log some rubbish
+  mod4 = len % 4;
+  newlen = len + (4-mod4);
+
+  rc = otb_util_flash_write(location, source, newlen);
+  
+  EXIT;
+  
+  return(rc);
+}
+
+bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len)
+{
+  bool rc = TRUE;
+  uint8 tries;
+  esp_err_t spi_rc = ESP_FAIL;
+  
+  ENTRY;
+  
+  // Check everything is 4 byte aligned
+  OTB_ASSERT((uint32)location % 4 == 0);
+  OTB_ASSERT((uint32)source % 4 == 0);
+  OTB_ASSERT((uint32)len % 4 == 0);
+
+  tries = 0;
+  while ((tries < 2) && (spi_rc == ESP_FAIL))
+  {
+    spi_rc = spi_flash_write(location, source, len);
+    tries++;
+  }
+
+  if (spi_rc != ESP_OK)
+  {
+    MERROR("Failed to write at 0x%08x, error %d", location, spi_rc);
+    rc = FALSE;
+    goto EXIT_LABEL;
+  }
+  
+EXIT_LABEL:  
+
+  EXIT;
+  
+  return rc;
+}
+ 
+void otb_reset_error(const char *text)
+{
+  ENTRY;
+  
+  otb_reset_schedule(1000, (const char *)text, TRUE);
+  
+  EXIT;
+  
+  return;
+}
+
+void otb_reset(const char *text)
+{
+  ENTRY;
+  
+  otb_reset_internal(text, FALSE);
+  
+  EXIT;
+  
+  return;
+}
+
+void otb_reset_internal(const char *text, bool error)
+{
+  //bool same;
+
+  ENTRY;
 
 #if 0
-void ICACHE_FLASH_ATTR otb_util_booted(void)
+  otb_util_reset_store_reason(text, &same);
+#endif
+
+  if ((text != NULL) && (error))
+  {
+    MERROR("Resetting: %s", text);
+  }
+  else if (text != NULL)
+  {
+    MWARN("Resetting: %s", text);
+  }
+  else
+  {
+    MWARN("Resetting");
+  }
+
+#if 0
+  if (error && !same)
+  {
+    // Only store logs if not the same reset reason as last time (to avoid destroying
+    // the flash)
+    otb_util_log_store();
+  }
+#endif
+  
+  // Delay to give any serial logs time to output.
+  DELAY_MS(1000);
+
+  abort();
+
+  EXIT;
+
+  return;
+}
+
+void otb_reset_schedule(uint32_t timeout,
+                        const char *reason,
+                        bool error)
+{
+
+  ENTRY;
+
+#if 0
+  // XXX
+  memset(&otb_reset_reason_struct, 0, sizeof(otb_reset_reason_struct));
+  otb_reset_reason_struct.reason = reason;  
+  otb_reset_reason_struct.error = error;  
+
+  otb_util_timer_set((os_timer_t *)&otb_util_reset_timer,
+                     (os_timer_func_t *)otb_reset_timer,
+                     (void *)&otb_reset_reason_struct,
+                     timeout,
+                     0);
+#endif
+
+  otb_reset(reason);
+
+  EXIT;
+  
+  return;
+}
+
+bool otb_util_reset_store_reason(char *text, bool *same)
+{
+  bool rc = TRUE;
+  uint16 len;
+  // XXX Might blow the stack ...
+  char ALIGN4 stored[OTB_PART_REB_LEN];
+
+  ENTRY;
+  
+  *same = FALSE;
+  
+  // First read the current stored string - as only want to write if it differs (so we 
+  // don't write the flash too many times
+  
+  rc = otb_util_flash_read((uint32)OTB_PART_REB_LOC,
+                           (uint32 *)stored,
+                           OTB_PART_REB_LEN);
+  if (rc)
+  {
+    if (os_strncmp(text, stored, OTB_PART_REB_LEN))
+    {
+      len = os_strlen(text);
+      ESP_ERR_WARN_AND_GOTO_EXIT_LABEL(rc, spi_flash_erase_sector(OTB_PART_REB_LOC / 0x1000));
+      rc = otb_util_flash_write_string((uint32)OTB_PART_REB_LOC,
+                                       (uint32 *)text,
+                                       (uint32)len);
+      if (!rc)
+      {
+        MDEBUG("Failed to actually store reset reason in flash");
+      }
+    }
+    else
+    {
+      MDEBUG("New reset reason same as old one");
+      *same = TRUE;
+    }
+  }
+  
+  if (!rc)
+  {
+    MERROR("Failed to store reset reason");
+  }
+ 
+EXIT_LABEL:
+
+  EXIT;
+
+  return rc;
+}
+
+
+#if 0
+void otb_util_booted(void)
 {
   ENTRY;
 
@@ -376,7 +750,7 @@ void ICACHE_FLASH_ATTR otb_util_booted(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_flash_init(void)
+void otb_util_flash_init(void)
 {
 
   ENTRY;
@@ -411,7 +785,7 @@ void ICACHE_FLASH_ATTR otb_util_flash_init(void)
 
 #ifdef OTB_SUPER_BIG_FLASH_8266
 
-SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_erase_sector_big(uint16 sector)
+SpiFlashOpResult otb_util_spi_flash_erase_sector_big(uint16 sector)
 {
   int8 status;
 
@@ -424,7 +798,7 @@ SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_erase_sector_big(uint16 se
   return status;
 }
 
-SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_write_big(uint32 des_addr, uint32 *src_addr, uint32 size)
+SpiFlashOpResult otb_util_spi_flash_write_big(uint32 des_addr, uint32 *src_addr, uint32 size)
 {
   int8 status;
 
@@ -437,7 +811,7 @@ SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_write_big(uint32 des_addr,
   return status;
 }
 
-SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_read_big(uint32 src_addr, uint32 *des_addr, uint32 size)
+SpiFlashOpResult otb_util_spi_flash_read_big(uint32 src_addr, uint32 *des_addr, uint32 size)
 {
   int8 status;
   
@@ -454,7 +828,7 @@ SpiFlashOpResult ICACHE_FLASH_ATTR otb_util_spi_flash_read_big(uint32 src_addr, 
 
 #if 0
 
-void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
+void otb_util_factory_reset(void)
 {
   rc = FALSE;
 
@@ -524,7 +898,7 @@ void ICACHE_FLASH_ATTR otb_util_factory_reset(void)
 }
 #endif
 
-size_t ICACHE_FLASH_ATTR otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size)
+size_t otb_util_copy_flash_to_ram(char *dst, const char *from_ptr_byte, int size)
 {
         int from, to;
         uint32_t current32, byte;
@@ -561,7 +935,7 @@ done:
 // - otherwise if can get station mac use it
 // - otherwise use device chip id
 // Note ap MAC uses invalid vendor ID, which is why we use the station mac
-void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
+void otb_util_get_chip_id(void)
 {
   bool mac_rc;
   char mac[OTB_WIFI_MAC_ADDRESS_STRING_LENGTH];
@@ -573,12 +947,12 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
   ENTRY;
 
   OTB_ASSERT(OTB_MAIN_CHIPID_STR_LENGTH >= (OTB_EEPROM_HW_SERIAL_LEN+1));
-  os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
+  memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
   
   if ((otb_eeprom_main_board_g != NULL) &&
-      (os_strnlen(otb_eeprom_main_board_g->common.serial,
+      (strnlen(otb_eeprom_main_board_g->common.serial,
                   OTB_EEPROM_HW_SERIAL_LEN+1) <= OTB_EEPROM_HW_SERIAL_LEN) &&
-      (os_strnlen(otb_eeprom_main_board_g->common.serial,
+      (strnlen(otb_eeprom_main_board_g->common.serial,
                   OTB_EEPROM_HW_SERIAL_LEN+1) > 0))
   {
     MDEBUG("Using serial number as chipid");
@@ -616,13 +990,13 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
     // Check MAC address is exactly format (length) we expect which is:
     // aa:bb:cc:dd:ee:ff (17 bytes)
     if (mac_rc &&
-        (os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH) <=
+        (strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH) <=
                                       (OTB_WIFI_MAC_ADDRESS_STRING_LENGTH-1)))
     {
       // Use STA MAC address
       MDETAIL("Using station MAC address as chipid");
       for (ii = 0, jj = 0, kk = 0;
-           ii < os_strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH);
+           ii < strnlen(mac, OTB_WIFI_MAC_ADDRESS_STRING_LENGTH);
            ii++)
       {
         if (isalnum(mac[ii]))
@@ -653,7 +1027,7 @@ void ICACHE_FLASH_ATTR otb_util_get_chip_id(void)
             jj += 2;
             kk = 0;
           }
-          if (os_strnlen(OTB_MAIN_CHIPID, OTB_EEPROM_HW_SERIAL_LEN+1) < 6)
+          if (strnlen(OTB_MAIN_CHIPID, OTB_EEPROM_HW_SERIAL_LEN+1) < 6)
           {
             MWARN("Unexpected MAC address format: %s", mac);
             rc = 0;
@@ -717,8 +1091,8 @@ EXIT_LABEL:
   {  
     // Use ESP chip id
     MDETAIL("Using ESP chipid as chipid");
-    os_memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
-    os_sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
+    memset(OTB_MAIN_CHIPID, 0, OTB_MAIN_CHIPID_STR_LENGTH);
+    sprintf(OTB_MAIN_CHIPID, "%06x", system_get_chip_id());
   }
   
   INFO("OTB: Chip ID: %s", OTB_MAIN_CHIPID);  
@@ -729,7 +1103,7 @@ EXIT_LABEL:
 }
 
 // XXX RTOS don't need as using IDF logging?
-void ICACHE_FLASH_ATTR otb_util_init_logging(void)
+void otb_util_init_logging(void)
 {
   otb_util_log_level = OTB_LOG_LEVEL_DEFAULT;
 
@@ -744,7 +1118,7 @@ void ICACHE_FLASH_ATTR otb_util_init_logging(void)
 
   // Initialize our log buffer
   otb_util_log_buf = (char *)otb_util_log_buf_int32;
-  os_memset(otb_util_log_buf, 0, OTB_UTIL_LOG_BUFFER_LEN);
+  memset(otb_util_log_buf, 0, OTB_UTIL_LOG_BUFFER_LEN);
   otb_util_log_buffer_struct.buffer = otb_util_log_buf;
   otb_util_log_buffer_struct.current = otb_util_log_buf;
   otb_util_log_buffer_struct.len = OTB_UTIL_LOG_BUFFER_LEN;
@@ -763,7 +1137,7 @@ void ICACHE_FLASH_ATTR otb_util_init_logging(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_resume_init(void)
+void otb_util_resume_init(void)
 {
   // Log some useful info
   otb_util_log_useful_info(FALSE);
@@ -812,7 +1186,7 @@ void ICACHE_FLASH_ATTR otb_util_resume_init(void)
   otb_util_check_for_break();
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_store(void)
+void otb_util_log_store(void)
 {
   uint8 spi_rc = SPI_FLASH_RESULT_ERR;
   char scratch[4];
@@ -880,7 +1254,7 @@ void ICACHE_FLASH_ATTR otb_util_log_store(void)
 }
 
 // XXX Should really break this out§
-char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
+char *otb_util_get_log_ram(uint8 index)
 {
   uint16_t len_b4;
   int ii;
@@ -993,7 +1367,7 @@ char ICACHE_FLASH_ATTR *otb_util_get_log_ram(uint8 index)
   return(log_start);
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_save(char *text)
+void otb_util_log_save(char *text)
 {
   uint16_t text_len;
   uint16_t overflow_len;
@@ -1048,7 +1422,7 @@ void ICACHE_FLASH_ATTR otb_util_log_save(char *text)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
+void otb_util_log_fn(char *text)
 {
   if (!OTB_MAIN_DISABLE_OTB_LOGGING)
   {
@@ -1062,29 +1436,7 @@ void ICACHE_FLASH_ATTR otb_util_log_fn(char *text)
 }
 
 
-void ICACHE_FLASH_ATTR otb_reset_schedule(uint32_t timeout,
-                                          const char *reason,
-                                          bool error)
-{
-
-  ENTRY;
-
-  os_memset(&otb_reset_reason_struct, 0, sizeof(otb_reset_reason_struct));
-  otb_reset_reason_struct.reason = reason;  
-  otb_reset_reason_struct.error = error;  
-
-  otb_util_timer_set((os_timer_t *)&otb_util_reset_timer,
-                     (os_timer_func_t *)otb_reset_timer,
-                     (void *)&otb_reset_reason_struct,
-                     timeout,
-                     0);
-
-  EXIT;
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_reset_timer(void *arg)
+void otb_reset_timer(void *arg)
 {
   struct otb_reset_reason *reason_struct = (struct otb_reset_reason *)arg;
 
@@ -1097,133 +1449,7 @@ void ICACHE_FLASH_ATTR otb_reset_timer(void *arg)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_reset_error(char *text)
-{
-  ENTRY;
-  
-  otb_reset_schedule(1000, (const char *)text, TRUE);
-  
-  EXIT;
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_reset(char *text)
-{
-  ENTRY;
-  
-  otb_reset_internal(text, FALSE);
-  
-  EXIT;
-  
-  return;
-}
-
-void ICACHE_FLASH_ATTR otb_reset_internal(char *text, bool error)
-{
-  bool rc;
-  bool same;
-  uint8_t log_level;
-
-  ENTRY;
-  
-  otb_util_reset_store_reason(text, &same);
-  
-  if (error)
-  {
-    log_level = OTB_LOG_LEVEL_ERROR;
-  }
-  else
-  {
-    log_level = OTB_LOG_LEVEL_WARN;
-  }
-
-  if (text != NULL)
-  {
-    LOG("OTB", log_level, "Resetting: %s", text);
-  }
-  else
-  {
-    LOG("OTB", log_level, "Resetting");
-  }
-
-  if (error && !same)
-  {
-    // Only store logs if not the same reset reason as last time (to avoid destroying
-    // the flash)
-    otb_util_log_store();
-  }
-  
-  // Delay to give any serial logs time to output.
-  otb_util_delay_ms(1000);
-
-  #if 0
-  // Reset by pulling reset GPIO (connected to reset) low
-  // XXX Only works for GPIO 16
-  WRITE_PERI_REG(RTC_GPIO_OUT,
-                   (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
-  #else
-  system_restart();
-  #endif
-
-  EXIT;
-
-  return;
-}
-
-bool ICACHE_FLASH_ATTR otb_util_reset_store_reason(char *text, bool *same)
-{
-  bool rc = TRUE;
-  uint8 tries = 0;
-  uint16 len;
-  uint8 mod4;
-  uint8 spi_rc;
-  char ALIGN4 stored[OTB_BOOT_LAST_REBOOT_LEN];
-
-  ENTRY;
-  
-  *same = FALSE;
-  
-  // First read the current stored string - as only want to write if it differs (so we 
-  // don't write the flash too many times
-  
-  rc = otb_util_flash_read((uint32)OTB_BOOT_LAST_REBOOT_REASON,
-                           (uint32 *)stored,
-                           OTB_BOOT_LAST_REBOOT_LEN);
-  if (rc)
-  {
-    if (os_strncmp(text, stored, OTB_BOOT_LAST_REBOOT_LEN))
-    {
-      len = os_strlen(text);
-      spi_rc = spi_flash_erase_sector(OTB_BOOT_LAST_REBOOT_REASON / 0x1000);
-      rc = otb_util_flash_write_string((uint32)OTB_BOOT_LAST_REBOOT_REASON,
-                                       (uint32 *)text,
-                                       (uint32)len);
-      if (!rc)
-      {
-        MDEBUG("Failed to actually store reset reason in flash");
-      }
-    }
-    else
-    {
-      MDEBUG("New reset reason same as old one");
-      *same = TRUE;
-    }
-  }
-  
-  if (!rc)
-  {
-    MERROR("Failed to store reset reason");
-  }
- 
-EXIT_LABEL:
-
-  EXIT;
-
-  return rc;
-}
-
-void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
+void otb_util_clear_reset(void)
 {
   ENTRY;
 
@@ -1245,98 +1471,7 @@ void ICACHE_FLASH_ATTR otb_util_clear_reset(void)
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_util_flash_read(uint32 location,
-                                           uint32 *dest,
-                                           uint32 len)
-{
-  bool rc = TRUE;
-  uint8 tries;
-  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
-
-  ENTRY;
-  
-  // Check everything is 4 byte aligned
-  OTB_ASSERT((uint32)location % 4 == 0);
-  OTB_ASSERT((uint32)dest % 4 == 0);
-  OTB_ASSERT((uint32)len % 4 == 0);
-  
-  tries = 0;
-  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
-  {
-    spi_rc = spi_flash_read(location, dest, len);
-  }
-
-  if (tries == 2)
-  {
-    MERROR("Failed to read at 0x%08x, error %d", location, spi_rc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-  
-EXIT_LABEL:  
-  
-  EXIT;
-  
-  return rc;
-}                                                  
-
-bool ICACHE_FLASH_ATTR otb_util_flash_write_string(uint32 location,
-                                                   uint32 *source,
-                                                   uint32 len)
-{
-  bool rc;
-  uint32 newlen;
-  uint8 mod4;
-  
-  ENTRY;
-  
-  // 4 byte align the string - this should be safeish - we're not writing past the end
-  // of the passed in string, but we are ready past it so may log some rubbish
-  mod4 = len % 4;
-  newlen = len + (4-mod4);
-
-  rc = otb_util_flash_write(location, source, newlen);
-  
-  EXIT;
-  
-  return(rc);
-}
-
-bool ICACHE_FLASH_ATTR otb_util_flash_write(uint32 location, uint32 *source, uint32 len)
-{
-  bool rc = TRUE;
-  uint8 tries;
-  uint8 spi_rc = SPI_FLASH_RESULT_ERR;
-  
-  ENTRY;
-  
-  // Check everything is 4 byte aligned
-  OTB_ASSERT((uint32)location % 4 == 0);
-  OTB_ASSERT((uint32)source % 4 == 0);
-  OTB_ASSERT((uint32)len % 4 == 0);
-
-  tries = 0;
-  while ((tries < 2) && (spi_rc != SPI_FLASH_RESULT_OK))
-  {
-    spi_rc = spi_flash_write(location, source, len);
-    tries++;
-  }
-
-  if (tries == 2)
-  {
-    MERROR("Failed to write at 0x%08x, error %d", location, spi_rc);
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-  
-EXIT_LABEL:  
-
-  EXIT;
-  
-  return rc;
-}
- 
-void ICACHE_FLASH_ATTR otb_util_log_heap_size_start_timer(void)
+void otb_util_log_heap_size_start_timer(void)
 {
   ENTRY;
 
@@ -1351,7 +1486,7 @@ void ICACHE_FLASH_ATTR otb_util_log_heap_size_start_timer(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_heap_size_timer(void *arg)
+void otb_util_log_heap_size_timer(void *arg)
 {
   uint32 size;
 
@@ -1365,7 +1500,7 @@ void ICACHE_FLASH_ATTR otb_util_log_heap_size_timer(void *arg)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
+void otb_util_get_heap_size(void)
 {
   uint32 size;
   char size_s[8];
@@ -1373,7 +1508,7 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
   ENTRY;
   
   size = system_get_free_heap_size();  
-  os_snprintf(size_s, 8, "%d", size);
+  snprintf(size_s, 8, "%d", size);
   otb_mqtt_send_status(OTB_MQTT_STATUS_HEAP_SIZE, size_s, "", "");
   
   EXIT;
@@ -1383,7 +1518,7 @@ void ICACHE_FLASH_ATTR otb_util_get_heap_size(void)
 
 bool otb_util_vdd33_flash_ok = FALSE;
 
-bool ICACHE_FLASH_ATTR otb_util_get_vdd33(uint16 *vdd33)
+bool otb_util_get_vdd33(uint16 *vdd33)
 {
   bool rc = FALSE;
   char output[16];
@@ -1456,7 +1591,7 @@ EXIT_LABEL:
   return rc;
 }  
 
-void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)
+void otb_util_timer_cancel(os_timer_t *timer)
 {
 
   ENTRY;
@@ -1470,7 +1605,7 @@ void ICACHE_FLASH_ATTR otb_util_timer_cancel(os_timer_t *timer)
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_util_timer_is_set(os_timer_t *timer)
+bool otb_util_timer_is_set(os_timer_t *timer)
 {
   bool rc = TRUE;
   
@@ -1487,7 +1622,7 @@ bool ICACHE_FLASH_ATTR otb_util_timer_is_set(os_timer_t *timer)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_util_timer_set(os_timer_t *timer,
+void otb_util_timer_set(os_timer_t *timer,
                                           os_timer_func_t *timerfunc,
                                           void *arg,
                                           uint32_t timeout,
@@ -1505,7 +1640,7 @@ void ICACHE_FLASH_ATTR otb_util_timer_set(os_timer_t *timer,
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_util_timer_finished(otb_util_timeout *timeout)
+bool otb_util_timer_finished(otb_util_timeout *timeout)
 {
   bool rc = FALSE;
   uint32_t current_time; 
@@ -1535,7 +1670,7 @@ bool ICACHE_FLASH_ATTR otb_util_timer_finished(otb_util_timeout *timeout)
   return rc;  
 }
  
-void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
+void otb_util_delay_ms(uint32_t value)
 {
   // Can't just use Ardunio delay, cos may not be in the right context.
   // os_delay_us takes a uint16_t so can only delay up to 65535 microseconds
@@ -1615,7 +1750,7 @@ void ICACHE_FLASH_ATTR otb_util_delay_ms(uint32_t value)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
+void otb_util_log_snprintf(char *log_string,
                                              uint16_t max_log_string_len,
                                              const char *module,
                                              const char *level_str,
@@ -1629,14 +1764,14 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   // Need to call vsnprintf not snprintf, as passing va_list
   if (level_str != NULL)
   {
-    len = os_snprintf(log_string, max_log_string_len, "%s", level_str);
+    len = snprintf(log_string, max_log_string_len, "%s", level_str);
     log_string += len;
     max_log_string_len -= len;
   }
 
   if (module != NULL)
   {
-    len = os_snprintf(log_string, max_log_string_len, "%s: ", module);
+    len = snprintf(log_string, max_log_string_len, "%s: ", module);
     log_string += len;
     max_log_string_len -= len;
   }
@@ -1648,7 +1783,7 @@ void ICACHE_FLASH_ATTR otb_util_log_snprintf(char *log_string,
   EXIT;
 }
 
-void ICACHE_FLASH_ATTR otb_util_log(char *module,
+void otb_util_log(char *module,
                                     uint8_t level,
                                     char *log_string,
                                     uint16_t max_log_string_len,
@@ -1718,7 +1853,7 @@ EXIT_LABEL:
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_disable_logging(void)
+void otb_util_disable_logging(void)
 {
   ENTRY;
 
@@ -1729,7 +1864,7 @@ void ICACHE_FLASH_ATTR otb_util_disable_logging(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_enable_logging(void)
+void otb_util_enable_logging(void)
 {
   ENTRY;
 
@@ -1740,7 +1875,7 @@ void ICACHE_FLASH_ATTR otb_util_enable_logging(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
+void otb_util_log_error_via_mqtt(char *text)
 {
   ENTRY;
 
@@ -1761,7 +1896,7 @@ void ICACHE_FLASH_ATTR otb_util_log_error_via_mqtt(char *text)
 }
 
 // Returns true if is a fully qualified domain name
-bool ICACHE_FLASH_ATTR otb_util_is_fqdn(unsigned char *dn)
+bool otb_util_is_fqdn(unsigned char *dn)
 {
   int len;
   bool is_dn = FALSE;
@@ -1794,7 +1929,7 @@ bool ICACHE_FLASH_ATTR otb_util_is_fqdn(unsigned char *dn)
   return(is_fqdn);
 }
 
-bool ICACHE_FLASH_ATTR otb_util_is_ip(unsigned char *ip)
+bool otb_util_is_ip(unsigned char *ip)
 {
   uint8_t ipb[4];
   bool rc;
@@ -1808,7 +1943,7 @@ bool ICACHE_FLASH_ATTR otb_util_is_ip(unsigned char *ip)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
+void otb_init_mqtt(void *arg)
 {
   unsigned char mqtt_svr[OTB_MQTT_MAX_SVR_LEN + OTB_IP_MAX_DOMAIN_NAME_LEN];
   ENTRY;
@@ -1824,11 +1959,11 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
       !otb_util_is_fqdn(otb_conf->mqtt.svr) &&
       (otb_conf->ip.domain_name[0] != 0))
   {
-    os_sprintf(mqtt_svr, "%s.%s", otb_conf->mqtt.svr, otb_conf->ip.domain_name);
+    sprintf(mqtt_svr, "%s.%s", otb_conf->mqtt.svr, otb_conf->ip.domain_name);
   }
   else
   {
-    os_sprintf(mqtt_svr, "%s", otb_conf->mqtt.svr);
+    sprintf(mqtt_svr, "%s", otb_conf->mqtt.svr);
   }
 
   otb_mqtt_initialize(mqtt_svr,
@@ -1850,7 +1985,7 @@ void ICACHE_FLASH_ATTR otb_init_mqtt(void *arg)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
+void otb_init_ds18b20(void *arg)
 {
   ENTRY;
 
@@ -1863,7 +1998,7 @@ void ICACHE_FLASH_ATTR otb_init_ds18b20(void *arg)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
+void otb_init_ads(void *arg)
 {
   ENTRY;
 
@@ -1881,142 +2016,8 @@ void ICACHE_FLASH_ATTR otb_init_ads(void *arg)
   return;
 }
 
-// ip_out must be 4 byte array
-bool ICACHE_FLASH_ATTR otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out)
-{
-#define OTB_UTIL_MAX_IPV4_STR_LEN 15
-#define OTB_UTIL_MAX_IPV4_BYTE_LEN 3
-  char ip_byte_str[4][OTB_UTIL_MAX_IPV4_BYTE_LEN+1];
-  bool rc = FALSE;
-  size_t len;
-  int ii, jj, kk;
-  int ip_byte;
 
-  ENTRY;
-
-  len = os_strnlen(ip_in, OTB_UTIL_MAX_IPV4_STR_LEN+1);
-  if (len > OTB_UTIL_MAX_IPV4_STR_LEN)
-  {
-    // Too long to be a valid IPv4 address (123.123.123.123 is 15 chars)
-    MDETAIL("IPv4 address too long to be valid");
-    goto EXIT_LABEL;
-  }
-
-  os_memset(ip_byte_str, 0, 4*(OTB_UTIL_MAX_IPV4_BYTE_LEN+1));
-  // ii is position in up_in string, jj is digits in current "byte", kk is byte
-  for (ii = 0, jj = 0, kk = 0; ii < len; ii++)
-  {
-    if (ip_in[ii] == '.')
-    {
-      jj = 0;
-      kk++;
-    }
-    else if (jj > 2)
-    {
-      // byte is too many digits
-      MDETAIL("IP address byte has too many digits: %d", jj);
-      goto EXIT_LABEL;
-    }
-    else if ((ip_in[ii] >= '0') && (ip_in[ii] <= '9'))
-    {
-      // Digit
-      ip_byte_str[kk][jj] = ip_in[ii];
-      jj++;
-    }
-    else
-    {
-      // invalid character in IP address
-      MDETAIL("Invalid character in IP address: %d", ip_in[ii]);
-      goto EXIT_LABEL;
-    }
-
-    if (kk > 3)
-    {
-      // Too many "bytes"
-      MDETAIL("Too many bytes in IPv4 address: %d", kk+1);
-      goto EXIT_LABEL;
-    }
-  }
-  if (kk < 3)
-  {
-    // Too few "bytes"
-    MDETAIL("Too few bytes in IPv4 address: %d", kk+1);
-    goto EXIT_LABEL;
-  }
-
-  for (ii = 0; ii < 4; ii++)
-  {
-    ip_byte = atoi(ip_byte_str[ii]);
-    if ((ip_byte < 0) || (ip_byte > 255))
-    {
-      MDETAIL("IP byte less than 0 or greater than 255: %d %s", ip_byte, ip_byte_str)
-      goto EXIT_LABEL;
-    }
-    ip_out[ii] = ip_byte;
-  }
-
-  MDETAIL("Parsed IP address: %d.%d.%d.%d",
-         ip_out[0],
-         ip_out[1],
-         ip_out[2],
-         ip_out[3]);
-  rc = TRUE;
-
-EXIT_LABEL:
-
-  EXIT;
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_util_ip_is_all_val(uint8_t *ip, uint8_t val)
-{
-  bool rc = TRUE;
-  int ii;
-
-  ENTRY;
-
-  for (ii = 0; ii < 4; ii++)
-  {
-    if (ip[ii] != val)
-    {
-      rc = FALSE;
-      break;
-    }
-  }
-
-  EXIT;
-
-  return rc;
-}
-
-bool ICACHE_FLASH_ATTR otb_util_ip_is_subnet_valid(uint8_t *subnet)
-{
-  bool rc = TRUE;
-  uint32_t mask;
-
-  ENTRY;
-
-  if (otb_util_ip_is_all_val(subnet, 0))
-  {
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-  mask = (subnet[0] << 24) | (subnet[1] << 16) | (subnet[2] << 8) | subnet[3];
-  if (mask & (~mask >> 1))
-  {
-    rc = FALSE;
-    goto EXIT_LABEL;
-  }
-
-EXIT_LABEL:
-
-  EXIT;
-
-  return rc;
-}
-
-void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
+void otb_util_uart0_rx_en(void)
 {
   ENTRY;
   
@@ -2037,7 +2038,7 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_en(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
+void otb_util_uart0_rx_dis(void)
 {
   ENTRY;
   
@@ -2052,7 +2053,7 @@ void ICACHE_FLASH_ATTR otb_util_uart0_rx_dis(void)
 }
 
 
-void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
+void otb_util_check_for_break(void)
 {
 
   ENTRY;
@@ -2071,7 +2072,7 @@ void ICACHE_FLASH_ATTR otb_util_check_for_break(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_break_disable_timer(void)
+void otb_util_break_disable_timer(void)
 {
 
   ENTRY;
@@ -2083,7 +2084,7 @@ void ICACHE_FLASH_ATTR otb_util_break_disable_timer(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_util_break_enable_timer(uint32_t period)
+void otb_util_break_enable_timer(uint32_t period)
 {
 
   ENTRY;
@@ -2100,7 +2101,7 @@ void ICACHE_FLASH_ATTR otb_util_break_enable_timer(uint32_t period)
 }
 
 char ALIGN4 otb_util_break_timerfunc_string[] = "UTIL: Break timer popped";
-void ICACHE_FLASH_ATTR otb_util_break_timerfunc(void *arg)
+void otb_util_break_timerfunc(void *arg)
 {
 
   ENTRY;
@@ -2262,7 +2263,7 @@ void otb_util_uart0_rx_intr_handler(void *para)
 
 }
 
-size_t ICACHE_FLASH_ATTR otb_util_strnlen(const char *s, size_t maxlen)
+size_t otb_util_strnlen(const char *s, size_t maxlen)
 {
   size_t ii;
   for (ii = 0; ii < maxlen; ii++)
@@ -2275,11 +2276,11 @@ size_t ICACHE_FLASH_ATTR otb_util_strnlen(const char *s, size_t maxlen)
   return ii;
 }
 
-char* ICACHE_FLASH_ATTR strcat(char * dest, const char * src) {
+char* strcat(char * dest, const char * src) {
     return strncat(dest, src, strlen(src));
 }
 
-char* ICACHE_FLASH_ATTR strncat(char * dest, const char * src, size_t n) {
+char* strncat(char * dest, const char * src, size_t n) {
     size_t i;
     size_t offset = strlen(dest);
     for(i = 0; i < n && src[i]; i++) {
@@ -2289,70 +2290,70 @@ char* ICACHE_FLASH_ATTR strncat(char * dest, const char * src, size_t n) {
     return dest;
 }
 
-int ICACHE_FLASH_ATTR islower(int c) {
+int islower(int c) {
     if(c >= 'a' && c <= 'z') {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isupper(int c) {
+int isupper(int c) {
     if(c >= 'A' && c <= 'Z') {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isalpha(int c) {
+int isalpha(int c) {
     if(islower(c) || isupper(c)) {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isdigit(int c) {
+int isdigit(int c) {
     if(c >= '0' && c <= '9') {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isalnum(int c) {
+int isalnum(int c) {
     if(isalpha(c) || isdigit(c)) {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR iscntrl(int c) {
+int iscntrl(int c) {
     if(c <= 0x1F || c == 0x7F) {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isprint(int c) {
+int isprint(int c) {
     if(!iscntrl(c)) {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isgraph(int c) {
+int isgraph(int c) {
     if(isprint(c) && c != ' ') {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR ispunct(int c) {
+int ispunct(int c) {
     if(isgraph(c) && !isalnum(c)) {
         return 1;
     }
     return 0;
 }
 
-int ICACHE_FLASH_ATTR isxdigit(int c) {
+int isxdigit(int c) {
     if(c >= 'A' && c <= 'F') {
         return 1;
     }
@@ -2365,21 +2366,21 @@ int ICACHE_FLASH_ATTR isxdigit(int c) {
     return 0;
 }
 
-int ICACHE_FLASH_ATTR tolower(int c) {
+int tolower(int c) {
     if(isupper(c)) {
         c += 0x20;
     }
     return c;
 }
 
-int ICACHE_FLASH_ATTR toupper(int c) {
+int toupper(int c) {
     if(islower(c)) {
         c -= 0x20;
     }
     return c;
 }
 
-int ICACHE_FLASH_ATTR isblank(int c) {
+int isblank(int c) {
     switch(c) {
         case 0x20: // ' '
         case 0x09: // '\t'
@@ -2389,7 +2390,7 @@ int ICACHE_FLASH_ATTR isblank(int c) {
 }
 
 
-int ICACHE_FLASH_ATTR isspace(int c) {
+int isspace(int c) {
     switch(c) {
         case 0x20: // ' '
         case 0x09: // '\t'
@@ -2442,7 +2443,7 @@ int ICACHE_FLASH_ATTR isspace(int c) {
  * SUCH DAMAGE.
  */
 
-long ICACHE_FLASH_ATTR strtol(const char *nptr, char **endptr, int base) {
+long strtol(const char *nptr, char **endptr, int base) {
     const unsigned char *s = (const unsigned char *)nptr;
     unsigned long acc;
     int c;
@@ -2518,12 +2519,12 @@ long ICACHE_FLASH_ATTR strtol(const char *nptr, char **endptr, int base) {
     return (acc);
 }
 
-long ICACHE_FLASH_ATTR atol(const char* s) {
+long atol(const char* s) {
     char * tmp;
     return strtol(s, &tmp, 10);
 }
 
-int ICACHE_FLASH_ATTR atoi(const char* s) {
+int atoi(const char* s) {
     return (int) atol(s);
 }
 

@@ -188,7 +188,7 @@ typedef struct otb_conf_relay
   
   // Status LED - invalid for OTB (has status LED), -1 = no status led, otherwise pin
   // number of status LED.
-  char status_led;
+  sint8_t status_led;
   
   unsigned char pad1[3];
   

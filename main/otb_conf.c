@@ -22,14 +22,16 @@
 
 MLOG("otb-conf");
 
-void ICACHE_FLASH_ATTR otb_conf_init(void)
+void otb_conf_init(void)
 {
   ENTRY;
+
+  MDEBUG("Config size %d bytes", sizeof(otb_conf_struct));
 
   OTB_ASSERT(OTB_DS18B20_MAX_ADDRESS_STRING_LENGTH == OTB_CONF_DS18B20_MAX_ID_LEN);
   OTB_ASSERT(OTB_CONF_MAX_CONF_SIZE >= sizeof(otb_conf_struct));
 
-  memset((void *)&otb_conf_private, 0, sizeof(otb_conf));
+  memset((void *)&otb_conf_private, 0, sizeof(otb_conf_struct));
   otb_conf = &otb_conf_private;
 
   EXIT;
@@ -37,7 +39,7 @@ void ICACHE_FLASH_ATTR otb_conf_init(void)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_conf_ads_init_one(otb_conf_ads *ads, char ii)
+void otb_conf_ads_init_one(otb_conf_ads *ads, char ii)
 {
 
   ENTRY;
@@ -53,7 +55,7 @@ void ICACHE_FLASH_ATTR otb_conf_ads_init_one(otb_conf_ads *ads, char ii)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_conf_ads_init(otb_conf_struct *conf)
+void otb_conf_ads_init(otb_conf_struct *conf)
 {
   int ii;
   
@@ -75,7 +77,7 @@ void ICACHE_FLASH_ATTR otb_conf_ads_init(otb_conf_struct *conf)
   return;
 }      
 
-bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
+bool otb_conf_verify(otb_conf_struct *conf)
 {
   bool rc = FALSE;
   int ii;
@@ -87,7 +89,9 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
   // Test magic value
   if (otb_conf->magic != OTB_CONF_MAGIC)
   {
-    MERROR("Bad magic value - invalid config file");
+    MERROR("Bad magic value 0x%8.8x vs 0x%8.8x - invalid config file",
+           otb_conf->magic,
+           OTB_CONF_MAGIC);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -95,7 +99,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
   // Test version valid
   if (otb_conf->version > OTB_CONF_VERSION_CURRENT)
   {
-    MERROR("Bad magic value - invalid config file");
+    MERROR("Bad version %d - invalid config file", otb_conf->version);
     rc = FALSE;
     goto EXIT_LABEL;
   }
@@ -140,7 +144,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
 
     OTB_ASSERT((OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL >= OTB_CONF_STATUS_LED_BEHAVIOUR_MIN) &&
                (OTB_CONF_STATUS_LED_BEHAVIOUR_NORMAL <= OTB_CONF_STATUS_LED_BEHAVIOUR_MAX));
-    OTB_ASSERT(!OTB_IS_SIGNED(conf->status_led));
     OTB_COMPILE_ASSERT(OTB_CONF_STATUS_LED_BEHAVIOUR_MIN == 0);
     if (conf->status_led > OTB_CONF_STATUS_LED_BEHAVIOUR_MAX)
     {
@@ -150,7 +153,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
     }
   
     // DS18B20 config checking
-    OTB_ASSERT(!OTB_IS_SIGNED(conf->ds18b20s));
     if (conf->ds18b20s > OTB_DS18B20_MAX_DS18B20S)
     {
       MWARN("Invalid number of DS18B20s");
@@ -190,7 +192,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
     }
     
     // ADS config checking
-    OTB_ASSERT(!OTB_IS_SIGNED(conf->adss));
     if (conf->adss > OTB_CONF_ADS_MAX_ADSS)
     {
       MWARN("Invalid number of ADSs");
@@ -216,13 +217,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
     for (ii = 0; ii < OTB_CONF_ADS_MAX_ADSS; ii++)
     {
       // Check ADS id is right length (or 0), and location is null terminated
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].mux));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].gain));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].rate));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].cont));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].rms));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].period));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->ads[ii].samples));
       if ((strnlen(conf->ads[ii].loc, OTB_CONF_ADS_LOCATION_MAX_LEN) >=
                                                          OTB_CONF_ADS_LOCATION_MAX_LEN) ||
           ((conf->ads[ii].addr != 0x00) &&
@@ -260,7 +254,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
     
     for (ii = 0; ii < 17; ii++)
     {
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->gpio_boot_state[ii]));
       if (conf->gpio_boot_state[ii] > 1)
       {
         MWARN("gpio_boot_state %d invalid 0x%2.2x", ii, conf->gpio_boot_state[ii]);
@@ -286,9 +279,6 @@ bool ICACHE_FLASH_ATTR otb_conf_verify(otb_conf_struct *conf)
     OTB_COMPILE_ASSERT(OTB_CONF_RELAY_TYPE_MIN == 0);
     for (ii = 0; ii < OTB_CONF_RELAY_MAX_MODULES; ii++)
     {
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->relay[ii].type));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->relay[ii].addr));
-      OTB_ASSERT(!OTB_IS_SIGNED(conf->relay[ii].num_relays));
       if ((strnlen(conf->relay[ii].loc, OTB_CONF_RELAY_LOC_LEN) >=
                                                                 OTB_CONF_RELAY_LOC_LEN) ||
           (conf->relay[ii].index != ii) ||
@@ -377,7 +367,7 @@ EXIT_LABEL:
   return(rc);
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_verify_manual_ip(otb_conf_struct *conf)
+bool otb_conf_verify_manual_ip(otb_conf_struct *conf)
 {
   bool rc = TRUE;
 
@@ -416,11 +406,10 @@ EXIT_LABEL:
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_verify_ip(otb_conf_struct *conf)
+bool otb_conf_verify_ip(otb_conf_struct *conf)
 {
   bool invalid = FALSE;
   int ii;
-  uint32_t subnet_mask;
 
   ENTRY;
 
@@ -478,12 +467,12 @@ EXIT_LABEL:
   return(invalid);
 }
 
-void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
+void otb_conf_init_config(otb_conf_struct *conf)
 {
   int ii;
 
   ENTRY;
-  
+
   memset(conf, 0, sizeof(otb_conf_struct));
 #ifdef OTB_IOT_ESP12
   // For ESP12 modules set GPIO2 to 1 on boot to turn on board LED off
@@ -511,9 +500,7 @@ void ICACHE_FLASH_ATTR otb_conf_init_config(otb_conf_struct *conf)
   return;
 }
 
-char ALIGN4 otb_conf_load_error_string[] = "CONF: Failed to save new config";
-char ALIGN4 otb_conf_load_error_reboot_string[] = "CONF: New config stored, rebooting";
-bool ICACHE_FLASH_ATTR otb_conf_load(void)
+bool otb_conf_load(void)
 {
   bool rc;
 
@@ -534,12 +521,12 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
     rc = otb_conf_save(otb_conf);
     if (!rc)
     {
-      otb_reset_error(otb_conf_load_error_string);
+      otb_reset_error("Failed to save new config");
       rc = TRUE;
     }
     else
     {
-      otb_reset(otb_conf_load_error_reboot_string);
+      otb_reset("New config stored");
       rc = TRUE;
     }
   }
@@ -558,7 +545,7 @@ bool ICACHE_FLASH_ATTR otb_conf_load(void)
   return(rc);
 }
 
-void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
+void otb_conf_log(otb_conf_struct *conf)
 {
   int ii;
 
@@ -603,7 +590,7 @@ void ICACHE_FLASH_ATTR otb_conf_log(otb_conf_struct *conf)
   return;
 }
 
-void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail)
+void otb_conf_log_ip(otb_conf_struct *conf, bool detail)
 {
   ENTRY;
 
@@ -660,7 +647,7 @@ void ICACHE_FLASH_ATTR otb_conf_log_ip(otb_conf_struct *conf, bool detail)
   return;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_save(otb_conf_struct *conf)
+bool otb_conf_save(otb_conf_struct *conf)
 {
   bool rc;
 
@@ -676,7 +663,7 @@ bool ICACHE_FLASH_ATTR otb_conf_save(otb_conf_struct *conf)
   return rc;
 }
 
-uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf, size_t size)
+uint16_t otb_conf_calc_checksum(otb_conf_struct *conf, size_t size)
 {
   uint16_t calc_sum = 0;
   uint8_t *conf_data;
@@ -685,7 +672,7 @@ uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf, size_t 
   ENTRY;
 
   // Check 16-bit ii is sufficient
-  OTB_ASSERT(size <= 2^16);
+  OTB_ASSERT(size <= 0xffff);
   conf_data = (uint8_t *)conf;
   
   // Very simple checksum algorithm
@@ -703,7 +690,7 @@ uint16_t ICACHE_FLASH_ATTR otb_conf_calc_checksum(otb_conf_struct *conf, size_t 
   return calc_sum;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf, size_t size)
+bool otb_conf_verify_checksum(otb_conf_struct *conf, size_t size)
 {
   bool rc = FALSE;
   uint16_t calc_sum;
@@ -726,7 +713,7 @@ bool ICACHE_FLASH_ATTR otb_conf_verify_checksum(otb_conf_struct *conf, size_t si
   return rc;
 }
 
-uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool commit)
+uint8 otb_conf_store_sta_conf(char *ssid, char *password, bool commit)
 {
   uint8 rc = OTB_CONF_RC_NOT_CHANGED;
   otb_conf_struct *conf = &otb_conf_private;
@@ -758,7 +745,7 @@ uint8 ICACHE_FLASH_ATTR otb_conf_store_sta_conf(char *ssid, char *password, bool
   return rc;
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_store_ap_enabled(bool enabled)
+bool otb_conf_store_ap_enabled(bool enabled)
 {
   bool rc = TRUE;
   otb_conf_struct *conf = &otb_conf_private;
@@ -781,7 +768,7 @@ bool ICACHE_FLASH_ATTR otb_conf_store_ap_enabled(bool enabled)
   return(rc);
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_update(otb_conf_struct *conf)
+bool otb_conf_update(otb_conf_struct *conf)
 {
   bool rc;
   
@@ -795,7 +782,8 @@ bool ICACHE_FLASH_ATTR otb_conf_update(otb_conf_struct *conf)
   return(rc);
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_update_loc(int loc, char *val)
+#if 0
+bool otb_conf_update_loc(int loc, char *val)
 {
   int len;
   bool rc = FALSE;
@@ -848,7 +836,7 @@ EXIT_LABEL:
   return rc; 
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_set_status_led(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+bool otb_conf_set_status_led(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
   uint32_t behaviour;
@@ -901,7 +889,7 @@ EXIT_LABEL:
   
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_set_keep_ap_active(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+bool otb_conf_set_keep_ap_active(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
   bool active;
@@ -933,7 +921,7 @@ bool ICACHE_FLASH_ATTR otb_conf_set_keep_ap_active(unsigned char *next_cmd, void
   
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_set_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+bool otb_conf_set_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc;
   int loc;
@@ -951,7 +939,7 @@ bool ICACHE_FLASH_ATTR otb_conf_set_loc(unsigned char *next_cmd, void *arg, unsi
   
 }
 
-bool ICACHE_FLASH_ATTR otb_conf_delete_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
+bool otb_conf_delete_loc(unsigned char *next_cmd, void *arg, unsigned char *prev_cmd)
 {
   bool rc = FALSE;
   int loc;
@@ -986,7 +974,7 @@ EXIT_LABEL:
   
 }
 
-void ICACHE_FLASH_ATTR otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4, char *cmd5)
+void otb_conf_mqtt_conf(char *cmd1, char *cmd2, char *cmd3, char *cmd4, char *cmd5)
 {
   uint8 ii;
   uint8 field = OTB_MQTT_CONFIG_INVALID_;
@@ -1200,3 +1188,4 @@ EXIT_LABEL:
   
   return;
 }
+#endif

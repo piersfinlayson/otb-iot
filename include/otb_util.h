@@ -50,6 +50,23 @@ void otb_util_assert(bool value, char *value_s, char *file, uint32_t line);
 void otb_util_log_useful_info(void);
 void otb_util_convert_char_to_char(char *text, int from, int to);
 void otb_util_check_defs(void);
+bool otb_util_parse_ipv4_str(char *ip_in, uint8_t *ip_out);
+bool otb_util_ip_is_all_val(uint8_t *ip, uint8_t val);
+bool otb_util_ip_is_subnet_valid(uint8_t *subnet);
+bool otb_util_flash_read(uint32 location,
+                         uint32 *dest,
+                         uint32 len);
+bool otb_util_flash_write_string(uint32 location,
+                                 uint32 *source,
+                                 uint32 len);
+bool otb_util_flash_write(uint32 location, uint32 *source, uint32 len);
+void otb_reset_error(const char *text);
+void otb_reset(const char *text);
+void otb_reset_internal(const char *text, bool error);
+void otb_reset_schedule(uint32_t timeout,
+                        const char *reason,
+                        bool error);
+bool otb_util_reset_store_reason(char *text, bool *same);
 
 extern uint8_t otb_util_log_level;
 extern unsigned long otb_build_num;
@@ -66,8 +83,8 @@ unsigned long otb_build_num = 0;
 otb_run_state_t otb_run_state;
 otb_util_rgb_t otb_util_rgb_state[OTB_RUN_STATE_MAX] =
 {
-  {0xff, 0, 0},     // BOOT
-  {0xff, 0x40, 0},  // CONF
+  {0x80, 0, 0},     // BOOT
+  {0x40, 0x10, 0},  // CONF
 };
 #endif
 
