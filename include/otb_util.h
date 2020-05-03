@@ -20,11 +20,6 @@
 #ifndef OTB_UTIL_H_INCLUDED
 #define OTB_UTIL_H_INCLUDED
 
-// Booting
-#define OTB_UTIL_RGB_STATE_BOOT  otb_led_neo_get_rgb(0xff, 0, 0)
-// Retrieved config
-#define OTB_UTIL_RGB_STATE_CONF  otb_led_neo_get_rgb(0xff, 0x40, 0)
-
 typedef struct
 {
   size_t buf_len;
