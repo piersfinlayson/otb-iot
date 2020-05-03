@@ -27,8 +27,18 @@ void otb_util_init(void *arg)
 
   ENTRY;
 
+  MINFO("BOOTING");
+
   MDETAIL("Check required log level");
   otb_util_check_log_level();
+
+  // Apply GPIO boot state
+  MDETAIL("Apply gpio boot state");
+  otb_gpio_init(otb_run_state);
+
+  // Have to wait til GPIOs in boot state before entering boot state as use
+  // gpio to update status LED
+  otb_util_state_change(OTB_RUN_STATE_BOOT);
 
   MDETAIL("Initialize networking");
   tcpip_adapter_init();
@@ -39,8 +49,6 @@ void otb_util_init(void *arg)
   // Do some sanity checking
   otb_util_check_defs();
 
-  // Apply GPIO state
-  otb_gpio_init(otb_run_state);
 
   // Read the eeprom (if present) - this initializes the chip ID
   otb_eeprom_read();
@@ -87,6 +95,30 @@ void otb_util_init(void *arg)
 #endif
 
   vTaskDelete(NULL);
+
+  EXIT;
+
+  return;
+}
+
+void otb_util_state_change(otb_run_state_t state)
+{
+  uint32_t rgb[0];
+  ENTRY;
+
+  switch (state)
+  {
+    case OTB_RUN_STATE_BOOT:
+      MDETAIL("Enter boot state");
+      rgb[0] = otb_led_neo_get_rgb(0xff, 0, 0);
+      otb_led_neo_update(rgb, 1, 15, FALSE);
+      break;
+
+    default:
+      MERROR("Invalid run state %d", state);
+      OTB_ASSERT(FALSE);
+      break;
+  }
 
   EXIT;
 
@@ -232,6 +264,9 @@ void ICACHE_FLASH_ATTR otb_util_assert(bool value, char *value_s, char *file, ui
 
 void otb_util_log_useful_info(void)
 {
+  rtc_cpu_freq_t freq;
+  char *freq_s;
+
   ENTRY;
 
   // Set up and log some useful info
@@ -262,6 +297,22 @@ void otb_util_log_useful_info(void)
   //INFO("OTB: Boot slot: %d", otb_rboot_get_slot(FALSE));
   MDETAIL("Free heap size: %d bytes", esp_get_free_heap_size());
   MDETAIL("FreeRTOS tick rate: %lu Hz", configTICK_RATE_HZ);
+  freq = rtc_clk_cpu_freq_get();
+  switch (freq)
+  {
+    case RTC_CPU_FREQ_80M:
+      freq_s = "80MHz";
+      break;
+
+    case RTC_CPU_FREQ_160M:
+      freq_s = "160MHz";
+      break;
+
+    default:
+      freq_s = "unknown";
+      break;
+  }
+  MDETAIL("CPU Frequency: %s", freq_s);
   
   // This is updated later when the EEPROM is read
   sprintf(otb_hw_info, "%04x:%04x", 0xffff, 0xffff);

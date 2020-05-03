@@ -33,6 +33,7 @@ typedef enum
 } otb_run_state_t;
 
 void otb_util_init(void *arg);
+void otb_util_state_change(otb_run_state_t state);
 void otb_util_init_uart(void);
 void otb_util_check_log_level(void);
 void otb_util_process_log_level(char log_level);

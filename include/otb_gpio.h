@@ -224,7 +224,7 @@ const otb_gpio_state_t otb_gpio_state_target_boot[OTB_GPIO_ESP8266_NUM_GPIOS] =
     OTB_GPIO_STATE_OUTPUT,
     FALSE,
     FALSE,
-    1,
+    0,
     GPIO_INTR_DISABLE,
     NULL,
     NULL,

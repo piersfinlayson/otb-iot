@@ -470,18 +470,6 @@ con74:
 clean_otb_util_o: FORCE
 	@rm -f $(OTB_OBJ_DIR)/otb_util.o
 
-clean: clean_esptool2 clean_i2c-tools clean_hwinfo clean_docs clean_stage clean_docs
-	@rm -fr bin obj 
-
-clean_hwinfo: FORCE
-	@rm -f $(HWINFO_OBJ_DIR)/*
-
-clean_stage: FORCE
-	@rm -f $(STAGE_OBJ_DIR)/*
-
-clean_esptool2: FORCE
-	@rm -f external/esptool2/*.o esptool2
-
 clean_i2c-tools: FORCE
 	$(MAKE) -C external/i2c-tools EXTRA=eeprog clean
 	@rm -f bin/eeprog
